@@ -79,36 +79,66 @@ teffects ipw (y1) (treat x1 x2 x3 x4 x5 x6 x7), aequations atet nolog
 gen touse = _n<=20
 set seed 1
 gen wgt = max(.1,rnormal(2,.4))
-forvalues i = 20/200 {
+// forvalues i = 20/200 {
+forvalues i = 20/25 {
 gen x`i' = rnormal()
 }
-//expand 1e5 if touse
-expand 5e4 if touse
+// expand 5e4 if touse
+// expand 1e5 if touse
+
+local depvar = "y1"
+local treatvar = "treat"
+// local wgtvar = ""
+local wgtvar = "wgt"
+// local varlist = "x1 i.x2 i.x3 x4 x5 x6 x7 x20-x100"
+// local varlist = "x*"
+local varlist = "x1 i.x2"
+local tousevar = "touse"
+local estimate = "atet"
+
+fvunab varlist : `varlist'
 
 mata:
 
-depvar = "y1"
-treatvar = "treat"
-wgtvar = ""
-wgtvar = "wgt"
-// varlist = "x1 i.x2 i.x3 x4 x5 x6 x7 x20-x100"
-varlist = "x*"
-// varlist = "x1 i.x2"
-tousevar = "touse"
-estimate = "atet"
 
-st_view(X=., ., varlist, tousevar)
-st_view(T=., ., treatvar, tousevar)
-st_view(Y=., ., depvar, tousevar)
-st_select(X0=., X, !T)
-st_select(X1=., X,  T)
-st_select(Y0=., Y, !T)
+depvar   = st_local("depvar"  )
+treatvar = st_local("treatvar")
+wgtvar   = st_local("wgtvar"  )
+varlist  = st_local("varlist" )
+tousevar = st_local("tousevar")
+estimate = st_local("estimate")
+
+
+X=T=Y=X0=X1=Y0=.
+st_view(X, ., varlist, tousevar)
+st_view(T, ., treatvar, tousevar)
+st_view(Y, ., depvar, tousevar)
+st_select(X0, X, !T)
+st_select(X1, X,  T)
+st_select(Y0, Y, !T)
 
 if (wgtvar=="") W=W0=W1=1
 else {
-st_view(W=., ., wgtvar, tousevar)
-st_select(W0=., W, !T)
-st_select(W1=., W,  T)
+  W=W0=W1=.
+  st_view(W, ., wgtvar, tousevar)
+  st_select(W0, W, !T)
+  st_select(W1, W,  T)
+}
+
+
+// Define function colvariance(x,w) == diagonal(quadvariance(x,w))'
+// This function can be a lot faster than quadvariance, especially when you have lots of columns.
+// Optionally, you can provide weights and/or provide a rowvector with the column means.
+real rowvector colvariance(real matrix X,| real colvector w, real rowvector Xbar) {
+  real rowvector v
+  if (args()<2) w = 1
+  if (args()<3) Xbar = mean(X,w)
+  
+  // TODO: See if I can do this with cross() or quadcross(). They are supposed to be (1) most effeicient and (2) quicker w/ views.
+  //       The problem is that I create a giant matrix  and THEN take its colsum
+  if (w==1) v = quadcolsum( (X:-Xbar):^2)     / (rows(X)-1)
+  else      v = quadcolsum(((X:-Xbar):^2):*w) / (quadcolsum(w)-1)
+  return(v) // For testing, try mreldif(v, diagonal(quadvariance(X, w))')
 }
 
 // (T,Y,X)
@@ -117,50 +147,27 @@ st_select(W1=., W,  T)
 
 X0bar = mean(X0,W0)
 X1bar = mean(X1,W1)
-// diff  = X0bar :- X1bar
-// diff
+diff  = X1bar :- X0bar
 
 // to normalize weights 
 // w_norm = w :/ (rows(w) / quadcolsum(w))
 
-// colvariance(x,w) equivalent to diagonal(quadvariance(x,w))'
-// but it is a lot faster when there are lots of columns
-real rowvector colvariance(real matrix X,| real colvector w, real rowvector means) {
-  real rowvector v
-  if (args()<2) w = 1
-  if (args()<3) means = mean(X,w)
-  
-  // cand this be done with cross() or quadcross()? they are supposed to be quicker w/ views
-  // the problem is that the () mean that I create this giant matrix before taking its sum
-  if (w==1) v = quadcolsum( (X:-means):^2)     / (rows(X)-1)
-  else      v = quadcolsum(((X:-means):^2):*w) / (quadcolsum(w)-1)
-  return(v)
-}
+X0var = colvariance(X0,W0,X0bar)
+X1var = colvariance(X1,W1,X1bar)
 
+stddiff = diff :/ ((X0var:+X1var)/2)
 
-timer_on(1)
-variances = colvariance(X,W) // , X0bar)
-// colvariance(X0,W0) // , X0bar)
-// colvariance(X1,W1) // , X1bar)
-timer_off(1)
+ratiovar = X1var :/ X0var
+           
+varlist
+st_viewvars(X)
+//st_varname(st_viewvars(X),1)
+(X1bar \ X0bar \ diff \ X1var \ X0var \ stddiff \ ratiovar)'
 
-/*
-timer_on(2)
-diagonal(quadvariance(X, W))'
-// diagonal(quadvariance(X0, W0))'
-// diagonal(quadvariance(X1, W1))'
-
-// : var   = meanvariance(X)
-// : means = var[1,.]
-// : var   = var[|2,1 \ .,.|]
-
-timer_off(2)
-*/
-mreldif( variances, diagonal(quadvariance(X, W))' )
-
-timer()
 
 end
+
+exit
 
 qui sum x1 if touse [iw=wgt]
 di r(Var)
