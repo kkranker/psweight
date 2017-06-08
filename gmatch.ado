@@ -1,4 +1,5 @@
 clear all
+mac drop _all
 cls
 set varabbrev off
 set scheme mpr_blue
@@ -76,9 +77,10 @@ teffects ipw (y1) (treat x1 x2 x3 x4 x5 x6 x7), aequations atet nolog
 
 */
 
-gen touse = _n<=20
+local if if _n<=20
 set seed 1
 gen wgt = max(.1,rnormal(2,.4))
+gen fwgt = round(rnormal(2,.4))
 // forvalues i = 20/200 {
 forvalues i = 20/25 {
 gen x`i' = rnormal()
@@ -88,34 +90,49 @@ gen x`i' = rnormal()
 
 local depvar = "y1"
 local treatvar = "treat"
-// local wgtvar = ""
-local wgtvar = "wgt"
-// local varlist = "x1 i.x2 i.x3 x4 x5 x6 x7 x20-x100"
+local varlist = "x1 i.x2 i.x3 x4 x5 x6 x7 x2*"
 // local varlist = "x*"
-local varlist = "x1 i.x2"
+// local varlist = "x1 ib0.x2"
+//local wgtvar = "wgt"
+//local wgtvar = "fwgt"
 local tousevar = "touse"
 local estimate = "atet"
 
-fvunab varlist : `varlist'
+// some automatic parsing based on options above
+if "`wgtvar'"!="" local wgtexp "[iw=`wgtvar']"
+mark    `tousevar' `if' `in' `wgtexp'
+markout `tousevar' `depvar' `treatvar' `varlist'
+_rmdcoll `treatvar' `varlist' if `tousevar' `wgtexp', noconstant expand
+// fvexpand `varlist' if `tousevar'
+local varlist `r(varlist)'
+forvalues j=1/`: list sizeof varlist' {
+  local v : word `j' of `varlist'
+  _ms_parse_parts `v'
+  if !r(omit) local varlist1 `"`varlist1' `v'"'
+}
+local varlist : copy local varlist1
+
 
 mata:
-
 
 depvar   = st_local("depvar"  )
 treatvar = st_local("treatvar")
 wgtvar   = st_local("wgtvar"  )
-varlist  = st_local("varlist" )
+varlist  = tokens(st_local("varlist"))
 tousevar = st_local("tousevar")
 estimate = st_local("estimate")
 
+covars   = 0 // set =1 to calculate covariancess
 
 X=T=Y=X0=X1=Y0=.
 st_view(X, ., varlist, tousevar)
 st_view(T, ., treatvar, tousevar)
-st_view(Y, ., depvar, tousevar)
 st_select(X0, X, !T)
 st_select(X1, X,  T)
-st_select(Y0, Y, !T)
+if (depvar!="") {
+  st_view(Y, ., depvar, tousevar)
+  st_select(Y0, Y, !T)
+}
 
 if (wgtvar=="") W=W0=W1=1
 else {
@@ -124,51 +141,85 @@ else {
   st_select(W0, W, !T)
   st_select(W1, W,  T)
 }
+// to normalize weights
+// w_norm = w :/ (rows(w) / quadcolsum(w))
 
+// sample sizes
+if (W==1) {
+  N0 = N0_raw = rows(X0)
+  N1 = N1_raw = rows(X1)
+}
+else {
+  N0 = quadcolsum(W0)
+  N1 = quadcolsum(W1)
+  N0_raw = rows(X0)
+  N1_raw = rows(X1)
+}
+
+// means
+means0 = mean(X0,W0)
+means1 = mean(X1,W1)
 
 // Define function colvariance(x,w) == diagonal(quadvariance(x,w))'
 // This function can be a lot faster than quadvariance, especially when you have lots of columns.
 // Optionally, you can provide weights and/or provide a rowvector with the column means.
-real rowvector colvariance(real matrix X,| real colvector w, real rowvector Xbar) {
+// For testing, mreldif(colvariance(X, w), diagonal(quadvariance(X, w))') should be small
+real rowvector colvariance(real matrix X,| real colvector w, real rowvector Xbar)
+{
   real rowvector v
-  if (args()<2) w = 1
+  if (args()==1) w = 1
   if (args()<3) Xbar = mean(X,w)
-  
-  // TODO: See if I can do this with cross() or quadcross(). They are supposed to be (1) most effeicient and (2) quicker w/ views.
-  //       The problem is that I create a giant matrix  and THEN take its colsum
+
   if (w==1) v = quadcolsum( (X:-Xbar):^2)     / (rows(X)-1)
   else      v = quadcolsum(((X:-Xbar):^2):*w) / (quadcolsum(w)-1)
-  return(v) // For testing, try mreldif(v, diagonal(quadvariance(X, w))')
+  return(v)
 }
 
-// (T,Y,X)
-// X1
-// (Y0,X0)
+if (covars) {
+  covariance0 = quadvariance(X0,W0)
+  covariance1 = quadvariance(X1,W1)
+  variance0   = diagonal(covariance0)'
+  variance1   = diagonal(covariance1)'
+}
+else {
+  variance0 = colvariance(X0,W0,means0)
+  variance1 = colvariance(X1,W1,means1)
+}
 
-X0bar = mean(X0,W0)
-X1bar = mean(X1,W1)
-diff  = X1bar :- X0bar
+//  For testing, this should be small:
+mreldif(colvariance(X0, W0), diagonal(quadvariance(X0, W0))')
 
-// to normalize weights 
-// w_norm = w :/ (rows(w) / quadcolsum(w))
+// variable-by-variable measures of imbalance
+diff     = means1 :- means0
+std_diff = diff :/ sqrt((variance1:+variance0)/2)
+ratio    = variance1 :/ variance0
+if (covars) covratio = covariance1 :/ covariance0
 
-X0var = colvariance(X0,W0,X0bar)
-X1var = colvariance(X1,W1,X1bar)
+// scalar summaries
+mean_asd = mean(abs(std_diff'))
+min_asd  =  min(abs(std_diff ))
+max_asd  =  max(abs(std_diff ))
 
-stddiff = diff :/ ((X0var:+X1var)/2)
+// quick display
+( N1_raw+N0_raw, N1+N0 \ N1_raw, N1 \ N0_raw, N0)
+(varlist', strofreal(round((means0 \ means1 \ diff \ std_diff \ variance0 \ variance1 \ ratio)' , .0001)))
+(mean_asd , min_asd , max_asd)
 
-ratiovar = X1var :/ X0var
-           
-varlist
-st_viewvars(X)
-//st_varname(st_viewvars(X),1)
-(X1bar \ X0bar \ diff \ X1var \ X0var \ stddiff \ ratiovar)'
+// if (covars) {
+//   covariance0
+//   covariance1
+//   covarratio
+// }
 
 
 end
 
 exit
-
-qui sum x1 if touse [iw=wgt]
-di r(Var)
-tabstat x* if touse [iw=wgt], s(mean var n) col(v)
+qui teffects ipw (`depvar') (`treatvar' `varlist') if `tousevar' `wgtexp', `estimate' aequations
+set tracedepth 3
+//set trace on
+tebalance summarize, baseline
+mat list r(table)
+tebalance summarize
+mat list r(table)
+mat list r(size)
