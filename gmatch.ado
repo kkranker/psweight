@@ -6,7 +6,7 @@ set scheme mpr_blue
 set linesize 160
 cap log close _all
 local makegraphs = 01
-cd "C:\Users\kkranker\Documents\Stata\Multiple-Equation-Models\"
+cd "C:\Users\kkranker\Documents\Stata\Ado\Devel\"
 
 
 // Multiple-equation models: An introduction and potential applications to our work at Mathematica
@@ -29,7 +29,7 @@ di as txt "Current user: `c(username)'" _n "Environment: `c(os)' `c(machine_type
 
 *** Input data file (simple_cattaneo_data) comes from the program named Make_example_datasets.do (in C:\Users\kkranker\Documents\Stata\Multiple-Equation-Models)
 
-use simple_cattaneo_data
+use "C:\Users\kkranker\Documents\Stata\Multiple-Equation-Models\simple_cattaneo_data.dta"
 desc, short
 notes _dta
 summ, sep(0)
@@ -164,14 +164,14 @@ means1 = mean(X1,W1)
 // This function can be a lot faster than quadvariance, especially when you have lots of columns.
 // Optionally, you can provide weights and/or provide a rowvector with the column means.
 // For testing, mreldif(colvariance(X, w), diagonal(quadvariance(X, w))') should be small
-real rowvector colvariance(real matrix X,| real colvector w, real rowvector Xbar)
+real rowvector colvariance(real matrix X, | real colvector w, real rowvector Xmean)
 {
   real rowvector v
-  if (args()==1) w = 1
-  if (args()<3) Xbar = mean(X,w)
+  if (args()<2) w = 1
+  if (args()<3) Xmean = mean(X,w)
 
-  if (w==1) v = quadcolsum( (X:-Xbar):^2)     / (rows(X)-1)
-  else      v = quadcolsum(((X:-Xbar):^2):*w) / (quadcolsum(w)-1)
+  if (w==1) v = quadcolsum( (X:-Xmean):^2)     / (rows(X)-1)
+  else      v = quadcolsum(((X:-Xmean):^2):*w) / (quadcolsum(w)-1)
   return(v)
 }
 
@@ -200,9 +200,38 @@ mean_asd = mean(abs(std_diff'))
 min_asd  =  min(abs(std_diff ))
 max_asd  =  max(abs(std_diff ))
 
+// Define function to run OLS regression model (coefficients only)
+// A contant term is included in the regression, but its coefficient
+// is dropped from output (so number of coefficients matches number of columns)
+real matrix olsbeta(real colvector y, real matrix X, | real colvector w)
+{
+  real colvector beta
+  real scalar C
+  real matrix XX, Xy
+  if (args()<3) w=1
+  C = cols(X)
+  XX = quadcross(X, 1, w, X, 1)
+  Xy = quadcross(X, 1, w, y, 0)
+  beta  = invsym(XX,++C)*Xy
+  return(beta[1..--C]')
+}
+
+
+// Differences times the coefficients of OLS on Y using the treated observations
+invsym(quadvariance(X,W))
+diff_beta0    = diff :* olsbeta(Y0, X0, W0)
+// stata("regress "+depvar+" "+invtokens(varlist)+" if 0=="+treatvar+" & 1=="+tousevar); olsbeta(Y0, X0, W0)
+diff_alpha    = diff :* olsbeta(T, X, W)
+
+/* this is wrong
+diff_invD     = diff * invsym(quadvariance(X,W))
+diff_invDdiag = diff * invsym(diag(colvariance(X,W)))
+ */
+ 
+ 
 // quick display
 ( N1_raw+N0_raw, N1+N0 \ N1_raw, N1 \ N0_raw, N0)
-(varlist', strofreal(round((means0 \ means1 \ diff \ std_diff \ variance0 \ variance1 \ ratio)' , .0001)))
+(varlist', strofreal(round((means0 \ means1 \ diff \ std_diff \ diff_beta0 \ diff_alpha \ diff_invD \ diff_invDdiag \ variance0 \ variance1 \ ratio)' , .0001)))
 (mean_asd , min_asd , max_asd)
 
 // if (covars) {
