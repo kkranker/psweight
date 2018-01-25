@@ -1,3 +1,4 @@
+mata:
 void myols(string scalar varlist,
            string scalar touse,
            string scalar wgtvar,
@@ -37,3 +38,4 @@ void myols(string scalar varlist,
     st_store(., idx, touse, e)
   }
 }
+end
