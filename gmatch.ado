@@ -4,6 +4,7 @@ cls
 set varabbrev off
 set scheme mpr_blue
 set linesize 160
+set maxiter 25
 cap log close _all
 local makegraphs = 01
 cd "C:\Users\kkranker\Documents\Stata\Ado\Devel\"
@@ -17,10 +18,9 @@ cd "C:\Users\kkranker\Documents\Stata\Ado\Devel\"
 // Stata_code_2_IPW.do This program includes all the examples in the powerpoint slides, plus more.
 // This program includes examples of how to code inverse propensity weighting (IPW) estimators using Stata's GMM command
 
-version 14.1
+version 15.1
 set type double
 di as txt "Current user: `c(username)'" _n "Environment: `c(os)' `c(machine_type)' `: environment computername'" _n "Stata: `c(stata_version)'" cond(c(stata_version)==c(version),""," (set to version `c(version)')") _n "Date: " c(current_date) " " c(current_time)
-
 
 
 ************************************************************************************
@@ -77,24 +77,24 @@ teffects ipw (y1) (treat x1 x2 x3 x4 x5 x6 x7), aequations atet nolog
 
 */
 
-local if if _n<=20
+local if if _n<=500
 set seed 1
 gen wgt = max(.1,rnormal(2,.4))
 gen fwgt = round(rnormal(2,.4))
 // forvalues i = 20/200 {
-forvalues i = 20/25 {
-gen x`i' = rnormal()
+forvalues i = 90/95 {
+  gen x`i' = rnormal()
 }
 // expand 5e4 if touse
 // expand 1e5 if touse
 
 local depvar = "y1"
 local treatvar = "treat"
-local varlist = "x1 i.x2 i.x3 x4 x5 x6 x7 x2*"
+local varlist = "x1 i.x2 i.x3 x4 x5 x6 x7 x9*"
 // local varlist = "x*"
 // local varlist = "x1 ib0.x2"
 //local wgtvar = "wgt"
-//local wgtvar = "fwgt"
+local wgtvar = "fwgt"
 local tousevar = "touse"
 local estimate = "atet"
 
@@ -103,6 +103,7 @@ if "`wgtvar'"!="" local wgtexp "[iw=`wgtvar']"
 mark    `tousevar' `if' `in' `wgtexp'
 markout `tousevar' `depvar' `treatvar' `varlist'
 _rmdcoll `treatvar' `varlist' if `tousevar' `wgtexp', noconstant expand
+// _rmcoll `treatvar' `varlist' if `tousevar' `wgtexp', noconstant expand logit touse(`tousevar')
 // fvexpand `varlist' if `tousevar'
 local varlist `r(varlist)'
 forvalues j=1/`: list sizeof varlist' {
@@ -112,68 +113,39 @@ forvalues j=1/`: list sizeof varlist' {
 }
 local varlist : copy local varlist1
 
+include C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\gmatchclass.mata
 
 mata:
 
 depvar   = st_local("depvar"  )
 treatvar = st_local("treatvar")
 wgtvar   = st_local("wgtvar"  )
-varlist  = tokens(st_local("varlist"))
+varlist  = st_local("varlist" )
 tousevar = st_local("tousevar")
 estimate = st_local("estimate")
 
 covars   = 0 // set =1 to calculate covariancess
 
-X=T=Y=X0=X1=Y0=.
-st_view(X, ., varlist, tousevar)
-st_view(T, ., treatvar, tousevar)
-st_select(X0, X, !T)
-st_select(X1, X,  T)
-if (depvar!="") {
-  st_view(Y, ., depvar, tousevar)
-  st_select(Y0, Y, !T)
-}
 
-if (wgtvar=="") W=W0=W1=1
-else {
-  W=W0=W1=.
-  st_view(W, ., wgtvar, tousevar)
-  st_select(W0, W, !T)
-  st_select(W1, W,  T)
-}
+D = gmatch()
+D.set_X(st_local("varlist") ,st_local("tousevar"))
+D.set_T(st_local("treatvar"),st_local("tousevar"))
+
+D.diff()
+D.stddiff()
+D.stddiff(1)
+_error("stop")
+
+if (depvar!="") D.set_Y(st_local("depvar"),st_local("tousevar"))
+if (wgtvar!="") D.set_W(st_local("wgtvar"),st_local("tousevar"),0)
+D.diff()
+D.stddiff()
+
+
 // to normalize weights
-// w_norm = w :/ (rows(w) / quadcolsum(w))
 
-// sample sizes
-if (W==1) {
-  N0 = N0_raw = rows(X0)
-  N1 = N1_raw = rows(X1)
-}
-else {
-  N0 = quadcolsum(W0)
-  N1 = quadcolsum(W1)
-  N0_raw = rows(X0)
-  N1_raw = rows(X1)
-}
 
-// means
-means0 = mean(X0,W0)
-means1 = mean(X1,W1)
-
-// Define function colvariance(x,w) == diagonal(quadvariance(x,w))'
-// This function can be a lot faster than quadvariance, especially when you have lots of columns.
-// Optionally, you can provide weights and/or provide a rowvector with the column means.
-// For testing, mreldif(colvariance(X, w), diagonal(quadvariance(X, w))') should be small
-real rowvector colvariance(real matrix X, | real colvector w, real rowvector Xmean)
-{
-  real rowvector v
-  if (args()<2) w = 1
-  if (args()<3) Xmean = mean(X,w)
-
-  if (w==1) v = quadcolsum( (X:-Xmean):^2)     / (rows(X)-1)
-  else      v = quadcolsum(((X:-Xmean):^2):*w) / (quadcolsum(w)-1)
-  return(v)
-}
+/* testing */ mreldif(diagvariance(X0, W0), diagonal(quadvariance(X0, W0))')
 
 if (covars) {
   covariance0 = quadvariance(X0,W0)
@@ -182,15 +154,12 @@ if (covars) {
   variance1   = diagonal(covariance1)'
 }
 else {
-  variance0 = colvariance(X0,W0,means0)
-  variance1 = colvariance(X1,W1,means1)
+  variance0 = diagvariance(X0,W0,means0)
+  variance1 = diagvariance(X1,W1,means1)
 }
 
-//  For testing, this should be small:
-mreldif(colvariance(X0, W0), diagonal(quadvariance(X0, W0))')
 
 // variable-by-variable measures of imbalance
-diff     = means1 :- means0
 std_diff = diff :/ sqrt((variance1:+variance0)/2)
 ratio    = variance1 :/ variance0
 if (covars) covratio = covariance1 :/ covariance0
@@ -216,23 +185,100 @@ real matrix olsbeta(real colvector y, real matrix X, | real colvector w)
   return(beta[1..--C]')
 }
 
+// Define a function to get logit model coefficients
+// Source: https://www.stata.com/statalist/archive/2010-10/msg01188.html
+//    From   jpitblado@stata.com (Jeff Pitblado, StataCorp LP)
+//    To   statalist@hsphsun2.harvard.edu
+//    Subject   Re: st: pointing to a class member function (likelihood) with optimize() in mata
+//    Date   Thu, 28 Oct 2010 10:19:51 -0500
+class logit_model {
+        real colvector  y
+        real matrix     X
+        void eval()
+}
+void logit_model::eval( real    scalar          todo,
+                        real    rowvector       beta,
+                        real    scalar          lnf,
+                        real    rowvector       g,
+                        real    matrix          H)
+{
+        real colvector  pm
+        real colvector  xb
+        real colvector  lj
+        real colvector  dllj
+        real colvector  d2llj
+
+        pm      = 2*(this.y :!= 0) :- 1
+        xb      = this.X*beta'
+
+        lj      = invlogit(pm:*xb)
+        if (any(lj :== 0)) {
+                lnf = .
+                return
+        }
+        lnf = quadcolsum(ln(lj))
+        if (todo == 0) return
+
+        dllj    = pm :* invlogit(-pm:*xb)
+        if (missing(dllj)) {
+                lnf = .
+                return
+        }
+        g       = quadcross(dllj, X)
+        if (todo == 1) return
+
+        d2llj   = abs(dllj) :* lj
+        if (missing(d2llj)) {
+                lnf = .
+                return
+        }
+        H       = - quadcross(X, d2llj, X)
+}
+
+void logit_eval(        real    scalar          todo,
+                        real    rowvector       beta,
+                        class   logit_model     M,
+                        real    scalar          lnf,
+                        real    rowvector       g,
+                        real    matrix          H)
+{
+        M.eval(todo,beta,lnf,g,H)
+}
+
+M = logit_model()
+M.y=T
+M.X=(X,J(rows(X),1,1))
+
+S = optimize_init()
+optimize_init_evaluator(S, &logit_eval())
+optimize_init_evaluatortype(S, "d2")
+optimize_init_argument(S, 1, M)
+optimize_init_params(S, J(1,cols(X)+1,0))
+stata("logit `treatvar' `varlist' if `tousevar'")
+optimize(S)
+
 
 // Differences times the coefficients of OLS on Y using the treated observations
 invsym(quadvariance(X,W))
 diff_beta0    = diff :* olsbeta(Y0, X0, W0)
+
 // stata("regress "+depvar+" "+invtokens(varlist)+" if 0=="+treatvar+" & 1=="+tousevar); olsbeta(Y0, X0, W0)
 diff_alpha    = diff :* olsbeta(T, X, W)
 
-/* this is wrong
+// this is wrong
 diff_invD     = diff * invsym(quadvariance(X,W))
-diff_invDdiag = diff * invsym(diag(colvariance(X,W)))
- */
- 
- 
+diff_invDdiag = diff * invsym(diag(diagvariance(X,W)))
+
+
+
 // quick display
 ( N1_raw+N0_raw, N1+N0 \ N1_raw, N1 \ N0_raw, N0)
 (varlist', strofreal(round((means0 \ means1 \ diff \ std_diff \ diff_beta0 \ diff_alpha \ diff_invD \ diff_invDdiag \ variance0 \ variance1 \ ratio)' , .0001)))
 (mean_asd , min_asd , max_asd)
+
+
+
+
 
 // if (covars) {
 //   covariance0
