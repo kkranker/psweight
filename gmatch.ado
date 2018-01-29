@@ -126,136 +126,41 @@ estimate = st_local("estimate")
 
 covars   = 0 // set =1 to calculate covariancess
 
-
 D = gmatch()
-D.set_X(st_local("varlist") ,st_local("tousevar"))
-D.set_T(st_local("treatvar"),st_local("tousevar"))
+D.set(st_local("treatvar"),st_local("varlist") ,st_local("tousevar"))
+if (depvar!="") D.set_Y(st_local("depvar"),st_local("tousevar"))
 
 D.diff()
 D.stddiff()
 D.stddiff(1)
+D.stddiff(0)
+D.varratio(1)
+
+stata("teffects ipw (`depvar') (`treatvar' `varlist') if `tousevar' , atet aequations")
+stata("predict pscore1, tlevel(1) ")
+stata("list `treatvar' pscore1 in 1/20, nolab ")
+
+ipw = D.ipwweights(0)
+
+stata("teffects ipw (`depvar') (`treatvar' `varlist') if `tousevar' , ate aequations")
+ipw = D.ipwweights(1)
+
+
 _error("stop")
 
-if (depvar!="") D.set_Y(st_local("depvar"),st_local("tousevar"))
-if (wgtvar!="") D.set_W(st_local("wgtvar"),st_local("tousevar"),0)
-D.diff()
-D.stddiff()
+
+D = gmatch()
+D.set(st_local("treatvar"),st_local("varlist") ,st_local("tousevar"),st_local("wgtvar"))
+D.stddiff(1)
+
+D.mean_asd
+D.min_asd
+D.max_asd
 
 
-// to normalize weights
+stata("logit `treatvar' `varlist' if `tousevar' [iw=`wgtvar']")
+D.ipwweights()
 
-
-/* testing */ mreldif(diagvariance(X0, W0), diagonal(quadvariance(X0, W0))')
-
-if (covars) {
-  covariance0 = quadvariance(X0,W0)
-  covariance1 = quadvariance(X1,W1)
-  variance0   = diagonal(covariance0)'
-  variance1   = diagonal(covariance1)'
-}
-else {
-  variance0 = diagvariance(X0,W0,means0)
-  variance1 = diagvariance(X1,W1,means1)
-}
-
-
-// variable-by-variable measures of imbalance
-std_diff = diff :/ sqrt((variance1:+variance0)/2)
-ratio    = variance1 :/ variance0
-if (covars) covratio = covariance1 :/ covariance0
-
-// scalar summaries
-mean_asd = mean(abs(std_diff'))
-min_asd  =  min(abs(std_diff ))
-max_asd  =  max(abs(std_diff ))
-
-// Define function to run OLS regression model (coefficients only)
-// A contant term is included in the regression, but its coefficient
-// is dropped from output (so number of coefficients matches number of columns)
-real matrix olsbeta(real colvector y, real matrix X, | real colvector w)
-{
-  real colvector beta
-  real scalar C
-  real matrix XX, Xy
-  if (args()<3) w=1
-  C = cols(X)
-  XX = quadcross(X, 1, w, X, 1)
-  Xy = quadcross(X, 1, w, y, 0)
-  beta  = invsym(XX,++C)*Xy
-  return(beta[1..--C]')
-}
-
-// Define a function to get logit model coefficients
-// Source: https://www.stata.com/statalist/archive/2010-10/msg01188.html
-//    From   jpitblado@stata.com (Jeff Pitblado, StataCorp LP)
-//    To   statalist@hsphsun2.harvard.edu
-//    Subject   Re: st: pointing to a class member function (likelihood) with optimize() in mata
-//    Date   Thu, 28 Oct 2010 10:19:51 -0500
-class logit_model {
-        real colvector  y
-        real matrix     X
-        void eval()
-}
-void logit_model::eval( real    scalar          todo,
-                        real    rowvector       beta,
-                        real    scalar          lnf,
-                        real    rowvector       g,
-                        real    matrix          H)
-{
-        real colvector  pm
-        real colvector  xb
-        real colvector  lj
-        real colvector  dllj
-        real colvector  d2llj
-
-        pm      = 2*(this.y :!= 0) :- 1
-        xb      = this.X*beta'
-
-        lj      = invlogit(pm:*xb)
-        if (any(lj :== 0)) {
-                lnf = .
-                return
-        }
-        lnf = quadcolsum(ln(lj))
-        if (todo == 0) return
-
-        dllj    = pm :* invlogit(-pm:*xb)
-        if (missing(dllj)) {
-                lnf = .
-                return
-        }
-        g       = quadcross(dllj, X)
-        if (todo == 1) return
-
-        d2llj   = abs(dllj) :* lj
-        if (missing(d2llj)) {
-                lnf = .
-                return
-        }
-        H       = - quadcross(X, d2llj, X)
-}
-
-void logit_eval(        real    scalar          todo,
-                        real    rowvector       beta,
-                        class   logit_model     M,
-                        real    scalar          lnf,
-                        real    rowvector       g,
-                        real    matrix          H)
-{
-        M.eval(todo,beta,lnf,g,H)
-}
-
-M = logit_model()
-M.y=T
-M.X=(X,J(rows(X),1,1))
-
-S = optimize_init()
-optimize_init_evaluator(S, &logit_eval())
-optimize_init_evaluatortype(S, "d2")
-optimize_init_argument(S, 1, M)
-optimize_init_params(S, J(1,cols(X)+1,0))
-stata("logit `treatvar' `varlist' if `tousevar'")
-optimize(S)
 
 
 // Differences times the coefficients of OLS on Y using the treated observations
