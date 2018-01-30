@@ -139,29 +139,29 @@ D.varratio(1)
 stata("teffects ipw (`depvar') (`treatvar' `varlist') if `tousevar' , atet aequations")
 stata("predict pscore1, tlevel(1) ")
 stata("list `treatvar' pscore1 in 1/20, nolab ")
-
 ipw = D.ipwweights(0)
 
 stata("teffects ipw (`depvar') (`treatvar' `varlist') if `tousevar' , ate aequations")
 ipw = D.ipwweights(1)
 
 
-_error("stop")
+D2 = gmatch()
+D2.set(st_local("treatvar"),st_local("varlist") ,st_local("tousevar"),st_local("wgtvar"))
+if (depvar!="") D2.set_Y(st_local("depvar"),st_local("tousevar"))
+D2.stddiff(1)
+
+D2.mean_asd
+D2.min_asd
+D2.max_asd
+
+stata("teffects ipw (`depvar') (`treatvar' `varlist') if `tousevar' [iw=`wgtvar'], atet aequations")
+ipw = D2.ipwweights(0)
+
+stata("teffects ipw (`depvar') (`treatvar' `varlist') if `tousevar' [iw=`wgtvar'], ate aequations")
+ipw = D2.ipwweights(1)
 
 
-D = gmatch()
-D.set(st_local("treatvar"),st_local("varlist") ,st_local("tousevar"),st_local("wgtvar"))
-D.stddiff(1)
-
-D.mean_asd
-D.min_asd
-D.max_asd
-
-
-stata("logit `treatvar' `varlist' if `tousevar' [iw=`wgtvar']")
-D.ipwweights()
-
-
+/*
 
 // Differences times the coefficients of OLS on Y using the treated observations
 invsym(quadvariance(X,W))
@@ -174,23 +174,7 @@ diff_alpha    = diff :* olsbeta(T, X, W)
 diff_invD     = diff * invsym(quadvariance(X,W))
 diff_invDdiag = diff * invsym(diag(diagvariance(X,W)))
 
-
-
-// quick display
-( N1_raw+N0_raw, N1+N0 \ N1_raw, N1 \ N0_raw, N0)
-(varlist', strofreal(round((means0 \ means1 \ diff \ std_diff \ diff_beta0 \ diff_alpha \ diff_invD \ diff_invDdiag \ variance0 \ variance1 \ ratio)' , .0001)))
-(mean_asd , min_asd , max_asd)
-
-
-
-
-
-// if (covars) {
-//   covariance0
-//   covariance1
-//   covarratio
-// }
-
+*/
 
 end
 
