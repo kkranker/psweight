@@ -10,9 +10,9 @@ class gmatch
     real matrix      X
     string scalar    treatvar, depvar, wgtvar
     string rowvector varlist
-    real scalar      N1, N0, N1_raw, N0_raw, havewgts
+    real scalar      N1, N0, N1_raw, N0_raw, havewgts, havedepvar
     void             calcmeans(), calcvariances(), calccovariances(), logit_eval()
-    real rowvector   olsbeta(), diagvariance(), logitbeta()
+    real rowvector   olsbeta(), diagvariance(), logit()
     real rowvector   means1, means0, meansP, variances0, variances1, variancesP, covariances0, covariances1, covariancesP
 
   public:
@@ -27,6 +27,7 @@ class gmatch
 // set_W() needs to be called after set_T()
 void gmatch::new()
 {
+  this.havedepvar = 0
   /* */  "New instance of gmatch() created"
   /* */  "gmatch::new() doesn't do anything"
   /* */  "T is " + strofreal(rows(this.T)) + " by " + strofreal(cols(this.T))
@@ -53,6 +54,7 @@ void gmatch::set(string scalar treatvar, string scalar varlist, string scalar to
   this.varlist = tokens(varlist)
   st_view(this.X, ., this.varlist, tousevar)
   /* */  "X is " + strofreal(rows(this.X)) + " by " + strofreal(cols(this.X))
+  /* */  "X contains" ; this.varlist
 
   // Define weights
   if (args()>3) {
@@ -82,6 +84,7 @@ void gmatch::set_Y(string scalar depvar, string scalar tousevar)
 {
   real colvector Y
   this.depvar = depvar
+  this.havedepvar = 1
   Y=.
   st_view(Y, ., this.depvar, tousevar)
   st_select(this.Y0, Y, !this.T)
@@ -95,12 +98,12 @@ void gmatch::calcmeans()
   if (this.havewgts) {
     this.means0 = mean(this.X[this.sel0, .], this.W[this.sel0])
     this.means1 = mean(this.X[this.sel1, .], this.W[this.sel1])
-    this.meansP = mean(this.X              , this.W           )
+    this.meansP = mean(this.X              , this.W)
   }
   else {
     this.means0 = mean(this.X[this.sel0, .])
     this.means1 = mean(this.X[this.sel1, .])
-    this.meansP = mean(this.X              )
+    this.meansP = mean(this.X)
   }
   /* */ "Control group means:"; this.means0
   /* */ "Treatment group means:"; this.means1
@@ -156,12 +159,12 @@ void gmatch::calccovariances()
   if (this.havewgts) {
     this.covariances0 = quadvariance(this.X[this.sel0, .], this.W[this.sel0])
     this.covariances1 = quadvariance(this.X[this.sel1, .], this.W[this.sel1])
-    this.covariancesP = quadvariance(this.X              , this.W           )
+    this.covariancesP = quadvariance(this.X              , this.W)
   }
   else {
     this.covariances0 = quadvariance(this.X[this.sel0, .])
     this.covariances1 = quadvariance(this.X[this.sel1, .])
-    this.covariancesP = quadvariance(this.X              )
+    this.covariancesP = quadvariance(this.X)
   }
   /* */ "Control group covariances:"; this.covariances0
   /* */ "Treatment group covariances:"; this.covariances1
@@ -193,8 +196,8 @@ real rowvector gmatch::stddiff(| real scalar denominator, real scalar cov)
   else _error(strofreal(denominator)+ " is an invalid arguement for gmatch::stddiff()")
 
   this.mean_asd = mean(abs(this.stddiff'))
-  this.min_asd  =  min(abs(this.stddiff ))
-  this.max_asd  =  max(abs(this.stddiff ))
+  this.min_asd  =  min(abs(this.stddiff))
+  this.max_asd  =  max(abs(this.stddiff))
 
   return(this.stddiff)
 }
@@ -242,13 +245,22 @@ real colvector gmatch::ipwweights(| real scalar ate)
   if (ate) ipwwgt = (pm :* (1:/pscore)) :+ (!pm :* (1:/(1:-pscore)))
   else     ipwwgt = pm :+ (!pm :* (pscore:/(1:-pscore)))
 
-  // normalizelize the weights
-  ipwwgt = ipwwgt :/ mean(ipwwgt,this.W)
+  // normalize the weights
+  if (this.havewgts) {
+    ipwwgt[this.sel0]          = ipwwgt[this.sel0] :/ mean(ipwwgt[this.sel0], this.W[this.sel0])
+    if (ate) ipwwgt[this.sel1] = ipwwgt[this.sel1] :/ mean(ipwwgt[this.sel1], this.W[this.sel1])
+  }
+  else {
+    ipwwgt[this.sel0]          = ipwwgt[this.sel0] :/ mean(ipwwgt[this.sel0])
+    if (ate) ipwwgt[this.sel1] = ipwwgt[this.sel1] :/ mean(ipwwgt[this.sel1])
+  }
 
-  /* */ "pm[1..20,.]"; pm[1..20,.]
-  /* */ "pscore[1..20,.]"; pscore[1..20,.]
-  /* */ "ipwwgt[1..20,.]"; ipwwgt[1..20,.]
-  /* */ "POmean: "; mean(this.Y0, ipwwgt[this.sel0]:*this.W)
+  // POMean
+  if (this.havedepvar) {
+    "POmean:"
+    if (this.havewgts) mean(this.Y0, ipwwgt[this.sel0]:*this.W[this.sel0])
+    else               mean(this.Y0, ipwwgt[this.sel0])
+  }
 
   return(ipwwgt)
 }
@@ -256,81 +268,48 @@ real colvector gmatch::ipwweights(| real scalar ate)
 // function that returns IPW weights (based on logit model that regresses T on X)
 real colvector gmatch::logitpscores()
 {
-  real matrix    X1
+  /* */ "begin logitpscores()"
   real rowvector beta
   real colvector pscore
 
-  X1     = (this.X,J(rows(this.X),1,1))
-  beta   = this.logitbeta(this.T, X1)
-  pscore = invlogit(X1*beta')
+  beta   = this.logit(this.T, this.X, this.W)
+  pscore = invlogit((this.X*beta[1..(cols(beta)-1)]') :+ beta[cols(beta)])  // ugly because the last coefficient corresponds to the constant term
   return(pscore)
 }
 
 // Define function to calculate coefficients for a logit regression model
 // A contant term is included in the regression and its coefficient is included in the vector of betas
-// Source: https://www.stata.com/statalist/archive/2010-10/msg01188.html
-//    From   jpitblado@stata.com (Jeff Pitblado, StataCorp LP)
-//    To   statalist@hsphsun2.harvard.edu
-//    Subject   Re: st: pointing to a class member function (likelihood) with optimize() in mata
-//    Date   Thu, 28 Oct 2010 10:19:51 -0500
-real rowvector gmatch::logitbeta(real colvector y, real matrix X)
+real rowvector gmatch::logit(real colvector Y, real matrix X , | real colvector W)
 {
-  real rowvector beta
-  transmorphic S
+  transmorphic M
+  M=moptimize_init()
+  moptimize_init_evaluator(M,&logit_eval())
+  moptimize_init_evaluatortype(M,"lf")
+  moptimize_init_eq_cons(M, 1, "on")
+  moptimize_init_depvar(M,1,Y)
+  moptimize_init_eq_indepvars(M,1,X)
+  moptimize_init_eq_colnames(M,1,(J(1,cols(X),"x") + strofreal((1..cols(X)))))
+  moptimize_init_vcetype(M, "robust")
+  if (args()>2 & W!=1) moptimize_init_weight(M, W)
 
-  S = optimize_init()
-  optimize_init_argument(S, 1, y)
-  optimize_init_argument(S, 2, X)
-  optimize_init_evaluator(S, &logit_eval())
-  optimize_init_evaluatortype(S, "d2")
-  optimize_init_params(S, J(1,cols(X),0))
-
-  beta = optimize(S)
-
-  /* */ "Logit model coefficients & std. errors"; (optimize_result_params(S) \ sqrt(diagonal(optimize_result_V_oim(S)))')'
-
-  return(beta)
+  moptimize(M)
+  /* */ moptimize_result_display(M)
+  return(moptimize_result_coefs(M))
 }
 
-void logit_eval( real scalar    todo,
-                 real rowvector beta,
-                 real colvector y,
-                 real matrix    X,
-                 real scalar    lnf,
-                 real rowvector g,
-                 real matrix    H)
+void logit_eval(transmorphic S, real rowvector beta, real colvector lnf)
 {
-  real colvector  pm
-  real colvector  xb
-  real colvector  lj
-  real colvector  dllj
-  real colvector  d2llj
+  real colvector  Y, pm, xb, lj
+  Y  = moptimize_util_depvar(S, 1)
+  xb = moptimize_util_xb(S, beta, 1)
+  pm = 2*(Y :!= 0) :- 1
+  lj = invlogit(pm:*xb)
 
-  pm      = 2*(y :!= 0) :- 1
-  xb      = X*beta'
-
-  lj      = invlogit(pm:*xb)
   if (any(lj :== 0)) {
-          lnf = .
-          return
+    lnf = .
+    return
   }
-  lnf = quadcolsum(ln(lj))
-  if (todo == 0) return
-
-  dllj    = pm :* invlogit(-pm:*xb)
-  if (missing(dllj)) {
-          lnf = .
-          return
-  }
-  g       = quadcross(dllj, X)
-  if (todo == 1) return
-
-  d2llj   = abs(dllj) :* lj
-  if (missing(d2llj)) {
-          lnf = .
-          return
-  }
-  H       = - quadcross(X, d2llj, X)
+  lnf  = ln(lj)
 }
 
 end
