@@ -1,6 +1,6 @@
-clear all
 mac drop _all
-cls
+// clear all
+// cls
 set varabbrev off
 set scheme mpr_blue
 set linesize 160
@@ -17,6 +17,8 @@ cd "C:\Users\kkranker\Documents\Stata\Ado\Devel\"
 
 // Stata_code_2_IPW.do This program includes all the examples in the powerpoint slides, plus more.
 // This program includes examples of how to code inverse propensity weighting (IPW) estimators using Stata's GMM command
+
+// include C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\gmatchclass.mata
 
 version 15.1
 set type double
@@ -48,7 +50,7 @@ corr treat y1 y1_binary
 * moment evaluator program for IPW - link the two equations
 program gmm_ipw
 	version 13.1
-	syntax varlist if [fw aw iw pw], at(name) depvar(varname numeric) treat(varname numeric)
+	syntax varlist if [fw aw iw pw], at(name) depvars(varname numeric) treat(varname numeric)
 	gettoken resid1 resid2: varlist
 	tempvar xb1 pr wgt xb2
 	quietly {
@@ -64,13 +66,13 @@ program gmm_ipw
 
 		// Weighted OLS model
 		matrix score `xb2' = `at' `if', eq(ols)
-		replace `resid2' = `wgt' * (`depvar' - `xb2') `if'
+		replace `resid2' = `wgt' * (`depvars' - `xb2') `if'
 	}
 end
 gmm gmm_ipw, equations(logit ols)  ///
 	 instruments(logit: x1 x2 x3 x4 x5 x6 x7) instruments(ols: treat) ///
 	 parameters(logit:x1 logit:x2 logit:x3 logit:x4 logit:x5 logit:x6 logit:x7 logit:_cons ols:treat ols:_cons) ///
-	 depvar(y1) treat(treat) winitial(unadjusted, indep) onestep nolog
+	 depvars(y1) treat(treat) winitial(unadjusted, indep) onestep nolog
 
 * teffects IPW (ATET)
 teffects ipw (y1) (treat x1 x2 x3 x4 x5 x6 x7), aequations atet nolog
@@ -88,7 +90,7 @@ forvalues i = 90/95 {
 // expand 5e4 if touse
 // expand 1e5 if touse
 
-local depvar = "y1"
+local depvars = "y1 y1_binary"
 local treatvar = "treat"
 local varlist = "x1 i.x2 i.x3 x4 x5 x6 x7 x9*"
 // local varlist = "x*"
@@ -101,7 +103,7 @@ local estimate = "atet"
 // some automatic parsing based on options above
 if "`wgtvar'"!="" local wgtexp "[iw=`wgtvar']"
 mark    `tousevar' `if' `in' `wgtexp'
-markout `tousevar' `depvar' `treatvar' `varlist'
+markout `tousevar' `depvars' `treatvar' `varlist'
 _rmdcoll `treatvar' `varlist' if `tousevar' `wgtexp', noconstant expand
 // _rmcoll `treatvar' `varlist' if `tousevar' `wgtexp', noconstant expand logit touse(`tousevar')
 // fvexpand `varlist' if `tousevar'
@@ -113,63 +115,88 @@ forvalues j=1/`: list sizeof varlist' {
 }
 local varlist : copy local varlist1
 
-include C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\gmatchclass.mata
 
 mata:
 
-depvar   = st_local("depvar"  )
+depvars  = st_local("depvars"  )
 treatvar = st_local("treatvar")
 wgtvar   = st_local("wgtvar"  )
 varlist  = st_local("varlist" )
 tousevar = st_local("tousevar")
 estimate = st_local("estimate")
 
-covars   = 0 // set =1 to calculate covariancess
+// ****************************
+// * UNWEIGHTED DATA EXAMPLES *
+// ****************************
 
 D = gmatch()
 D.set(st_local("treatvar"),st_local("varlist") ,st_local("tousevar"))
-if (depvar!="") D.set_Y(st_local("depvar"),st_local("tousevar"))
+if (depvars!="") D.set_Y(st_local("depvars"),st_local("tousevar"))
 
 D.diff()
 D.stddiff()
 D.stddiff(1)
-D.stddiff(0)
-D.varratio(1)
 
-stata("teffects ipw (`depvar') (`treatvar' `varlist') if `tousevar' , atet aequations")
+D.stddiff(0)
+D.varratio()
+D.prognosticdiff()
+
+
+D_M = gmatch()
+
+D_M.clone(D)
+stata("qui teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' , atet aequations")
+iwpweight = D.ipw("atet")
+D_M.multweight(iwpweight)
+
+stata("di _b[POmean:0.treat]")
+D_M.pomean()
+
+stata("tebalance summarize")
+table = D.balancetable(3)
+table = D_M.balancetable(3)
+
+_error("stop")
+
+stata("teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' , atet aequations")
 stata("predict pscore1, tlevel(1) ")
 stata("list `treatvar' pscore1 in 1/20, nolab ")
-ipw = D.ipwweights(0)
+ipw = D.ipw("atet")
 
-stata("teffects ipw (`depvar') (`treatvar' `varlist') if `tousevar' , ate aequations")
-ipw = D.ipwweights(1)
+stata("teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' , ate aequations")
+ipw = D.ipw("ate")
+
+stata("teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' , atet aequations tlevel(0) control(1)")
+ipw = D.ipw("ateu")
 
 
-D2 = gmatch()
-D2.set(st_local("treatvar"),st_local("varlist") ,st_local("tousevar"),st_local("wgtvar"))
-if (depvar!="") D2.set_Y(st_local("depvar"),st_local("tousevar"))
-D2.stddiff(1)
+// **************************
+// * WEIGHTED DATA EXAMPLES *
+// **************************
 
-D2.mean_asd
-D2.min_asd
-D2.max_asd
+D = gmatch()
+D.set(st_local("treatvar"),st_local("varlist") ,st_local("tousevar"),st_local("wgtvar"))
+if (depvars!="") D.set_Y(st_local("depvars"),st_local("tousevar"))
 
-stata("teffects ipw (`depvar') (`treatvar' `varlist') if `tousevar' [iw=`wgtvar'], atet aequations")
-ipw = D2.ipwweights(0)
+D.stddiff(1)
+D.mean_asd
+D.min_asd
+D.max_asd
+D.prognosticdiff()
 
-stata("teffects ipw (`depvar') (`treatvar' `varlist') if `tousevar' [iw=`wgtvar'], ate aequations")
-ipw = D2.ipwweights(1)
+stata("teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' [iw=`wgtvar'], atet aequations")
+stata("tebalance summarize, baseline")
+table = D.balancetable()
+_error("weights from tebalance are weird")
+
+stata("teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' [iw=`wgtvar'], atet aequations")
+ipw = D.ipw("atet")
+
+stata("teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' [iw=`wgtvar'], ate aequations")
+ipw = D.ipw("ate")
 
 
 /*
-
-// Differences times the coefficients of OLS on Y using the treated observations
-invsym(quadvariance(X,W))
-diff_beta0    = diff :* olsbeta(Y0, X0, W0)
-
-// stata("regress "+depvar+" "+invtokens(varlist)+" if 0=="+treatvar+" & 1=="+tousevar); olsbeta(Y0, X0, W0)
-diff_alpha    = diff :* olsbeta(T, X, W)
-
 // this is wrong
 diff_invD     = diff * invsym(quadvariance(X,W))
 diff_invDdiag = diff * invsym(diag(diagvariance(X,W)))
@@ -178,10 +205,7 @@ diff_invDdiag = diff * invsym(diag(diagvariance(X,W)))
 
 end
 
-exit
-qui teffects ipw (`depvar') (`treatvar' `varlist') if `tousevar' `wgtexp', `estimate' aequations
-set tracedepth 3
-//set trace on
+qui teffects ipw (`depvars') (`treatvar' `varlist') if `tousevar' `wgtexp', `estimate' aequations
 tebalance summarize, baseline
 mat list r(table)
 tebalance summarize
