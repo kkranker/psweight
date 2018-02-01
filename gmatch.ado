@@ -4,7 +4,7 @@ mac drop _all
 set varabbrev off
 set scheme mpr_blue
 set linesize 160
-set maxiter 25
+set maxiter 100
 cap log close _all
 local makegraphs = 01
 cd "C:\Users\kkranker\Documents\Stata\Ado\Devel\"
@@ -133,17 +133,37 @@ D = gmatch()
 D.set(st_local("treatvar"),st_local("varlist") ,st_local("tousevar"))
 if (depvars!="") D.set_Y(st_local("depvars"),st_local("tousevar"))
 
+// Misc balance measures
 D.diff()
 D.stddiff()
+D.mean_asd()
 D.stddiff(1)
-
 D.stddiff(0)
 D.varratio()
 D.prognosticdiff()
+D.sd_sq()
+_error("Stop")
+table = D.balancetable(1)
 
-
+// CBPS
+stata(`"cbps `treatvar' `varlist' if `tousevar' , att logit optimization_technique("nr") evaluator_type("gf1")"')
+stata(`"cbps_imbalance"')
 D_M = gmatch()
+D_M.clone(D)
+// cbpsweight = D.cbps("atet","mean_sd_sq")
+// cbpsweight = D.cbps("atet","mean_asd")
+// cbpsweight = D.cbps("atet","max_asd")
+//cbpsweight = D.cbps("atet","cbpsimbalance")
+cbpsweight = D.cbps("atet","sd_sq")
+stata(`"mat list e(b)"')
+D_M.multweight(cbpsweight)
+table = D_M.balancetable(3)
 
+
+_error("Stop here")
+
+// IPW
+D_M = gmatch()
 D_M.clone(D)
 stata("qui teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' , atet aequations")
 iwpweight = D.ipw("atet")
