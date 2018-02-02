@@ -91,6 +91,14 @@ forvalues i = 90/95 {
 // expand 5e4 if touse
 // expand 1e5 if touse
 
+
+// give the sample poor overlap
+tab2    treat x1
+replace x1 = 1 if  treat & runiform()<.85
+replace x1 = 0 if !treat & runiform()<.85
+tab2    treat x1 
+
+
 local depvars = "y1 y1_binary"
 local treatvar = "treat"
 local varlist = "x1 i.x2 i.x3 x4 x5 x6 x7 x9*"
@@ -144,11 +152,11 @@ D.varratio()
 D.prognosticdiff()
 table = D.balancetable(1)
 
-D.set(st_local("treatvar"),st_local("varlist") ,st_local("tousevar"),st_local("wgtvar"))
 
 // CBPS
 stata(`"cbps `treatvar' `varlist' if `tousevar' , att logit optimization_technique("nr") evaluator_type("gf1")"')
 stata(`"cbps_imbalance"')
+
 M = gmatch()
 M.clone(D)
 // cbpsweight = M.cbps("atet","mean_sd_sq",1)
@@ -156,6 +164,7 @@ M.clone(D)
 // cbpsweight = D.cbps("atet","max_asd")
 // cbpsweight = D.cbps("atet","cbpslossST")
 // cbpsweight = D.cbps("atet","cbpsloss")
+cbpsweight = D.cbps("atet","cbpseval_port",3)
 cbpsweight = D.cbps("atet","sd_sq",1)
 cbpsweight = D.cbps("atet","sd_sq_ent",1)
 cbpsweight = D.cbps("atet","sd_sq_cv",1)
