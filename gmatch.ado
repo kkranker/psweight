@@ -5,10 +5,11 @@ set varabbrev off
 set scheme mpr_blue
 set linesize 160
 set maxiter 100
-cap log close _all
+cap log close gmatch_example
 local makegraphs = 01
-cd "C:\Users\kkranker\Documents\Stata\Ado\Devel\"
+cd "C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\"
 
+log using gmatch.log, name(gmatch_example) replace
 
 // Multiple-equation models: An introduction and potential applications to our work at Mathematica
 // Design and methods “brown bag” workshop
@@ -141,40 +142,44 @@ D.stddiff(1)
 D.stddiff(0)
 D.varratio()
 D.prognosticdiff()
-D.sd_sq()
-_error("Stop")
 table = D.balancetable(1)
+
+D.set(st_local("treatvar"),st_local("varlist") ,st_local("tousevar"),st_local("wgtvar"))
 
 // CBPS
 stata(`"cbps `treatvar' `varlist' if `tousevar' , att logit optimization_technique("nr") evaluator_type("gf1")"')
 stata(`"cbps_imbalance"')
-D_M = gmatch()
-D_M.clone(D)
-// cbpsweight = D.cbps("atet","mean_sd_sq")
+M = gmatch()
+M.clone(D)
+// cbpsweight = M.cbps("atet","mean_sd_sq",1)
 // cbpsweight = D.cbps("atet","mean_asd")
 // cbpsweight = D.cbps("atet","max_asd")
-//cbpsweight = D.cbps("atet","cbpsimbalance")
-cbpsweight = D.cbps("atet","sd_sq")
-stata(`"mat list e(b)"')
-D_M.multweight(cbpsweight)
-table = D_M.balancetable(3)
+// cbpsweight = D.cbps("atet","cbpslossST")
+// cbpsweight = D.cbps("atet","cbpsloss")
+cbpsweight = D.cbps("atet","sd_sq",1)
+cbpsweight = D.cbps("atet","sd_sq_ent",1)
+cbpsweight = D.cbps("atet","sd_sq_cv",1)
+
+// cbpsweight = D.cbps("atet","cbpslossOID")
+// cbpsweight = D.cbps("atet","cbpsloss")
+// cbpsweight = D.cbps("atet","cbpsloss2")
 
 
 _error("Stop here")
 
 // IPW
-D_M = gmatch()
-D_M.clone(D)
+M = gmatch()
+M.clone(D)
 stata("qui teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' , atet aequations")
 iwpweight = D.ipw("atet")
-D_M.multweight(iwpweight)
+M.multweight(iwpweight)
 
 stata("di _b[POmean:0.treat]")
-D_M.pomean()
+M.pomean()
 
 stata("tebalance summarize")
 table = D.balancetable(3)
-table = D_M.balancetable(3)
+table = M.balancetable(3)
 
 _error("stop")
 
@@ -231,3 +236,7 @@ mat list r(table)
 tebalance summarize
 mat list r(table)
 mat list r(size)
+
+
+log close gmatch_example
+
