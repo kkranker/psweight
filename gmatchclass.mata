@@ -21,7 +21,7 @@ class gmatch
     real matrix      covariances0, covariances1, covariancesP, covariancesA
 
   public:
-    void             new(), set(), set_W(), set_Y(), clone(), multweight(), cbpseval(), cbpseval2()
+    void             new(), set(), set_W(), set_Y(), clone(), multweight(), cbpseval(), cbpseval_port()
     real rowvector   diff(), stddiff(), varratio(), prognosticdiff(), pomean(), sd_sq(), asd(), cbpsloss(), cbpsloss2(), cbpslossOID()
     real scalar      mean_asd(), max_asd()
     real colvector   ipw(), cbps()
@@ -617,9 +617,9 @@ real colvector gmatch::cbps(| string scalar est, string scalar fctn, real scalar
   /* */   else if (fctn=="asd")             M.asd(denominator)'
   /* */   else if (fctn=="cbpsloss2")       M.cbpsloss2()'
   
-  /* */ "balance table after matching:"; temp = M.balancetable(1)
-  /* */ "entropydistance of control weights"; (this.entropydistance(cbpswgt[this.sel0], this.W_orig[this.sel0]))
-  /* */ "cv of control weights"; (this.diagvariance(cbpswgt[this.sel0], this.W_orig[this.sel0]) :/  mean(cbpswgt[this.sel0], this.W_orig[this.sel0]))
+  /* */ "balance table after matching (" + fctn + "):"; temp = M.balancetable(denominator)
+  /* */ "entropydistance of control weights (" + fctn + "):"; (this.entropydistance(cbpswgt[this.sel0], this.W_orig[this.sel0]))
+  /* */ "cv of control weights (" + fctn + "):"; (sqrt(this.diagvariance(cbpswgt[this.sel0], this.W_orig[this.sel0])) :/  mean(cbpswgt[this.sel0], this.W_orig[this.sel0]))
   
 
   return(cbpswgt)
@@ -654,8 +654,8 @@ void gmatch::cbpseval( real    /* scalar      */   todo,
    else if (fctn=="max_asd")         lnf = this.max_asd(denominator)
    else if (fctn=="cbpslossST")      lnf = this.cbpslossST(denominator)
    else if (fctn=="sd_sq")           lnf = this.sd_sq(denominator)'
-   else if (fctn=="sd_sq_ent")       lnf = this.sd_sq(denominator)' \ .1*(this.entropydistance(cbpswgt[this.sel0], this.W_orig[this.sel0]))
-   else if (fctn=="sd_sq_cv")        lnf = this.sd_sq(denominator)' \ .1*(this.diagvariance(cbpswgt[this.sel0], this.W_orig[this.sel0]) :/  mean(cbpswgt[this.sel0], this.W_orig[this.sel0]))
+   else if (fctn=="sd_sq_ent")       lnf = this.sd_sq(denominator)' \ .5*(this.entropydistance(cbpswgt[this.sel0], this.W_orig[this.sel0]))
+   else if (fctn=="sd_sq_cv")        lnf = this.sd_sq(denominator)' \ (1 - (sqrt(this.diagvariance(cbpswgt[this.sel0], this.W_orig[this.sel0])) :/  mean(cbpswgt[this.sel0], this.W_orig[this.sel0])))^2
    else if (fctn=="asd")             lnf = this.asd(denominator)'
    else if (fctn=="cbpsloss2")       lnf = this.cbpsloss2()'
    else                              _error(fctn + " is invalid with gmatch::cbpseval()")
@@ -668,12 +668,12 @@ void cbps_eval(real todo,real beta,
                string est, string fctn, real denominator, 
                real lnf, real g, real H)
 {
-  //M.cbpseval2(todo,beta,est,fctn,denominator,lnf,g,H)
-  M.cbpseval(todo,beta,est,fctn,denominator,lnf,g,H)
+  if(fctn=="cbpseval_port") M.cbpseval_port(todo,beta,est,fctn,denominator,lnf,g,H)
+  else                           M.cbpseval(todo,beta,est,fctn,denominator,lnf,g,H)
 }
 
 // Port of the gmm.func()  function from CBPS.Binary.R (version 0.17)
-void gmatch::cbpseval2(real    /*scalar        */ todo,
+void gmatch::cbpseval_port(real    /*scalar        */ todo,
                        real    /*rowvector     */ beta,
                        string  /*scalar        */ est,
                        string  /*scalar        */ fctn,
