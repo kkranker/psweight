@@ -12,20 +12,18 @@ class gmatch
     real matrix      X
     string scalar    treatvar, depvars, wgtvar
     string rowvector varlist
-    void             calcmeans(), calcvariances(), calcN()
+    void             calcmeans(), calcvariances(), calcN(), calccovariances()
     real scalar      N1, N0, N, N1_raw, N0_raw, N_raw
-    real scalar      mean_sd_sq()
+    real scalar      mean_sd_sq(), cbpslossST(), entropydistance()
     real rowvector   olsbeta(), diagvariance(), logitfit()
     real colvector   olspredict(), logitpredict(), logitweights()
     real rowvector   means1, means0, variances0, variances1, variancesP, variancesA
-
-  // real matrix variances0, variances1, variancesP
-  // void        calccovariances()
+    real matrix      covariances0, covariances1, covariancesP, covariancesA
 
   public:
-    void             new(), set(), set_W(), set_Y(), clone(), multweight(), cbpseval()
-    real rowvector   diff(), stddiff(), varratio(), prognosticdiff(), pomean(), sd_sq(), asd()
-    real scalar      mean_asd(), max_asd(), cbpsimbalance()
+    void             new(), set(), set_W(), set_Y(), clone(), multweight(), cbpseval(), cbpseval2()
+    real rowvector   diff(), stddiff(), varratio(), prognosticdiff(), pomean(), sd_sq(), asd(), cbpsloss(), cbpsloss2(), cbpslossOID()
+    real scalar      mean_asd(), max_asd()
     real colvector   ipw(), cbps()
     real matrix      balancetable()
 }
@@ -113,6 +111,7 @@ void gmatch::calcN() {
   // They need to be reset because we just reweighted the sample.
   // If I'm re-calcuating sample sizes, this is probably the case.  Set to missing here just to be safe.
   this.means0 = this.means1 = this.variances0 = this.variances1 = this.variancesP = this.variancesA = J(1,0,.)
+  this.covariances0 = this.covariances1 = this.covariancesP = this.covariancesA = J(0,0,.)
 
 }
 
@@ -128,11 +127,14 @@ void gmatch::set_Y(string scalar depvarnames, string scalar tousevar)
 }
 
 // multipy the original weights by something
-void gmatch::multweight(real colvector newweight)
+void gmatch::multweight(|real colvector newweight)
 {
+  if (args()<1) newweight=1
   this.W = this.W_orig :* newweight
-  this.calcN()  // some new weights could be zero.  recalculate N and set means/variances to missing.
-  this.means0 = this.means1 = this.variances0 = this.variances1 = this.variancesP = this.variancesA = J(1,0,.)    // these means/varinaces are saved internally in the class (to avoid computing them over and over).  They need to be reset because we just reweighted the sample.
+  // some new weights could be zero.  recalculate N and set means/variances to missing.
+  this.calcN()  
+  this.means0 = this.means1 = this.variances0 = this.variances1 = this.variancesP = this.variancesA = J(1,0,.)    
+  this.covariances0 = this.covariances1 = this.covariancesP = this.covariancesA = J(0,0,.)
 }
 
 
@@ -184,6 +186,16 @@ real rowvector gmatch::diff()
   return(this.means1 :- this.means0)
 }
 
+
+real scalar gmatch::entropydistance(real colvector x, | real colvector w) {
+  real colvector e
+  if (args()<2) w=1
+  e = x :* ln( x :* length(x) )
+  return( mean(e, 1) )
+  //return( quadcolsum( e ) )
+}
+
+
 // Define function diagvariance(x, w) == diagonal(quadvariance(x, w))'
 // This function can be a lot faster than quadvariance, especially when you have lots of columns.
 // Optionally, you can provide weights and/or provide a rowvector with the column means.
@@ -215,31 +227,31 @@ void gmatch::calcvariances()
   // /* */ "Average of variances from treatment and control groups"; this.variancesA
 }
 
-//  // This function calculates the variances for the T and C group,
-//  // and saves the results in private variables
-//  void gmatch::calccovariances()
-//  {
-//    if (all(this.W:==1)) {
-//      this.covariances0 = quadvariance(this.X[this.sel0, .])
-//      this.covariances1 = quadvariance(this.X[this.sel1, .])
-//      this.covariancesP = quadvariance(this.X)
-//    }
-//    else {
-//      this.covariances0 = quadvariance(this.X[this.sel0, .], this.W[this.sel0])
-//      this.covariances1 = quadvariance(this.X[this.sel1, .], this.W[this.sel1])
-//      this.covariancesP = quadvariance(this.X, this.W)
-//    }
-//    this.covariancesA = (this.covariances0 :+ cothis.variances1) :/ 2
-//    // /* */ "Control group covariances:"; this.covariances0
-//    // /* */ "Treatment group covariances:"; this.covariances1
-//    // /* */ "Pooled covariances:"; this.covariancesP
-//    // /* */ "Average of covariances from treatment and control groups"; this.covariancesA
-//    this.variances0 = diagonal(this.covariances0)'
-//    this.variances1 = diagonal(this.covariances1)'
-//    this.variancesP = diagonal(this.covariancesP)'
-//    this.variancesA = diagonal(this.covariancesA)'
-//    // /* */ "Average of variances from treatment and control groups"; this.variancesA
-//  }
+// This function calculates the variances for the T and C group,
+// and saves the results in private variables
+void gmatch::calccovariances()
+{
+  if (all(this.W:==1)) {
+    this.covariances0 = quadvariance(this.X[this.sel0, .])
+    this.covariances1 = quadvariance(this.X[this.sel1, .])
+    this.covariancesP = quadvariance(this.X)
+  }
+  else {
+    this.covariances0 = quadvariance(this.X[this.sel0, .], this.W[this.sel0])
+    this.covariances1 = quadvariance(this.X[this.sel1, .], this.W[this.sel1])
+    this.covariancesP = quadvariance(this.X, this.W)
+  }
+  this.covariancesA = (this.covariances0 :+ this.covariances1) :/ 2
+  // /* */ "Control group covariances:"; this.covariances0
+  // /* */ "Treatment group covariances:"; this.covariances1
+  // /* */ "Pooled covariances:"; this.covariancesP
+  // /* */ "Average of covariances from treatment and control groups"; this.covariancesA
+  this.variances0 = diagonal(this.covariances0)'
+  this.variances1 = diagonal(this.covariances1)'
+  this.variancesP = diagonal(this.covariancesP)'
+  this.variancesA = diagonal(this.covariancesA)'
+  // /* */ "Average of variances from treatment and control groups"; this.variancesA
+}
 
 // This function calculates standardized differences in means between the T and C groups
 // The first argument is optional, and tells the function which variance to use in the denominator
@@ -261,33 +273,99 @@ real rowvector gmatch::stddiff(| real scalar denominator)
 }
 
 // functions to return mean/min/max absolute standardized differences
-real rowvector gmatch::asd(| real scalar denominator) {
+real rowvector gmatch::asd(| real scalar denominator) 
+{
   if (args()<1) denominator=1
   return(abs(this.stddiff(denominator)))
 }
-real rowvector gmatch::sd_sq(| real scalar denominator)  {
+real rowvector gmatch::sd_sq(| real scalar denominator)  
+{
   if (args()<1) denominator=1
   return(this.stddiff(denominator):^2)
 }
-real scalar gmatch::mean_asd(| real scalar denominator)  {
+real scalar gmatch::mean_asd(| real scalar denominator)  
+{
   if (args()<1) denominator=1
   return(mean(this.asd()'))
 }
-real scalar gmatch::max_asd(| real scalar denominator)  {
+real scalar gmatch::max_asd(| real scalar denominator)  
+{
   if (args()<1) denominator=1
   return(max(this.asd()))
 }
-real scalar gmatch::mean_sd_sq(| real scalar denominator) {
+real scalar gmatch::mean_sd_sq(| real scalar denominator) 
+{
   if (args()<1) denominator=1
   return(mean(this.sd_sq()'))
 }
-real scalar gmatch::cbpsimbalance(| real scalar denominator) {
+
+real rowvector gmatch::cbpsloss2() 
+{
+//          abs( (this.W :* X) * invsym(quadcross(this.X,this.W,this.X)) * (this.W :* X)' ) 
+//  return( abs( (this.W :* X) * invsym(quadcross(this.X,this.W,this.X)) * (this.W :* X)' ) )
+          abs( this.W' * X * invsym(quadcross(this.X,this.W,this.X)) * X' * this.W ) 
+  return( abs( this.W' * X * invsym(quadcross(this.X,this.W,this.X)) * X' * this.W )  )
+}
+
+real rowvector gmatch::cbpsloss(real colvector probs, real colvector w, | string scalar est) 
+{
+  real rowvector loss1
+  if (!length(this.covariancesP)) this.calccovariances()
+  loss1 = abs( w' * (this.W :* X) * invsym(quadcross(this.X,this.W,this.X)) * (this.W :* X)' * w )
+  return(loss1)
+}
+
+real rowvector gmatch::cbpslossOID(real colvector probs, real colvector w, | string scalar est) 
+{
+  real colvector w_del, gbar, wx0, wx1, wxP, loss
+  real matrix V, invV
+  if (args()<3) est="ate"
+  
+  // Generate the vector of mean imbalance by weights.
+  w_del = 1/this.N :* (this.W :* this.X)' * (w)
+ 
+  // Generate g-bar, as in the paper.
+  gbar = 1/this.N :* (this.W :* this.X)' * (this.T-probs)
+  gbar = (gbar \ w_del )
+ 
+  // Generate the covariance matrix used in the GMM estimate.
+  // Was for the initial version that calculates the analytic variances.
+  if (strlower(est)=="atet") {
+    wx0   = this.W:^.5:*this.X:*((1:-probs):*probs):^.5
+    wx1   = this.W:^.5:*this.X:*(probs:/(1:-probs)):^.5
+    wxP   = this.W:^.5:*this.X:*(probs):^.5
+  }
+  else if (strlower(est)=="ate") {
+    wx0   = this.W:^.5:*this.X:*((1:-probs):*probs):^.5
+    wx1   = this.W:^.5:*this.X:*(probs:*(1:-probs)):^-.5		
+    wxP   = this.W:^.5:*this.X
+  }
+  else _error(est + " is not allowed.")
+  
+  if (strlower(est)=="atet") {
+    V = ( (1/this.N) :* ((wx0' * wx0) , (wxP' * wxP)) :* (this.N / this.N1)  \
+          (1/this.N) :* ((wxP' * wxP) :* (this.N/this.N1) , (wx1' * wx1) :* (this.N^2/this.N1^2) ) )
+  }
+  else {
+    V = ( (1/this.N) :* ((wx0' * wx0) , (wxP' * wxP)) \
+          (1/this.N) :* ((wxP' * wxP) , (wx1' * wx1)) )
+  }
+  
+  invV = invsym(V)
+  
+  // Calculate the GMM loss
+  loss = gbar' * invV * gbar
+  return(loss)  
+
+}
+
+
+real scalar gmatch::cbpslossST(| real scalar denominator) {
   if (args()<1) denominator=1
-/* raw or weighted N? */
+// raw or weighted N? 
   return(sqrt(quadcolsum(this.X:*this.W)*invsym((this.X:*this.T)'this.X)*quadcolsum(this.X:*this.W)':/this.N_raw^2:*this.N1_raw))
 	return(sqrt(quadcolsum(this.X:*this.W)*invsym((this.X:*this.T)'this.X)*quadcolsum(this.X:*this.W)':/this.N^2:*this.N1))
 }
-
 
 
 // This function calculates ratio of variances between the T and C groups
@@ -365,7 +443,7 @@ real colvector gmatch::ipw(string scalar est)
   real colvector pscore, ipwwgt
   if (args()<1) est="ate"
   beta   = this.logitfit(this.T, this.X, this.W)
-  pscore = this.logitpredict(this.X, beta)
+  pscore = this.logitpredict(this.X, beta, 0)
   ipwwgt = this.logitweights(pscore, est)
   return(ipwwgt)
 }
@@ -381,14 +459,22 @@ real rowvector gmatch::pomean()
 // Function that returns predicted values (e.g., propensity scores) if given the X's and betas, using the logit model functional form
 // If cols(X)+1==cols(beta), the function assumes the last coefficient corresponds to the constant term, and X just doesn't have the constant term
 // Warning: this function doesn't check the conformability; I assume Stata will produce an error with invalid arguments
-real colvector gmatch::logitpredict(real matrix X, real rowvector beta)
+// If trim==1, propensity scores are trimmed at 1e-6 and (1-1e-6)
+real colvector gmatch::logitpredict(real matrix X, real rowvector beta, | real scalar trim)
 {
+  if (args()<3) trim=1
+  real colvector pr
+  
   if (cols(X)+1==cols(beta)) {
-    return(invlogit((X*beta[1..(cols(beta)-1)]') :+ beta[cols(beta)]))
+    pr = invlogit((X*beta[1..(cols(beta)-1)]') :+ beta[cols(beta)])
   }
   else {
-    return(invlogit(X*beta'))
+    pr = invlogit(X*beta')
   }
+  if (trim) {
+    pr = rowmax((J(rows(pr),1,1e-6),rowmin((1:-J(rows(pr),1,1e-6),pr))))
+  }
+  return(pr)
 }
 
 // This turns a vector of pscores into IPW weights. this assumes a logit setup.
@@ -404,18 +490,18 @@ real colvector gmatch::logitweights(real colvector pscore, | string scalar est)
 
   minmax = minmax(pscore)
   if (minmax[1,1]<=0 :| minmax[1,2]>=1) _error("Propensity scores need to be greater than 0 and less than 1.")
-  // /* */ if (minmax[1,1]<=0.03 & (est=="ate" | est=="ateu")) errprintf("Warning: minimum propensity score is %12.0g \n", minmax[1,1])
-  // /* */ if (minmax[1,2]>=0.97 & (est=="ate" | est=="atet")) errprintf("Warning: maximum propensity score is %12.0g \n", minmax[1,2])
+  // /* */ if (minmax[1,1]<=0.03 & (strlower(est)=="ate" | strlower(est)=="ateu")) errprintf("Warning: minimum propensity score is %12.0g \n", minmax[1,1])
+  // /* */ if (minmax[1,2]>=0.97 & (strlower(est)=="ate" | strlower(est)=="atet")) errprintf("Warning: maximum propensity score is %12.0g \n", minmax[1,2])
 
   pm = 1 :- (!this.T)
-  if      (est=="ate")   ipwwgt = (pm :* (1:/pscore)) :+ (!pm :* (1:/(1:-pscore)))
-  else if (est=="atet")  ipwwgt =  pm :+ (!pm :* (pscore:/(1:-pscore)))
-  else if (est=="ateu")  ipwwgt = !pm :+ ( pm :* ((1:-pscore):/pscore))
+  if      (strlower(est)=="ate")   ipwwgt = (pm :* (1:/pscore)) :+ (!pm :* (1:/(1:-pscore)))
+  else if (strlower(est)=="atet")  ipwwgt =  pm :+ (!pm :* (pscore:/(1:-pscore)))
+  else if (strlower(est)=="ateu")  ipwwgt = !pm :+ ( pm :* ((1:-pscore):/pscore))
   else _error(est + " is an invalid argument for gmatch::logitweights()")
 
   // normalize the weights to have mean 1 in each group
-  if (est=="ate" | est=="atet") ipwwgt[this.sel0] = ipwwgt[this.sel0] :/ mean(ipwwgt[this.sel0], this.W[this.sel0])
-  if (est=="ate" | est=="ateu") ipwwgt[this.sel1] = ipwwgt[this.sel1] :/ mean(ipwwgt[this.sel1], this.W[this.sel1])
+  if (strlower(est)=="ate" | strlower(est)=="atet") ipwwgt[this.sel0] = ipwwgt[this.sel0] :/ mean(ipwwgt[this.sel0], this.W[this.sel0])
+  if (strlower(est)=="ate" | strlower(est)=="ateu") ipwwgt[this.sel1] = ipwwgt[this.sel1] :/ mean(ipwwgt[this.sel1], this.W[this.sel1])
 
   return(ipwwgt)
 }
@@ -466,125 +552,174 @@ void logit_eval(transmorphic S, real rowvector beta, real colvector lnf)
 real colvector gmatch::cbps(| string scalar est, string scalar fctn, real scalar denominator)
 {
   real rowvector beta
-  real colvector pscore, cpbswgt
+  real colvector pscore, cbpswgt
+  class gmatch scalar M
   if (args()<1) est="ate"
-  if (args()<2) est="mean_sd_sq"
+  if (args()<2) fctn="sd_sq"
   if (args()<3) denominator=1
 
-  class gmatch scalar M
   M.clone(this)
 
   transmorphic S
   S=optimize_init()
   optimize_init_evaluator(S, &cbps_eval())
   optimize_init_which(S, "min")
-
-  if      (fctn=="cbpsimbalance")   optimize_init_evaluatortype(S,"gf0")
-  else if (fctn=="sd_sq")           optimize_init_evaluatortype(S,"gf0")
-  else if (fctn=="asd")             optimize_init_evaluatortype(S,"gf0")
-  else                              optimize_init_evaluatortype(S,"d0")
+  if (fctn=="cbpsloss" | fctn=="cbpsloss" | fctn=="sd_sq" | fctn=="asd" | fctn=="sd_sq_ent" | fctn=="sd_sq_cv") {
+    optimize_init_evaluatortype(S,"gf0")
+	  optimize_init_conv_ignorenrtol(S, "on")
+  }
+  else {
+    optimize_init_evaluatortype(S,"d0")
+//    optimize_init_evaluatortype(S,"gf0")
+	  optimize_init_conv_ignorenrtol(S, "off")
+  }
   optimize_init_argument(S, 1, M)
   optimize_init_argument(S, 2, est)
   optimize_init_argument(S, 3, fctn)
   optimize_init_argument(S, 4, denominator)
 	optimize_init_singularHmethod(S,"hybrid")
-  optimize_init_technique(S, "bfgs")
+  optimize_init_technique(S, "bfgs 15 nr 15")
 	optimize_init_conv_ptol(S, 1e-7)
 	optimize_init_conv_vtol(S, 1e-8)
-	optimize_init_conv_ignorenrtol(S, "on")
-optimize_init_evaluatortype(S)
-//  optimize_init_tracelevel(S, "params" )
+	optimize_init_conv_nrtol(S, 1e-6)
+  
+  /* */ optimize_init_tracelevel(S, "params" )
+  /* */ optimize_init_tracelevel(S, "none" )
+  /* */ optimize_init_tracelevel(S, "value" )
 
-  "Initial balance (" + fctn + "):"
-    if      (fctn=="mean_sd_sq")      M.mean_sd_sq(denominator)
-    else if (fctn=="mean_asd")        M.mean_asd(denominator)
-    else if (fctn=="max_asd")         M.max_asd(denominator)
-    else if (fctn=="cbpsimbalance")   M.cbpsimbalance(denominator)
-    else if (fctn=="sd_sq")           M.sd_sq(denominator)
-    else if (fctn=="asd")             M.asd(denominator)
-    else                              _error(fctn + " is invalid with gmatch::cbps()")
-    ""
-
+  /* */ real matrix temp
+  /* */ "balance table before matching"; temp = M.balancetable(1)
+  
   "Step 1:"
-    beta =  M.logitfit(M.T, M.X, M.W)
-    M.multweight(M.logitweights(M.logitpredict(M.X, beta), est))
-    "Balance after IPW (" + fctn + "):"
-    if      (fctn=="mean_sd_sq")      M.mean_sd_sq(denominator)
-    else if (fctn=="mean_asd")        M.mean_asd(denominator)
-    else if (fctn=="max_asd")         M.max_asd(denominator)
-    else if (fctn=="cbpsimbalance")   M.cbpsimbalance(denominator)
-    else if (fctn=="sd_sq")           M.sd_sq(denominator)
-    else if (fctn=="asd")             M.asd(denominator)
-    else                              _error(fctn + " is invalid with gmatch::cbps()")
-
-    optimize_init_params(S, beta)
-    // optimize_query(S)
-    /* */ "optimize_result_value0(S)"; optimize_result_value0(S)
-    ""
+  beta =  M.logitfit(M.T, M.X, M.W)
+  optimize_init_params(S, beta)
+  /* */ "optimize_result_value0(S)"; optimize_result_value0(S)
+  ""
 
   "Step 2:"
   (void) optimize(S)
   beta    = optimize_result_params(S)
-  /* */ "CBPS beta"; beta
+  /* */ "CBPS beta"; beta'
+  // /* */ "optimize_result_value(S)" ; optimize_result_value(S)
+  // /* */ "optimize_result_scores(S)" ; optimize_result_scores(S)
+  // /* */ optimize_query(S)
 
-  pscore  = M.logitpredict(M.X, beta)
-  cpbswgt = M.logitweights(pscore, est)
-  M.multweight(cpbswgt)
+  pscore  = M.logitpredict(M.X, beta, 1)
+  cbpswgt = M.logitweights(pscore, est)  
+  M.multweight(cbpswgt)
 
+  "Balance after CBPS (" + fctn + "):"
+  /* */   if      (fctn=="mean_sd_sq")      M.mean_sd_sq(denominator)
+  /* */   else if (fctn=="mean_asd")        M.mean_asd(denominator)
+  /* */   else if (fctn=="max_asd")         M.max_asd(denominator)
+  /* */   else if (fctn=="cbpslossST")      M.cbpslossST(denominator)
+  /* */   else if (fctn=="sd_sq")           M.sd_sq(denominator)'
+  /* */   else if (fctn=="asd")             M.asd(denominator)'
+  /* */   else if (fctn=="cbpsloss2")       M.cbpsloss2()'
+  
+  /* */ "balance table after matching:"; temp = M.balancetable(1)
+  /* */ "entropydistance of control weights"; (this.entropydistance(cbpswgt[this.sel0], this.W_orig[this.sel0]))
+  /* */ "cv of control weights"; (this.diagvariance(cbpswgt[this.sel0], this.W_orig[this.sel0]) :/  mean(cbpswgt[this.sel0], this.W_orig[this.sel0]))
+  
 
-    "Balance after CBPS (" + fctn + "):"
-    if      (fctn=="mean_sd_sq")      M.mean_sd_sq(denominator)
-    else if (fctn=="mean_asd")        M.mean_asd(denominator)
-    else if (fctn=="max_asd")         M.max_asd(denominator)
-    else if (fctn=="cbpsimbalance")   M.cbpsimbalance(denominator)
-    else if (fctn=="sd_sq")           M.sd_sq(denominator)
-    else if (fctn=="asd")             M.asd(denominator)
-    else                              _error(fctn + " is invalid with gmatch::cbps()")
-  /* */ "CBPS cbpsimbalance()"; M.cbpsimbalance(denominator)
-  /* */ "CBPS mean_sd_sq()"; M.mean_sd_sq(denominator)
-  /* */ "CBPS stddiff()"; M.stddiff(denominator)
-  /* */ "optimize_result_value(S)" ; optimize_result_value(S)
-  return(cpbswgt)
+  return(cbpswgt)
 }
 
 
-void cbps_eval(        real   scalar          todo,
-                       real   rowvector       beta,
-                       class  gmatch scalar   M,
-                       string  scalar         est,
-                       string  scalar         fctn,
-                       real    scalar         denominator,
-                       real    colvector      lnf,
-                       real    rowvector      g,
-                       real    matrix         H)
-{
-"Hello 1"
-  M.cbpseval(todo,beta,est,fctn,denominator,lnf,g,H)
-}
 
-void gmatch::cbpseval( real    scalar         todo,
-                       real    rowvector      beta,
-                       string  scalar         est,
-                       string  scalar         fctn,
-                       real    scalar         denominator,
-                       real    colvector      lnf,
-                       real    rowvector      g,
-                       real    matrix         H)
+void gmatch::cbpseval( real    /* scalar      */   todo,
+                       real    /* rowvector   */   beta,
+                       string  /* scalar      */   est,
+                       string  /* scalar      */   fctn,
+                       real    /* scalar      */   denominator,
+                       real    /* colvector   */   lnf,
+                       real    /* rowvector   */   g,
+                       real    /* matrix      */   H)
 {
-"Hello 2"
-   real colvector  pscore, cpbswgt
-   pscore = this.logitpredict(this.X, beta)
-   //pscore = rowmax((J(rows(this.X),1,1e-6),rowmin((1:-J(rows(this.X),1,1e-6),pscore))))
-   cpbswgt = this.logitweights(pscore, est)
-   this.sd_sq(denominator)
-   this.multweight(cpbswgt)
+   real colvector  pscore, cbpswgt
+   pscore = this.logitpredict(this.X, beta, 1)
+   cbpswgt = this.logitweights(pscore, est)
+   
+   if      (fctn=="cbpsloss") {
+                                     lnf = this.cbpsloss(pscore,cbpswgt)'
+     return
+   }
+   else if (fctn=="cbpslossOID") {
+                                     lnf = this.cbpslossOID(pscore,cbpswgt)'
+     return
+   }
+   this.multweight(cbpswgt)
    if      (fctn=="mean_sd_sq")      lnf = this.mean_sd_sq(denominator)
    else if (fctn=="mean_asd")        lnf = this.mean_asd(denominator)
    else if (fctn=="max_asd")         lnf = this.max_asd(denominator)
-   else if (fctn=="cbpsimbalance")   lnf = this.cbpsimbalance(denominator)
-   else if (fctn=="sd_sq")           lnf = this.sd_sq(denominator)
-   else if (fctn=="asd")             lnf = this.asd(denominator)
+   else if (fctn=="cbpslossST")      lnf = this.cbpslossST(denominator)
+   else if (fctn=="sd_sq")           lnf = this.sd_sq(denominator)'
+   else if (fctn=="sd_sq_ent")       lnf = this.sd_sq(denominator)' \ .1*(this.entropydistance(cbpswgt[this.sel0], this.W_orig[this.sel0]))
+   else if (fctn=="sd_sq_cv")        lnf = this.sd_sq(denominator)' \ .1*(this.diagvariance(cbpswgt[this.sel0], this.W_orig[this.sel0]) :/  mean(cbpswgt[this.sel0], this.W_orig[this.sel0]))
+   else if (fctn=="asd")             lnf = this.asd(denominator)'
+   else if (fctn=="cbpsloss2")       lnf = this.cbpsloss2()'
    else                              _error(fctn + " is invalid with gmatch::cbpseval()")
+   
+}
+
+
+void cbps_eval(real todo,real beta,
+               class gmatch scalar M,
+               string est, string fctn, real denominator, 
+               real lnf, real g, real H)
+{
+  //M.cbpseval2(todo,beta,est,fctn,denominator,lnf,g,H)
+  M.cbpseval(todo,beta,est,fctn,denominator,lnf,g,H)
+}
+
+// Port of the gmm.func()  function from CBPS.Binary.R (version 0.17)
+void gmatch::cbpseval2(real    /*scalar        */ todo,
+                       real    /*rowvector     */ beta,
+                       string  /*scalar        */ est,
+                       string  /*scalar        */ fctn,
+                       real    /*scalar        */ denominator,
+                       real    /*colvector     */ lnf,
+                       real    /*rowvector     */ g,
+                       real    /*matrix        */ H)
+{
+    real colvector probs, w, w_del, gbar, wx0, wx1, wxP, loss
+    real matrix V, invV
+    // Designate sample size, number of treated and control observations,
+    // theta, which are used to generate probabilities.
+    // Trim probabilities, and generate weights.
+    probs = this.logitpredict(this.X, beta, 1)
+    w = this.logitweights(probs, est)
+    // Generate the vector of mean imbalance by weights.
+    w_del = 1/this.N :* (this.W :* this.X)' * (w)
+    // Generate g-bar, as in the paper.
+    gbar = 1/this.N :* (this.W :* this.X)' * (this.T-probs)
+    gbar = (gbar \ w_del )
+    // Generate the covariance matrix used in the GMM estimate.
+    if (strlower(est)=="atet") {
+      wx0   = this.W:^.5:*this.X:*((1:-probs):*probs):^.5
+      wx1   = this.W:^.5:*this.X:*(probs:/(1:-probs)):^.5
+      wxP   = this.W:^.5:*this.X:*(probs):^.5
+    }
+    else if (strlower(est)=="ate") {
+      wx0   = this.W:^.5:*this.X:*((1:-probs):*probs):^.5
+      wx1   = this.W:^.5:*this.X:*(probs:*(1:-probs)):^-.5		
+      wxP   = this.W:^.5:*this.X
+    }
+    else _error(est + " is not allowed.")
+    if (strlower(est)=="atet") {
+      V = ( (1/this.N) :* ((wx0' * wx0) , (wxP' * wxP)) :* (this.N / this.N1)  \
+            (1/this.N) :* ((wxP' * wxP) :* (this.N/this.N1) , (wx1' * wx1) :* (this.N^2/this.N1^2) ) )
+    }
+    else {
+      V = ( (1/this.N) :* ((wx0' * wx0) , (wxP' * wxP)) \
+            (1/this.N) :* ((wxP' * wxP) , (wx1' * wx1)) )
+    }
+    
+    invV = invsym(V)
+    
+    // Calculate the GMM loss
+    lnf = gbar' * invV * gbar
+    
 }
 
 
