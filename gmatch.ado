@@ -3,8 +3,8 @@ mac drop _all
 // cls
 set varabbrev off
 set scheme mpr_blue
-set linesize 160
-set maxiter 100
+// set linesize 160
+set maxiter 500
 cap log close gmatch_example
 local makegraphs = 01
 cd "C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\"
@@ -91,12 +91,11 @@ forvalues i = 90/95 {
 // expand 5e4 if touse
 // expand 1e5 if touse
 
-
-// give the sample poor overlap
-tab2    treat x1
-replace x1 = 1 if  treat & runiform()<.85
-replace x1 = 0 if !treat & runiform()<.85
-tab2    treat x1 
+// // give the sample poor overlap
+// tab2    treat x1
+// replace x1 = 1 if  treat & runiform()<.85
+// replace x1 = 0 if !treat & runiform()<.85
+// tab2    treat x1 
 
 
 local depvars = "y1 y1_binary"
@@ -108,6 +107,7 @@ local varlist = "x1 i.x2 i.x3 x4 x5 x6 x7 x9*"
 local wgtvar = "fwgt"
 local tousevar = "touse"
 local estimate = "atet"
+
 
 // some automatic parsing based on options above
 if "`wgtvar'"!="" local wgtexp "[iw=`wgtvar']"
@@ -124,6 +124,9 @@ forvalues j=1/`: list sizeof varlist' {
 }
 local varlist : copy local varlist1
 
+
+fvrevar  `varlist'
+export delimited `treatvar' `r(varlist)' using testfile.csv if `tousevar' , replace  nolabel 
 
 mata:
 
@@ -142,6 +145,7 @@ D = gmatch()
 D.set(st_local("treatvar"),st_local("varlist") ,st_local("tousevar"))
 if (depvars!="") D.set_Y(st_local("depvars"),st_local("tousevar"))
 
+/*
 // Misc balance measures
 D.diff()
 D.stddiff()
@@ -152,22 +156,44 @@ D.varratio()
 D.prognosticdiff()
 table = D.balancetable(1)
 
-
-// CBPS
-stata(`"cbps `treatvar' `varlist' if `tousevar' , att logit optimization_technique("nr") evaluator_type("gf1")"')
-stata(`"cbps_imbalance"')
-
+// IPW
 M = gmatch()
 M.clone(D)
-// cbpsweight = M.cbps("atet","mean_sd_sq",1)
-// cbpsweight = D.cbps("atet","mean_asd")
-// cbpsweight = D.cbps("atet","max_asd")
-// cbpsweight = D.cbps("atet","cbpslossST")
-// cbpsweight = D.cbps("atet","cbpsloss")
-cbpsweight = D.cbps("atet","cbpseval_port",3)
-cbpsweight = D.cbps("atet","sd_sq",1)
-cbpsweight = D.cbps("atet","sd_sq_ent",1)
-cbpsweight = D.cbps("atet","sd_sq_cv",1)
+stata("qui teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' , atet aequations")
+stata("mat list e(b)")
+iwpweight = D.ipw("atet")
+M.multweight(iwpweight)
+stata("di _b[POmean:0.treat]")
+M.pomean()
+stata("tebalance summarize")
+table = D.balancetable(3)
+*/
+
+// CBPS
+stata(`"cbps `treatvar' `varlist' if `tousevar' , ate      logit optimization_technique("nr") evaluator_type("gf1")"')
+stata(`"cbps_imbalance"')
+stata(`"cbps `treatvar' `varlist' if `tousevar' , att      logit optimization_technique("nr") evaluator_type("gf1")"')
+stata(`"cbps_imbalance"')
+stata(`"cbps `treatvar' `varlist' if `tousevar' , att over logit optimization_technique("nr") evaluator_type("gf1")"')
+stata(`"cbps_imbalance"')
+
+ 
+M = gmatch()
+M.clone(D)
+/* */ "balance table before matching"; temp = M.balancetable(1)
+// cbpsweight = M.cbps("atet","mean_asd")
+// cbpsweight = M.cbps("atet","max_asd")
+cbpsweight = M.cbps("ate" , "cbps_moments", 2)
+cbpsweight = M.cbps("atet", "cbps_moments", 2)
+
+_error("Stop here")
+
+// cbpsweight = M.cbps("atet","cbpsloss")
+// cbpsweight = M.cbps("atet","cbpseval_port",2)
+cbpsweight = M.cbps("atet","mean_sd_sq",1)
+cbpsweight = M.cbps("atet","sd_sq",1)
+cbpsweight = M.cbps("atet","mean_sd_sq_ent",1)
+cbpsweight = M.cbps("atet","mean_sd_sq_cv",1)
 
 // cbpsweight = D.cbps("atet","cbpslossOID")
 // cbpsweight = D.cbps("atet","cbpsloss")
@@ -187,7 +213,6 @@ stata("di _b[POmean:0.treat]")
 M.pomean()
 
 stata("tebalance summarize")
-table = D.balancetable(3)
 table = M.balancetable(3)
 
 _error("stop")
