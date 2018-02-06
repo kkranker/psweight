@@ -186,14 +186,23 @@ real rowvector gmatch::diff()
   if (!length(this.means1)) this.calcmeans()
   return(this.means1 :- this.means0)
 }
-
+  
 
 real scalar gmatch::entropydistance(real colvector x, | real colvector w) {
-  real colvector e
-  if (args()<2) w=1
-  e = x :* ln( x :* length(x) )
-  return( mean(e, 1) )
-  //return( quadcolsum( e ) )
+  real colvector e, bw
+  real scalar sumw
+  if (args()<2) {
+    w=1
+    sumw=rows(x)
+  }
+  else {
+    sumw=quadcolsum(w)
+  }
+  
+  // for me, the sum of weights is rows(x) (unweighted) or sum(w) (weighted)
+  // in entropy balancing from Hainmueller et al., the sum of the weights = 1. 
+  e = e :* ln( e :* sumw )
+  return( quadcolsum( e ) )
 }
 
 
@@ -495,7 +504,7 @@ void logit_eval(transmorphic S, real rowvector beta, real colvector lnf)
 //    fctn corresponds to the balance measure
 //        "mean_sd_sq" minimizes the mean standardized difference squared
 //    denominator is passed to stddiff() and related functions
-real colvector gmatch::cbps(| string scalar est, string scalar fctn, real scalar denominator)
+real colvector gmatch::cbps(| string scalar est, string scalar fctn, real scalar denominator, real scalar oid)
 {
   real rowvector beta
   real colvector pscore, cbpswgt
@@ -503,6 +512,7 @@ real colvector gmatch::cbps(| string scalar est, string scalar fctn, real scalar
   if (args()<1) est="ate"
   if (args()<2) fctn="sd_sq"
   if (args()<3) denominator=1
+  if (args()<4) oid=0
 
   M.clone(this)
 
@@ -514,6 +524,7 @@ real colvector gmatch::cbps(| string scalar est, string scalar fctn, real scalar
   optimize_init_argument(S, 2, est)
   optimize_init_argument(S, 3, fctn)
   optimize_init_argument(S, 4, denominator)
+  optimize_init_argument(S, 5, oid)
 	optimize_init_singularHmethod(S,"hybrid")  // equivalent to ml's "difficult" option
   optimize_init_technique(S, "bfgs 15 nr 15")
 	optimize_init_conv_ptol(S, 1e-7)
@@ -528,14 +539,12 @@ real colvector gmatch::cbps(| string scalar est, string scalar fctn, real scalar
   }
   else if (fctn=="cbps_moments") {
     // optimize_init_evaluatortype(S,"d1")
-    optimize_init_conv_ptol(S, 1e-11)
-  	optimize_init_conv_vtol(S, 1e-12)
-    optimize_init_tracelevel(S, "none" )  // "none", "value", "params"
-// this should be automatic
-    optimize_init_evaluatortype(S,"d1")   // d1 if I'm running plain vanilla. otherwise just use "do"
-  optimize_init_evaluatortype(S,"d0")    // numerical gradient
-  optimize_init_evaluatortype(S,"gf1")  // for overidentified version
-	  optimize_init_conv_ignorenrtol(S, "on")
+    optimize_init_conv_ptol(S, 1e-12)
+  	optimize_init_conv_vtol(S, 1e-13)
+    if (oid)  optimize_init_evaluatortype(S,"gf1")  // for overidentified version
+    else      optimize_init_evaluatortype(S,"d1")   // d1 if I'm running plain vanilla. otherwise just use "do" (numerical gradient)
+/* */    optimize_init_tracelevel(S, "none" )  // "none", "value", "params"
+//  optimize_init_conv_ignorenrtol(S, "on")
   }
   else {
     optimize_init_evaluatortype(S,"d0")
@@ -544,21 +553,34 @@ real colvector gmatch::cbps(| string scalar est, string scalar fctn, real scalar
 
 
   "Step 1 (initial values from logit model):"
-  real rowvector betalogit
-  betalogit = M.logitfit(M.T, M.X, M.W)
-  optimize_init_params(S, betalogit)
+  real rowvector beta_logit
+  beta_logit = M.logitfit(M.T, M.X, M.W)
+  optimize_init_params(S, beta_logit)
   // /* */ "  optimize_init_params(S)";   optimize_init_params(S)
   // /* */ "optimize_result_value0(S)"; optimize_result_value0(S)
 
-  
   if (fctn=="cbps_moments") {
-    external real matrix ww
-    ww = M.cbps_wgt_matrix(betalogit, 0, est)
+    real matrix ww
+    ww = M.cbps_wgt_matrix(beta_logit, oid, est)
     ww = invsym(ww)
   }
   else ww = .
-  optimize_init_argument(S, 5, denominator)
+  optimize_init_argument(S, 6, ww)
   ""
+  
+// /* */ real todo, lnf__, g__, H__
+// /* */ cbps_eval(todo=1,beta_logit, M, est, fctn, denominator, oid, ww, lnf__=., g__=., H__=.)
+// /* */  "todo"; todo
+// /* */  "beta_logit"; beta_logit
+// /* */  "est"; est
+// /* */  "fctn"; fctn
+// /* */  "denominator"; denominator
+// /* */  "oid, "; oid
+// /* */  "ww"; ww
+// /* */  "lnf__"; lnf__
+// /* */  "g__ "; g__ 
+// /* */  "H__"; H__
+
 
   "Step 2 (CBPS) :"
   /* */ // This temp code keeps optimize() from producing an error
@@ -607,13 +629,12 @@ real colvector gmatch::cbps(| string scalar est, string scalar fctn, real scalar
   return(cbpswgt)
 }
 
-
-
 void gmatch::cbpseval( real    /* scalar      */   todo,
                        real    /* rowvector   */   beta,
                        string  /* scalar      */   est,
                        string  /* scalar      */   fctn,
                        real    /* scalar      */   denominator,
+                       real    /* scalar      */   oid,
                        real    /* scalar      */   ww,
                        real    /* colvector   */   lnf,
                        real    /* rowvector   */   g,
@@ -633,16 +654,18 @@ void gmatch::cbpseval( real    /* scalar      */   todo,
      return
    }
    else */  if (fctn=="cbps_moments") {
-     real matrix dpscore, gg, grad, oid
-     oid = 1
+     real matrix dpscore, gg, G
      dpscore = pscore:*(1:-pscore)
      gg = this.cbps_moments(pscore, dpscore, oid, est)
+// /* */  "gg' is " + strofreal(rows(gg')) + " by " + strofreal(cols(gg'))
+// /* */  "ww is " + strofreal(rows(ww)) + " by " + strofreal(cols(ww))
+// /* */  "gg is " + strofreal(rows(gg)) + " by " + strofreal(cols(gg))
      lnf = gg' * ww * gg
  ///* */  "lnf is " + strofreal(rows(lnf)) + " by " + strofreal(cols(lnf))
      if (todo==0) return
-     grad = this.cbpsgradient(pscore, oid , est)
- ///* */  "grad is " + strofreal(rows(grad)) + " by " + strofreal(cols(grad))
-     g = grad' * ww * gg :* (2:*this.N)
+     G = this.cbpsgradient(pscore, oid, est)
+ ///* */  "grad is " + strofreal(rows(G)) + " by " + strofreal(cols(grad))
+     g = G' * ww * gg :* (2:*this.N)
      g = g'
 
  ///* */  "g is " + strofreal(rows(g)) + " by " + strofreal(cols(g))
@@ -665,10 +688,10 @@ void gmatch::cbpseval( real    /* scalar      */   todo,
 
 void cbps_eval(real todo, real beta,
                class gmatch scalar M,
-               string est, string fctn, real denominator, real ww,
+               string est, string fctn, real denominator, real oid, real ww,
                real lnf, real g, real H)
 {
-  M.cbpseval(todo,beta,est,fctn,denominator,ww,lnf,g,H)
+  M.cbpseval(todo,beta,est,fctn,denominator,oid,ww,lnf,g,H)
 }
 
 
@@ -679,8 +702,8 @@ real colvector gmatch::cbps_moments(real colvector pscore, real matrix dpscore, 
   real colvector gg
   if (any(this.W:!=1)) _error("gmatch::cbpslossS() does not yet accomodate weighted samples")
   
+// this is inefficient
 	X_const = (this.X, J(this.N,1,1))
-
   if (strlower(est)=="ate") {
 			gg=X_const'*((this.T-pscore):/pscore:/(1:-pscore))
 	}
@@ -704,13 +727,14 @@ real matrix gmatch::cbpsgradient(real colvector pscore, real scalar overid, stri
 {
   real matrix G, dw,  X_const
 
+// this is inefficient
 	X_const = (this.X, J(this.N,1,1))
 
   if (strlower(est)=="ate") {
     G = -(X_const:*((this.T:-pscore):^2):/pscore:/(1:-pscore))'X_const
   }
   else if (strlower(est)=="atet") {
-    dw=(pscore:*(this.T:-1)):/(1:-pscore):*(this.N/this.N1)
+    dw=(pscore:*(this.T:-1)):/(1:-pscore):*(this.N_raw/this.N1_raw)
     G = ((X_const:*dw)') * X_const
   }
   if (overid) {
