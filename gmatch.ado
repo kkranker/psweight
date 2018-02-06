@@ -168,23 +168,38 @@ M.pomean()
 stata("tebalance summarize")
 table = D.balancetable(3)
 */
-
-// CBPS
-stata(`"cbps `treatvar' `varlist' if `tousevar' , ate      logit optimization_technique("nr") evaluator_type("gf1")"')
-stata(`"cbps_imbalance"')
-stata(`"cbps `treatvar' `varlist' if `tousevar' , att      logit optimization_technique("nr") evaluator_type("gf1")"')
-stata(`"cbps_imbalance"')
-stata(`"cbps `treatvar' `varlist' if `tousevar' , att over logit optimization_technique("nr") evaluator_type("gf1")"')
-stata(`"cbps_imbalance"')
-
- 
 M = gmatch()
 M.clone(D)
 /* */ "balance table before matching"; temp = M.balancetable(1)
+
+// Replicace CBPS
+  "ATE (not overidentified)"
+    stata(`"cbps `treatvar' `varlist' if `tousevar' , ate      logit optimization_technique("nr") evaluator_type("gf1")"')
+    stata(`"cbps_imbalance"')
+  
+  "ATET (not overidentified)"
+    stata(`"cbps `treatvar' `varlist' if `tousevar' , att      logit optimization_technique("nr") evaluator_type("gf1")"')
+    stata(`"cbps_imbalance"')
+  
+  "ATE overidentified"
+    stata(`"cbps `treatvar' `varlist' if `tousevar' , ate over logit optimization_technique("nr") evaluator_type("gf1")"')
+    stata(`"cbps_imbalance"')
+    
+  "ATET overidentified"
+    stata(`"cbps `treatvar' `varlist' if `tousevar' , att over logit optimization_technique("nr") evaluator_type("gf1")"')
+    stata(`"cbps_imbalance"')
+
+  "ATE (not overidentified)"
+    cbpsweight = M.cbps("ate" , "cbps_moments", 2, 0)
+  "ATET (not overidentified)"
+    cbpsweight = M.cbps("atet", "cbps_moments", 2, 0)
+  "ATE overidentified"
+    cbpsweight = M.cbps("ate" , "cbps_moments", 2, 1)
+  "ATET overidentified"
+    cbpsweight = M.cbps("atet", "cbps_moments", 2, 1)
+    
 // cbpsweight = M.cbps("atet","mean_asd")
 // cbpsweight = M.cbps("atet","max_asd")
-cbpsweight = M.cbps("ate" , "cbps_moments", 2)
-cbpsweight = M.cbps("atet", "cbps_moments", 2)
 
 _error("Stop here")
 
