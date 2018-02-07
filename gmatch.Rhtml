@@ -1,0 +1,72 @@
+<html>
+
+<head>
+<title>CBPS example</title>
+</head>
+
+<body>
+
+<h1>Impliment CBPS code with test data</h1>
+
+<!--begin.rcode
+mydata <- read.csv("C:\\Users\\kkranker\\Documents\\Stata\\Ado\\Devel\\gmatch\\testfile.csv", stringsAsFactors = F) 
+library(CBPS)
+
+end.rcode-->
+
+<h1>Unweighted</h1>
+
+<h2>ATE:</h2>
+
+<!--begin.rcode 
+
+fit_ATE       <- CBPS(treat ~ x1 + x1 + X__000000 + X__000001 +x4 + x5 + x6 +x7 +x90 +x91+ x92 +x93 +x94+ x95, data = mydata, ATT = 0, method='exact', trace=TRUE)
+summary(fit_ATE)
+
+fit_ATE_over  <- CBPS(treat ~ x1 + x1 + X__000000 + X__000001 +x4 + x5 + x6 +x7 +x90 +x91+ x92 +x93 +x94+ x95, data = mydata, ATT = 0, method="over")
+summary(fit_ATE_over)
+
+end.rcode-->
+
+<h2>ATET:</h2>
+
+<!--begin.rcode 
+
+fit_ATET      <- CBPS(treat ~ x1 + x1 + X__000000 + X__000001 +x4 + x5 + x6 +x7 +x90 +x91+ x92 +x93 +x94+ x95, data = mydata, ATT = 1, method="exact")
+summary(fit_ATET)
+
+fit_ATET_over <- CBPS(treat ~ x1 + x1 + X__000000 + X__000001 +x4 + x5 + x6 +x7 +x90 +x91+ x92 +x93 +x94+ x95, data = mydata, ATT = 1, method="over")
+summary(fit_ATET_over)
+
+end.rcode-->
+
+
+<h1>Weighted</h1>
+
+<h2>Weighted ATE:</h2>
+
+<!--begin.rcode 
+
+W_fit_ATE       <- CBPS(treat ~ x1 + x1 + X__000000 + X__000001 +x4 + x5 + x6 +x7 +x90 +x91+ x92 +x93 +x94+ x95, data = mydata, ATT = 0, method='exact', sample.weights=wgt)
+summary(W_fit_ATE)
+
+W_fit_ATE_over  <- CBPS(treat ~ x1 + x1 + X__000000 + X__000001 +x4 + x5 + x6 +x7 +x90 +x91+ x92 +x93 +x94+ x95, data = mydata, ATT = 0, method="over", sample.weights=wgt)
+summary(W_fit_ATE_over)
+
+end.rcode-->
+
+
+<h2>Weighted ATET:</h2>
+
+<!--begin.rcode 
+
+W_fit_ATET      <- CBPS(treat ~ x1 + x1 + X__000000 + X__000001 +x4 + x5 + x6 +x7 +x90 +x91+ x92 +x93 +x94+ x95, data = mydata, ATT = 1, method="exact", sample.weights=wgt)
+summary(W_fit_ATET)
+
+W_fit_ATET_over <- CBPS(treat ~ x1 + x1 + X__000000 + X__000001 +x4 + x5 + x6 +x7 +x90 +x91+ x92 +x93 +x94+ x95, data = mydata, ATT = 1, method="over", sample.weights=wgt)
+summary(W_fit_ATET_over)
+
+end.rcode-->
+
+</body>
+</html>

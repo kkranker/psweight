@@ -1,15 +1,15 @@
 mac drop _all
-// clear all
-// cls
+clear all
+cls
 set varabbrev off
 set scheme mpr_blue
 // set linesize 160
-set maxiter 500
+set maxiter 75
 cap log close gmatch_example
 local makegraphs = 01
 cd "C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\"
 
-log using gmatch.log, name(gmatch_example) replace
+log using gmatch_example.log, name(gmatch_example) replace
 
 // Multiple-equation models: An introduction and potential applications to our work at Mathematica
 // Design and methods “brown bag” workshop
@@ -19,7 +19,7 @@ log using gmatch.log, name(gmatch_example) replace
 // Stata_code_2_IPW.do This program includes all the examples in the powerpoint slides, plus more.
 // This program includes examples of how to code inverse propensity weighting (IPW) estimators using Stata's GMM command
 
-// include C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\gmatchclass.mata
+include C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\gmatchclass.mata
 
 version 15.1
 set type double
@@ -95,7 +95,7 @@ forvalues i = 90/95 {
 // tab2    treat x1
 // replace x1 = 1 if  treat & runiform()<.85
 // replace x1 = 0 if !treat & runiform()<.85
-// tab2    treat x1 
+// tab2    treat x1
 
 
 local depvars = "y1 y1_binary"
@@ -104,7 +104,7 @@ local varlist = "x1 i.x2 i.x3 x4 x5 x6 x7 x9*"
 // local varlist = "x*"
 // local varlist = "x1 ib0.x2"
 //local wgtvar = "wgt"
-local wgtvar = "fwgt"
+local wgtvar = "wgt"
 local tousevar = "touse"
 local estimate = "atet"
 
@@ -126,7 +126,7 @@ local varlist : copy local varlist1
 
 
 fvrevar  `varlist'
-export delimited `treatvar' `r(varlist)' using testfile.csv if `tousevar' , replace  nolabel 
+export delimited `treatvar' `r(varlist)' `wgtvar' using testfile.csv if `tousevar' , replace  nolabel
 
 mata:
 
@@ -145,147 +145,140 @@ D = gmatch()
 D.set(st_local("treatvar"),st_local("varlist") ,st_local("tousevar"))
 if (depvars!="") D.set_Y(st_local("depvars"),st_local("tousevar"))
 
-/*
 // Misc balance measures
-D.diff()
-D.stddiff()
-D.mean_asd()
-D.stddiff(1)
-D.stddiff(0)
-D.varratio()
-D.prognosticdiff()
-table = D.balancetable(1)
+  D.diff()
+  D.stddiff()
+  D.mean_asd()
+  D.stddiff(1)
+  D.stddiff(0)
+  D.varratio()
+  D.prognosticdiff()
 
-// IPW
-M = gmatch()
-M.clone(D)
-stata("qui teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' , atet aequations")
-stata("mat list e(b)")
-iwpweight = D.ipw("atet")
-M.multweight(iwpweight)
-stata("di _b[POmean:0.treat]")
-M.pomean()
-stata("tebalance summarize")
-table = D.balancetable(3)
-*/
-M = gmatch()
-M.clone(D)
-/* */ "balance table before matching"; temp = M.balancetable(1)
+  "Balance table before matching"
+  table = D.balancetable(1)
 
-// Replicace CBPS
+
+// Replicate CBPS
+
+  M = gmatch()
+  M.clone(D)
+
   "ATE (not overidentified)"
     stata(`"cbps `treatvar' `varlist' if `tousevar' , ate      logit optimization_technique("nr") evaluator_type("gf1")"')
     stata(`"cbps_imbalance"')
-  
-  "ATET (not overidentified)"
-    stata(`"cbps `treatvar' `varlist' if `tousevar' , att      logit optimization_technique("nr") evaluator_type("gf1")"')
-    stata(`"cbps_imbalance"')
-  
+    cbpsweight = M.cbps("ate" , "cbps_port_stata", 2, 0)
+    cbpsweight = M.cbps("ate" , "cbps_port_r",  2, 0)
+
   "ATE overidentified"
     stata(`"cbps `treatvar' `varlist' if `tousevar' , ate over logit optimization_technique("nr") evaluator_type("gf1")"')
     stata(`"cbps_imbalance"')
-    
+    cbpsweight = M.cbps("ate" , "cbps_port_stata", 2, 1)
+    /* not working yet:   cbpsweight = M.cbps("ate" , "cbps_port_r",  2, 1) */
+
+  "ATET (not overidentified)"
+    stata(`"cbps `treatvar' `varlist' if `tousevar' , att      logit optimization_technique("nr") evaluator_type("gf1")"')
+    stata(`"cbps_imbalance"')
+    cbpsweight = M.cbps("atet", "cbps_port_stata", 2, 0)
+    cbpsweight = M.cbps("atet", "cbps_port_r",  2, 0)
+
   "ATET overidentified"
     stata(`"cbps `treatvar' `varlist' if `tousevar' , att over logit optimization_technique("nr") evaluator_type("gf1")"')
     stata(`"cbps_imbalance"')
+    cbpsweight = M.cbps("atet", "cbps_port_stata", 2, 1)
+    /* not working yet:   cbpsweight = M.cbps("atet", "cbps_port_r",  2, 1) */
 
-  "ATE (not overidentified)"
-    cbpsweight = M.cbps("ate" , "cbps_moments", 2, 0)
-  "ATET (not overidentified)"
-    cbpsweight = M.cbps("atet", "cbps_moments", 2, 0)
-  "ATE overidentified"
-    cbpsweight = M.cbps("ate" , "cbps_moments", 2, 1)
-  "ATET overidentified"
-    cbpsweight = M.cbps("atet", "cbps_moments", 2, 1)
-    
-// cbpsweight = M.cbps("atet","mean_asd")
-// cbpsweight = M.cbps("atet","max_asd")
-
-_error("Stop here")
-
-// cbpsweight = M.cbps("atet","cbpsloss")
-// cbpsweight = M.cbps("atet","cbpseval_port",2)
+// Other objective functions
 cbpsweight = M.cbps("atet","mean_sd_sq",1)
 cbpsweight = M.cbps("atet","sd_sq",1)
+cbpsweight = M.cbps("atet","mean_asd")
+cbpsweight = M.cbps("atet","max_asd")
 cbpsweight = M.cbps("atet","mean_sd_sq_ent",1)
 cbpsweight = M.cbps("atet","mean_sd_sq_cv",1)
 
-// cbpsweight = D.cbps("atet","cbpslossOID")
-// cbpsweight = D.cbps("atet","cbpsloss")
-// cbpsweight = D.cbps("atet","cbpsloss2")
-
-
-_error("Stop here")
-
 // IPW
-M = gmatch()
-M.clone(D)
-stata("qui teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' , atet aequations")
-iwpweight = D.ipw("atet")
-M.multweight(iwpweight)
+  M = gmatch()
+  M.clone(D)
+  stata("qui teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' , atet aequations")
+  iwpweight = D.ipw("atet")
+  M.multweight(iwpweight)
 
-stata("di _b[POmean:0.treat]")
-M.pomean()
+  stata("di _b[POmean:0.treat]")
+  M.pomean()
 
-stata("tebalance summarize")
-table = M.balancetable(3)
+  stata("tebalance summarize")
+  table = M.balancetable(3)
 
-_error("stop")
+  stata("tebalance summarize, baseline")
+  M.multweight()
+  table = M.balancetable(3)
 
-stata("teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' , atet aequations")
-stata("predict pscore1, tlevel(1) ")
-stata("list `treatvar' pscore1 in 1/20, nolab ")
-ipw = D.ipw("atet")
+  stata("teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' , atet aequations")
+  stata("predict pscore1, tlevel(1) ")
+  stata("list `treatvar' pscore1 in 1/20, nolab ")
+  ipw = D.ipw("atet")
 
-stata("teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' , ate aequations")
-ipw = D.ipw("ate")
+  stata("teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' , ate aequations")
+  ipw = D.ipw("ate")
 
-stata("teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' , atet aequations tlevel(0) control(1)")
-ipw = D.ipw("ateu")
+  stata("teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' , atet aequations tlevel(0) control(1)")
+  ipw = D.ipw("ateu")
 
 
 // **************************
 // * WEIGHTED DATA EXAMPLES *
 // **************************
 
+mata drop D M
 D = gmatch()
 D.set(st_local("treatvar"),st_local("varlist") ,st_local("tousevar"),st_local("wgtvar"))
 if (depvars!="") D.set_Y(st_local("depvars"),st_local("tousevar"))
 
-D.stddiff(1)
-D.mean_asd
-D.min_asd
-D.max_asd
-D.prognosticdiff()
+// Misc balance measures
+  D.diff()
+  D.stddiff()
+  D.mean_asd()
+  D.stddiff(1)
+  D.stddiff(0)
+  D.varratio()
+  D.prognosticdiff()
 
-stata("teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' [iw=`wgtvar'], atet aequations")
-stata("tebalance summarize, baseline")
-table = D.balancetable()
-_error("weights from tebalance are weird")
+  "Balance table before matching"
+  temp = D.balancetable(1)
 
-stata("teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' [iw=`wgtvar'], atet aequations")
-ipw = D.ipw("atet")
+// Replicate CBPS
 
-stata("teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' [iw=`wgtvar'], ate aequations")
-ipw = D.ipw("ate")
+  M = gmatch()
+  M.clone(D)
+  M.prognosticdiff()
 
+  "ATE (not overidentified)"
+    cbpsweight = M.cbps("ate" , "cbps_port_r",  2, 0)
 
-/*
-// this is wrong
-diff_invD     = diff * invsym(quadvariance(X,W))
-diff_invDdiag = diff * invsym(diag(diagvariance(X,W)))
+  "ATE overidentified"
+    /* not working yet:   cbpsweight = M.cbps("ate" , "cbps_port_r",  2, 1) */
 
-*/
+  "ATET (not overidentified)"
+    cbpsweight = M.cbps("atet", "cbps_port_r",  2, 0)
 
-end
+  "ATET overidentified"
+    /* not working yet:   cbpsweight = M.cbps("atet", "cbps_port_r",  2, 1) */
 
-qui teffects ipw (`depvars') (`treatvar' `varlist') if `tousevar' `wgtexp', `estimate' aequations
-tebalance summarize, baseline
-mat list r(table)
-tebalance summarize
-mat list r(table)
-mat list r(size)
+// IPW
 
+  stata("teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' [iw=`wgtvar'], atet aequations")
+  stata("tebalance summarize, baseline")  // I noticed the sum of weights in tebalance are weird
+  table = D.balancetable(3)
+
+  stata("teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' [iw=`wgtvar'], atet aequations")
+  ipw = D.ipw("atet")
+  stata("tebalance summarize")  // I noticed the sum of weights in tebalance are weird
+  D.multweight(ipw)
+  table = D.balancetable(3)
+
+  stata("teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' [iw=`wgtvar'], ate aequations")
+  D.multweight()
+  ipw = D.ipw("ate")
+
+end  // end of Mata block
 
 log close gmatch_example
-
