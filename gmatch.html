@@ -1,0 +1,377 @@
+<html>
+
+<head>
+<style type="text/css">
+.knitr .inline {
+  background-color: #f7f7f7;
+  border:solid 1px #B0B0B0;
+}
+.error {
+	font-weight: bold;
+	color: #FF0000;
+}
+.warning {
+	font-weight: bold;
+}
+.message {
+	font-style: italic;
+}
+.source, .output, .warning, .error, .message {
+	padding: 0 1em;
+  border:solid 1px #F7F7F7;
+}
+.source {
+  background-color: #f5f5f5;
+}
+.rimage .left {
+  text-align: left;
+}
+.rimage .right {
+  text-align: right;
+}
+.rimage .center {
+  text-align: center;
+}
+.hl.num {
+  color: #AF0F91;
+}
+.hl.str {
+  color: #317ECC;
+}
+.hl.com {
+  color: #AD95AF;
+  font-style: italic;
+}
+.hl.opt {
+  color: #000000;
+}
+.hl.std {
+  color: #585858;
+}
+.hl.kwa {
+  color: #295F94;
+  font-weight: bold;
+}
+.hl.kwb {
+  color: #B05A65;
+}
+.hl.kwc {
+  color: #55aa55;
+}
+.hl.kwd {
+  color: #BC5A65;
+  font-weight: bold;
+}
+</style>
+<title>CBPS example</title>
+</head>
+
+<body>
+
+<h1>Impliment CBPS code with test data</h1>
+
+<div class="chunk" id="unnamed-chunk-1"><div class="rcode"><div class="source"><pre class="knitr r"><span class="hl std">mydata</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">read.csv</span><span class="hl std">(</span><span class="hl str">&quot;C:\\Users\\kkranker\\Documents\\Stata\\Ado\\Devel\\gmatch\\testfile.csv&quot;</span><span class="hl std">,</span> <span class="hl kwc">stringsAsFactors</span> <span class="hl std">= F)</span>
+<span class="hl kwd">library</span><span class="hl std">(CBPS)</span>
+</pre></div>
+<div class="message"><pre class="knitr r">## Loading required package: MASS
+</pre></div>
+<div class="message"><pre class="knitr r">## Loading required package: MatchIt
+</pre></div>
+<div class="message"><pre class="knitr r">## Loading required package: nnet
+</pre></div>
+<div class="message"><pre class="knitr r">## Loading required package: numDeriv
+</pre></div>
+<div class="message"><pre class="knitr r">## CBPS: Covariate Balancing Propensity Score
+## Version: 0.13
+## Authors: Christian Fong &lt;christianfong@stanford.edu&gt;, 
+## 		Marc Ratkovic &lt;ratkovic@princeton.edu&gt;, 
+## 		Chad Hazlett &lt;chazlett@ucla.edu&gt;, 
+## 		Xiaolin Yang &lt;xiaoliny@princeton.edu&gt;, 
+## 		Kosuke Imai &lt;kimai@princeton.edu&gt;
+</pre></div>
+</div></div>
+
+<h1>Unweighted</h1>
+
+<h2>ATE:</h2>
+
+<div class="chunk" id="unnamed-chunk-2"><div class="rcode"><div class="source"><pre class="knitr r"><span class="hl std">fit_ATE</span>       <span class="hl kwb">&lt;-</span> <span class="hl kwd">CBPS</span><span class="hl std">(treat</span> <span class="hl opt">~</span> <span class="hl std">x1</span> <span class="hl opt">+</span> <span class="hl std">x1</span> <span class="hl opt">+</span> <span class="hl std">X__000000</span> <span class="hl opt">+</span> <span class="hl std">X__000001</span> <span class="hl opt">+</span><span class="hl std">x4</span> <span class="hl opt">+</span> <span class="hl std">x5</span> <span class="hl opt">+</span> <span class="hl std">x6</span> <span class="hl opt">+</span><span class="hl std">x7</span> <span class="hl opt">+</span><span class="hl std">x90</span> <span class="hl opt">+</span><span class="hl std">x91</span><span class="hl opt">+</span> <span class="hl std">x92</span> <span class="hl opt">+</span><span class="hl std">x93</span> <span class="hl opt">+</span><span class="hl std">x94</span><span class="hl opt">+</span> <span class="hl std">x95,</span> <span class="hl kwc">data</span> <span class="hl std">= mydata,</span> <span class="hl kwc">ATT</span> <span class="hl std">=</span> <span class="hl num">0</span><span class="hl std">,</span> <span class="hl kwc">method</span><span class="hl std">=</span><span class="hl str">'exact'</span><span class="hl std">,</span> <span class="hl kwc">trace</span><span class="hl std">=</span><span class="hl num">TRUE</span><span class="hl std">)</span>
+<span class="hl kwd">summary</span><span class="hl std">(fit_ATE)</span>
+</pre></div>
+<div class="output"><pre class="knitr r">## 
+## Call:	
+## CBPS(formula = treat ~ x1 + x1 + X__000000 + X__000001 + x4 + 
+##     x5 + x6 + x7 + x90 + x91 + x92 + x93 + x94 + x95, data = mydata, 
+##     ATT = 0, method = &quot;exact&quot;, trace = TRUE)
+## 
+## Coefficients:
+##             Estimate Std. Error z value Pr(&gt;|z|)    
+## (Intercept) 3.13     0.954      3.28    0.00105  ** 
+## x1          -1.44    0.178      -8.09   6.66e-16 ***
+## X__000000   -2.55    0.157      -16.2   0.000    ***
+## X__000001   -1.02    0.16       -6.39   1.61e-10 ***
+## x4          -0.232   0.164      -1.42   0.157       
+## x5          0.0737   0.199      0.37    0.711       
+## x6          -0.486   0.161      -3.02   0.00251  ** 
+## x7          0.0655   0.169      0.387   0.699       
+## x90         0.0304   0.141      0.216   0.829       
+## x91         -0.0237  0.168      -0.141  0.888       
+## x92         0.201    0.136      1.48    0.14        
+## x93         -0.0067  0.167      -0.0402 0.968       
+## x94         -0.366   0.152      -2.41   0.0161   *  
+## x95         -0.00801 0.15       -0.0532 0.958       
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
+## 
+## J - statistic:	  0.1143654
+## Log-Likelihood:  -219.0173
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl std">fit_ATE_over</span>  <span class="hl kwb">&lt;-</span> <span class="hl kwd">CBPS</span><span class="hl std">(treat</span> <span class="hl opt">~</span> <span class="hl std">x1</span> <span class="hl opt">+</span> <span class="hl std">x1</span> <span class="hl opt">+</span> <span class="hl std">X__000000</span> <span class="hl opt">+</span> <span class="hl std">X__000001</span> <span class="hl opt">+</span><span class="hl std">x4</span> <span class="hl opt">+</span> <span class="hl std">x5</span> <span class="hl opt">+</span> <span class="hl std">x6</span> <span class="hl opt">+</span><span class="hl std">x7</span> <span class="hl opt">+</span><span class="hl std">x90</span> <span class="hl opt">+</span><span class="hl std">x91</span><span class="hl opt">+</span> <span class="hl std">x92</span> <span class="hl opt">+</span><span class="hl std">x93</span> <span class="hl opt">+</span><span class="hl std">x94</span><span class="hl opt">+</span> <span class="hl std">x95,</span> <span class="hl kwc">data</span> <span class="hl std">= mydata,</span> <span class="hl kwc">ATT</span> <span class="hl std">=</span> <span class="hl num">0</span><span class="hl std">,</span> <span class="hl kwc">method</span><span class="hl std">=</span><span class="hl str">&quot;over&quot;</span><span class="hl std">)</span>
+<span class="hl kwd">summary</span><span class="hl std">(fit_ATE_over)</span>
+</pre></div>
+<div class="output"><pre class="knitr r">## 
+## Call:	
+## CBPS(formula = treat ~ x1 + x1 + X__000000 + X__000001 + x4 + 
+##     x5 + x6 + x7 + x90 + x91 + x92 + x93 + x94 + x95, data = mydata, 
+##     ATT = 0, method = &quot;over&quot;)
+## 
+## Coefficients:
+##             Estimate Std. Error z value Pr(&gt;|z|)    
+## (Intercept) 1.12     0.781      1.44    0.151       
+## x1          -1.04    0.104      -9.95   0.000    ***
+## X__000000   -1.69    0.121      -13.9   0.000    ***
+## X__000001   -0.507   0.118      -4.3    1.72e-05 ***
+## x4          -0.233   0.116      -2      0.0451   *  
+## x5          0.0463   0.148      0.314   0.754       
+## x6          -0.239   0.129      -1.86   0.0636   .  
+## x7          0.00624  0.118      0.0528  0.958       
+## x90         0.114    0.113      1.01    0.311       
+## x91         -0.146   0.113      -1.3    0.195       
+## x92         0.129    0.122      1.05    0.291       
+## x93         0.086    0.0929     0.926   0.354       
+## x94         -0.164   0.154      -1.06   0.288       
+## x95         0.0239   0.114      0.209   0.835       
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
+## 
+## J - statistic:	  0.01633601
+## Log-Likelihood:  -212.0624
+</pre></div>
+</div></div>
+
+<h2>ATET:</h2>
+
+<div class="chunk" id="unnamed-chunk-3"><div class="rcode"><div class="source"><pre class="knitr r"><span class="hl std">fit_ATET</span>      <span class="hl kwb">&lt;-</span> <span class="hl kwd">CBPS</span><span class="hl std">(treat</span> <span class="hl opt">~</span> <span class="hl std">x1</span> <span class="hl opt">+</span> <span class="hl std">x1</span> <span class="hl opt">+</span> <span class="hl std">X__000000</span> <span class="hl opt">+</span> <span class="hl std">X__000001</span> <span class="hl opt">+</span><span class="hl std">x4</span> <span class="hl opt">+</span> <span class="hl std">x5</span> <span class="hl opt">+</span> <span class="hl std">x6</span> <span class="hl opt">+</span><span class="hl std">x7</span> <span class="hl opt">+</span><span class="hl std">x90</span> <span class="hl opt">+</span><span class="hl std">x91</span><span class="hl opt">+</span> <span class="hl std">x92</span> <span class="hl opt">+</span><span class="hl std">x93</span> <span class="hl opt">+</span><span class="hl std">x94</span><span class="hl opt">+</span> <span class="hl std">x95,</span> <span class="hl kwc">data</span> <span class="hl std">= mydata,</span> <span class="hl kwc">ATT</span> <span class="hl std">=</span> <span class="hl num">1</span><span class="hl std">,</span> <span class="hl kwc">method</span><span class="hl std">=</span><span class="hl str">&quot;exact&quot;</span><span class="hl std">)</span>
+</pre></div>
+<div class="output"><pre class="knitr r">## [1] &quot;Finding ATT with T=1 as the treatment.  Set ATT=2 to find ATT with T=0 as the treatment&quot;
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl kwd">summary</span><span class="hl std">(fit_ATET)</span>
+</pre></div>
+<div class="output"><pre class="knitr r">## 
+## Call:	
+## CBPS(formula = treat ~ x1 + x1 + X__000000 + X__000001 + x4 + 
+##     x5 + x6 + x7 + x90 + x91 + x92 + x93 + x94 + x95, data = mydata, 
+##     ATT = 1, method = &quot;exact&quot;)
+## 
+## Coefficients:
+##             Estimate Std. Error z value Pr(&gt;|z|)    
+## (Intercept) 0.782    0.954      0.82    0.412       
+## x1          -1.34    0.137      -9.77   0.000    ***
+## X__000000   -1.53    0.159      -9.57   0.000    ***
+## X__000001   -0.599   0.164      -3.65   0.000258 ***
+## x4          -0.318   0.158      -2.02   0.0434   *  
+## x5          0.0588   0.178      0.33    0.741       
+## x6          -0.244   0.161      -1.52   0.129       
+## x7          0.0341   0.156      0.219   0.827       
+## x90         0.159    0.161      0.983   0.326       
+## x91         -0.162   0.161      -1.01   0.314       
+## x92         0.139    0.148      0.94    0.347       
+## x93         0.0571   0.12       0.477   0.633       
+## x94         -0.118   0.177      -0.662  0.508       
+## x95         0.0115   0.137      0.0836  0.933       
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
+## 
+## J - statistic:	  0.0003969905
+## Log-Likelihood:  -211.6286
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl std">fit_ATET_over</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">CBPS</span><span class="hl std">(treat</span> <span class="hl opt">~</span> <span class="hl std">x1</span> <span class="hl opt">+</span> <span class="hl std">x1</span> <span class="hl opt">+</span> <span class="hl std">X__000000</span> <span class="hl opt">+</span> <span class="hl std">X__000001</span> <span class="hl opt">+</span><span class="hl std">x4</span> <span class="hl opt">+</span> <span class="hl std">x5</span> <span class="hl opt">+</span> <span class="hl std">x6</span> <span class="hl opt">+</span><span class="hl std">x7</span> <span class="hl opt">+</span><span class="hl std">x90</span> <span class="hl opt">+</span><span class="hl std">x91</span><span class="hl opt">+</span> <span class="hl std">x92</span> <span class="hl opt">+</span><span class="hl std">x93</span> <span class="hl opt">+</span><span class="hl std">x94</span><span class="hl opt">+</span> <span class="hl std">x95,</span> <span class="hl kwc">data</span> <span class="hl std">= mydata,</span> <span class="hl kwc">ATT</span> <span class="hl std">=</span> <span class="hl num">1</span><span class="hl std">,</span> <span class="hl kwc">method</span><span class="hl std">=</span><span class="hl str">&quot;over&quot;</span><span class="hl std">)</span>
+</pre></div>
+<div class="output"><pre class="knitr r">## [1] &quot;Finding ATT with T=1 as the treatment.  Set ATT=2 to find ATT with T=0 as the treatment&quot;
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl kwd">summary</span><span class="hl std">(fit_ATET_over)</span>
+</pre></div>
+<div class="output"><pre class="knitr r">## 
+## Call:	
+## CBPS(formula = treat ~ x1 + x1 + X__000000 + X__000001 + x4 + 
+##     x5 + x6 + x7 + x90 + x91 + x92 + x93 + x94 + x95, data = mydata, 
+##     ATT = 1, method = &quot;over&quot;)
+## 
+## Coefficients:
+##             Estimate Std. Error z value Pr(&gt;|z|)    
+## (Intercept) 0.782    0.948      0.826   0.409       
+## x1          -1.34    0.136      -9.82   0.000    ***
+## X__000000   -1.53    0.158      -9.64   0.000    ***
+## X__000001   -0.599   0.162      -3.69   0.000223 ***
+## x4          -0.318   0.156      -2.03   0.0419   *  
+## x5          0.0588   0.177      0.332   0.74        
+## x6          -0.244   0.16       -1.53   0.127       
+## x7          0.0341   0.155      0.22    0.826       
+## x90         0.159    0.159      0.998   0.318       
+## x91         -0.162   0.159      -1.02   0.309       
+## x92         0.139    0.147      0.945   0.345       
+## x93         0.0571   0.119      0.481   0.631       
+## x94         -0.118   0.176      -0.669  0.504       
+## x95         0.0115   0.136      0.0844  0.933       
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
+## 
+## J - statistic:	  0.0003969905
+## Log-Likelihood:  -211.6286
+</pre></div>
+</div></div>
+
+
+<h1>Weighted</h1>
+
+<h2>Weighted ATE:</h2>
+
+<div class="chunk" id="unnamed-chunk-4"><div class="rcode"><div class="source"><pre class="knitr r"><span class="hl std">W_fit_ATE</span>       <span class="hl kwb">&lt;-</span> <span class="hl kwd">CBPS</span><span class="hl std">(treat</span> <span class="hl opt">~</span> <span class="hl std">x1</span> <span class="hl opt">+</span> <span class="hl std">x1</span> <span class="hl opt">+</span> <span class="hl std">X__000000</span> <span class="hl opt">+</span> <span class="hl std">X__000001</span> <span class="hl opt">+</span><span class="hl std">x4</span> <span class="hl opt">+</span> <span class="hl std">x5</span> <span class="hl opt">+</span> <span class="hl std">x6</span> <span class="hl opt">+</span><span class="hl std">x7</span> <span class="hl opt">+</span><span class="hl std">x90</span> <span class="hl opt">+</span><span class="hl std">x91</span><span class="hl opt">+</span> <span class="hl std">x92</span> <span class="hl opt">+</span><span class="hl std">x93</span> <span class="hl opt">+</span><span class="hl std">x94</span><span class="hl opt">+</span> <span class="hl std">x95,</span> <span class="hl kwc">data</span> <span class="hl std">= mydata,</span> <span class="hl kwc">ATT</span> <span class="hl std">=</span> <span class="hl num">0</span><span class="hl std">,</span> <span class="hl kwc">method</span><span class="hl std">=</span><span class="hl str">'exact'</span><span class="hl std">,</span> <span class="hl kwc">sample.weights</span><span class="hl std">=wgt)</span>
+<span class="hl kwd">summary</span><span class="hl std">(W_fit_ATE)</span>
+</pre></div>
+<div class="output"><pre class="knitr r">## 
+## Call:	
+## CBPS(formula = treat ~ x1 + x1 + X__000000 + X__000001 + x4 + 
+##     x5 + x6 + x7 + x90 + x91 + x92 + x93 + x94 + x95, data = mydata, 
+##     ATT = 0, method = &quot;exact&quot;, sample.weights = wgt)
+## 
+## Coefficients:
+##             Estimate Std. Error z value Pr(&gt;|z|)    
+## (Intercept) 3.13     0.954      3.28    0.00105  ** 
+## x1          -1.44    0.178      -8.09   6.66e-16 ***
+## X__000000   -2.55    0.157      -16.2   0.000    ***
+## X__000001   -1.02    0.16       -6.39   1.61e-10 ***
+## x4          -0.232   0.164      -1.42   0.157       
+## x5          0.0737   0.199      0.37    0.711       
+## x6          -0.486   0.161      -3.02   0.00251  ** 
+## x7          0.0655   0.169      0.387   0.699       
+## x90         0.0304   0.141      0.216   0.829       
+## x91         -0.0237  0.168      -0.141  0.888       
+## x92         0.201    0.136      1.48    0.14        
+## x93         -0.0067  0.167      -0.0402 0.968       
+## x94         -0.366   0.152      -2.41   0.0161   *  
+## x95         -0.00801 0.15       -0.0532 0.958       
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
+## 
+## J - statistic:	  0.1143654
+## Log-Likelihood:  -219.0173
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl std">W_fit_ATE_over</span>  <span class="hl kwb">&lt;-</span> <span class="hl kwd">CBPS</span><span class="hl std">(treat</span> <span class="hl opt">~</span> <span class="hl std">x1</span> <span class="hl opt">+</span> <span class="hl std">x1</span> <span class="hl opt">+</span> <span class="hl std">X__000000</span> <span class="hl opt">+</span> <span class="hl std">X__000001</span> <span class="hl opt">+</span><span class="hl std">x4</span> <span class="hl opt">+</span> <span class="hl std">x5</span> <span class="hl opt">+</span> <span class="hl std">x6</span> <span class="hl opt">+</span><span class="hl std">x7</span> <span class="hl opt">+</span><span class="hl std">x90</span> <span class="hl opt">+</span><span class="hl std">x91</span><span class="hl opt">+</span> <span class="hl std">x92</span> <span class="hl opt">+</span><span class="hl std">x93</span> <span class="hl opt">+</span><span class="hl std">x94</span><span class="hl opt">+</span> <span class="hl std">x95,</span> <span class="hl kwc">data</span> <span class="hl std">= mydata,</span> <span class="hl kwc">ATT</span> <span class="hl std">=</span> <span class="hl num">0</span><span class="hl std">,</span> <span class="hl kwc">method</span><span class="hl std">=</span><span class="hl str">&quot;over&quot;</span><span class="hl std">,</span> <span class="hl kwc">sample.weights</span><span class="hl std">=wgt)</span>
+<span class="hl kwd">summary</span><span class="hl std">(W_fit_ATE_over)</span>
+</pre></div>
+<div class="output"><pre class="knitr r">## 
+## Call:	
+## CBPS(formula = treat ~ x1 + x1 + X__000000 + X__000001 + x4 + 
+##     x5 + x6 + x7 + x90 + x91 + x92 + x93 + x94 + x95, data = mydata, 
+##     ATT = 0, method = &quot;over&quot;, sample.weights = wgt)
+## 
+## Coefficients:
+##             Estimate Std. Error z value Pr(&gt;|z|)    
+## (Intercept) 1.12     0.781      1.44    0.151       
+## x1          -1.04    0.104      -9.95   0.000    ***
+## X__000000   -1.69    0.121      -13.9   0.000    ***
+## X__000001   -0.507   0.118      -4.3    1.72e-05 ***
+## x4          -0.233   0.116      -2      0.0451   *  
+## x5          0.0463   0.148      0.314   0.754       
+## x6          -0.239   0.129      -1.86   0.0636   .  
+## x7          0.00624  0.118      0.0528  0.958       
+## x90         0.114    0.113      1.01    0.311       
+## x91         -0.146   0.113      -1.3    0.195       
+## x92         0.129    0.122      1.05    0.291       
+## x93         0.086    0.0929     0.926   0.354       
+## x94         -0.164   0.154      -1.06   0.288       
+## x95         0.0239   0.114      0.209   0.835       
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
+## 
+## J - statistic:	  0.01633601
+## Log-Likelihood:  -212.0624
+</pre></div>
+</div></div>
+
+
+<h2>Weighted ATET:</h2>
+
+<div class="chunk" id="unnamed-chunk-5"><div class="rcode"><div class="source"><pre class="knitr r"><span class="hl std">W_fit_ATET</span>      <span class="hl kwb">&lt;-</span> <span class="hl kwd">CBPS</span><span class="hl std">(treat</span> <span class="hl opt">~</span> <span class="hl std">x1</span> <span class="hl opt">+</span> <span class="hl std">x1</span> <span class="hl opt">+</span> <span class="hl std">X__000000</span> <span class="hl opt">+</span> <span class="hl std">X__000001</span> <span class="hl opt">+</span><span class="hl std">x4</span> <span class="hl opt">+</span> <span class="hl std">x5</span> <span class="hl opt">+</span> <span class="hl std">x6</span> <span class="hl opt">+</span><span class="hl std">x7</span> <span class="hl opt">+</span><span class="hl std">x90</span> <span class="hl opt">+</span><span class="hl std">x91</span><span class="hl opt">+</span> <span class="hl std">x92</span> <span class="hl opt">+</span><span class="hl std">x93</span> <span class="hl opt">+</span><span class="hl std">x94</span><span class="hl opt">+</span> <span class="hl std">x95,</span> <span class="hl kwc">data</span> <span class="hl std">= mydata,</span> <span class="hl kwc">ATT</span> <span class="hl std">=</span> <span class="hl num">1</span><span class="hl std">,</span> <span class="hl kwc">method</span><span class="hl std">=</span><span class="hl str">&quot;exact&quot;</span><span class="hl std">,</span> <span class="hl kwc">sample.weights</span><span class="hl std">=wgt)</span>
+</pre></div>
+<div class="output"><pre class="knitr r">## [1] &quot;Finding ATT with T=1 as the treatment.  Set ATT=2 to find ATT with T=0 as the treatment&quot;
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl kwd">summary</span><span class="hl std">(W_fit_ATET)</span>
+</pre></div>
+<div class="output"><pre class="knitr r">## 
+## Call:	
+## CBPS(formula = treat ~ x1 + x1 + X__000000 + X__000001 + x4 + 
+##     x5 + x6 + x7 + x90 + x91 + x92 + x93 + x94 + x95, data = mydata, 
+##     ATT = 1, method = &quot;exact&quot;, sample.weights = wgt)
+## 
+## Coefficients:
+##             Estimate Std. Error z value Pr(&gt;|z|)    
+## (Intercept) 0.782    0.954      0.82    0.412       
+## x1          -1.34    0.137      -9.77   0.000    ***
+## X__000000   -1.53    0.159      -9.57   0.000    ***
+## X__000001   -0.599   0.164      -3.65   0.000258 ***
+## x4          -0.318   0.158      -2.02   0.0434   *  
+## x5          0.0588   0.178      0.33    0.741       
+## x6          -0.244   0.161      -1.52   0.129       
+## x7          0.0341   0.156      0.219   0.827       
+## x90         0.159    0.161      0.983   0.326       
+## x91         -0.162   0.161      -1.01   0.314       
+## x92         0.139    0.148      0.94    0.347       
+## x93         0.0571   0.12       0.477   0.633       
+## x94         -0.118   0.177      -0.662  0.508       
+## x95         0.0115   0.137      0.0836  0.933       
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
+## 
+## J - statistic:	  0.0003969905
+## Log-Likelihood:  -211.6286
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl std">W_fit_ATET_over</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">CBPS</span><span class="hl std">(treat</span> <span class="hl opt">~</span> <span class="hl std">x1</span> <span class="hl opt">+</span> <span class="hl std">x1</span> <span class="hl opt">+</span> <span class="hl std">X__000000</span> <span class="hl opt">+</span> <span class="hl std">X__000001</span> <span class="hl opt">+</span><span class="hl std">x4</span> <span class="hl opt">+</span> <span class="hl std">x5</span> <span class="hl opt">+</span> <span class="hl std">x6</span> <span class="hl opt">+</span><span class="hl std">x7</span> <span class="hl opt">+</span><span class="hl std">x90</span> <span class="hl opt">+</span><span class="hl std">x91</span><span class="hl opt">+</span> <span class="hl std">x92</span> <span class="hl opt">+</span><span class="hl std">x93</span> <span class="hl opt">+</span><span class="hl std">x94</span><span class="hl opt">+</span> <span class="hl std">x95,</span> <span class="hl kwc">data</span> <span class="hl std">= mydata,</span> <span class="hl kwc">ATT</span> <span class="hl std">=</span> <span class="hl num">1</span><span class="hl std">,</span> <span class="hl kwc">method</span><span class="hl std">=</span><span class="hl str">&quot;over&quot;</span><span class="hl std">,</span> <span class="hl kwc">sample.weights</span><span class="hl std">=wgt)</span>
+</pre></div>
+<div class="output"><pre class="knitr r">## [1] &quot;Finding ATT with T=1 as the treatment.  Set ATT=2 to find ATT with T=0 as the treatment&quot;
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl kwd">summary</span><span class="hl std">(W_fit_ATET_over)</span>
+</pre></div>
+<div class="output"><pre class="knitr r">## 
+## Call:	
+## CBPS(formula = treat ~ x1 + x1 + X__000000 + X__000001 + x4 + 
+##     x5 + x6 + x7 + x90 + x91 + x92 + x93 + x94 + x95, data = mydata, 
+##     ATT = 1, method = &quot;over&quot;, sample.weights = wgt)
+## 
+## Coefficients:
+##             Estimate Std. Error z value Pr(&gt;|z|)    
+## (Intercept) 0.782    0.948      0.826   0.409       
+## x1          -1.34    0.136      -9.82   0.000    ***
+## X__000000   -1.53    0.158      -9.64   0.000    ***
+## X__000001   -0.599   0.162      -3.69   0.000223 ***
+## x4          -0.318   0.156      -2.03   0.0419   *  
+## x5          0.0588   0.177      0.332   0.74        
+## x6          -0.244   0.16       -1.53   0.127       
+## x7          0.0341   0.155      0.22    0.826       
+## x90         0.159    0.159      0.998   0.318       
+## x91         -0.162   0.159      -1.02   0.309       
+## x92         0.139    0.147      0.945   0.345       
+## x93         0.0571   0.119      0.481   0.631       
+## x94         -0.118   0.176      -0.669  0.504       
+## x95         0.0115   0.136      0.0844  0.933       
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
+## 
+## J - statistic:	  0.0003969905
+## Log-Likelihood:  -211.6286
+</pre></div>
+</div></div>
+
+</body>
+</html>

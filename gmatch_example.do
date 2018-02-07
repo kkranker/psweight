@@ -3,7 +3,7 @@ clear all
 cls
 set varabbrev off
 set scheme mpr_blue
-// set linesize 160
+set linesize 160
 set maxiter 75
 cap log close gmatch_example
 local makegraphs = 01
