@@ -1,0 +1,81 @@
+<html>
+
+<head>
+<title>CBPS example</title>
+</head>
+
+<body>
+
+<h1>Impliment CBPS code with test data</h1>
+
+<!--begin.rcode
+mydata <- read.csv("C:\\Users\\kkranker\\Documents\\Stata\\Ado\\Devel\\gmatch\\testfile.csv", stringsAsFactors = F) 
+library(CBPS)
+stdall=FALSE
+
+end.rcode-->
+
+<h1>Unweighted</h1>
+
+<h2>ATE:</h2>
+
+<!--begin.rcode 
+
+fit_ATE       <- CBPS(treat ~ x1 + x1 + X__000000 + X__000001 +x4 + x5 + x6 +x7 +x90 +x91+ x92 +x93 +x94+ x95, data = mydata, ATT = 0, method='exact', standardize=stdall)
+summary(fit_ATE)
+print(  fit_ATE$weights[1:10])
+
+fit_ATE_over  <- CBPS(treat ~ x1 + x1 + X__000000 + X__000001 +x4 + x5 + x6 +x7 +x90 +x91+ x92 +x93 +x94+ x95, data = mydata, ATT = 0, method="over", standardize=stdall)
+summary(fit_ATE_over)
+print(  fit_ATE_over$weights[1:10])
+
+end.rcode-->
+
+<h2>ATET:</h2>
+
+<!--begin.rcode 
+
+fit_ATET      <- CBPS(treat ~ x1 + x1 + X__000000 + X__000001 +x4 + x5 + x6 +x7 +x90 +x91+ x92 +x93 +x94+ x95, data = mydata, ATT = 1, method="exact", standardize=stdall)
+summary(fit_ATET)
+print(  fit_ATET$weights[1:10])
+
+fit_ATET_over <- CBPS(treat ~ x1 + x1 + X__000000 + X__000001 +x4 + x5 + x6 +x7 +x90 +x91+ x92 +x93 +x94+ x95, data = mydata, ATT = 1, method="over", standardize=stdall)
+summary(fit_ATET_over)
+print(  fit_ATET_over$weights[1:10])
+
+end.rcode-->
+
+
+<h1>Weighted</h1>
+
+<h2>Weighted ATE:</h2>
+
+<!--begin.rcode 
+
+W_fit_ATE       <- CBPS(treat ~ x1 + x1 + X__000000 + X__000001 +x4 + x5 + x6 +x7 +x90 +x91+ x92 +x93 +x94+ x95, data = mydata, ATT = 0, method='exact', standardize=stdall, sample.weights=mydata$wgt)
+summary(W_fit_ATE)
+print(  W_fit_ATE$weights[1:10])
+
+W_fit_ATE_over  <- CBPS(treat ~ x1 + x1 + X__000000 + X__000001 +x4 + x5 + x6 +x7 +x90 +x91+ x92 +x93 +x94+ x95, data = mydata, ATT = 0, method="over", standardize=stdall, sample.weights=mydata$wgt)
+summary(W_fit_ATE_over)
+print(  W_fit_ATE_over$weights[1:10])
+
+end.rcode-->
+
+
+<h2>Weighted ATET:</h2>
+
+<!--begin.rcode 
+
+W_fit_ATET      <- CBPS(treat ~ x1 + x1 + X__000000 + X__000001 +x4 + x5 + x6 +x7 +x90 +x91+ x92 +x93 +x94+ x95, data = mydata, ATT = 1, method="exact", standardize=stdall, sample.weights=mydata$wgt)
+summary(W_fit_ATET)
+print(  W_fit_ATET$weights[1:10])
+
+W_fit_ATET_over <- CBPS(treat ~ x1 + x1 + X__000000 + X__000001 +x4 + x5 + x6 +x7 +x90 +x91+ x92 +x93 +x94+ x95, data = mydata, ATT = 1, method="over", standardize=stdall, sample.weights=mydata$wgt)
+summary(W_fit_ATET_over)
+print(  W_fit_ATET_over$weights[1:10])
+
+end.rcode-->
+
+</body>
+</html>
