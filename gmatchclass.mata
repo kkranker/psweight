@@ -299,12 +299,12 @@ real rowvector gmatch::sd_sq(| real scalar denominator)
 real scalar gmatch::mean_asd(| real scalar denominator)
 {
   if (args()<1) denominator=1
-  return(mean(this.asd()'))
+  return(mean(this.asd(denominator)'))
 }
 real scalar gmatch::max_asd(| real scalar denominator)
 {
   if (args()<1) denominator=1
-  return(max(this.asd()))
+  return(max(this.asd(denominator)))
 }
 real scalar gmatch::mean_sd_sq(| real scalar denominator)
 {
@@ -504,6 +504,7 @@ real colvector gmatch::cbps(| string scalar est, string scalar fctn, real scalar
 {
   real rowvector beta
   real colvector pscore, cbpswgt
+  real matrix ww
   class gmatch scalar M
   if (args()<1) est="ate"
   if (args()<2) fctn="sd_sq"
@@ -549,8 +550,10 @@ real colvector gmatch::cbps(| string scalar est, string scalar fctn, real scalar
     M.X = (M.X :- M.meansP) :/ sdP_orig
     M.X = (J(M.N_raw,1,1), M.X) // add constant in 1st column
     _svd(M.X, svd_s, svd_v)
-    optimize_init_conv_ptol(S, 1e-12)
-  	optimize_init_conv_vtol(S, 1e-13)
+    ww =  invsym((M.W:^.5 :* M.X)' * (M.W:^.5 :* M.X))
+    optimize_init_conv_ptol(S, 1e-13)
+  	optimize_init_conv_vtol(S, 1e-14)
+  	optimize_init_conv_nrtol(S, 1e-12)
     optimize_init_evaluatortype(S,"d0")
 	  optimize_init_conv_ignorenrtol(S, "off")
   }
@@ -578,12 +581,13 @@ real colvector gmatch::cbps(| string scalar est, string scalar fctn, real scalar
   // /* */ "optimize_result_value0(S)"; optimize_result_value0(S)
 
   if (fctn=="cbps_port_stata") {
-    real matrix ww
     // is this just M.covariancesP ?
     ww = M.cbps_port_stata_wgt_matrix(beta_logit, oid, est)
     ww = invsym(ww)
   }
-  else ww = .
+  else if (fctn!="cbps_port_r") {
+    ww = .
+  }
   optimize_init_argument(S, 6, ww)
   ""
 
@@ -631,12 +635,23 @@ real colvector gmatch::cbps(| string scalar est, string scalar fctn, real scalar
     /* */ "CBPS beta after undoing the normalization"; ((M.varlist,"_cons")', strofreal(beta)')
   }
   else {
-    /* */ "CBPS beta"; ( (M.varlist,"_cons")', strofreal(beta)')  
+    /* */ "CBPS beta"; ( (M.varlist,"_cons")', strofreal(beta)')
   }
 
   pscore  = M.logitpredict(M.X, beta)
   pscore  = M.trim(pscore)
-  cbpswgt = M.logitweights(pscore, est)
+  
+//  if (fctn=="cbps_port_r") {
+//    if (strlower(est)=="atet") {
+//       cbpswgt = (this.N/this.N1) :* (this.T:-pscore) :/ (1:-pscore)
+//    }
+//    else if (strlower(est)=="ate") {
+//       cbpswgt = (pscore:-1:+this.T):^-1
+//    }  
+//  }
+//  else {
+    cbpswgt = M.logitweights(pscore, est)
+//  }
   /* */ "Weights for first 10 observations:";  cbpswgt[1..10]'
 
   M.multweight(cbpswgt)
@@ -652,7 +667,7 @@ real colvector gmatch::cbps(| string scalar est, string scalar fctn, real scalar
   /* */ "M.sd_sq(denominator)"     ;  M.sd_sq(denominator)
   /* */ "M.asd(denominator)"       ;  M.asd(denominator)
   /* */ ""; ""; ""; ""; ""; ""; ""
-  
+
 
 
   return(cbpswgt)
@@ -794,7 +809,7 @@ real matrix gmatch::cbps_port_stata_wgt_matrix(real rowvector beta, real scalar 
 
 	if (!overid) {
 		if (strlower(est)=="ate") {
-      /* */ // Can I use quadcross with dpscore as a weight
+      /* */ // Can I use quadcross with dpscore as a weight?
 			ww = (X_const:/(pscore:*(1:-pscore)))'*X_const
 		}
 		else if (strlower(est)=="atet") {
@@ -830,44 +845,43 @@ void gmatch::cbps_port_r(real   scalar    todo,
                          real   matrix    g,
                          real   matrix    H)
 {
-    real colvector probs, w_cbps
-    real matrix V
-    probs = this.logitpredict(this.X, beta)
-    probs = this.trim(probs)
-// is this any different than my code?    w_cbpswgt = this.logitweights(pscore, est)
+  real colvector pscore, w_cbps
+  real matrix V
+  pscore = this.logitpredict(this.X, beta)
+  pscore = this.trim(pscore)
+  if (strlower(est)=="atet") {
+     w_cbps = (this.N/this.N1) :* (this.T:-pscore) :/ (1:-pscore)
+  }
+  else if (strlower(est)=="ate") {
+     w_cbps = (pscore:-1:+this.T):^-1
+  }
+// these can be made more efficient someday, for example, using quadcross()
+  if (!overid) {
+     w_cbps = 1/this.N :* w_cbps
+     lnf = abs(w_cbps' * (this.W :* this.X) * ww * (this.W :* this.X)' * (w_cbps))
+  }
+  else {
+    real colvector gbar, wx0, wx1, wxP
+    gbar = (1/this.N :*((this.W :* this.X)' * (this.T-pscore)) \ 
+            1/this.N :*((this.W :* this.X)' * w_cbps))
+// Why did they use N1_raw instad of N1?
     if (strlower(est)=="atet") {
-       w_cbps = (1/rows(this.X)) :* (this.N/this.N1) :* (this.T:-probs) :/ (1:-probs)
+      wx0   = (this.W:^.5):*this.X:*(((1:-pscore):*pscore):^.5)
+      wx1   = (this.W:^.5):*this.X:*((pscore:/(1:-pscore)):^.5)
+      wxP   = (this.W:^.5):*this.X:*(pscore:^.5)
+      V = ( (1/this.N) :* ( (wx0' * wx0) , (wxP' * wxP) ) :* (this.N:/this.N1_raw) \
+            (1/this.N) :* ( (wxP' * wxP) :* (this.N/this.N1_raw) , (wx1' * wx1 :* this.N^2:/this.N1_raw^2)) )
     }
     else if (strlower(est)=="ate") {
-       w_cbps = (1/this.N) :* (probs:-1:+this.T):^-1
+      wx0   = (this.W:^.5):*this.X:*(((1:-pscore):*pscore):^.5)
+      wx1   = (this.W:^.5):*this.X:*((pscore:*(1:-pscore)):^-.5)
+      wxP   = (this.W:^.5):*this.X
+      V = ((1/this.N) :* ( (wx0' * wx0) , (wxP' * wxP) ) \
+           (1/this.N) :* ( (wxP' * wxP) , (wx1' * wx1) ) )
     }
-// these can be made more efficient someday, for example, using quadcross()
-    if (!overid) {
-       lnf = abs(w_cbps' * (this.W :* this.X) * invsym((this.W:^.5 :* this.X)' * (this.W:^.5 :* this.X)) * (this.W :* this.X)' * (w_cbps))
-    }
-    else {
-      real colvector w_del, gbar, wx0, wx1, wxP
-      w_del = 1/this.N :* (this.W :* this.X)' * (w_cbps)
-      gbar = 1/this.N :* (this.W :* this.X)' * (this.T-probs)
-      gbar = (gbar \ w_del )
-// Why did they use N1_raw instad of N1?
-      if (strlower(est)=="atet") {
-        wx0   = this.W:^.5:*this.X:*((1:-probs):*probs):^.5
-        wx1   = this.W:^.5:*this.X:*(probs:/(1:-probs)):^.5
-        wxP   = this.W:^.5:*this.X:*(probs):^.5
-        V = ( (1/this.N) :* ((wx0' * wx0) , (wxP' * wxP)) :* (this.N / this.N1_raw )  \
-              (1/this.N) :* ((wxP' * wxP) :* (this.N/this.N1) , (wx1' * wx1) :* (this.N^2/this.N1_raw^2) ) )
-      }
-      else if (strlower(est)=="ate") {
-        wx0   = this.W:^.5:*this.X:*((1:-probs):*probs):^.5
-        wx1   = this.W:^.5:*this.X:*(probs:*(1:-probs)):^-.5
-        wxP   = this.W:^.5:*this.X
-        V = ( (1/this.N) :* ((wx0' * wx0) , (wxP' * wxP)) \
-              (1/this.N) :* ((wxP' * wxP) , (wx1' * wx1)) )
-      }
-      else _error(est + " is not allowed.")
-      lnf = gbar' * invsym(V) * gbar
-    }
+    else _error(est + " is not allowed.")
+    lnf = gbar' * invsym(V) * gbar
+  }
 }
 
 end
