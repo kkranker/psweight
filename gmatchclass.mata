@@ -39,25 +39,27 @@ void gmatch::new()
   this.depvars = ""
 }
 
-void gmatch::clone(class gmatch scalar origcopy)
+// clones a copy of an instant
+// this isn't completely efficient -- views will be variables after the clone
+void gmatch::clone(class gmatch scalar src)
 {
-  this.N          =  origcopy.N
-  this.N_raw      =  origcopy.N_raw
-  this.N0         =  origcopy.N0
-  this.N0_raw     =  origcopy.N0_raw
-  this.N1         =  origcopy.N1
-  this.N1_raw     =  origcopy.N1_raw
-  this.T          =  origcopy.T
-  this.W          =  origcopy.W
-  this.W_orig     =  origcopy.W_orig
-  this.X          =  origcopy.X
-  this.Y0         =  origcopy.Y0
-  this.depvars    =  origcopy.depvars
-  this.sel0       =  origcopy.sel0
-  this.sel1       =  origcopy.sel1
-  this.treatvar   =  origcopy.treatvar
-  this.varlist    =  origcopy.varlist
-  this.wgtvar     =  origcopy.wgtvar
+  this.N        = src.N
+  this.N_raw    = src.N_raw
+  this.N0       = src.N0
+  this.N0_raw   = src.N0_raw
+  this.N1       = src.N1
+  this.N1_raw   = src.N1_raw
+  this.T        = src.T
+  this.W        = src.W
+  this.W_orig   = src.W_orig
+  this.X        = src.X
+  this.Y0       = src.Y0
+  this.depvars  = src.depvars
+  this.sel0     = src.sel0
+  this.sel1     = src.sel1
+  this.treatvar = src.treatvar
+  this.varlist  = src.varlist
+  this.wgtvar   = src.wgtvar
 }
 
 void gmatch::set(string scalar treatvar, string scalar varlist, string scalar tousevar, | string scalar wgtvar)
@@ -366,12 +368,13 @@ real rowvector gmatch::olsbeta(real matrix y, real matrix X, | real colvector w)
 // Warning: this function doesn't check the conformability; I rely on Stata to produce errors with invalid arguments
 real colvector gmatch::olspredict(real matrix X, real rowvector beta)
 {
-  if (cols(X)+1==cols(beta)) {
-    return((X*beta[1..(cols(beta)-1)]') :+ beta[cols(beta)])
-  }
-  else {
+  if ((cols(X)==cols(beta)) & cols(beta)) {
     return(X*beta')
   }
+  else if ((cols(X)==cols(beta)-1) & cols(beta)) {
+    return((X*beta[1..(cols(beta)-1)]') :+ beta[cols(beta)])
+  }
+  else _error("X and beta are not conformable.")
 }
 
 
@@ -455,18 +458,20 @@ real colvector gmatch::logitweights(real colvector pscore, | string scalar est)
 
 // Define function to calculate coefficients for a logit regression model
 // A contant term is added to the model and its coefficient is included in the vector of betas
-real rowvector gmatch::logitfit(real colvector Y, real matrix X, | real colvector W)
+real rowvector gmatch::logitfit(real colvector Y, real matrix X, | real colvector W, real scalar addconst)
 {
+  if (args()<4) addconst=1
   transmorphic S
   S=moptimize_init()
   moptimize_init_evaluator(S, &logit_eval())
   moptimize_init_evaluatortype(S,"lf")
-  moptimize_init_eq_cons(S, 1, "on")
+  if (addconst) moptimize_init_eq_cons(S, 1, "on")
+  else          moptimize_init_eq_cons(S, 1, "off")
   moptimize_init_depvar(S,1,Y)
   moptimize_init_eq_indepvars(S,1,X)
   moptimize_init_eq_colnames(S,1,(J(1,cols(X),"x") + strofreal((1..cols(X)))))
   moptimize_init_vcetype(S, "robust")
-  if (args()>2 & W!=1) moptimize_init_weight(S, W)
+  if (args()>2 & any(W:!=1)) moptimize_init_weight(S, W)
 
   moptimize(S)
   // /* */ "Logit model coefficients and robust standard errors:"; moptimize_result_display(S)
@@ -475,12 +480,11 @@ real rowvector gmatch::logitfit(real colvector Y, real matrix X, | real colvecto
 
 void logit_eval(transmorphic S, real rowvector beta, real colvector lnf)
 {
-  real colvector  Y, pm, xb, lj
+  real colvector Y, pm, xb, lj
   Y  = moptimize_util_depvar(S, 1)
   xb = moptimize_util_xb(S, beta, 1)
   pm = 2*(Y :!= 0) :- 1
   lj = invlogit(pm:*xb)
-
   if (any(lj :== 0)) {
     lnf = .
     return
@@ -534,16 +538,17 @@ real colvector gmatch::cbps(| string scalar est, string scalar fctn, real scalar
     // normalize Xs to mean 0, sd 1
     // this is inefficent. and X starts out as a view but then gets reassigned to a Mata matrix
     // just make a xnorm variable and calc_norm_X function?
+    real matrix meansP_orig, sdP_orig, X_orig, svd_s, svd_v, svd_s_inv
+    if (oid) errprintf("\n\n{p}Warning: I'm not sure I have debugged gmatch::cbps_port_r() in case where oid==1{p_end}\n\n")
+
+    X_orig = M.X
     M.calcmeans()
     M.calcvariances()
-    real matrix meansP_orig, sdP_orig, X_orig
     meansP_orig = M.meansP
     sdP_orig = sqrt(M.variancesP)
     M.X = (M.X :- M.meansP) :/ sdP_orig
-    // svd(X, svd_u, svd_s, svd_v)
-    // M.X = svd_u
-    X_orig = M.X
-
+    M.X = (J(M.N_raw,1,1), M.X) // add constant in 1st column
+    _svd(M.X, svd_s, svd_v)
     optimize_init_conv_ptol(S, 1e-12)
   	optimize_init_conv_vtol(S, 1e-13)
     optimize_init_evaluatortype(S,"d0")
@@ -566,12 +571,13 @@ real colvector gmatch::cbps(| string scalar est, string scalar fctn, real scalar
 
   "Step 1 (initial values from logit model):"
   real rowvector beta_logit
-  beta_logit = M.logitfit(M.T, M.X, M.W)
+  if (fctn=="cbps_port_r") beta_logit = M.logitfit(M.T, M.X, M.W,0)
+  else                     beta_logit = M.logitfit(M.T, M.X, M.W,1)
   optimize_init_params(S, beta_logit)
   // /* */ "  optimize_init_params(S)";   optimize_init_params(S)
   // /* */ "optimize_result_value0(S)"; optimize_result_value0(S)
 
-  if (fctn=="cbps_port_stata"| fctn=="cbps_port_r") {
+  if (fctn=="cbps_port_stata") {
     real matrix ww
     // is this just M.covariancesP ?
     ww = M.cbps_port_stata_wgt_matrix(beta_logit, oid, est)
@@ -600,8 +606,6 @@ real colvector gmatch::cbps(| string scalar est, string scalar fctn, real scalar
   /* */ // This temp code keeps optimize() from producing an error
   /* */ // Once it's working switch back to
   /* */ // (void) optimize(S)
-  /* */
-  /* */
   /* */ (void) _optimize(S)
   /* */               if (optimize_result_returncode(S)!=0) {
   /* */                       errprintf("{p}\n")
@@ -613,28 +617,28 @@ real colvector gmatch::cbps(| string scalar est, string scalar fctn, real scalar
   /* */                       return(J(M.N,1,.))
   /* */               }
   /* */ "optimize_result_iterations(S)"; optimize_result_iterations(S)
-
   beta    = optimize_result_params(S)
-  /* */ "CBPS beta"; ((M.varlist,"_cons")', strofreal(beta)')
-  // /* */ "optimize_result_value(S)" ; optimize_result_value(S)
-  // /* */ "optimize_result_scores(S)" ; optimize_result_scores(S)
-  // /* */ optimize_query(S)
 
+  // undoing the normalization and SVD
   if (fctn=="cbps_port_r")  {
-    // normalize Xs to mean 0, sd 1
- //   svd_s[selectindex(svd_s> 1e-5),.] = 1 :/ svd_s[selectindex(svd_s>1e-5),.]
- //   svd_s[selectindex(svd_s<=1e-5),.] = J(rows(svd_s[selectindex(svd_s<=1e-5),.]),1,0)
- //   beta[1..(cols(beta)-1)] = svd_v * diag(svd_s) * beta
     M.X = X_orig
-    beta[1..(cols(beta)-1)] = beta[1..(cols(beta)-1)] :/ sdP_orig
-    beta[cols(beta)]        = beta[cols(beta)] :- meansP_orig*beta[1..(cols(beta)-1)]'
+    svd_s_inv = svd_s:^-1
+    svd_s_inv = svd_s_inv :* (svd_s :> 1e-5)
+    beta = (svd_v' * diag(svd_s_inv) * beta')'
+    beta[2::cols(beta)] = (beta[2::cols(beta)] :/ sdP_orig)
+    beta[1] = beta[1] :- meansP_orig * beta[2..cols(beta)]'
+    beta = (beta[2::cols(beta)] , beta[1]) // teh CBPS R code puts the contstant in the first column, but I want it in the last column (stata standard and to work with logit predict)
     /* */ "CBPS beta after undoing the normalization"; ((M.varlist,"_cons")', strofreal(beta)')
   }
-
+  else {
+    /* */ "CBPS beta"; ( (M.varlist,"_cons")', strofreal(beta)')  
+  }
 
   pscore  = M.logitpredict(M.X, beta)
   pscore  = M.trim(pscore)
   cbpswgt = M.logitweights(pscore, est)
+  /* */ "Weights for first 10 observations:";  cbpswgt[1..10]'
+
   M.multweight(cbpswgt)
 
   /* */ "Balance after CBPS (" + fctn + "):"
@@ -647,6 +651,9 @@ real colvector gmatch::cbps(| string scalar est, string scalar fctn, real scalar
   /* */ "M.max_asd(denominator)"   ;  M.max_asd(denominator)
   /* */ "M.sd_sq(denominator)"     ;  M.sd_sq(denominator)
   /* */ "M.asd(denominator)"       ;  M.asd(denominator)
+  /* */ ""; ""; ""; ""; ""; ""; ""
+  
+
 
   return(cbpswgt)
 }
@@ -661,16 +668,16 @@ void cbps_eval(real todo, real beta,
 }
 
 
-void gmatch::cbpseval( real    /* scalar      */   todo,
-                       real    /* rowvector   */   beta,
-                       string  /* scalar      */   est,
-                       string  /* scalar      */   fctn,
-                       real    /* scalar      */   denominator,
-                       real    /* scalar      */   oid,
-                       real    /* scalar      */   ww,
-                       real    /* colvector   */   lnf,
-                       real    /* rowvector   */   g,
-                       real    /* matrix      */   H)
+void gmatch::cbpseval( real   scalar    todo,
+                       real   rowvector beta,
+                       string scalar    est,
+                       string scalar    fctn,
+                       real   scalar    denominator,
+                       real   scalar    oid,
+                       real   matrix    ww,
+                       real   matrix    lnf,
+                       real   matrix    g,
+                       real   matrix    H)
 {
   real colvector  pscore, cbpswgt
   if      (fctn=="cbps_port_stata")  this.cbps_port_stata(todo,beta,est,fctn,denominator,oid,ww,lnf,g,H)
@@ -698,16 +705,16 @@ void gmatch::cbpseval( real    /* scalar      */   todo,
 
 
 // Port of the objective function from the Stata verion of CBPS
-void gmatch::cbps_port_stata( real    /* scalar      */   todo,
-                              real    /* rowvector   */   beta,
-                              string  /* scalar      */   est,
-                              string  /* scalar      */   fctn,
-                              real    /* scalar      */   denominator,
-                              real    /* scalar      */   oid,
-                              real    /* scalar      */   ww,
-                              real    /* colvector   */   lnf,
-                              real    /* rowvector   */   g,
-                              real    /* matrix      */   H)
+void gmatch::cbps_port_stata( real   scalar    todo,
+                              real   rowvector beta,
+                              string scalar    est,
+                              string scalar    fctn,
+                              real   scalar    denominator,
+                              real   scalar    oid,
+                              real   matrix    ww,
+                              real   matrix    lnf,
+                              real   matrix    g,
+                              real   matrix    H)
 {
    real colvector  pscore
    pscore = this.logitpredict(this.X, beta)
@@ -814,75 +821,53 @@ real matrix gmatch::cbps_port_stata_wgt_matrix(real rowvector beta, real scalar 
 
 
 // Port of the gmm.func()  function from CBPS.Binary.R (version 0.17)
-void gmatch::cbps_port_r(real    /*scalar        */ todo,
-                         real    /*rowvector     */ beta,
-                         string  /*scalar        */ est,
-                         real    /* scalar      */  overid,
-                         real    /*colvector     */ ww,
-                         real    /*colvector     */ lnf,
-                         real    /*rowvector     */ g,
-                         real    /*matrix        */ H)
+void gmatch::cbps_port_r(real   scalar    todo,
+                         real   rowvector beta,
+                         string scalar    est,
+                         real   scalar    overid,
+                         real   matrix    ww,
+                         real   matrix    lnf,
+                         real   matrix    g,
+                         real   matrix    H)
 {
-    real colvector probs, w_cbps, w_del, gbar, wx0, wx1, wxP
-    real matrix V, X_const
-
-//inefficient
-    X_const = (this.X, J(this.N_raw,1,1))
-
-    // Designate sample size, number of treated and control observations,
-    // theta, which are used to generate probabilities.
-    // Trim probabilities, and generate weights.
+    real colvector probs, w_cbps
+    real matrix V
     probs = this.logitpredict(this.X, beta)
     probs = this.trim(probs)
-//    w_cbps = this.logitweights(probs, est)
-
+// is this any different than my code?    w_cbpswgt = this.logitweights(pscore, est)
     if (strlower(est)=="atet") {
        w_cbps = (1/rows(this.X)) :* (this.N/this.N1) :* (this.T:-probs) :/ (1:-probs)
     }
     else if (strlower(est)=="ate") {
        w_cbps = (1/this.N) :* (probs:-1:+this.T):^-1
     }
-// "weights  ("  + est +")"
-// (w_cbps, this.logitweights(probs, est))[1..20,.]
-
-
-// /* */  "X_const is " + strofreal(rows(X_const)) + " by " + strofreal(cols(X_const))
-// /* */  "beta is " + strofreal(rows(beta)) + " by " + strofreal(cols(beta))
-
+// these can be made more efficient someday, for example, using quadcross()
     if (!overid) {
-       // Loss function for balance constraints, returns the squared imbalance along each dimension.
-       lnf = abs(w_cbps' * (this.W :* X_const) * invsym((this.W:^.5 :* X_const)' * (this.W:^.5 :* X_const)) * (this.W :* X_const)' * (w_cbps))
+       lnf = abs(w_cbps' * (this.W :* this.X) * invsym((this.W:^.5 :* this.X)' * (this.W:^.5 :* this.X)) * (this.W :* this.X)' * (w_cbps))
     }
     else {
-
-      _error("I haven't finished debugging gmatch::cbps_port_r() in case where oid==1")
-      // Generate the vector of mean imbalance by weights.
-      w_del = 1/this.N :* (this.W :* X_const)' * (w_cbps)
-      // Generate g-bar, as in the paper.
-      gbar = 1/this.N :* (this.W :* X_const)' * (this.T-probs)
+      real colvector w_del, gbar, wx0, wx1, wxP
+      w_del = 1/this.N :* (this.W :* this.X)' * (w_cbps)
+      gbar = 1/this.N :* (this.W :* this.X)' * (this.T-probs)
       gbar = (gbar \ w_del )
-      // Generate the covariance matrix used in the GMM estimate.
+// Why did they use N1_raw instad of N1?
       if (strlower(est)=="atet") {
-        wx0   = this.W:^.5:*X_const:*((1:-probs):*probs):^.5
-        wx1   = this.W:^.5:*X_const:*(probs:/(1:-probs)):^.5
-        wxP   = this.W:^.5:*X_const:*(probs):^.5
-        V = ( (1/this.N) :* ((wx0' * wx0) , (wxP' * wxP)) :* (this.N / this.N1_raw /* they use N1_raw instad of N1. why? */ )  \
+        wx0   = this.W:^.5:*this.X:*((1:-probs):*probs):^.5
+        wx1   = this.W:^.5:*this.X:*(probs:/(1:-probs)):^.5
+        wxP   = this.W:^.5:*this.X:*(probs):^.5
+        V = ( (1/this.N) :* ((wx0' * wx0) , (wxP' * wxP)) :* (this.N / this.N1_raw )  \
               (1/this.N) :* ((wxP' * wxP) :* (this.N/this.N1) , (wx1' * wx1) :* (this.N^2/this.N1_raw^2) ) )
       }
       else if (strlower(est)=="ate") {
-        wx0   = this.W:^.5:*X_const:*((1:-probs):*probs):^.5
-        wx1   = this.W:^.5:*X_const:*(probs:*(1:-probs)):^-.5
-        wxP   = this.W:^.5:*X_const
+        wx0   = this.W:^.5:*this.X:*((1:-probs):*probs):^.5
+        wx1   = this.W:^.5:*this.X:*(probs:*(1:-probs)):^-.5
+        wxP   = this.W:^.5:*this.X
         V = ( (1/this.N) :* ((wx0' * wx0) , (wxP' * wxP)) \
               (1/this.N) :* ((wxP' * wxP) , (wx1' * wx1)) )
-     }
+      }
       else _error(est + " is not allowed.")
-
-      // Calculate the GMM loss
       lnf = gbar' * invsym(V) * gbar
-//      lnf = gbar' * invsym(ww) * gbar
-    } // end of overid case
+    }
 }
-
 
 end
