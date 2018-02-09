@@ -39,47 +39,6 @@ summ, sep(0)
 tab treat treat_cat, mi
 corr treat y1 y1_binary
 
-/*
-
-************************************************************************************
-* 5. IPW w/ binary treatment
-************************************************************************************
-
-
-
-
-* moment evaluator program for IPW - link the two equations
-program gmm_ipw
-	version 13.1
-	syntax varlist if [fw aw iw pw], at(name) depvars(varname numeric) treat(varname numeric)
-	gettoken resid1 resid2: varlist
-	tempvar xb1 pr wgt xb2
-	quietly {
-		// Logit model  (propensity score model)
-		matrix score double `xb1' = `at' `if', eq(logit)
-		gen double `pr' = max(exp(`xb') / (1 + exp(`xb')), c(epsdouble)) `if'  // accounts for propensity scores near zero or one, but otherwise identical to the following: .gen `pr' = invlogit(`xb1') `if'
-		replace `resid1' = `treat' - `pr' `if'
-
-		// Construct weights
-		gen `wgt' = cond(`treat', 1, `pr'/(1-`pr')) `if'
-		summ `wgt' `if' [`weight'`exp'], meanonly
-		replace `wgt' = `wgt' / r(mean)
-
-		// Weighted OLS model
-		matrix score `xb2' = `at' `if', eq(ols)
-		replace `resid2' = `wgt' * (`depvars' - `xb2') `if'
-	}
-end
-gmm gmm_ipw, equations(logit ols)  ///
-	 instruments(logit: x1 x2 x3 x4 x5 x6 x7) instruments(ols: treat) ///
-	 parameters(logit:x1 logit:x2 logit:x3 logit:x4 logit:x5 logit:x6 logit:x7 logit:_cons ols:treat ols:_cons) ///
-	 depvars(y1) treat(treat) winitial(unadjusted, indep) onestep nolog
-
-* teffects IPW (ATET)
-teffects ipw (y1) (treat x1 x2 x3 x4 x5 x6 x7), aequations atet nolog
-
-*/
-
 local if if _n<=500
 set seed 1
 gen wgt = max(.1,rnormal(2,.4))
@@ -124,18 +83,18 @@ forvalues j=1/`: list sizeof varlist' {
 }
 local varlist : copy local varlist1
 
-
-fvrevar  `varlist'
-export delimited `treatvar' `r(varlist)' `wgtvar' using testfile.csv if `tousevar' , replace  nolabel
+fvrevar `varlist'
+export delimited `treatvar' `r(varlist)' `wgtvar' using testfile.csv if `tousevar', replace nolabel
 
 mata:
 
-depvars  = st_local("depvars"  )
+depvars  = st_local("depvars" )
 treatvar = st_local("treatvar")
 wgtvar   = st_local("wgtvar"  )
 varlist  = st_local("varlist" )
 tousevar = st_local("tousevar")
 estimate = st_local("estimate")
+
 
 // ****************************
 // * UNWEIGHTED DATA EXAMPLES *
@@ -144,6 +103,8 @@ estimate = st_local("estimate")
 D = gmatch()
 D.set(st_local("treatvar"),st_local("varlist") ,st_local("tousevar"))
 if (depvars!="") D.set_Y(st_local("depvars"),st_local("tousevar"))
+M = gmatch()
+M.clone(D)
 
 // Misc balance measures
   D.diff()
@@ -160,40 +121,39 @@ if (depvars!="") D.set_Y(st_local("depvars"),st_local("tousevar"))
 
 // Replicate CBPS
 
-  M = gmatch()
-  M.clone(D)
-
-  "ATE (not overidentified)"
+  "--- ATE (not overidentified) ---"; ""; ""
     stata(`"cbps `treatvar' `varlist' if `tousevar' , ate      logit optimization_technique("nr") evaluator_type("gf1")"')
     stata(`"cbps_imbalance"')
     cbpsweight = M.cbps("ate" , "cbps_port_stata", 2, 0)
     cbpsweight = M.cbps("ate" , "cbps_port_r",  2, 0)
 
-  "ATE overidentified"
+  "--- ATE overidentified ---"; ""; ""
     stata(`"cbps `treatvar' `varlist' if `tousevar' , ate over logit optimization_technique("nr") evaluator_type("gf1")"')
     stata(`"cbps_imbalance"')
     cbpsweight = M.cbps("ate" , "cbps_port_stata", 2, 1)
-    /* not working yet:   cbpsweight = M.cbps("ate" , "cbps_port_r",  2, 1) */
+    // not working yet?
+    cbpsweight = M.cbps("ate" , "cbps_port_r",  2, 1)
 
-  "ATET (not overidentified)"
+  "--- ATET (not overidentified) ---"; ""; ""
     stata(`"cbps `treatvar' `varlist' if `tousevar' , att      logit optimization_technique("nr") evaluator_type("gf1")"')
     stata(`"cbps_imbalance"')
     cbpsweight = M.cbps("atet", "cbps_port_stata", 2, 0)
     cbpsweight = M.cbps("atet", "cbps_port_r",  2, 0)
 
-  "ATET overidentified"
+  "--- ATET overidentified ---"; ""; ""
     stata(`"cbps `treatvar' `varlist' if `tousevar' , att over logit optimization_technique("nr") evaluator_type("gf1")"')
     stata(`"cbps_imbalance"')
     cbpsweight = M.cbps("atet", "cbps_port_stata", 2, 1)
-    /* not working yet:   cbpsweight = M.cbps("atet", "cbps_port_r",  2, 1) */
+    // not working yet?
+    cbpsweight = M.cbps("atet", "cbps_port_r",  2, 1)
 
 // Other objective functions
-cbpsweight = M.cbps("atet","mean_sd_sq",1)
-cbpsweight = M.cbps("atet","sd_sq",1)
-cbpsweight = M.cbps("atet","mean_asd")
-cbpsweight = M.cbps("atet","max_asd")
-cbpsweight = M.cbps("atet","mean_sd_sq_ent",1)
-cbpsweight = M.cbps("atet","mean_sd_sq_cv",1)
+  cbpsweight = M.cbps("atet","mean_sd_sq",1)
+  cbpsweight = M.cbps("atet","sd_sq",1)
+  cbpsweight = M.cbps("atet","mean_asd")
+  cbpsweight = M.cbps("atet","max_asd")
+  cbpsweight = M.cbps("atet","mean_sd_sq_ent",1)
+  cbpsweight = M.cbps("atet","mean_sd_sq_cv",1)
 
 // IPW
   M = gmatch()
@@ -223,14 +183,14 @@ cbpsweight = M.cbps("atet","mean_sd_sq_cv",1)
   stata("teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' , atet aequations tlevel(0) control(1)")
   ipw = D.ipw("ateu")
 
+mata drop D M
 
 // **************************
 // * WEIGHTED DATA EXAMPLES *
 // **************************
 
-mata drop D M
 D = gmatch()
-D.set(st_local("treatvar"),st_local("varlist") ,st_local("tousevar"),st_local("wgtvar"))
+D.set(st_local("treatvar"),st_local("varlist"),st_local("tousevar"),st_local("wgtvar"))
 if (depvars!="") D.set_Y(st_local("depvars"),st_local("tousevar"))
 
 // Misc balance measures
@@ -251,17 +211,19 @@ if (depvars!="") D.set_Y(st_local("depvars"),st_local("tousevar"))
   M.clone(D)
   M.prognosticdiff()
 
-  "ATE (not overidentified)"
+  "--- ATE (not overidentified) ---"; ""; ""
     cbpsweight = M.cbps("ate" , "cbps_port_r",  2, 0)
 
-  "ATE overidentified"
-    /* not working yet:   cbpsweight = M.cbps("ate" , "cbps_port_r",  2, 1) */
+  "--- ATE overidentified ---"; ""; ""
+    // not working yet?
+    cbpsweight = M.cbps("ate" , "cbps_port_r",  2, 1)
 
-  "ATET (not overidentified)"
+  "--- ATET (not overidentified) ---"; ""; ""
     cbpsweight = M.cbps("atet", "cbps_port_r",  2, 0)
 
-  "ATET overidentified"
-    /* not working yet:   cbpsweight = M.cbps("atet", "cbps_port_r",  2, 1) */
+  "--- ATET overidentified ---"; ""; ""
+    // not working yet? 
+    cbpsweight = M.cbps("atet", "cbps_port_r",  2, 1)
 
 // IPW
 

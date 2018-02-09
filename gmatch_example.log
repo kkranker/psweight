@@ -2,7 +2,7 @@
       name:  gmatch_example
        log:  C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\gmatch_example.log
   log type:  text
- opened on:   6 Feb 2018, 22:45:44
+ opened on:   9 Feb 2018, 10:39:24
 
 . 
 . // Multiple-equation models: An introduction and potential applications to our work at Mathematica
@@ -60,25 +60,27 @@
 > }
 
 : 
-: void gmatch::clone(class gmatch scalar origcopy)
+: // clones a copy of an instant
+: // this isn't completely efficient -- views will be variables after the clone
+: void gmatch::clone(class gmatch scalar src)
 > {
->   this.N          =  origcopy.N
->   this.N_raw      =  origcopy.N_raw
->   this.N0         =  origcopy.N0
->   this.N0_raw     =  origcopy.N0_raw
->   this.N1         =  origcopy.N1
->   this.N1_raw     =  origcopy.N1_raw
->   this.T          =  origcopy.T
->   this.W          =  origcopy.W
->   this.W_orig     =  origcopy.W_orig
->   this.X          =  origcopy.X
->   this.Y0         =  origcopy.Y0
->   this.depvars    =  origcopy.depvars
->   this.sel0       =  origcopy.sel0
->   this.sel1       =  origcopy.sel1
->   this.treatvar   =  origcopy.treatvar
->   this.varlist    =  origcopy.varlist
->   this.wgtvar     =  origcopy.wgtvar
+>   this.N        = src.N
+>   this.N_raw    = src.N_raw
+>   this.N0       = src.N0
+>   this.N0_raw   = src.N0_raw
+>   this.N1       = src.N1
+>   this.N1_raw   = src.N1_raw
+>   this.T        = src.T
+>   this.W        = src.W
+>   this.W_orig   = src.W_orig
+>   this.X        = src.X
+>   this.Y0       = src.Y0
+>   this.depvars  = src.depvars
+>   this.sel0     = src.sel0
+>   this.sel1     = src.sel1
+>   this.treatvar = src.treatvar
+>   this.varlist  = src.varlist
+>   this.wgtvar   = src.wgtvar
 > }
 
 : 
@@ -335,13 +337,13 @@
 : real scalar gmatch::mean_asd(| real scalar denominator)
 > {
 >   if (args()<1) denominator=1
->   return(mean(this.asd()'))
+>   return(mean(this.asd(denominator)'))
 > }
 
 : real scalar gmatch::max_asd(| real scalar denominator)
 > {
 >   if (args()<1) denominator=1
->   return(max(this.asd()))
+>   return(max(this.asd(denominator)))
 > }
 
 : real scalar gmatch::mean_sd_sq(| real scalar denominator)
@@ -410,12 +412,13 @@
 : // Warning: this function doesn't check the conformability; I rely on Stata to produce errors with invalid arguments
 : real colvector gmatch::olspredict(real matrix X, real rowvector beta)
 > {
->   if (cols(X)+1==cols(beta)) {
->     return((X*beta[1..(cols(beta)-1)]') :+ beta[cols(beta)])
->   }
->   else {
+>   if ((cols(X)==cols(beta)) & cols(beta)) {
 >     return(X*beta')
 >   }
+>   else if ((cols(X)==cols(beta)-1) & cols(beta)) {
+>     return((X*beta[1..(cols(beta)-1)]') :+ beta[cols(beta)])
+>   }
+>   else _error("X and beta are not conformable.")
 > }
 
 : 
@@ -505,18 +508,20 @@
 : 
 : // Define function to calculate coefficients for a logit regression model
 : // A contant term is added to the model and its coefficient is included in the vector of betas
-: real rowvector gmatch::logitfit(real colvector Y, real matrix X, | real colvector W)
+: real rowvector gmatch::logitfit(real colvector Y, real matrix X, | real colvector W, real scalar addconst)
 > {
+>   if (args()<4) addconst=1
 >   transmorphic S
 >   S=moptimize_init()
 >   moptimize_init_evaluator(S, &logit_eval())
 >   moptimize_init_evaluatortype(S,"lf")
->   moptimize_init_eq_cons(S, 1, "on")
+>   if (addconst) moptimize_init_eq_cons(S, 1, "on")
+>   else          moptimize_init_eq_cons(S, 1, "off")
 >   moptimize_init_depvar(S,1,Y)
 >   moptimize_init_eq_indepvars(S,1,X)
 >   moptimize_init_eq_colnames(S,1,(J(1,cols(X),"x") + strofreal((1..cols(X)))))
 >   moptimize_init_vcetype(S, "robust")
->   if (args()>2 & W!=1) moptimize_init_weight(S, W)
+>   if (args()>2 & any(W:!=1)) moptimize_init_weight(S, W)
 > 
 >   moptimize(S)
 >   // /* */ "Logit model coefficients and robust standard errors:"; moptimize_result_display(S)
@@ -526,12 +531,11 @@
 : 
 : void logit_eval(transmorphic S, real rowvector beta, real colvector lnf)
 > {
->   real colvector  Y, pm, xb, lj
+>   real colvector Y, pm, xb, lj
 >   Y  = moptimize_util_depvar(S, 1)
 >   xb = moptimize_util_xb(S, beta, 1)
 >   pm = 2*(Y :!= 0) :- 1
 >   lj = invlogit(pm:*xb)
-> 
 >   if (any(lj :== 0)) {
 >     lnf = .
 >     return
@@ -552,6 +556,7 @@
 > {
 >   real rowvector beta
 >   real colvector pscore, cbpswgt
+>   real matrix ww
 >   class gmatch scalar M
 >   if (args()<1) est="ate"
 >   if (args()<2) fctn="sd_sq"
@@ -586,18 +591,21 @@
 >     // normalize Xs to mean 0, sd 1
 >     // this is inefficent. and X starts out as a view but then gets reassigned to a Mata matrix
 >     // just make a xnorm variable and calc_norm_X function?
+>     real matrix meansP_orig, sdP_orig, X_orig, svd_s, svd_v, svd_s_inv
+>     if (oid) errprintf("\n\n{p}Warning: I'm not sure I have debugged gmatch::cbps_port_r() in case where oid==1{p_end}\n\n")
+> 
+>     X_orig = M.X
 >     M.calcmeans()
 >     M.calcvariances()
->     real matrix meansP_orig, sdP_orig, X_orig
 >     meansP_orig = M.meansP
 >     sdP_orig = sqrt(M.variancesP)
 >     M.X = (M.X :- M.meansP) :/ sdP_orig
->     // svd(X, svd_u, svd_s, svd_v)
->     // M.X = svd_u
->     X_orig = M.X
-> 
->     optimize_init_conv_ptol(S, 1e-12)
->         optimize_init_conv_vtol(S, 1e-13)
+>     M.X = (J(M.N_raw,1,1), M.X) // add constant in 1st column
+>     _svd(M.X, svd_s, svd_v)
+>     ww =  invsym((M.W:^.5 :* M.X)' * (M.W:^.5 :* M.X))
+>     optimize_init_conv_ptol(S, 1e-13)
+>         optimize_init_conv_vtol(S, 1e-14)
+>         optimize_init_conv_nrtol(S, 1e-12)
 >     optimize_init_evaluatortype(S,"d0")
 >           optimize_init_conv_ignorenrtol(S, "off")
 >   }
@@ -618,18 +626,20 @@
 > 
 >   "Step 1 (initial values from logit model):"
 >   real rowvector beta_logit
->   beta_logit = M.logitfit(M.T, M.X, M.W)
+>   if (fctn=="cbps_port_r") beta_logit = M.logitfit(M.T, M.X, M.W,0)
+>   else                     beta_logit = M.logitfit(M.T, M.X, M.W,1)
 >   optimize_init_params(S, beta_logit)
 >   // /* */ "  optimize_init_params(S)";   optimize_init_params(S)
 >   // /* */ "optimize_result_value0(S)"; optimize_result_value0(S)
 > 
->   if (fctn=="cbps_port_stata"| fctn=="cbps_port_r") {
->     real matrix ww
+>   if (fctn=="cbps_port_stata") {
 >     // is this just M.covariancesP ?
 >     ww = M.cbps_port_stata_wgt_matrix(beta_logit, oid, est)
 >     ww = invsym(ww)
 >   }
->   else ww = .
+>   else if (fctn!="cbps_port_r") {
+>     ww = .
+>   }
 >   optimize_init_argument(S, 6, ww)
 >   ""
 > 
@@ -652,8 +662,6 @@
 >   /* */ // This temp code keeps optimize() from producing an error
 >   /* */ // Once it's working switch back to
 >   /* */ // (void) optimize(S)
->   /* */
->   /* */
 >   /* */ (void) _optimize(S)
 >   /* */               if (optimize_result_returncode(S)!=0) {
 >   /* */                       errprintf("{p}\n")
@@ -665,28 +673,40 @@
 >   /* */                       return(J(M.N,1,.))
 >   /* */               }
 >   /* */ "optimize_result_iterations(S)"; optimize_result_iterations(S)
-> 
 >   beta    = optimize_result_params(S)
->   /* */ "CBPS beta"; ((M.varlist,"_cons")', strofreal(beta)')
->   // /* */ "optimize_result_value(S)" ; optimize_result_value(S)
->   // /* */ "optimize_result_scores(S)" ; optimize_result_scores(S)
->   // /* */ optimize_query(S)
 > 
+>   // undoing the normalization and SVD
 >   if (fctn=="cbps_port_r")  {
->     // normalize Xs to mean 0, sd 1
->  //   svd_s[selectindex(svd_s> 1e-5),.] = 1 :/ svd_s[selectindex(svd_s>1e-5),.]
->  //   svd_s[selectindex(svd_s<=1e-5),.] = J(rows(svd_s[selectindex(svd_s<=1e-5),.]),1,0)
->  //   beta[1..(cols(beta)-1)] = svd_v * diag(svd_s) * beta
 >     M.X = X_orig
->     beta[1..(cols(beta)-1)] = beta[1..(cols(beta)-1)] :/ sdP_orig
->     beta[cols(beta)]        = beta[cols(beta)] :- meansP_orig*beta[1..(cols(beta)-1)]'
+>     svd_s_inv = svd_s:^-1
+>     svd_s_inv = svd_s_inv :* (svd_s :> 1e-5)
+>     beta = (svd_v' * diag(svd_s_inv) * beta')'
+>     beta[2::cols(beta)] = (beta[2::cols(beta)] :/ sdP_orig)
+>     beta[1] = beta[1] :- meansP_orig * beta[2..cols(beta)]'
+>     beta = (beta[2::cols(beta)] , beta[1]) // teh CBPS R code puts the contstant in the first column, but I want it in the last column (stata standard and to 
+> work with logit predict)
 >     /* */ "CBPS beta after undoing the normalization"; ((M.varlist,"_cons")', strofreal(beta)')
 >   }
-> 
+>   else {
+>     /* */ "CBPS beta"; ( (M.varlist,"_cons")', strofreal(beta)')
+>   }
 > 
 >   pscore  = M.logitpredict(M.X, beta)
 >   pscore  = M.trim(pscore)
->   cbpswgt = M.logitweights(pscore, est)
+>   
+> //  if (fctn=="cbps_port_r") {
+> //    if (strlower(est)=="atet") {
+> //       cbpswgt = (this.N/this.N1) :* (this.T:-pscore) :/ (1:-pscore)
+> //    }
+> //    else if (strlower(est)=="ate") {
+> //       cbpswgt = (pscore:-1:+this.T):^-1
+> //    }  
+> //  }
+> //  else {
+>     cbpswgt = M.logitweights(pscore, est)
+> //  }
+>   /* */ "Weights for first 10 observations:";  cbpswgt[1..10]'
+> 
 >   M.multweight(cbpswgt)
 > 
 >   /* */ "Balance after CBPS (" + fctn + "):"
@@ -700,9 +720,14 @@
 >   /* */ "M.max_asd(denominator)"   ;  M.max_asd(denominator)
 >   /* */ "M.sd_sq(denominator)"     ;  M.sd_sq(denominator)
 >   /* */ "M.asd(denominator)"       ;  M.asd(denominator)
+>   /* */ ""; ""; ""; ""; ""; ""; ""
+> 
+> 
 > 
 >   return(cbpswgt)
 > }
+note: variable svd_s may be used before set
+note: variable svd_v may be used before set
 note: variable temp set but not used
 
 : 
@@ -717,16 +742,16 @@ note: variable temp set but not used
 
 : 
 : 
-: void gmatch::cbpseval( real    /* scalar      */   todo,
->                        real    /* rowvector   */   beta,
->                        string  /* scalar      */   est,
->                        string  /* scalar      */   fctn,
->                        real    /* scalar      */   denominator,
->                        real    /* scalar      */   oid,
->                        real    /* scalar      */   ww,
->                        real    /* colvector   */   lnf,
->                        real    /* rowvector   */   g,
->                        real    /* matrix      */   H)
+: void gmatch::cbpseval( real   scalar    todo,
+>                        real   rowvector beta,
+>                        string scalar    est,
+>                        string scalar    fctn,
+>                        real   scalar    denominator,
+>                        real   scalar    oid,
+>                        real   matrix    ww,
+>                        real   matrix    lnf,
+>                        real   matrix    g,
+>                        real   matrix    H)
 > {
 >   real colvector  pscore, cbpswgt
 >   if      (fctn=="cbps_port_stata")  this.cbps_port_stata(todo,beta,est,fctn,denominator,oid,ww,lnf,g,H)
@@ -756,16 +781,16 @@ note: variable temp set but not used
 : 
 : 
 : // Port of the objective function from the Stata verion of CBPS
-: void gmatch::cbps_port_stata( real    /* scalar      */   todo,
->                               real    /* rowvector   */   beta,
->                               string  /* scalar      */   est,
->                               string  /* scalar      */   fctn,
->                               real    /* scalar      */   denominator,
->                               real    /* scalar      */   oid,
->                               real    /* scalar      */   ww,
->                               real    /* colvector   */   lnf,
->                               real    /* rowvector   */   g,
->                               real    /* matrix      */   H)
+: void gmatch::cbps_port_stata( real   scalar    todo,
+>                               real   rowvector beta,
+>                               string scalar    est,
+>                               string scalar    fctn,
+>                               real   scalar    denominator,
+>                               real   scalar    oid,
+>                               real   matrix    ww,
+>                               real   matrix    lnf,
+>                               real   matrix    g,
+>                               real   matrix    H)
 > {
 >    real colvector  pscore
 >    pscore = this.logitpredict(this.X, beta)
@@ -851,7 +876,7 @@ note: argument H unused
 > 
 >         if (!overid) {
 >                 if (strlower(est)=="ate") {
->       /* */ // Can I use quadcross with dpscore as a weight
+>       /* */ // Can I use quadcross with dpscore as a weight?
 >                         ww = (X_const:/(pscore:*(1:-pscore)))'*X_const
 >                 }
 >                 else if (strlower(est)=="atet") {
@@ -879,81 +904,57 @@ note: argument H unused
 : 
 : 
 : // Port of the gmm.func()  function from CBPS.Binary.R (version 0.17)
-: void gmatch::cbps_port_r(real    /*scalar        */ todo,
->                          real    /*rowvector     */ beta,
->                          string  /*scalar        */ est,
->                          real    /* scalar      */  overid,
->                          real    /*colvector     */ ww,
->                          real    /*colvector     */ lnf,
->                          real    /*rowvector     */ g,
->                          real    /*matrix        */ H)
+: void gmatch::cbps_port_r(real   scalar    todo,
+>                          real   rowvector beta,
+>                          string scalar    est,
+>                          real   scalar    overid,
+>                          real   matrix    ww,
+>                          real   matrix    lnf,
+>                          real   matrix    g,
+>                          real   matrix    H)
 > {
->     real colvector probs, w_cbps, w_del, gbar, wx0, wx1, wxP
->     real matrix V, X_const
-> 
-> //inefficient
->     X_const = (this.X, J(this.N_raw,1,1))
-> 
->     // Designate sample size, number of treated and control observations,
->     // theta, which are used to generate probabilities.
->     // Trim probabilities, and generate weights.
->     probs = this.logitpredict(this.X, beta)
->     probs = this.trim(probs)
-> //    w_cbps = this.logitweights(probs, est)
-> 
+>   real colvector pscore, w_cbps
+>   real matrix V
+>   pscore = this.logitpredict(this.X, beta)
+>   pscore = this.trim(pscore)
+>   if (strlower(est)=="atet") {
+>      w_cbps = (this.N/this.N1) :* (this.T:-pscore) :/ (1:-pscore)
+>   }
+>   else if (strlower(est)=="ate") {
+>      w_cbps = (pscore:-1:+this.T):^-1
+>   }
+> // these can be made more efficient someday, for example, using quadcross()
+>   if (!overid) {
+>      w_cbps = 1/this.N :* w_cbps
+>      lnf = abs(w_cbps' * (this.W :* this.X) * ww * (this.W :* this.X)' * (w_cbps))
+>   }
+>   else {
+>     real colvector gbar, wx0, wx1, wxP
+>     gbar = (1/this.N :*((this.W :* this.X)' * (this.T-pscore)) \ 
+>             1/this.N :*((this.W :* this.X)' * w_cbps))
+> // Why did they use N1_raw instad of N1?
 >     if (strlower(est)=="atet") {
->        w_cbps = (1/rows(this.X)) :* (this.N/this.N1) :* (this.T:-probs) :/ (1:-probs)
+>       wx0   = (this.W:^.5):*this.X:*(((1:-pscore):*pscore):^.5)
+>       wx1   = (this.W:^.5):*this.X:*((pscore:/(1:-pscore)):^.5)
+>       wxP   = (this.W:^.5):*this.X:*(pscore:^.5)
+>       V = ( (1/this.N) :* ( (wx0' * wx0) , (wxP' * wxP) ) :* (this.N:/this.N1_raw) \
+>             (1/this.N) :* ( (wxP' * wxP) :* (this.N/this.N1_raw) , (wx1' * wx1 :* this.N^2:/this.N1_raw^2)) )
 >     }
 >     else if (strlower(est)=="ate") {
->        w_cbps = (1/this.N) :* (probs:-1:+this.T):^-1
+>       wx0   = (this.W:^.5):*this.X:*(((1:-pscore):*pscore):^.5)
+>       wx1   = (this.W:^.5):*this.X:*((pscore:*(1:-pscore)):^-.5)
+>       wxP   = (this.W:^.5):*this.X
+>       V = ((1/this.N) :* ( (wx0' * wx0) , (wxP' * wxP) ) \
+>            (1/this.N) :* ( (wxP' * wxP) , (wx1' * wx1) ) )
 >     }
-> // "weights  ("  + est +")"
-> // (w_cbps, this.logitweights(probs, est))[1..20,.]
-> 
-> 
-> // /* */  "X_const is " + strofreal(rows(X_const)) + " by " + strofreal(cols(X_const))
-> // /* */  "beta is " + strofreal(rows(beta)) + " by " + strofreal(cols(beta))
-> 
->     if (!overid) {
->        // Loss function for balance constraints, returns the squared imbalance along each dimension.
->        lnf = abs(w_cbps' * (this.W :* X_const) * invsym((this.W:^.5 :* X_const)' * (this.W:^.5 :* X_const)) * (this.W :* X_const)' * (w_cbps))
->     }
->     else {
-> 
->       _error("I haven't finished debugging gmatch::cbps_port_r() in case where oid==1")
->       // Generate the vector of mean imbalance by weights.
->       w_del = 1/this.N :* (this.W :* X_const)' * (w_cbps)
->       // Generate g-bar, as in the paper.
->       gbar = 1/this.N :* (this.W :* X_const)' * (this.T-probs)
->       gbar = (gbar \ w_del )
->       // Generate the covariance matrix used in the GMM estimate.
->       if (strlower(est)=="atet") {
->         wx0   = this.W:^.5:*X_const:*((1:-probs):*probs):^.5
->         wx1   = this.W:^.5:*X_const:*(probs:/(1:-probs)):^.5
->         wxP   = this.W:^.5:*X_const:*(probs):^.5
->         V = ( (1/this.N) :* ((wx0' * wx0) , (wxP' * wxP)) :* (this.N / this.N1_raw /* they use N1_raw instad of N1. why? */ )  \
->               (1/this.N) :* ((wxP' * wxP) :* (this.N/this.N1) , (wx1' * wx1) :* (this.N^2/this.N1_raw^2) ) )
->       }
->       else if (strlower(est)=="ate") {
->         wx0   = this.W:^.5:*X_const:*((1:-probs):*probs):^.5
->         wx1   = this.W:^.5:*X_const:*(probs:*(1:-probs)):^-.5
->         wxP   = this.W:^.5:*X_const
->         V = ( (1/this.N) :* ((wx0' * wx0) , (wxP' * wxP)) \
->               (1/this.N) :* ((wxP' * wxP) , (wx1' * wx1)) )
->      }
->       else _error(est + " is not allowed.")
-> 
->       // Calculate the GMM loss
->       lnf = gbar' * invsym(V) * gbar
-> //      lnf = gbar' * invsym(ww) * gbar
->     } // end of overid case
+>     else _error(est + " is not allowed.")
+>     lnf = gbar' * invsym(V) * gbar
+>   }
 > }
 note: argument todo unused
-note: argument ww unused
 note: argument g unused
 note: argument H unused
 
-: 
 : 
 : end
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -969,7 +970,7 @@ note: argument H unused
 Current user: KKranker
 Environment: Windows PC (64-bit x86-64) KKRANKER
 Stata: 15.1
-Date:  6 Feb 2018 22:45:44
+Date:  9 Feb 2018 10:39:24
 
 . 
 . 
@@ -1041,48 +1042,6 @@ _dta:
 
 
 . 
-. /*
-> 
-> ************************************************************************************
-> * 5. IPW w/ binary treatment
-> ************************************************************************************
-> 
-> 
-> 
-> 
-> * moment evaluator program for IPW - link the two equations
-> program gmm_ipw
->         version 13.1
->         syntax varlist if [fw aw iw pw], at(name) depvars(varname numeric) treat(varname numeric)
->         gettoken resid1 resid2: varlist
->         tempvar xb1 pr wgt xb2
->         quietly {
->                 // Logit model  (propensity score model)
->                 matrix score double `xb1' = `at' `if', eq(logit)
->                 gen double `pr' = max(exp(`xb') / (1 + exp(`xb')), c(epsdouble)) `if'  // accounts for propensity scores near zero or one, but otherwise ident
-> ical to the following: .gen `pr' = invlogit(`xb1') `if'
->                 replace `resid1' = `treat' - `pr' `if'
-> 
->                 // Construct weights
->                 gen `wgt' = cond(`treat', 1, `pr'/(1-`pr')) `if'
->                 summ `wgt' `if' [`weight'`exp'], meanonly
->                 replace `wgt' = `wgt' / r(mean)
-> 
->                 // Weighted OLS model
->                 matrix score `xb2' = `at' `if', eq(ols)
->                 replace `resid2' = `wgt' * (`depvars' - `xb2') `if'
->         }
-> end
-> gmm gmm_ipw, equations(logit ols)  ///
->          instruments(logit: x1 x2 x3 x4 x5 x6 x7) instruments(ols: treat) ///
->          parameters(logit:x1 logit:x2 logit:x3 logit:x4 logit:x5 logit:x6 logit:x7 logit:_cons ols:treat ols:_cons) ///
->          depvars(y1) treat(treat) winitial(unadjusted, indep) onestep nolog
-> 
-> * teffects IPW (ATET)
-> teffects ipw (y1) (treat x1 x2 x3 x4 x5 x6 x7), aequations atet nolog
-> 
-> */
-. 
 . local if if _n<=500
 
 . set seed 1
@@ -1145,17 +1104,16 @@ _dta:
 . local varlist : copy local varlist1
 
 . 
-. 
-. fvrevar  `varlist'
+. fvrevar `varlist'
 
-. export delimited `treatvar' `r(varlist)' `wgtvar' using testfile.csv if `tousevar' , replace  nolabel
+. export delimited `treatvar' `r(varlist)' `wgtvar' using testfile.csv if `tousevar', replace nolabel
 file testfile.csv saved
 
 . 
 . mata:
 ------------------------------------------------- mata (type end to exit) --------------------------------------------------------------------------------------
 : 
-: depvars  = st_local("depvars"  )
+: depvars  = st_local("depvars" )
 
 : treatvar = st_local("treatvar")
 
@@ -1167,6 +1125,7 @@ file testfile.csv saved
 
 : estimate = st_local("estimate")
 
+: 
 : 
 : // ****************************
 : // * UNWEIGHTED DATA EXAMPLES *
@@ -1186,9 +1145,13 @@ file testfile.csv saved
   92 treatment obs (sum of weights = 92)
 
 : if (depvars!="") D.set_Y(st_local("depvars"),st_local("tousevar"))
-> 
-> // Misc balance measures
->   D.diff()
+> M = gmatch()
+
+: M.clone(D)
+
+: 
+: // Misc balance measures
+:   D.diff()
                   1              2              3              4              5              6              7              8              9             10
     +-------------------------------------------------------------------------------------------------------------------------------------------------------
   1 |  -.2826086957   -.0160912191   -.0223785166   -.0603154305   -1.101236147   -1.289748508    .1626172208    .1457104569   -.0812723301    .0681588142
@@ -1274,13 +1237,10 @@ file testfile.csv saved
 : 
 : // Replicate CBPS
 : 
-:   M = gmatch()
-
-:   M.clone(D)
-
-: 
-:   "ATE (not overidentified)"
-  ATE (not overidentified)
+:   "--- ATE (not overidentified) ---"; ""; ""
+  --- ATE (not overidentified) ---
+  
+  
 
 :     stata(`"cbps `treatvar' `varlist' if `tousevar' , ate      logit optimization_technique("nr") evaluator_type("gf1")"')
 Iteration 0:   f(p) =  .00647386  
@@ -1311,7 +1271,6 @@ treat        |
 ------------------------------------------------------------------------------
 
 :     stata(`"cbps_imbalance"')
-Average covariate imbalance before CBPS: 1.35
 Total average covariate imbalance: 1.5e-10
 Average covariate imbalance on the treated: 1.26
 
@@ -1347,6 +1306,11 @@ Iteration 4:   f(p) = -211.17753
   13 |        x95   -.0080118  |
   14 |      _cons    3.127763  |
      +-------------------------+
+  Weights for first 10 observations:
+                 1             2             3             4             5             6             7             8             9            10
+    +---------------------------------------------------------------------------------------------------------------------------------------------+
+  1 |  .8332317493   1.191468342   .8715385148   .8209658953   .8111823384   1.111550234   .9373899688   .9257247705   .8689542908   .8292183129  |
+    +---------------------------------------------------------------------------------------------------------------------------------------------+
   Balance after CBPS (cbps_port_stata):
   optimize_result_value(S)
   2.10558e-27
@@ -1375,9 +1339,9 @@ Iteration 4:   f(p) = -211.17753
   M.mean_sd_sq(denominator)
   3.87107e-28
   M.mean_asd(denominator)
-  3.02974e-14
+  2.68063e-14
   M.max_asd(denominator)
-  1.79978e-13
+  1.41003e-13
   M.sd_sq(denominator)
                  1             2             3             4             5             6             7             8             9            10
     +---------------------------------------------------------------------------------------------------------------------------------------------
@@ -1396,6 +1360,13 @@ Iteration 4:   f(p) = -211.17753
      -------------------------------------------+
   1    1.32874e-14   2.03003e-14   1.14241e-14  |
      -------------------------------------------+
+  
+  
+  
+  
+  
+  
+  
 
 :     cbpsweight = M.cbps("ate" , "cbps_port_r",  2, 0)
   Step 1 (initial values from logit model):
@@ -1403,32 +1374,14 @@ initial:       f(p) = -346.57359
 alternative:   f(p) = -283.03849
 rescale:       f(p) = -247.46401
 Iteration 0:   f(p) = -247.46401  
-Iteration 1:   f(p) = -223.85141  
-Iteration 2:   f(p) = -211.21533  
+Iteration 1:   f(p) = -222.50836  
+Iteration 2:   f(p) = -211.20652  
 Iteration 3:   f(p) = -211.17754  
 Iteration 4:   f(p) = -211.17753  
   
   Step 2 (CBPS) :
   optimize_result_iterations(S)
-  29
-  CBPS beta
-                1           2
-     +-------------------------+
-   1 |         x1   -.6622917  |
-   2 |       1.x2   -.3904796  |
-   3 |       1.x3   -.2007023  |
-   4 |         x4    -.116105  |
-   5 |         x5    .4280058  |
-   6 |         x6   -1.082892  |
-   7 |         x7    .2193959  |
-   8 |        x90    .0298934  |
-   9 |        x91   -.0235017  |
-  10 |        x92     .204356  |
-  11 |        x93   -.0065794  |
-  12 |        x94   -.3592531  |
-  13 |        x95   -.0079101  |
-  14 |      _cons   -1.991053  |
-     +-------------------------+
+  28
   CBPS beta after undoing the normalization
                 1           2
      +-------------------------+
@@ -1447,59 +1400,73 @@ Iteration 4:   f(p) = -211.17753
   13 |        x95   -.0080118  |
   14 |      _cons    3.127763  |
      +-------------------------+
+  Weights for first 10 observations:
+                 1             2             3             4             5             6             7             8             9            10
+    +---------------------------------------------------------------------------------------------------------------------------------------------+
+  1 |  .8332317493   1.191468342   .8715385148   .8209658953   .8111823384   1.111550234   .9373899688   .9257247705   .8689542908   .8292183129  |
+    +---------------------------------------------------------------------------------------------------------------------------------------------+
   Balance after CBPS (cbps_port_r):
   optimize_result_value(S)
-  1.83950e-27
+  1.26790e-27
   balance table after matching (cbps_port_r):
                   1             2             3             4             5             6             7
      +---------------------------------------------------------------------------------------------------+
    1 |     Variable      mean (T)      mean (C)        diff()     stddiff()   sd (Pooled)    varratio()  |
-   2 |           x1     -1.510843     -1.298709     -.2121336       -.35266      .6015243      .0402272  |
-   3 |         1.x2      6.324228     -.1553063      6.479534       2.56547      2.525671      34.46692  |
-   4 |         1.x3     -.2008825     -.2015527      .0006702      .0059435      .1127652      1.293878  |
-   5 |           x4     -.9615966      .1106803     -1.072277     -1.079354      .9934436      .0120066  |
-   6 |           x5     -.9178275     -.8343906     -.0834369     -.0951466      .8769303       .012893  |
-   7 |           x6      -.414438      -.776514       .362076      .4751642       .762002      .0051441  |
-   8 |           x7      .6751825      -.098582      .7737645      .7986982      .9687821      .0103397  |
-   9 |          x90      1.970737      .0787752      1.891962      1.427262      1.325588      .0210165  |
-  10 |          x91     -.5606793       .116167     -.6768462     -.7581442      .8927671      .0087384  |
-  11 |          x92       1.45355      .0978133      1.355737      1.351356      1.003242      .0241183  |
-  12 |          x93      .1946868     -.0567515      .2514383      .2940322      .8551387      .0072728  |
-  13 |          x94     -1.082297     -.4266998     -.6555974     -.6704294      .9778769      .0118529  |
-  14 |          x95     -.5600663     -.0345313      -.525535     -.5818712       .903181      .0102297  |
+   2 |           x1      .6750468      .6750468     -4.74e-14     -1.01e-13      .4688264      1.008511  |
+   3 |         1.x2      .0219357      .0219357     -7.30e-14     -4.98e-13      .1466203      1.008511  |
+   4 |         1.x3      .0370067      .0370067     -8.85e-14     -4.68e-13      .1889672      1.008511  |
+   5 |           x4      .4861037      .4861037      9.78e-14      1.95e-13      .5003074      1.008511  |
+   6 |           x5      26.25386      26.25386     -7.57e-13     -1.21e-13      6.268993      .6747771  |
+   7 |           x6      12.63471      12.63471     -2.52e-13     -1.08e-13      2.343236      .5637225  |
+   8 |           x7      6.724952      6.724952      5.43e-13      1.61e-13      3.360602      1.190087  |
+   9 |          x90     -.0592246     -.0592246     -1.03e-13     -9.89e-14      1.042785      1.206644  |
+  10 |          x91      .0116973      .0116973      1.49e-13      1.52e-13      .9810721      .9436962  |
+  11 |          x92     -.0041245     -.0041245     -1.29e-13     -1.27e-13      1.020036      1.339887  |
+  12 |          x93      .0443809      .0443809     -1.15e-13     -1.19e-13      .9681889      .8469644  |
+  13 |          x94     -.0856689     -.0856689     -1.06e-13     -1.04e-13      1.015864      .7767335  |
+  14 |          x95     -.0859154     -.0859154      2.87e-13      2.94e-13      .9766877      .8347645  |
      +---------------------------------------------------------------------------------------------------+
   entropydistance of control weights (cbps_port_r):
-  2942.863732
+  2477.54534
   cv of control weights (cbps_port_r):
-  1.971748064
+  .4390400158
   M.mean_sd_sq(denominator)
-  .0676128435
+  5.24550e-27
   M.mean_asd(denominator)
-  6.10455901
+  1.95906e-13
   M.max_asd(denominator)
-  11.74722252
+  4.97865e-13
   M.sd_sq(denominator)
                  1             2             3             4             5             6             7             8             9            10
     +---------------------------------------------------------------------------------------------------------------------------------------------
-  1 |  .1243690753    6.58163706   .0000353256   1.165003992   .0090528672   .2257809831   .6379187578   2.037076541   .5747826249   1.826162702
+  1 |  1.02247e-26   2.47870e-25   2.19125e-25   3.81773e-26   1.45708e-26   1.15879e-26   2.60765e-26   9.79067e-27   2.30414e-26   1.60174e-26
     +---------------------------------------------------------------------------------------------------------------------------------------------
                 11            12            13
      -------------------------------------------+
-  1    .0864549259   .4494755901   .3385741257  |
+  1    1.42188e-26   1.08078e-26   8.64104e-26  |
      -------------------------------------------+
   M.asd(denominator)
                  1             2             3             4             5             6             7             8             9            10
     +---------------------------------------------------------------------------------------------------------------------------------------------
-  1 |  .3526599995   2.565470144   .0059435318   1.079353506   .0951465566   .4751641644   .7986981644   1.427261903    .758144198   1.351355875
+  1 |  1.01117e-13   4.97865e-13   4.68108e-13   1.95390e-13   1.20710e-13   1.07647e-13   1.61482e-13   9.89478e-14   1.51794e-13   1.26560e-13
     +---------------------------------------------------------------------------------------------------------------------------------------------
                 11            12            13
      -------------------------------------------+
-  1    .2940321852   .6704294072   .5818712278  |
+  1    1.19243e-13   1.03961e-13   2.93956e-13  |
      -------------------------------------------+
+  
+  
+  
+  
+  
+  
+  
 
 : 
-:   "ATE overidentified"
-  ATE overidentified
+:   "--- ATE overidentified ---"; ""; ""
+  --- ATE overidentified ---
+  
+  
 
 :     stata(`"cbps `treatvar' `varlist' if `tousevar' , ate over logit optimization_technique("nr") evaluator_type("gf1")"')
 Iteration 0:   f(p) =  .02441999  (not concave)
@@ -1531,7 +1498,6 @@ treat        |
 J test for overidentifying restrictions: P(chisq>7.142, 14) = 0.929
 
 :     stata(`"cbps_imbalance"')
-Average covariate imbalance before CBPS: 1.35
 Total average covariate imbalance: .313
 Average covariate imbalance on the treated: .168
 
@@ -1567,6 +1533,11 @@ Iteration 4:   f(p) = -211.17753
   13 |        x95    .0217906  |
   14 |      _cons    1.206345  |
      +-------------------------+
+  Weights for first 10 observations:
+                 1             2             3             4             5             6             7             8             9            10
+    +---------------------------------------------------------------------------------------------------------------------------------------------+
+  1 |  .8962555361   1.240479136   .9414632298     .91389722   .8796403714   1.303628506   .9666844616   .9979371309   .9421588399   .9376376878  |
+    +---------------------------------------------------------------------------------------------------------------------------------------------+
   Balance after CBPS (cbps_port_stata):
   optimize_result_value(S)
   .0142840843
@@ -1595,9 +1566,9 @@ Iteration 4:   f(p) = -211.17753
   M.mean_sd_sq(denominator)
   .0027971508
   M.mean_asd(denominator)
-  .0799552998
+  .0719657755
   M.max_asd(denominator)
-  .3243369716
+  .2576163762
   M.sd_sq(denominator)
                  1             2             3             4             5             6             7             8             9            10
     +---------------------------------------------------------------------------------------------------------------------------------------------
@@ -1616,11 +1587,118 @@ Iteration 4:   f(p) = -211.17753
      -------------------------------------------+
   1    .0331899351    .099452088    .023940822  |
      -------------------------------------------+
+  
+  
+  
+  
+  
+  
+  
 
-:     /* not working yet:   cbpsweight = M.cbps("ate" , "cbps_port_r",  2, 1) */
+:     // not working yet?
+:     cbpsweight = M.cbps("ate" , "cbps_port_r",  2, 1)
+
+
+Warning: I'm not sure I have debugged gmatch::cbps_port_r() in case where oid==1
+
+  Step 1 (initial values from logit model):
+initial:       f(p) = -346.57359
+alternative:   f(p) = -283.03849
+rescale:       f(p) = -247.46401
+Iteration 0:   f(p) = -247.46401  
+Iteration 1:   f(p) = -222.50836  
+Iteration 2:   f(p) = -211.20652  
+Iteration 3:   f(p) = -211.17754  
+Iteration 4:   f(p) = -211.17753  
+  
+  Step 2 (CBPS) :
+  optimize_result_iterations(S)
+  19
+  CBPS beta after undoing the normalization
+                1           2
+     +-------------------------+
+   1 |         x1   -1.182342  |
+   2 |       1.x2   -1.588249  |
+   3 |       1.x3   -.9035038  |
+   4 |         x4   -.2368406  |
+   5 |         x5    .0566005  |
+   6 |         x6   -.2466604  |
+   7 |         x7    .0037862  |
+   8 |        x90    .0994399  |
+   9 |        x91   -.2107807  |
+  10 |        x92    .1732639  |
+  11 |        x93    .0969337  |
+  12 |        x94   -.1436814  |
+  13 |        x95    .0487429  |
+  14 |      _cons    1.029134  |
+     +-------------------------+
+  Weights for first 10 observations:
+                 1             2             3             4             5             6             7             8             9            10
+    +---------------------------------------------------------------------------------------------------------------------------------------------+
+  1 |  .8904297023   1.138630234   .8876837543   .9065748621    .875524958   1.325111962   .9755122874   .9895517792   .9366631787   .9439687776  |
+    +---------------------------------------------------------------------------------------------------------------------------------------------+
+  Balance after CBPS (cbps_port_r):
+  optimize_result_value(S)
+  .0185459093
+  balance table after matching (cbps_port_r):
+                  1             2             3             4             5             6             7
+     +---------------------------------------------------------------------------------------------------+
+   1 |     Variable      mean (T)      mean (C)        diff()     stddiff()   sd (Pooled)    varratio()  |
+   2 |           x1      .6496685      .7018227     -.0521542     -.1128795      .4620346      1.096856  |
+   3 |         1.x2       .013324      .0233971      -.010073       -.06931      .1453332      .5802445  |
+   4 |         1.x3      .0322349      .0387282     -.0064933     -.0341296      .1902553      .8450902  |
+   5 |           x4      .4879801      .4841874      .0037927      .0075813       .500272      1.008937  |
+   6 |           x5      25.71747      26.39137     -.6739026     -.1128852      5.969807      .7669158  |
+   7 |           x6      12.30179      12.91546     -.6136639      -.274644      2.234397      .5887665  |
+   8 |           x7       6.85105      6.661336      .1897136      .0562761      3.371122      1.220209  |
+   9 |          x90     -.0481103     -.0322004     -.0159099     -.0157417       1.01069      1.138518  |
+  10 |          x91      .0595535     -.0329977      .0925512      .0931908      .9931363      .9387297  |
+  11 |          x92     -.0507269     -.0005682     -.0501587     -.0491064      1.021431      1.200291  |
+  12 |          x93      .0189915      .0570113     -.0380198     -.0391634      .9708004      .8811147  |
+  13 |          x94     -.1391836     -.0192912     -.1198924     -.1210503      .9904344      .8106274  |
+  14 |          x95     -.1008206     -.0663213     -.0344993     -.0353129      .9769602      .8095157  |
+     +---------------------------------------------------------------------------------------------------+
+  entropydistance of control weights (cbps_port_r):
+  2458.896132
+  cv of control weights (cbps_port_r):
+  .1870059283
+  M.mean_sd_sq(denominator)
+  .002959148
+  M.mean_asd(denominator)
+  .0785593187
+  M.max_asd(denominator)
+  .2746440233
+  M.sd_sq(denominator)
+                 1             2             3             4             5             6             7             8             9            10
+    +---------------------------------------------------------------------------------------------------------------------------------------------
+  1 |   .012741782   .0048038801   .0011648273   .0000574764   .0127430585   .0754293395   .0031669996   .0002477998   .0086845292   .0024114351
+    +---------------------------------------------------------------------------------------------------------------------------------------------
+                11            12            13
+     -------------------------------------------+
+  1    .0015337695   .0146531798    .001247002  |
+     -------------------------------------------+
+  M.asd(denominator)
+                 1             2             3             4             5             6             7             8             9            10
+    +---------------------------------------------------------------------------------------------------------------------------------------------
+  1 |  .1128795021   .0693100289   .0341295661   .0075813167    .112885156   .2746440233   .0562761013   .0157416577   .0931908216   .0491063657
+    +---------------------------------------------------------------------------------------------------------------------------------------------
+                11            12            13
+     -------------------------------------------+
+  1    .0391633688   .1210503195   .0353129153  |
+     -------------------------------------------+
+  
+  
+  
+  
+  
+  
+  
+
 : 
-:   "ATET (not overidentified)"
-  ATET (not overidentified)
+:   "--- ATET (not overidentified) ---"; ""; ""
+  --- ATET (not overidentified) ---
+  
+  
 
 :     stata(`"cbps `treatvar' `varlist' if `tousevar' , att      logit optimization_technique("nr") evaluator_type("gf1")"')
 Iteration 0:   f(p) =  .00197031  
@@ -1649,7 +1727,6 @@ treat        |
 ------------------------------------------------------------------------------
 
 :     stata(`"cbps_imbalance"')
-Average covariate imbalance before CBPS: 1.35
 Total average covariate imbalance: .374
 Average covariate imbalance on the treated: 1.1e-10
 
@@ -1685,6 +1762,11 @@ Iteration 4:   f(p) = -211.17753
   13 |        x95     .011505  |
   14 |      _cons     .782858  |
      +-------------------------+
+  Weights for first 10 observations:
+                 1             2             3             4             5             6             7             8             9            10
+    +---------------------------------------------------------------------------------------------------------------------------------------------+
+  1 |  .4811079447   2.261606556   .4991638887   .4882359839   .2759896013   2.553265916   .8609777426   .7930262464   .5798857013   .6841964024  |
+    +---------------------------------------------------------------------------------------------------------------------------------------------+
   Balance after CBPS (cbps_port_stata):
   optimize_result_value(S)
   8.60918e-32
@@ -1713,9 +1795,9 @@ Iteration 4:   f(p) = -211.17753
   M.mean_sd_sq(denominator)
   3.28364e-34
   M.mean_asd(denominator)
-  3.88473e-17
+  3.84126e-17
   M.max_asd(denominator)
-  2.21306e-16
+  2.22296e-16
   M.sd_sq(denominator)
                  1             2             3             4             5             6             7             8             9            10
     +---------------------------------------------------------------------------------------------------------------------------------------------
@@ -1734,6 +1816,13 @@ Iteration 4:   f(p) = -211.17753
      -------------------------------------------+
   1    4.37905e-17             0   8.68597e-17  |
      -------------------------------------------+
+  
+  
+  
+  
+  
+  
+  
 
 :     cbpsweight = M.cbps("atet", "cbps_port_r",  2, 0)
   Step 1 (initial values from logit model):
@@ -1741,32 +1830,14 @@ initial:       f(p) = -346.57359
 alternative:   f(p) = -283.03849
 rescale:       f(p) = -247.46401
 Iteration 0:   f(p) = -247.46401  
-Iteration 1:   f(p) = -223.85141  
-Iteration 2:   f(p) = -211.21533  
+Iteration 1:   f(p) = -222.50836  
+Iteration 2:   f(p) = -211.20652  
 Iteration 3:   f(p) = -211.17754  
 Iteration 4:   f(p) = -211.17753  
   
   Step 2 (CBPS) :
   optimize_result_iterations(S)
-  22
-  CBPS beta
-                1           2
-     +-------------------------+
-   1 |         x1   -.6155181  |
-   2 |       1.x2   -.2336603  |
-   3 |       1.x3   -.1176202  |
-   4 |         x4   -.1592607  |
-   5 |         x5    .3414155  |
-   6 |         x6   -.5423321  |
-   7 |         x7    .1141589  |
-   8 |        x90    .1560275  |
-   9 |        x91   -.1607906  |
-  10 |        x92    .1411117  |
-  11 |        x93    .0559178  |
-  12 |        x94   -.1152661  |
-  13 |        x95     .011359  |
-  14 |      _cons   -1.732555  |
-     +-------------------------+
+  24
   CBPS beta after undoing the normalization
                 1           2
      +-------------------------+
@@ -1785,59 +1856,73 @@ Iteration 4:   f(p) = -211.17753
   13 |        x95     .011505  |
   14 |      _cons     .782858  |
      +-------------------------+
+  Weights for first 10 observations:
+                 1             2             3             4             5             6             7             8             9            10
+    +---------------------------------------------------------------------------------------------------------------------------------------------+
+  1 |  .4811079447   2.261606556   .4991638887   .4882359839   .2759896013   2.553265916   .8609777426   .7930262464   .5798857013   .6841964024  |
+    +---------------------------------------------------------------------------------------------------------------------------------------------+
   Balance after CBPS (cbps_port_r):
   optimize_result_value(S)
-  1.21557e-25
+  4.10459e-27
   balance table after matching (cbps_port_r):
                   1             2             3             4             5             6             7
      +---------------------------------------------------------------------------------------------------+
    1 |     Variable      mean (T)      mean (C)        diff()     stddiff()   sd (Pooled)    varratio()  |
-   2 |           x1     -.5017759     -1.201345      .6995691      .7955574      .8793446      2.014909  |
-   3 |         1.x2     -.0857065     -.1566401      .0709336        .24288      .2920519      4555.272  |
-   4 |         1.x3     -.0930939     -.1980165      .1049226      .2931107      .3579624      18.54288  |
-   5 |           x4     -.0983867      .0244499     -.1228365     -.1228295      1.000058      .9914094  |
-   6 |           x5     -.1547314     -.6843465       .529615      .5298924      .9994766      .8997908  |
-   7 |           x6     -.4726605     -.5866148      .1139543       .138497      .8227926      .7303825  |
-   8 |           x7       .039641     -.0537424      .0933833      .0914534      1.021104      1.102143  |
-   9 |          x90      .1208593      .2548868     -.1340275     -.1220993      1.097693       .743726  |
-  10 |          x91     -.0667188     -.0317867     -.0349321      -.037305      .9363922      1.030157  |
-  11 |          x92      .0548308      .0628693     -.0080384     -.0082164      .9783449      1.150568  |
-  12 |          x93      .0384925      .0249059      .0135866      .0146933       .924679      1.080115  |
-  13 |          x94     -.1214279     -.1952159      .0737879      .0727863      1.013761      .8382849  |
-  14 |          x95     -.0123122      .0153435     -.0276557     -.0289765      .9544178      .9264572  |
+   2 |           x1      .4673913      .4673913      3.43e-13      6.87e-13      .4994352      1.008511  |
+   3 |         1.x2      .0108696      .0108696      2.46e-14      2.37e-13      .1037929      1.008511  |
+   4 |         1.x3      .0217391      .0217391      9.11e-14      6.24e-13      .1459766      1.008511  |
+   5 |           x4      .4347826      .4347826      1.12e-13      2.26e-13      .4962249      1.008511  |
+   6 |           x5      25.46739      25.46739      2.52e-12      3.77e-13      6.664728      .6195799  |
+   7 |           x6      11.86957      11.86957      2.38e-12      1.16e-12      2.043536      .5669465  |
+   8 |           x7      6.858696      6.858696     -1.39e-13     -4.12e-14      3.363971      1.145237  |
+   9 |          x90      .0972024      .0972024     -2.56e-13     -2.51e-13      1.021603       .845302  |
+  10 |          x91     -.0890157     -.0890157      7.65e-14      8.00e-14      .9556678      .9654928  |
+  11 |          x92      .0453787      .0453787     -1.31e-13     -1.31e-13      .9971707      1.136731  |
+  12 |          x93      .0865687      .0865687     -9.16e-15     -9.63e-15        .95074      .9577067  |
+  13 |          x94     -.1299173     -.1299173      3.14e-13      3.06e-13       1.02511      .7795321  |
+  14 |          x95     -.0807251     -.0807251     -3.35e-14     -3.49e-14      .9586344      .8888006  |
      +---------------------------------------------------------------------------------------------------+
   entropydistance of control weights (cbps_port_r):
-  2861.47298
+  2605.10307
   cv of control weights (cbps_port_r):
-  1.735879795
+  .9884371301
   M.mean_sd_sq(denominator)
-  .0204587645
+  6.18863e-26
   M.mean_asd(denominator)
-  .1634547181
+  3.20660e-13
   M.max_asd(denominator)
-  .6408831673
+  1.16307e-12
   M.sd_sq(denominator)
                  1             2             3             4             5             6             7             8             9            10
     +---------------------------------------------------------------------------------------------------------------------------------------------
-  1 |  .6329115146   .0589906791   .0859139016   .0150870817   .2807859135   .0191814233   .0083637165    .014908229   .0013916636   .0000675086
+  1 |  4.71823e-25   5.63886e-26   3.89562e-25   5.10124e-26   1.42437e-25   1.35272e-24   1.69647e-27   6.28294e-26   6.40221e-27   1.71288e-26
     +---------------------------------------------------------------------------------------------------------------------------------------------
                 11            12            13
      -------------------------------------------+
-  1    .0002158923   .0052978442   .0008396355  |
+  1    9.28121e-29   9.39073e-26   1.22025e-27  |
      -------------------------------------------+
   M.asd(denominator)
                  1             2             3             4             5             6             7             8             9            10
     +---------------------------------------------------------------------------------------------------------------------------------------------
-  1 |   .795557361   .2428799685   .2931107327   .1228294822   .5298923603   .1384970155   .0914533567   .1220992588   .0373050078   .0082163614
+  1 |  6.86894e-13   2.37463e-13   6.24149e-13   2.25859e-13   3.77408e-13   1.16307e-12   4.11882e-14   2.50658e-13   8.00138e-14   1.30877e-13
     +---------------------------------------------------------------------------------------------------------------------------------------------
                 11            12            13
      -------------------------------------------+
-  1    .0146932752    .072786291   .0289764642  |
+  1    9.63391e-15   3.06443e-13   3.49321e-14  |
      -------------------------------------------+
+  
+  
+  
+  
+  
+  
+  
 
 : 
-:   "ATET overidentified"
-  ATET overidentified
+:   "--- ATET overidentified ---"; ""; ""
+  --- ATET overidentified ---
+  
+  
 
 :     stata(`"cbps `treatvar' `varlist' if `tousevar' , att over logit optimization_technique("nr") evaluator_type("gf1")"')
 Iteration 0:   f(p) =  .04521356  
@@ -1868,7 +1953,6 @@ treat        |
 J test for overidentifying restrictions: P(chisq>15.137, 14) = 0.369
 
 :     stata(`"cbps_imbalance"')
-Average covariate imbalance before CBPS: 1.35
 Total average covariate imbalance:  .34
 Average covariate imbalance on the treated: .073
 
@@ -1904,6 +1988,11 @@ Iteration 4:   f(p) = -211.17753
   13 |        x95    .0220743  |
   14 |      _cons    .9132204  |
      +-------------------------+
+  Weights for first 10 observations:
+                 1             2             3             4             5             6             7             8             9            10
+    +---------------------------------------------------------------------------------------------------------------------------------------------+
+  1 |  .5230036159   2.543470811   .6908222403   .5601330969   .3325816263   2.464805135   .8678670464   .8085343704    .630322945   .7002994012  |
+    +---------------------------------------------------------------------------------------------------------------------------------------------+
   Balance after CBPS (cbps_port_stata):
   optimize_result_value(S)
   .0302733939
@@ -1932,9 +2021,9 @@ Iteration 4:   f(p) = -211.17753
   M.mean_sd_sq(denominator)
   7.49046e-07
   M.mean_asd(denominator)
-  .0163191968
+  .016408746
   M.max_asd(denominator)
-  .049707921
+  .0498389773
   M.sd_sq(denominator)
                  1             2             3             4             5             6             7             8             9            10
     +---------------------------------------------------------------------------------------------------------------------------------------------
@@ -1953,11 +2042,116 @@ Iteration 4:   f(p) = -211.17753
      -------------------------------------------+
   1    .0017142693   .0039552987   .0064787403  |
      -------------------------------------------+
+  
+  
+  
+  
+  
+  
+  
 
-:     /* not working yet:   cbpsweight = M.cbps("atet", "cbps_port_r",  2, 1) */
+:     // not working yet?
+:     cbpsweight = M.cbps("atet", "cbps_port_r",  2, 1)
+
+
+Warning: I'm not sure I have debugged gmatch::cbps_port_r() in case where oid==1
+
+  Step 1 (initial values from logit model):
+initial:       f(p) = -346.57359
+alternative:   f(p) = -283.03849
+rescale:       f(p) = -247.46401
+Iteration 0:   f(p) = -247.46401  
+Iteration 1:   f(p) = -222.50836  
+Iteration 2:   f(p) = -211.20652  
+Iteration 3:   f(p) = -211.17754  
+Iteration 4:   f(p) = -211.17753  
+  
+  Step 2 (CBPS) :
+  optimize_result_iterations(S)
+  19
+  CBPS beta after undoing the normalization
+                1           2
+     +-------------------------+
+   1 |         x1   -1.324508  |
+   2 |       1.x2   -1.526203  |
+   3 |       1.x3   -.5948529  |
+   4 |         x4   -.3218181  |
+   5 |         x5    .0576992  |
+   6 |         x6   -.2428745  |
+   7 |         x7    .0338506  |
+   8 |        x90    .1567238  |
+   9 |        x91   -.1588564  |
+  10 |        x92    .1371885  |
+  11 |        x93    .0550811  |
+  12 |        x94   -.1174197  |
+  13 |        x95    .0136513  |
+  14 |      _cons    .7970767  |
+     +-------------------------+
+  Weights for first 10 observations:
+                 1             2             3             4             5             6             7             8             9            10
+    +---------------------------------------------------------------------------------------------------------------------------------------------+
+  1 |  .4880432628   2.278602253   .5083551742   .4938607457   .2804916418   2.524200226   .8653552118   .7897653391   .5847502504   .6850287764  |
+    +---------------------------------------------------------------------------------------------------------------------------------------------+
+  Balance after CBPS (cbps_port_r):
+  optimize_result_value(S)
+  .0003953691
+  balance table after matching (cbps_port_r):
+                  1             2             3             4             5             6             7
+     +---------------------------------------------------------------------------------------------------+
+   1 |     Variable      mean (T)      mean (C)        diff()     stddiff()   sd (Pooled)    varratio()  |
+   2 |           x1      .4673913      .4690895     -.0016982     -.0033996      .4995239      1.008074  |
+   3 |         1.x2      .0108696      .0108416      .0000279      .0002694      .1036852      1.011081  |
+   4 |         1.x3      .0217391       .021845     -.0001058     -.0007237      .1462598      1.003733  |
+   5 |           x4      .4347826      .4347485      .0000341      .0000687      .4962213      1.008529  |
+   6 |           x5      25.46739      25.45876      .0086362      .0012971      6.657976       .621012  |
+   7 |           x6      11.86957      11.87227     -.0027016     -.0013217      2.044025      .5666409  |
+   8 |           x7      6.858696      6.858028      .0006672      .0001984      3.363897      1.145301  |
+   9 |          x90      .0972024      .0955458      .0016567      .0016216      1.021612      .8452865  |
+  10 |          x91     -.0890157     -.0872204     -.0017953     -.0018775      .9562317      .9641095  |
+  11 |          x92      .0453787      .0440888      .0012899      .0012939      .9969037      1.137495  |
+  12 |          x93      .0865687      .0847549      .0018138      .0019068      .9512429      .9564786  |
+  13 |          x94     -.1299173     -.1294016     -.0005157     -.0005032      1.024752      .7801715  |
+  14 |          x95     -.0807251     -.0788276     -.0018975     -.0019792      .9587493      .8885459  |
+     +---------------------------------------------------------------------------------------------------+
+  entropydistance of control weights (cbps_port_r):
+  2603.340564
+  cv of control weights (cbps_port_r):
+  .9813148438
+  M.mean_sd_sq(denominator)
+  5.86756e-08
+  M.mean_asd(denominator)
+  .0012662081
+  M.max_asd(denominator)
+  .0033995882
+  M.sd_sq(denominator)
+                 1             2             3             4             5             6             7             8             9            10
+    +---------------------------------------------------------------------------------------------------------------------------------------------
+  1 |  .0000115572   7.25962e-08   5.23703e-07   4.72004e-09   1.68252e-06   1.74688e-06   3.93428e-08   2.62963e-06   3.52491e-06   1.67408e-06
+    +---------------------------------------------------------------------------------------------------------------------------------------------
+                11            12            13
+     -------------------------------------------+
+  1    3.63576e-06   2.53252e-07   3.91715e-06  |
+     -------------------------------------------+
+  M.asd(denominator)
+                 1             2             3             4             5             6             7             8             9            10
+    +---------------------------------------------------------------------------------------------------------------------------------------------
+  1 |  .0033995882   .0002694368   .0007236735   .0000687026   .0012971201   .0013216952   .0001983502   .0016216142   .0018774731   .0012938637
+    +---------------------------------------------------------------------------------------------------------------------------------------------
+                11            12            13
+     -------------------------------------------+
+  1    .0019067667   .0005032411   .0019791793  |
+     -------------------------------------------+
+  
+  
+  
+  
+  
+  
+  
+
 : 
 : // Other objective functions
-: cbpsweight = M.cbps("atet","mean_sd_sq",1)
+:   cbpsweight = M.cbps("atet","mean_sd_sq",1)
   Step 1 (initial values from logit model):
 initial:       f(p) = -346.57359
 alternative:   f(p) = -283.03849
@@ -2166,6 +2360,11 @@ convergence not achieved
   13 |        x95    .0190735  |
   14 |      _cons    1.380317  |
      +-------------------------+
+  Weights for first 10 observations:
+                 1             2             3             4             5             6             7             8             9            10
+    +---------------------------------------------------------------------------------------------------------------------------------------------+
+  1 |  .4461351864   2.163365889   .5852256997   .4906137242   .2788165142   2.555692668   .8472059542    .835476343   .5825979195   .6620576427  |
+    +---------------------------------------------------------------------------------------------------------------------------------------------+
   Balance after CBPS (mean_sd_sq):
   optimize_result_value(S)
   3.77498e-33
@@ -2215,8 +2414,15 @@ convergence not achieved
      -------------------------------------------+
   1    .0191145911    .062100941   .0086807201  |
      -------------------------------------------+
+  
+  
+  
+  
+  
+  
+  
 
-: cbpsweight = M.cbps("atet","sd_sq",1)
+:   cbpsweight = M.cbps("atet","sd_sq",1)
   Step 1 (initial values from logit model):
 initial:       f(p) = -346.57359
 alternative:   f(p) = -283.03849
@@ -2312,6 +2518,11 @@ flat or discontinuous region encountered
   13 |        x95    .0110168  |
   14 |      _cons     1.50362  |
      +-------------------------+
+  Weights for first 10 observations:
+                 1             2             3             4             5             6             7             8             9            10
+    +---------------------------------------------------------------------------------------------------------------------------------------------+
+  1 |  .4801020418   2.266068281   .4991707328   .4873717944   .2752694319   2.558581336   .8596829532   .7924354718   .5783513843   .6838205869  |
+    +---------------------------------------------------------------------------------------------------------------------------------------------+
   Balance after CBPS (sd_sq):
   optimize_result_value(S)
   1.46236e-06
@@ -2361,8 +2572,15 @@ flat or discontinuous region encountered
      -------------------------------------------+
   1    .0000389467   .0001089818   .0001700174  |
      -------------------------------------------+
+  
+  
+  
+  
+  
+  
+  
 
-: cbpsweight = M.cbps("atet","mean_asd")
+:   cbpsweight = M.cbps("atet","mean_asd")
   Step 1 (initial values from logit model):
 initial:       f(p) = -346.57359
 alternative:   f(p) = -283.03849
@@ -2547,6 +2765,11 @@ convergence not achieved
   13 |        x95    .0112033  |
   14 |      _cons     1.32019  |
      +-------------------------+
+  Weights for first 10 observations:
+                 1             2             3             4             5             6             7             8             9            10
+    +---------------------------------------------------------------------------------------------------------------------------------------------+
+  1 |  .4806605516   2.279495935   .5027735393   .4883047852   .2755714349   2.556024088   .8598855082   .7928659517   .5794650871   .6834999246  |
+    +---------------------------------------------------------------------------------------------------------------------------------------------+
   Balance after CBPS (mean_asd):
   optimize_result_value(S)
   .0003669253
@@ -2596,8 +2819,15 @@ convergence not achieved
      -------------------------------------------+
   1    9.84852e-06   .0000157141   .0000807825  |
      -------------------------------------------+
+  
+  
+  
+  
+  
+  
+  
 
-: cbpsweight = M.cbps("atet","max_asd")
+:   cbpsweight = M.cbps("atet","max_asd")
   Step 1 (initial values from logit model):
 initial:       f(p) = -346.57359
 alternative:   f(p) = -283.03849
@@ -2792,6 +3022,11 @@ convergence not achieved
   13 |        x95    .0170791  |
   14 |      _cons    1.612339  |
      +-------------------------+
+  Weights for first 10 observations:
+                 1             2             3             4             5             6             7             8             9            10
+    +---------------------------------------------------------------------------------------------------------------------------------------------+
+  1 |  .4752335128   2.338741069   .5145059796   .4842780861   .2836456429   2.491322975    .846309553   .7982743405     .59568704   .6476546678  |
+    +---------------------------------------------------------------------------------------------------------------------------------------------+
   Balance after CBPS (max_asd):
   optimize_result_value(S)
   .0086960489
@@ -2841,8 +3076,15 @@ convergence not achieved
      -------------------------------------------+
   1    .0084171326   .0086960489   .0035938632  |
      -------------------------------------------+
+  
+  
+  
+  
+  
+  
+  
 
-: cbpsweight = M.cbps("atet","mean_sd_sq_ent",1)
+:   cbpsweight = M.cbps("atet","mean_sd_sq_ent",1)
   Step 1 (initial values from logit model):
 initial:       f(p) = -346.57359
 alternative:   f(p) = -283.03849
@@ -2902,7 +3144,7 @@ Exiting the function early.
   1     .0623584616   -.1663353317    .0177759201    1.379537319  |
      -------------------------------------------------------------+
 
-: cbpsweight = M.cbps("atet","mean_sd_sq_cv",1)
+:   cbpsweight = M.cbps("atet","mean_sd_sq_cv",1)
   Step 1 (initial values from logit model):
 initial:       f(p) = -346.57359
 alternative:   f(p) = -283.03849
@@ -3359,16 +3601,16 @@ Iteration 4:   f(p) = -211.17753
      -------------------------------------------------------------+
 
 : 
+: mata drop D M
+
 : 
 : // **************************
 : // * WEIGHTED DATA EXAMPLES *
 : // **************************
 : 
-: mata drop D M
-
 : D = gmatch()
 
-: D.set(st_local("treatvar"),st_local("varlist") ,st_local("tousevar"),st_local("wgtvar"))
+: D.set(st_local("treatvar"),st_local("varlist"),st_local("tousevar"),st_local("wgtvar"))
   X is 500 by 13
   X contains
           1      2      3      4      5      6      7      8      9     10     11     12     13
@@ -3477,8 +3719,10 @@ Iteration 4:   f(p) = -211.17753
     +-------------------------------+
 
 : 
-:   "ATE (not overidentified)"
-  ATE (not overidentified)
+:   "--- ATE (not overidentified) ---"; ""; ""
+  --- ATE (not overidentified) ---
+  
+  
 
 :     cbpsweight = M.cbps("ate" , "cbps_port_r",  2, 0)
   Step 1 (initial values from logit model):
@@ -3486,33 +3730,14 @@ initial:       f(p) = -681.05307
 alternative:   f(p) =  -555.8915
 rescale:       f(p) = -485.05844
 Iteration 0:   f(p) = -485.05844  
-Iteration 1:   f(p) = -436.32795  
-Iteration 2:   f(p) = -411.29019  
+Iteration 1:   f(p) = -436.04895  
+Iteration 2:   f(p) = -411.28759  
 Iteration 3:   f(p) = -411.19869  
 Iteration 4:   f(p) = -411.19865  
-Iteration 5:   f(p) = -411.19865  
   
   Step 2 (CBPS) :
   optimize_result_iterations(S)
   26
-  CBPS beta
-                1           2
-     +-------------------------+
-   1 |         x1   -.6934715  |
-   2 |       1.x2   -.3881428  |
-   3 |       1.x3   -.1593564  |
-   4 |         x4   -.1618165  |
-   5 |         x5    .4462597  |
-   6 |         x6   -1.089808  |
-   7 |         x7    .2428965  |
-   8 |        x90    .0232049  |
-   9 |        x91    .0252931  |
-  10 |        x92    .2169356  |
-  11 |        x93    -.027863  |
-  12 |        x94   -.3318894  |
-  13 |        x95   -.0402802  |
-  14 |      _cons   -2.001481  |
-     +-------------------------+
   CBPS beta after undoing the normalization
                 1           2
      +-------------------------+
@@ -3531,64 +3756,178 @@ Iteration 5:   f(p) = -411.19865
   13 |        x95   -.0407881  |
   14 |      _cons    3.075437  |
      +-------------------------+
+  Weights for first 10 observations:
+                 1             2             3             4             5             6             7             8             9            10
+    +---------------------------------------------------------------------------------------------------------------------------------------------+
+  1 |  .8333804047   1.262724343    .891164837   .8233813768   .8085688026   1.048159199   .9430612398   .9166305679   .8600926322   .8223358716  |
+    +---------------------------------------------------------------------------------------------------------------------------------------------+
   Balance after CBPS (cbps_port_r):
   optimize_result_value(S)
-  8.74910e-24
+  1.40632e-26
   balance table after matching (cbps_port_r):
                   1             2             3             4             5             6             7
      +---------------------------------------------------------------------------------------------------+
    1 |     Variable      mean (T)      mean (C)        diff()     stddiff()   sd (Pooled)    varratio()  |
-   2 |           x1     -1.492297      -1.29955     -.1927467     -.3342557      .5766445       .047364  |
-   3 |         1.x2       6.29542     -.1559446      6.451365      2.568297      2.511923      38.15263  |
-   4 |         1.x3     -.1999412     -.1986582     -.0012831     -.0096723      .1326527      .6521736  |
-   5 |           x4     -.9606161      .0377369      -.998353     -1.013994      .9845748      .0137329  |
-   6 |           x5     -.9100509     -.8197859      -.090265     -.1038571      .8691266      .0143362  |
-   7 |           x6     -.4111599     -.7870756      .3759157      .4946594      .7599485      .0064871  |
-   8 |           x7      .6581488     -.0989997      .7571485      .7883347      .9604405      .0117642  |
-   9 |          x90      1.949083      .0416955      1.907388      1.431598      1.332348      .0243207  |
-  10 |          x91     -.5722548      .1092773     -.6815321     -.7714516      .8834411      .0111145  |
-  11 |          x92      1.461066      .1266504      1.334415      1.338956      .9966085      .0281698  |
-  12 |          x93      .1872017     -.0722977      .2594993      .3092706      .8390688      .0092319  |
-  13 |          x94     -1.075913     -.4249995     -.6509135     -.6592933      .9872897      .0135925  |
-  14 |          x95     -.5522148     -.0286301     -.5235847     -.5758911      .9091731      .0105905  |
+   2 |           x1      .6695182      .6695182     -5.61e-13     -1.19e-12      .4706262      1.004328  |
+   3 |         1.x2      .0220668      .0220668     -1.74e-13     -1.19e-12      .1469756      1.004328  |
+   4 |         1.x3      .0366911      .0366911     -2.92e-13     -1.55e-12       .188098      1.004328  |
+   5 |           x4       .485133       .485133     -9.71e-15     -1.94e-14      .5000334      1.004328  |
+   6 |           x5      26.17889      26.17889     -1.02e-12     -1.63e-13      6.237853      .6789026  |
+   7 |           x6      12.63449      12.63449     -4.00e-12     -1.71e-12      2.338005      .5740656  |
+   8 |           x7      6.755243      6.755243      3.02e-12      8.96e-13      3.370937      1.187219  |
+   9 |          x90     -.0520316     -.0520316     -7.50e-13     -7.17e-13      1.046128      1.163666  |
+  10 |          x91      .0164856      .0164856      9.56e-13      9.85e-13      .9705717      .9930954  |
+  11 |          x92     -.0021645     -.0021645     -3.50e-14     -3.44e-14      1.017927      1.359802  |
+  12 |          x93      .0456916      .0456916     -1.09e-12     -1.14e-12      .9636159       .883731  |
+  13 |          x94     -.0910006     -.0910006     -6.76e-13     -6.66e-13      1.014116      .7859289  |
+  14 |          x95     -.0894588     -.0894588      7.72e-13      7.89e-13       .978942      .8236876  |
      +---------------------------------------------------------------------------------------------------+
   entropydistance of control weights (cbps_port_r):
-  3162.383021
+  2750.417544
   cv of control weights (cbps_port_r):
-  2.033608813
+  .4351202284
   M.mean_sd_sq(denominator)
-  .0709485347
+  1.92851e-25
   M.mean_asd(denominator)
-  5.61726669
+  8.49805e-13
   M.max_asd(denominator)
-  10.93911119
+  1.70949e-12
   M.sd_sq(denominator)
                  1             2             3             4             5             6             7             8             9            10
     +---------------------------------------------------------------------------------------------------------------------------------------------
-  1 |  .1117268603   6.596151203   .0000935532   1.028183879   .0107863014   .2446878807   .6214715583   2.049474123   .5951376118    1.79280403
+  1 |  1.42035e-24   1.40748e-24   2.41417e-24   3.77432e-28   2.67186e-26   2.92236e-24   8.02522e-25   5.14346e-25   9.69816e-25   1.18486e-27
     +---------------------------------------------------------------------------------------------------------------------------------------------
                 11            12            13
      -------------------------------------------+
-  1     .095648319   .4346677182   .3316505335  |
+  1    1.29052e-24   4.43943e-25   6.21957e-25  |
      -------------------------------------------+
   M.asd(denominator)
                  1             2             3             4             5             6             7             8             9            10
     +---------------------------------------------------------------------------------------------------------------------------------------------
-  1 |  .3342556811   2.568297335   .0096722879   1.013994023   .1038571202   .4946593582    .788334674    1.43159845   .7714516264   1.338956321
+  1 |  1.19178e-12   1.18637e-12   1.55376e-12   1.94276e-14   1.63458e-13   1.70949e-12   8.95836e-13   7.17179e-13   9.84793e-13   3.44217e-14
     +---------------------------------------------------------------------------------------------------------------------------------------------
                 11            12            13
      -------------------------------------------+
-  1    .3092706243   .6592933476   .5758910778  |
+  1    1.13601e-12   6.66290e-13   7.88642e-13  |
      -------------------------------------------+
+  
+  
+  
+  
+  
+  
+  
 
 : 
-:   "ATE overidentified"
-  ATE overidentified
+:   "--- ATE overidentified ---"; ""; ""
+  --- ATE overidentified ---
+  
+  
 
-:     /* not working yet:   cbpsweight = M.cbps("ate" , "cbps_port_r",  2, 1) */
+:     // not working yet?
+:     cbpsweight = M.cbps("ate" , "cbps_port_r",  2, 1)
+
+
+Warning: I'm not sure I have debugged gmatch::cbps_port_r() in case where oid==1
+
+  Step 1 (initial values from logit model):
+initial:       f(p) = -681.05307
+alternative:   f(p) =  -555.8915
+rescale:       f(p) = -485.05844
+Iteration 0:   f(p) = -485.05844  
+Iteration 1:   f(p) = -436.04895  
+Iteration 2:   f(p) = -411.28759  
+Iteration 3:   f(p) = -411.19869  
+Iteration 4:   f(p) = -411.19865  
+  
+  Step 2 (CBPS) :
+  optimize_result_iterations(S)
+  19
+  CBPS beta after undoing the normalization
+                1           2
+     +-------------------------+
+   1 |         x1   -1.226645  |
+   2 |       1.x2   -1.653762  |
+   3 |       1.x3   -.7776876  |
+   4 |         x4   -.3532491  |
+   5 |         x5    .0574629  |
+   6 |         x6   -.2583005  |
+   7 |         x7    .0080439  |
+   8 |        x90    .0890276  |
+   9 |        x91   -.1706881  |
+  10 |        x92    .1765097  |
+  11 |        x93    .1136718  |
+  12 |        x94   -.1271347  |
+  13 |        x95    .0214704  |
+  14 |      _cons    1.180155  |
+     +-------------------------+
+  Weights for first 10 observations:
+                 1             2             3             4             5             6             7             8             9            10
+    +---------------------------------------------------------------------------------------------------------------------------------------------+
+  1 |  .8902205415    1.18812974   .9058232066   .9133968107   .8718550351   1.262126974   .9857749884   .9856628259   .9230845437    .937433423  |
+    +---------------------------------------------------------------------------------------------------------------------------------------------+
+  Balance after CBPS (cbps_port_r):
+  optimize_result_value(S)
+  .0177718443
+  balance table after matching (cbps_port_r):
+                  1             2             3             4             5             6             7
+     +---------------------------------------------------------------------------------------------------+
+   1 |     Variable      mean (T)      mean (C)        diff()     stddiff()   sd (Pooled)    varratio()  |
+   2 |           x1      .6415953      .6970127     -.0554173     -.1194311      .4640107      1.093567  |
+   3 |         1.x2      .0142909      .0234703     -.0091794     -.0628462      .1460619      .6172753  |
+   4 |         1.x3      .0334441      .0380925     -.0046484     -.0245369      .1894462      .8860314  |
+   5 |           x4      .4881571      .4821182      .0060389      .0120785       .499973       1.00505  |
+   6 |           x5      25.72258      26.31855     -.5959644     -.1000426      5.957105      .7659019  |
+   7 |           x6      12.33189       12.8994     -.5675068     -.2533225      2.240254      .6135511  |
+   8 |           x7      6.911084      6.688832       .222252      .0657612      3.379685      1.211887  |
+   9 |          x90     -.0440388     -.0251309      -.018908     -.0185767       1.01783      1.120774  |
+  10 |          x91      .0661735     -.0257224      .0918959      .0936219      .9815644      .9753854  |
+  11 |          x92     -.0382008     -.0020298     -.0361709     -.0355957      1.016161       1.20721  |
+  12 |          x93      .0014101      .0645199     -.0631098     -.0653399      .9658703      .9125525  |
+  13 |          x94     -.1442668     -.0285682     -.1156986     -.1166712      .9916637      .8216037  |
+  14 |          x95     -.1053626       -.07164     -.0337226     -.0344811      .9780038       .803947  |
+     +---------------------------------------------------------------------------------------------------+
+  entropydistance of control weights (cbps_port_r):
+  2733.070247
+  cv of control weights (cbps_port_r):
+  .1959655195
+  M.mean_sd_sq(denominator)
+  .0025726925
+  M.mean_asd(denominator)
+  .0771004085
+  M.max_asd(denominator)
+  .2533225085
+  M.sd_sq(denominator)
+                 1             2             3             4             5             6             7             8             9            10
+    +---------------------------------------------------------------------------------------------------------------------------------------------
+  1 |  .0142637949   .0039496397   .0006020579   .0001458893   .0100085242   .0641722933   .0043245293   .0003450949   .0087650568   .0012670516
+    +---------------------------------------------------------------------------------------------------------------------------------------------
+                11            12            13
+     -------------------------------------------+
+  1    .0042692974   .0136121687   .0011889446  |
+     -------------------------------------------+
+  M.asd(denominator)
+                 1             2             3             4             5             6             7             8             9            10
+    +---------------------------------------------------------------------------------------------------------------------------------------------
+  1 |  .1194311303   .0628461589   .0245368691   .0120784634   .1000426118   .2533225085   .0657611531   .0185767299   .0936218823   .0355956677
+    +---------------------------------------------------------------------------------------------------------------------------------------------
+                11            12            13
+     -------------------------------------------+
+  1    .0653398608   .1166711991   .0344810754  |
+     -------------------------------------------+
+  
+  
+  
+  
+  
+  
+  
+
 : 
-:   "ATET (not overidentified)"
-  ATET (not overidentified)
+:   "--- ATET (not overidentified) ---"; ""; ""
+  --- ATET (not overidentified) ---
+  
+  
 
 :     cbpsweight = M.cbps("atet", "cbps_port_r",  2, 0)
   Step 1 (initial values from logit model):
@@ -3596,33 +3935,14 @@ initial:       f(p) = -681.05307
 alternative:   f(p) =  -555.8915
 rescale:       f(p) = -485.05844
 Iteration 0:   f(p) = -485.05844  
-Iteration 1:   f(p) = -436.32795  
-Iteration 2:   f(p) = -411.29019  
+Iteration 1:   f(p) = -436.04895  
+Iteration 2:   f(p) = -411.28759  
 Iteration 3:   f(p) = -411.19869  
 Iteration 4:   f(p) = -411.19865  
-Iteration 5:   f(p) = -411.19865  
   
   Step 2 (CBPS) :
   optimize_result_iterations(S)
-  23
-  CBPS beta
-                1           2
-     +-------------------------+
-   1 |         x1   -.6679148  |
-   2 |       1.x2   -.2377504  |
-   3 |       1.x3   -.0916454  |
-   4 |         x4    -.191123  |
-   5 |         x5    .3679242  |
-   6 |         x6   -.5426479  |
-   7 |         x7    .1603299  |
-   8 |        x90    .1322926  |
-   9 |        x91   -.1310633  |
-  10 |        x92    .1535119  |
-  11 |        x93    .0739829  |
-  12 |        x94    -.099372  |
-  13 |        x95   -.0378618  |
-  14 |      _cons   -1.754958  |
-     +-------------------------+
+  24
   CBPS beta after undoing the normalization
                 1           2
      +-------------------------+
@@ -3641,61 +3961,173 @@ Iteration 5:   f(p) = -411.19865
   13 |        x95   -.0383391  |
   14 |      _cons    .6265763  |
      +-------------------------+
+  Weights for first 10 observations:
+                 1             2             3             4             5             6             7             8             9            10
+    +---------------------------------------------------------------------------------------------------------------------------------------------+
+  1 |  .4737920689   2.405738599   .5345336261   .4592314503   .2387116236   2.248410136   .9587650605   .8076241521   .4960818726   .6846179686  |
+    +---------------------------------------------------------------------------------------------------------------------------------------------+
   Balance after CBPS (cbps_port_r):
   optimize_result_value(S)
-  8.84896e-27
+  2.02084e-27
   balance table after matching (cbps_port_r):
                   1             2             3             4             5             6             7
      +---------------------------------------------------------------------------------------------------+
    1 |     Variable      mean (T)      mean (C)        diff()     stddiff()   sd (Pooled)    varratio()  |
-   2 |           x1     -.5233648     -1.233124      .7097596      .8455829      .8393733      2.295542  |
-   3 |         1.x2     -.0831466     -.1573293      .0741827      .2493501      .2975041       4902.54  |
-   4 |         1.x3     -.0786269     -.1910117      .1123848      .2782122      .4039535      10.74856  |
-   5 |           x4     -.1236868     -.0256014     -.0980853     -.0983187      .9976263       .983139  |
-   6 |           x5     -.1483658     -.6969702      .5486044      .5542017      .9899002      .9255297  |
-   7 |           x6     -.4789849     -.6119483      .1329634      .1617334      .8221146      .7699138  |
-   8 |           x7      .0723339     -.0475786      .1199125      .1187177      1.010064      1.122652  |
-   9 |          x90      .1015209      .2162971     -.1147762     -.1044704      1.098648      .7406983  |
-  10 |          x91      -.047927     -.0325786     -.0153484     -.0164473      .9331872       1.06231  |
-  11 |          x92      .0671524      .0915499     -.0243974     -.0250471      .9740644      1.139677  |
-  12 |          x93      .0461975      .0371386      .0090589      .0098933      .9156632      1.150109  |
-  13 |          x94     -.1084113     -.1993228      .0909116       .088432      1.028039      .7974072  |
-  14 |          x95     -.0288386      .0077551     -.0365937     -.0384077      .9527695      .9138348  |
+   2 |           x1      .4512231      .4512231      1.58e-13      3.17e-13      .4978686      1.004328  |
+   3 |         1.x2      .0114039      .0114039      3.94e-15      3.71e-14      .1062323      1.004328  |
+   4 |         1.x3      .0240637      .0240637      4.49e-14      2.93e-13      .1533251      1.004328  |
+   5 |           x4      .4218861      .4218861      3.09e-14      6.26e-14       .494112      1.004328  |
+   6 |           x5      25.44699      25.44699      2.02e-12      3.03e-13      6.665558      .6144662  |
+   7 |           x6      11.84757      11.84757      1.68e-12      8.20e-13      2.042375      .5982513  |
+   8 |           x7      7.015422      7.015422      7.09e-13      2.12e-13      3.345323      1.161761  |
+   9 |          x90      .0839738      .0839738     -3.93e-13     -3.83e-13        1.0258      .8505325  |
+  10 |          x91     -.0648837     -.0648837     -5.65e-13     -6.01e-13       .941106      .9922891  |
+  11 |          x92      .0575388      .0575388     -2.66e-13     -2.69e-13      .9892732      1.118263  |
+  12 |          x93      .1016523      .1016523      1.44e-13      1.53e-13      .9410813      1.012572  |
+  13 |          x94     -.1252265     -.1252265     -3.21e-14     -3.12e-14      1.026859      .7576623  |
+  14 |          x95     -.1044649     -.1044649     -3.17e-13     -3.29e-13      .9627688      .8646431  |
      +---------------------------------------------------------------------------------------------------+
   entropydistance of control weights (cbps_port_r):
-  3110.531715
+  2876.289278
   cv of control weights (cbps_port_r):
-  1.821814016
+  1.033606536
   M.mean_sd_sq(denominator)
-  .0242264955
+  2.01956e-27
   M.mean_asd(denominator)
-  .1683916049
+  2.93143e-13
   M.max_asd(denominator)
-  .6565193435
+  8.20175e-13
   M.sd_sq(denominator)
                  1             2             3             4             5             6             7             8             9            10
     +---------------------------------------------------------------------------------------------------------------------------------------------
-  1 |  .7150103876    .062175474    .077402006   .0096665713   .3071395599   .0261576982   .0140939036   .0109140725   .0002705121   .0006273548
+  1 |  1.00552e-25   1.37646e-27   8.58022e-26   3.91580e-27   9.16524e-26   6.72687e-25   4.48880e-26   1.46958e-25   3.60951e-25   7.23190e-26
     +---------------------------------------------------------------------------------------------------------------------------------------------
                 11            12            13
      -------------------------------------------+
-  1     .000097877   .0078202178    .001475149  |
+  1    2.34260e-26   9.74637e-28   1.08267e-25  |
      -------------------------------------------+
   M.asd(denominator)
                  1             2             3             4             5             6             7             8             9            10
     +---------------------------------------------------------------------------------------------------------------------------------------------
-  1 |  .8455828685   .2493501032     .27821216   .0983187229   .5542017322   .1617334172   .1187177477   .1044704382   .0164472517    .025047052
+  1 |  3.17099e-13   3.71007e-14   2.92920e-13   6.25763e-14   3.02742e-13   8.20175e-13   2.11868e-13   3.83351e-13   6.00792e-13   2.68922e-13
     +---------------------------------------------------------------------------------------------------------------------------------------------
                 11            12            13
      -------------------------------------------+
-  1    .0098932787   .0884319953   .0384076681  |
+  1    1.53055e-13   3.12192e-14   3.29039e-13  |
      -------------------------------------------+
+  
+  
+  
+  
+  
+  
+  
 
 : 
-:   "ATET overidentified"
-  ATET overidentified
+:   "--- ATET overidentified ---"; ""; ""
+  --- ATET overidentified ---
+  
+  
 
-:     /* not working yet:   cbpsweight = M.cbps("atet", "cbps_port_r",  2, 1) */
+:     // not working yet? 
+:     cbpsweight = M.cbps("atet", "cbps_port_r",  2, 1)
+
+
+Warning: I'm not sure I have debugged gmatch::cbps_port_r() in case where oid==1
+
+  Step 1 (initial values from logit model):
+initial:       f(p) = -681.05307
+alternative:   f(p) =  -555.8915
+rescale:       f(p) = -485.05844
+Iteration 0:   f(p) = -485.05844  
+Iteration 1:   f(p) = -436.04895  
+Iteration 2:   f(p) = -411.28759  
+Iteration 3:   f(p) = -411.19869  
+Iteration 4:   f(p) = -411.19865  
+  
+  Step 2 (CBPS) :
+  optimize_result_iterations(S)
+  19
+  CBPS beta after undoing the normalization
+                1           2
+     +-------------------------+
+   1 |         x1   -1.393749  |
+   2 |       1.x2   -1.561041  |
+   3 |       1.x3   -.4600041  |
+   4 |         x4   -.3846168  |
+   5 |         x5    .0606092  |
+   6 |         x6   -.2482012  |
+   7 |         x7    .0443349  |
+   8 |        x90    .1306488  |
+   9 |        x91   -.1205474  |
+  10 |        x92    .1453092  |
+  11 |        x93     .070476  |
+  12 |        x94   -.1075638  |
+  13 |        x95   -.0307916  |
+  14 |      _cons    .7598453  |
+     +-------------------------+
+  Weights for first 10 observations:
+                 1             2             3             4             5             6             7             8             9            10
+    +---------------------------------------------------------------------------------------------------------------------------------------------+
+  1 |  .4804666451   2.466106022   .5794529823   .4795236698   .2534653344   2.204822428   .9473804216   .8064548956   .5138913175   .6635984943  |
+    +---------------------------------------------------------------------------------------------------------------------------------------------+
+  Balance after CBPS (cbps_port_r):
+  optimize_result_value(S)
+  .0001721532
+  balance table after matching (cbps_port_r):
+                  1             2             3             4             5             6             7
+     +---------------------------------------------------------------------------------------------------+
+   1 |     Variable      mean (T)      mean (C)        diff()     stddiff()   sd (Pooled)    varratio()  |
+   2 |           x1      .4512231      .4553292      -.004106      -.008242       .498186      1.002774  |
+   3 |         1.x2      .0114039      .0111962      .0002076      .0019689      .1054487      1.022737  |
+   4 |         1.x3      .0240637      .0242798     -.0002161     -.0014043      .1538723      .9956099  |
+   5 |           x4      .4218861      .4235251      -.001639     -.0033156       .494322      1.003286  |
+   6 |           x5      25.44699      25.39436      .0526224      .0078927      6.667188      .6141311  |
+   7 |           x6      11.84757      11.82507      .0224988      .0110125      2.043017      .5978372  |
+   8 |           x7      7.015422      6.978162        .03726       .011128      3.348319      1.159171  |
+   9 |          x90      .0839738      .0816058       .002368      .0023047      1.027479      .8472278  |
+  10 |          x91     -.0648837     -.0554765     -.0094072     -.0099831      .9423132      .9892043  |
+  11 |          x92      .0575388      .0526517      .0048871      .0049455      .9881782      1.121369  |
+  12 |          x93      .1016523        .09771      .0039424      .0041911      .9406607      1.013686  |
+  13 |          x94     -.1252265      -.131327      .0061006      .0059387       1.02725      .7569926  |
+  14 |          x95     -.1044649     -.1015494     -.0029155     -.0030291      .9625009      .8652191  |
+     +---------------------------------------------------------------------------------------------------+
+  entropydistance of control weights (cbps_port_r):
+  2872.573597
+  cv of control weights (cbps_port_r):
+  1.02146686
+  M.mean_sd_sq(denominator)
+  3.24223e-06
+  M.mean_asd(denominator)
+  .0057966356
+  M.max_asd(denominator)
+  .0111279635
+  M.sd_sq(denominator)
+                 1             2             3             4             5             6             7             8             9            10
+    +---------------------------------------------------------------------------------------------------------------------------------------------
+  1 |  .0000679303   3.87649e-06   1.97217e-06   .0000109933   .0000622955   .0001212761   .0001238316   5.31160e-06   .0000996618   .0000244584
+    +---------------------------------------------------------------------------------------------------------------------------------------------
+                11            12            13
+     -------------------------------------------+
+  1     .000017565   .0000352685   9.17534e-06  |
+     -------------------------------------------+
+  M.asd(denominator)
+                 1             2             3             4             5             6             7             8             9            10
+    +---------------------------------------------------------------------------------------------------------------------------------------------
+  1 |  .0082419831   .0019688801   .0014043413   .0033156176   .0078927497   .0110125421   .0111279635   .0023046916   .0099830738    .004945543
+    +---------------------------------------------------------------------------------------------------------------------------------------------
+                11            12            13
+     -------------------------------------------+
+  1    .0041910659   .0059387291   .0030290819  |
+     -------------------------------------------+
+  
+  
+  
+  
+  
+  
+  
+
 : 
 : // IPW
 : 
@@ -3986,5 +4418,5 @@ Iteration 5:   f(p) = -411.19865
       name:  gmatch_example
        log:  C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\gmatch_example.log
   log type:  text
- closed on:   6 Feb 2018, 22:46:28
+ closed on:   9 Feb 2018, 10:40:17
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
