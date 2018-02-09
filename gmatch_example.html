@@ -71,6 +71,7 @@
 <h1>Impliment CBPS code with test data</h1>
 
 <div class="chunk" id="unnamed-chunk-1"><div class="rcode"><div class="source"><pre class="knitr r"><span class="hl std">mydata</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">read.csv</span><span class="hl std">(</span><span class="hl str">&quot;C:\\Users\\kkranker\\Documents\\Stata\\Ado\\Devel\\gmatch\\testfile.csv&quot;</span><span class="hl std">,</span> <span class="hl kwc">stringsAsFactors</span> <span class="hl std">= F)</span>
+<span class="hl kwd">options</span><span class="hl std">(</span><span class="hl kwc">width</span><span class="hl std">=</span><span class="hl num">120</span><span class="hl std">)</span>
 <span class="hl kwd">library</span><span class="hl std">(CBPS)</span>
 </pre></div>
 <div class="message"><pre class="knitr r">## Loading required package: MASS
@@ -98,7 +99,18 @@
 ##   Xiaolin Yang [ctb],
 ##   Sida Peng [ctb]
 </pre></div>
-<div class="source"><pre class="knitr r"><span class="hl std">stdall</span><span class="hl kwb">=</span><span class="hl num">FALSE</span>
+<div class="source"><pre class="knitr r"><span class="hl kwd">library</span><span class="hl std">(cobalt)</span>
+</pre></div>
+<div class="warning"><pre class="knitr r">## Warning: package 'cobalt' was built under R version 3.4.3
+</pre></div>
+<div class="message"><pre class="knitr r">## 
+## Attaching package: 'cobalt'
+</pre></div>
+<div class="message"><pre class="knitr r">## The following object is masked from 'package:MatchIt':
+## 
+##     lalonde
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl std">stdall</span><span class="hl kwb">=</span><span class="hl num">TRUE</span>
 </pre></div>
 </div></div>
 
@@ -139,8 +151,42 @@
 </pre></div>
 <div class="source"><pre class="knitr r"><span class="hl kwd">print</span><span class="hl std">(  fit_ATE</span><span class="hl opt">$</span><span class="hl std">weights[</span><span class="hl num">1</span><span class="hl opt">:</span><span class="hl num">10</span><span class="hl std">])</span>
 </pre></div>
-<div class="output"><pre class="knitr r">##  [1] 1.070661 1.530931 1.119870 1.054900 1.042327 1.428316 1.204500
-##  [8] 1.189509 1.116561 1.065510
+<div class="output"><pre class="knitr r">##  [1] 0.002042248 0.002920197 0.002136113 0.002012184 0.001988203 0.002724463 0.002297541 0.002268947 0.002129800
+## [10] 0.002032423
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl kwd">balance</span><span class="hl std">(fit_ATE)</span>
+</pre></div>
+<div class="output"><pre class="knitr r">## $balanced
+##                 0.mean       1.mean  0.std.mean   1.std.mean
+## x1         0.675049058  0.675045498  1.46882286  1.468815116
+## X__000000  0.021935749  0.021935606  0.14318160  0.143180664
+## X__000001  0.037006603  0.037008332  0.18865959  0.188668403
+## x4         0.486102298  0.486106183  0.97172956  0.971737324
+## x5        26.253884327 26.253832582  4.52065639  4.520647484
+## x6        12.634734042 12.634699111  5.67440352  5.674387831
+## x7         6.724944510  6.724961246  2.00898313  2.008988126
+## x90       -0.059222052 -0.059222368 -0.06019810 -0.060198418
+## x91        0.011690773  0.011707977  0.01176140  0.011778703
+## x92       -0.004125337 -0.004124244 -0.00406698 -0.004065902
+## x93        0.044384086  0.044376393  0.04533438  0.045326518
+## x94       -0.085666395 -0.085670204 -0.08733048 -0.087334365
+## x95       -0.085913681 -0.085919570 -0.08701840 -0.087024365
+## 
+## $original
+##                 0.mean      1.mean   0.std.mean  1.std.mean
+## x1         0.750000000  0.46739130  1.631906797  1.01698540
+## X__000000  0.026960784  0.01086957  0.175981600  0.07094910
+## X__000001  0.044117647  0.02173913  0.224911675  0.11082604
+## x4         0.495098039  0.43478261  0.989712249  0.86914033
+## x5        26.568627451 25.46739130  4.574852013  4.38523016
+## x6        13.159313725 11.86956522  5.909998253  5.33075745
+## x7         6.696078431  6.85869565  2.000359789  2.04893941
+## x90       -0.048508020  0.09720244 -0.049307486  0.09880444
+## x91       -0.007743354 -0.08901568 -0.007790131 -0.08955341
+## x92       -0.022780135  0.04537868 -0.022457889  0.04473676
+## x93        0.040385344  0.08656867  0.041250019  0.08842216
+## x94        0.016055935 -0.12991726  0.016367825 -0.13244093
+## x95       -0.065828219 -0.08072509 -0.066674669 -0.08176309
 </pre></div>
 <div class="source"><pre class="knitr r"><span class="hl std">fit_ATE_over</span>  <span class="hl kwb">&lt;-</span> <span class="hl kwd">CBPS</span><span class="hl std">(treat</span> <span class="hl opt">~</span> <span class="hl std">x1</span> <span class="hl opt">+</span> <span class="hl std">x1</span> <span class="hl opt">+</span> <span class="hl std">X__000000</span> <span class="hl opt">+</span> <span class="hl std">X__000001</span> <span class="hl opt">+</span><span class="hl std">x4</span> <span class="hl opt">+</span> <span class="hl std">x5</span> <span class="hl opt">+</span> <span class="hl std">x6</span> <span class="hl opt">+</span><span class="hl std">x7</span> <span class="hl opt">+</span><span class="hl std">x90</span> <span class="hl opt">+</span><span class="hl std">x91</span><span class="hl opt">+</span> <span class="hl std">x92</span> <span class="hl opt">+</span><span class="hl std">x93</span> <span class="hl opt">+</span><span class="hl std">x94</span><span class="hl opt">+</span> <span class="hl std">x95,</span> <span class="hl kwc">data</span> <span class="hl std">= mydata,</span> <span class="hl kwc">ATT</span> <span class="hl std">=</span> <span class="hl num">0</span><span class="hl std">,</span> <span class="hl kwc">method</span><span class="hl std">=</span><span class="hl str">&quot;over&quot;</span><span class="hl std">,</span> <span class="hl kwc">standardize</span><span class="hl std">=stdall)</span>
 <span class="hl kwd">summary</span><span class="hl std">(fit_ATE_over)</span>
@@ -175,8 +221,42 @@
 </pre></div>
 <div class="source"><pre class="knitr r"><span class="hl kwd">print</span><span class="hl std">(  fit_ATE_over</span><span class="hl opt">$</span><span class="hl std">weights[</span><span class="hl num">1</span><span class="hl opt">:</span><span class="hl num">10</span><span class="hl std">])</span>
 </pre></div>
-<div class="output"><pre class="knitr r">##  [1] 1.116463 1.544156 1.173653 1.139203 1.096071 1.615022 1.204151
-##  [8] 1.243244 1.174424 1.170527
+<div class="output"><pre class="knitr r">##  [1] 0.002201981 0.003045511 0.002314775 0.002246831 0.002161762 0.003185280 0.002374925 0.002452028 0.002316296
+## [10] 0.002308610
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl kwd">balance</span><span class="hl std">(fit_ATE_over)</span>
+</pre></div>
+<div class="output"><pre class="knitr r">## $balanced
+##                 0.mean       1.mean   0.std.mean   1.std.mean
+## x1         0.704017019  0.633768751  1.531853544  1.379002042
+## X__000000  0.023368075  0.015882477  0.152530848  0.103669972
+## X__000001  0.039921922  0.024564941  0.203521880  0.125232020
+## x4         0.486197550  0.486184119  0.971919970  0.971893119
+## x5        26.353835227 25.796791749  4.537866939  4.441949622
+## x6        12.914485196 12.302313044  5.800042961  5.525109448
+## x7         6.667774539  6.886511079  1.991904397  2.057248880
+## x90       -0.027115249 -0.059144724 -0.027562139 -0.060119494
+## x91       -0.023451451  0.017221776 -0.023593117  0.017325810
+## x92       -0.007909402  0.002895899 -0.007797516  0.002854933
+## x93        0.055291284  0.024733138  0.056475103  0.025262689
+## x94       -0.021790092 -0.119895354 -0.022213369 -0.122224346
+## x95       -0.070818080 -0.095525215 -0.071728693 -0.096753524
+## 
+## $original
+##                 0.mean      1.mean   0.std.mean  1.std.mean
+## x1         0.750000000  0.46739130  1.631906797  1.01698540
+## X__000000  0.026960784  0.01086957  0.175981600  0.07094910
+## X__000001  0.044117647  0.02173913  0.224911675  0.11082604
+## x4         0.495098039  0.43478261  0.989712249  0.86914033
+## x5        26.568627451 25.46739130  4.574852013  4.38523016
+## x6        13.159313725 11.86956522  5.909998253  5.33075745
+## x7         6.696078431  6.85869565  2.000359789  2.04893941
+## x90       -0.048508020  0.09720244 -0.049307486  0.09880444
+## x91       -0.007743354 -0.08901568 -0.007790131 -0.08955341
+## x92       -0.022780135  0.04537868 -0.022457889  0.04473676
+## x93        0.040385344  0.08656867  0.041250019  0.08842216
+## x94        0.016055935 -0.12991726  0.016367825 -0.13244093
+## x95       -0.065828219 -0.08072509 -0.066674669 -0.08176309
 </pre></div>
 </div></div>
 
@@ -218,8 +298,42 @@
 </pre></div>
 <div class="source"><pre class="knitr r"><span class="hl kwd">print</span><span class="hl std">(  fit_ATET</span><span class="hl opt">$</span><span class="hl std">weights[</span><span class="hl num">1</span><span class="hl opt">:</span><span class="hl num">10</span><span class="hl std">])</span>
 </pre></div>
-<div class="output"><pre class="knitr r">##  [1] 0.5896019 2.7724909 0.6119050 0.5983126 0.3382171 3.1290406 1.0550911
-##  [8] 0.9719466 0.7106853 0.8384918
+<div class="output"><pre class="knitr r">##  [1] 0.0011791894 0.0055449137 0.0012237949 0.0011966105 0.0006764259 0.0062580044 0.0021101563 0.0019438694
+##  [9] 0.0014213532 0.0016769631
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl kwd">balance</span><span class="hl std">(fit_ATET)</span>
+</pre></div>
+<div class="output"><pre class="knitr r">## $balanced
+##                0.mean      1.mean  0.std.mean  1.std.mean
+## x1         0.46740605  0.46739130  1.01701747  1.01698540
+## X__000000  0.01086002  0.01086957  0.07088682  0.07094910
+## X__000001  0.02174399  0.02173913  0.11085084  0.11082604
+## x4         0.43478778  0.43478261  0.86915066  0.86914033
+## x5        25.46759207 25.46739130  4.38526473  4.38523016
+## x6        11.86968070 11.86956522  5.33080931  5.33075745
+## x7         6.85874763  6.85869565  2.04895494  2.04893941
+## x90        0.09722295  0.09720244  0.09882530  0.09880444
+## x91       -0.08901788 -0.08901568 -0.08955562 -0.08955341
+## x92        0.04540091  0.04537868  0.04475867  0.04473676
+## x93        0.08656716  0.08656867  0.08842061  0.08842216
+## x94       -0.12991258 -0.12991726 -0.13243615 -0.13244093
+## x95       -0.08073070 -0.08072509 -0.08176878 -0.08176309
+## 
+## $original
+##                 0.mean      1.mean   0.std.mean  1.std.mean
+## x1         0.750000000  0.46739130  1.631906797  1.01698540
+## X__000000  0.026960784  0.01086957  0.175981600  0.07094910
+## X__000001  0.044117647  0.02173913  0.224911675  0.11082604
+## x4         0.495098039  0.43478261  0.989712249  0.86914033
+## x5        26.568627451 25.46739130  4.574852013  4.38523016
+## x6        13.159313725 11.86956522  5.909998253  5.33075745
+## x7         6.696078431  6.85869565  2.000359789  2.04893941
+## x90       -0.048508020  0.09720244 -0.049307486  0.09880444
+## x91       -0.007743354 -0.08901568 -0.007790131 -0.08955341
+## x92       -0.022780135  0.04537868 -0.022457889  0.04473676
+## x93        0.040385344  0.08656867  0.041250019  0.08842216
+## x94        0.016055935 -0.12991726  0.016367825 -0.13244093
+## x95       -0.065828219 -0.08072509 -0.066674669 -0.08176309
 </pre></div>
 <div class="source"><pre class="knitr r"><span class="hl std">fit_ATET_over</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">CBPS</span><span class="hl std">(treat</span> <span class="hl opt">~</span> <span class="hl std">x1</span> <span class="hl opt">+</span> <span class="hl std">x1</span> <span class="hl opt">+</span> <span class="hl std">X__000000</span> <span class="hl opt">+</span> <span class="hl std">X__000001</span> <span class="hl opt">+</span><span class="hl std">x4</span> <span class="hl opt">+</span> <span class="hl std">x5</span> <span class="hl opt">+</span> <span class="hl std">x6</span> <span class="hl opt">+</span><span class="hl std">x7</span> <span class="hl opt">+</span><span class="hl std">x90</span> <span class="hl opt">+</span><span class="hl std">x91</span><span class="hl opt">+</span> <span class="hl std">x92</span> <span class="hl opt">+</span><span class="hl std">x93</span> <span class="hl opt">+</span><span class="hl std">x94</span><span class="hl opt">+</span> <span class="hl std">x95,</span> <span class="hl kwc">data</span> <span class="hl std">= mydata,</span> <span class="hl kwc">ATT</span> <span class="hl std">=</span> <span class="hl num">1</span><span class="hl std">,</span> <span class="hl kwc">method</span><span class="hl std">=</span><span class="hl str">&quot;over&quot;</span><span class="hl std">,</span> <span class="hl kwc">standardize</span><span class="hl std">=stdall)</span>
 </pre></div>
@@ -257,8 +371,42 @@
 </pre></div>
 <div class="source"><pre class="knitr r"><span class="hl kwd">print</span><span class="hl std">(  fit_ATET_over</span><span class="hl opt">$</span><span class="hl std">weights[</span><span class="hl num">1</span><span class="hl opt">:</span><span class="hl num">10</span><span class="hl std">])</span>
 </pre></div>
-<div class="output"><pre class="knitr r">##  [1] 0.5896019 2.7724909 0.6119050 0.5983126 0.3382171 3.1290406 1.0550911
-##  [8] 0.9719466 0.7106853 0.8384918
+<div class="output"><pre class="knitr r">##  [1] 0.0011791894 0.0055449137 0.0012237949 0.0011966105 0.0006764259 0.0062580044 0.0021101563 0.0019438694
+##  [9] 0.0014213532 0.0016769631
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl kwd">balance</span><span class="hl std">(fit_ATET_over)</span>
+</pre></div>
+<div class="output"><pre class="knitr r">## $balanced
+##                0.mean      1.mean  0.std.mean  1.std.mean
+## x1         0.46740605  0.46739130  1.01701747  1.01698540
+## X__000000  0.01086002  0.01086957  0.07088682  0.07094910
+## X__000001  0.02174399  0.02173913  0.11085084  0.11082604
+## x4         0.43478778  0.43478261  0.86915066  0.86914033
+## x5        25.46759207 25.46739130  4.38526473  4.38523016
+## x6        11.86968070 11.86956522  5.33080931  5.33075745
+## x7         6.85874763  6.85869565  2.04895494  2.04893941
+## x90        0.09722295  0.09720244  0.09882530  0.09880444
+## x91       -0.08901788 -0.08901568 -0.08955562 -0.08955341
+## x92        0.04540091  0.04537868  0.04475867  0.04473676
+## x93        0.08656716  0.08656867  0.08842061  0.08842216
+## x94       -0.12991258 -0.12991726 -0.13243615 -0.13244093
+## x95       -0.08073070 -0.08072509 -0.08176878 -0.08176309
+## 
+## $original
+##                 0.mean      1.mean   0.std.mean  1.std.mean
+## x1         0.750000000  0.46739130  1.631906797  1.01698540
+## X__000000  0.026960784  0.01086957  0.175981600  0.07094910
+## X__000001  0.044117647  0.02173913  0.224911675  0.11082604
+## x4         0.495098039  0.43478261  0.989712249  0.86914033
+## x5        26.568627451 25.46739130  4.574852013  4.38523016
+## x6        13.159313725 11.86956522  5.909998253  5.33075745
+## x7         6.696078431  6.85869565  2.000359789  2.04893941
+## x90       -0.048508020  0.09720244 -0.049307486  0.09880444
+## x91       -0.007743354 -0.08901568 -0.007790131 -0.08955341
+## x92       -0.022780135  0.04537868 -0.022457889  0.04473676
+## x93        0.040385344  0.08656867  0.041250019  0.08842216
+## x94        0.016055935 -0.12991726  0.016367825 -0.13244093
+## x95       -0.065828219 -0.08072509 -0.066674669 -0.08176309
 </pre></div>
 </div></div>
 
@@ -300,8 +448,42 @@
 </pre></div>
 <div class="source"><pre class="knitr r"><span class="hl kwd">print</span><span class="hl std">(  W_fit_ATE</span><span class="hl opt">$</span><span class="hl std">weights[</span><span class="hl num">1</span><span class="hl opt">:</span><span class="hl num">10</span><span class="hl std">])</span>
 </pre></div>
-<div class="output"><pre class="knitr r">##  [1] 1.2944744 1.8113130 1.2940494 0.9527111 0.7010980 1.4249381 1.7388977
-##  [8] 0.8896196 1.2968502 1.1976969
+<div class="output"><pre class="knitr r">##  [1] 0.002468610 0.003454240 0.002467799 0.001816855 0.001337019 0.002717409 0.003316141 0.001696537 0.002473141
+## [10] 0.002284052
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl kwd">balance</span><span class="hl std">(W_fit_ATE)</span>
+</pre></div>
+<div class="output"><pre class="knitr r">## $balanced
+##                 0.mean      1.mean   0.std.mean   1.std.mean
+## x1         0.669536089  0.66951022  1.456827326  1.456771043
+## X__000000  0.022067697  0.02206550  0.144042867  0.144028528
+## X__000001  0.036692966  0.03668083  0.187060667  0.186998816
+## x4         0.485133864  0.48512232  0.969793637  0.969770558
+## x5        26.179025340 26.17866215  4.507766424  4.507703887
+## x6        12.634632791 12.63437621  5.674358046  5.674242811
+## x7         6.755214056  6.75535724  2.018025730  2.018068505
+## x90       -0.052012884 -0.05204264 -0.052870114 -0.052900359
+## x91        0.016471929  0.01648683  0.016571433  0.016586424
+## x92       -0.002167316 -0.00216896 -0.002136657 -0.002138278
+## x93        0.045698188  0.04568015  0.046676613  0.046658188
+## x94       -0.090968317 -0.09101597 -0.092735395 -0.092783971
+## x95       -0.089451956 -0.08946380 -0.090602172 -0.090614168
+## 
+## $original
+##                 0.mean      1.mean   0.std.mean  1.std.mean
+## x1         0.750000000  0.46739130  1.631906797  1.01698540
+## X__000000  0.026960784  0.01086957  0.175981600  0.07094910
+## X__000001  0.044117647  0.02173913  0.224911675  0.11082604
+## x4         0.495098039  0.43478261  0.989712249  0.86914033
+## x5        26.568627451 25.46739130  4.574852013  4.38523016
+## x6        13.159313725 11.86956522  5.909998253  5.33075745
+## x7         6.696078431  6.85869565  2.000359789  2.04893941
+## x90       -0.048508020  0.09720244 -0.049307486  0.09880444
+## x91       -0.007743354 -0.08901568 -0.007790131 -0.08955341
+## x92       -0.022780135  0.04537868 -0.022457889  0.04473676
+## x93        0.040385344  0.08656867  0.041250019  0.08842216
+## x94        0.016055935 -0.12991726  0.016367825 -0.13244093
+## x95       -0.065828219 -0.08072509 -0.066674669 -0.08176309
 </pre></div>
 <div class="source"><pre class="knitr r"><span class="hl std">W_fit_ATE_over</span>  <span class="hl kwb">&lt;-</span> <span class="hl kwd">CBPS</span><span class="hl std">(treat</span> <span class="hl opt">~</span> <span class="hl std">x1</span> <span class="hl opt">+</span> <span class="hl std">x1</span> <span class="hl opt">+</span> <span class="hl std">X__000000</span> <span class="hl opt">+</span> <span class="hl std">X__000001</span> <span class="hl opt">+</span><span class="hl std">x4</span> <span class="hl opt">+</span> <span class="hl std">x5</span> <span class="hl opt">+</span> <span class="hl std">x6</span> <span class="hl opt">+</span><span class="hl std">x7</span> <span class="hl opt">+</span><span class="hl std">x90</span> <span class="hl opt">+</span><span class="hl std">x91</span><span class="hl opt">+</span> <span class="hl std">x92</span> <span class="hl opt">+</span><span class="hl std">x93</span> <span class="hl opt">+</span><span class="hl std">x94</span><span class="hl opt">+</span> <span class="hl std">x95,</span> <span class="hl kwc">data</span> <span class="hl std">= mydata,</span> <span class="hl kwc">ATT</span> <span class="hl std">=</span> <span class="hl num">0</span><span class="hl std">,</span> <span class="hl kwc">method</span><span class="hl std">=</span><span class="hl str">&quot;over&quot;</span><span class="hl std">,</span> <span class="hl kwc">standardize</span><span class="hl std">=stdall,</span> <span class="hl kwc">sample.weights</span><span class="hl std">=mydata</span><span class="hl opt">$</span><span class="hl std">wgt)</span>
 <span class="hl kwd">summary</span><span class="hl std">(W_fit_ATE_over)</span>
@@ -336,8 +518,42 @@
 </pre></div>
 <div class="source"><pre class="knitr r"><span class="hl kwd">print</span><span class="hl std">(  W_fit_ATE_over</span><span class="hl opt">$</span><span class="hl std">weights[</span><span class="hl num">1</span><span class="hl opt">:</span><span class="hl num">10</span><span class="hl std">])</span>
 </pre></div>
-<div class="output"><pre class="knitr r">##  [1] 1.3461431 1.7601125 1.3363064 1.0274215 0.7352064 1.6513428 1.7370617
-##  [8] 0.9339726 1.3598695 1.3169300
+<div class="output"><pre class="knitr r">##  [1] 0.002657360 0.003474558 0.002637942 0.002028186 0.001451337 0.003259841 0.003429055 0.001843713 0.002684457
+## [10] 0.002599692
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl kwd">balance</span><span class="hl std">(W_fit_ATE_over)</span>
+</pre></div>
+<div class="output"><pre class="knitr r">## $balanced
+##                 0.mean       1.mean   0.std.mean   1.std.mean
+## x1         0.698935407  0.628680284  1.520796589  1.367930172
+## X__000000  0.023626416  0.015253395  0.154217117  0.099563750
+## X__000001  0.039158124  0.026955080  0.199628038  0.137416945
+## x4         0.485663745  0.480928488  0.970852881  0.961386994
+## x5        26.280531449 25.799762782  4.525244762  4.442461204
+## x6        12.903347983 12.317381041  5.795041111  5.531876658
+## x7         6.697052539  6.930965760  2.000650790  2.070529094
+## x90       -0.019065277 -0.057393455 -0.019379494 -0.058339363
+## x91       -0.019282761  0.033774064 -0.019399245  0.033978087
+## x92       -0.008566783  0.006134599 -0.008445598  0.006047819
+## x93        0.061690692  0.011567055  0.063011526  0.011814713
+## x94       -0.030651131 -0.121270929 -0.031246535 -0.123626642
+## x95       -0.074856566 -0.105220700 -0.075819107 -0.106573678
+## 
+## $original
+##                 0.mean      1.mean   0.std.mean  1.std.mean
+## x1         0.750000000  0.46739130  1.631906797  1.01698540
+## X__000000  0.026960784  0.01086957  0.175981600  0.07094910
+## X__000001  0.044117647  0.02173913  0.224911675  0.11082604
+## x4         0.495098039  0.43478261  0.989712249  0.86914033
+## x5        26.568627451 25.46739130  4.574852013  4.38523016
+## x6        13.159313725 11.86956522  5.909998253  5.33075745
+## x7         6.696078431  6.85869565  2.000359789  2.04893941
+## x90       -0.048508020  0.09720244 -0.049307486  0.09880444
+## x91       -0.007743354 -0.08901568 -0.007790131 -0.08955341
+## x92       -0.022780135  0.04537868 -0.022457889  0.04473676
+## x93        0.040385344  0.08656867  0.041250019  0.08842216
+## x94        0.016055935 -0.12991726  0.016367825 -0.13244093
+## x95       -0.065828219 -0.08072509 -0.066674669 -0.08176309
 </pre></div>
 </div></div>
 
@@ -380,8 +596,42 @@
 </pre></div>
 <div class="source"><pre class="knitr r"><span class="hl kwd">print</span><span class="hl std">(  W_fit_ATET</span><span class="hl opt">$</span><span class="hl std">weights[</span><span class="hl num">1</span><span class="hl opt">:</span><span class="hl num">10</span><span class="hl std">])</span>
 </pre></div>
-<div class="output"><pre class="knitr r">##  [1] 0.6994994 3.2788377 0.7376812 0.5050333 0.1967549 2.9043645 1.6799872
-##  [8] 0.7449539 0.7109686 0.9476665
+<div class="output"><pre class="knitr r">##  [1] 0.0014037166 0.0065797896 0.0014803376 0.0010134728 0.0003948369 0.0058283174 0.0033713051 0.0014949322
+##  [9] 0.0014267323 0.0019017245
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl kwd">balance</span><span class="hl std">(W_fit_ATET)</span>
+</pre></div>
+<div class="output"><pre class="knitr r">## $balanced
+##                0.mean      1.mean  0.std.mean  1.std.mean
+## x1         0.45126840  0.45122315  0.98190397  0.98180549
+## X__000000  0.01140162  0.01140386  0.07442202  0.07443663
+## X__000001  0.02406201  0.02406371  0.12266809  0.12267674
+## x4         0.42190110  0.42188610  0.84338991  0.84335992
+## x5        25.44688559 25.44698565  4.38169928  4.38171651
+## x6        11.84777928 11.84757051  5.32097314  5.32087938
+## x7         7.01529202  7.01542161  2.09572039  2.09575910
+## x90        0.08398066  0.08397382  0.08536476  0.08535781
+## x91       -0.06488316 -0.06488372 -0.06527511 -0.06527567
+## x92        0.05753240  0.05753875  0.05671855  0.05672482
+## x93        0.10164484  0.10165232  0.10382112  0.10382876
+## x94       -0.12525614 -0.12522646 -0.12768926 -0.12765901
+## x95       -0.10446601 -0.10446494 -0.10580928 -0.10580820
+## 
+## $original
+##                 0.mean      1.mean   0.std.mean  1.std.mean
+## x1         0.750000000  0.46739130  1.631906797  1.01698540
+## X__000000  0.026960784  0.01086957  0.175981600  0.07094910
+## X__000001  0.044117647  0.02173913  0.224911675  0.11082604
+## x4         0.495098039  0.43478261  0.989712249  0.86914033
+## x5        26.568627451 25.46739130  4.574852013  4.38523016
+## x6        13.159313725 11.86956522  5.909998253  5.33075745
+## x7         6.696078431  6.85869565  2.000359789  2.04893941
+## x90       -0.048508020  0.09720244 -0.049307486  0.09880444
+## x91       -0.007743354 -0.08901568 -0.007790131 -0.08955341
+## x92       -0.022780135  0.04537868 -0.022457889  0.04473676
+## x93        0.040385344  0.08656867  0.041250019  0.08842216
+## x94        0.016055935 -0.12991726  0.016367825 -0.13244093
+## x95       -0.065828219 -0.08072509 -0.066674669 -0.08176309
 </pre></div>
 <div class="source"><pre class="knitr r"><span class="hl std">W_fit_ATET_over</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">CBPS</span><span class="hl std">(treat</span> <span class="hl opt">~</span> <span class="hl std">x1</span> <span class="hl opt">+</span> <span class="hl std">x1</span> <span class="hl opt">+</span> <span class="hl std">X__000000</span> <span class="hl opt">+</span> <span class="hl std">X__000001</span> <span class="hl opt">+</span><span class="hl std">x4</span> <span class="hl opt">+</span> <span class="hl std">x5</span> <span class="hl opt">+</span> <span class="hl std">x6</span> <span class="hl opt">+</span><span class="hl std">x7</span> <span class="hl opt">+</span><span class="hl std">x90</span> <span class="hl opt">+</span><span class="hl std">x91</span><span class="hl opt">+</span> <span class="hl std">x92</span> <span class="hl opt">+</span><span class="hl std">x93</span> <span class="hl opt">+</span><span class="hl std">x94</span><span class="hl opt">+</span> <span class="hl std">x95,</span> <span class="hl kwc">data</span> <span class="hl std">= mydata,</span> <span class="hl kwc">ATT</span> <span class="hl std">=</span> <span class="hl num">1</span><span class="hl std">,</span> <span class="hl kwc">method</span><span class="hl std">=</span><span class="hl str">&quot;over&quot;</span><span class="hl std">,</span> <span class="hl kwc">standardize</span><span class="hl std">=stdall,</span> <span class="hl kwc">sample.weights</span><span class="hl std">=mydata</span><span class="hl opt">$</span><span class="hl std">wgt)</span>
 </pre></div>
@@ -419,8 +669,42 @@
 </pre></div>
 <div class="source"><pre class="knitr r"><span class="hl kwd">print</span><span class="hl std">(  W_fit_ATET_over</span><span class="hl opt">$</span><span class="hl std">weights[</span><span class="hl num">1</span><span class="hl opt">:</span><span class="hl num">10</span><span class="hl std">])</span>
 </pre></div>
-<div class="output"><pre class="knitr r">##  [1] 0.6994994 3.2788377 0.7376812 0.5050333 0.1967549 2.9043645 1.6799872
-##  [8] 0.7449539 0.7109686 0.9476665
+<div class="output"><pre class="knitr r">##  [1] 0.0014037166 0.0065797896 0.0014803376 0.0010134728 0.0003948369 0.0058283174 0.0033713051 0.0014949322
+##  [9] 0.0014267323 0.0019017245
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl kwd">balance</span><span class="hl std">(W_fit_ATET_over)</span>
+</pre></div>
+<div class="output"><pre class="knitr r">## $balanced
+##                0.mean      1.mean  0.std.mean  1.std.mean
+## x1         0.45126840  0.45122315  0.98190397  0.98180549
+## X__000000  0.01140162  0.01140386  0.07442202  0.07443663
+## X__000001  0.02406201  0.02406371  0.12266809  0.12267674
+## x4         0.42190110  0.42188610  0.84338991  0.84335992
+## x5        25.44688559 25.44698565  4.38169928  4.38171651
+## x6        11.84777928 11.84757051  5.32097314  5.32087938
+## x7         7.01529202  7.01542161  2.09572039  2.09575910
+## x90        0.08398066  0.08397382  0.08536476  0.08535781
+## x91       -0.06488316 -0.06488372 -0.06527511 -0.06527567
+## x92        0.05753240  0.05753875  0.05671855  0.05672482
+## x93        0.10164484  0.10165232  0.10382112  0.10382876
+## x94       -0.12525614 -0.12522646 -0.12768926 -0.12765901
+## x95       -0.10446601 -0.10446494 -0.10580928 -0.10580820
+## 
+## $original
+##                 0.mean      1.mean   0.std.mean  1.std.mean
+## x1         0.750000000  0.46739130  1.631906797  1.01698540
+## X__000000  0.026960784  0.01086957  0.175981600  0.07094910
+## X__000001  0.044117647  0.02173913  0.224911675  0.11082604
+## x4         0.495098039  0.43478261  0.989712249  0.86914033
+## x5        26.568627451 25.46739130  4.574852013  4.38523016
+## x6        13.159313725 11.86956522  5.909998253  5.33075745
+## x7         6.696078431  6.85869565  2.000359789  2.04893941
+## x90       -0.048508020  0.09720244 -0.049307486  0.09880444
+## x91       -0.007743354 -0.08901568 -0.007790131 -0.08955341
+## x92       -0.022780135  0.04537868 -0.022457889  0.04473676
+## x93        0.040385344  0.08656867  0.041250019  0.08842216
+## x94        0.016055935 -0.12991726  0.016367825 -0.13244093
+## x95       -0.065828219 -0.08072509 -0.066674669 -0.08176309
 </pre></div>
 </div></div>
 
