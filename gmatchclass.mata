@@ -12,14 +12,14 @@ class gmatch
     real matrix      X
     string scalar    treatvar, depvars, wgtvar
     string rowvector varlist
+    real rowvector   means1, means0, meansP, variances0, variances1, variancesP, variancesA
+    real matrix      covariances0, covariances1, covariancesP, covariancesA
     void             calcmeans(), calcvariances(), calcN(), calccovariances(), cbps_port_stata(), cbps_port_r()
     real scalar      N1, N0, N, N1_raw, N0_raw, N_raw
     real scalar      mean_sd_sq(),  entropydistance()
     real rowvector   olsbeta(), diagvariance(), logitfit(), sd_sq(), asd()
     real colvector   olspredict(), logitpredict(), logitweights(), cbps_port_stata_moments(), trim()
     real matrix      cbps_port_stata_wgt_matrix(), cbps_port_stata_gradient()
-    real rowvector   means1, means0, meansP, variances0, variances1, variancesP, variancesA
-    real matrix      covariances0, covariances1, covariancesP, covariancesA
 
   public:
     void             new(), set(), set_W(), set_Y(), clone(), multweight(), cbpseval()
@@ -445,7 +445,7 @@ real colvector gmatch::logitweights(real colvector pscore, | string scalar est)
 //  /* */ if (minmax[1,2]>=0.97 & (strlower(est)=="ate" | strlower(est)=="atet")) errprintf("Warning: maximum propensity score is %12.0g \n", minmax[1,2])
 
   pm = 1 :- (!this.T)
-  if      (strlower(est)=="ate")   ipwwgt = (pm :* (1:/pscore)) :+ (!pm :* (1:/(1:-pscore)))
+  if      (strlower(est)=="ate")   ipwwgt = (pm :/pscore) :+ (!pm:/(1:-pscore))
   else if (strlower(est)=="atet")  ipwwgt =  pm :+ (!pm :* (pscore:/(1:-pscore)))
   else if (strlower(est)=="ateu")  ipwwgt = !pm :+ ( pm :* ((1:-pscore):/pscore))
   else _error(est + " is an invalid argument for gmatch::logitweights()")
@@ -550,7 +550,8 @@ real colvector gmatch::cbps(| string scalar est, string scalar fctn, real scalar
     M.X = (M.X :- M.meansP) :/ sdP_orig
     M.X = (J(M.N_raw,1,1), M.X) // add constant in 1st column
     _svd(M.X, svd_s, svd_v)
-    ww =  invsym((M.W:^.5 :* M.X)' * (M.W:^.5 :* M.X))
+    if (!oid) ww = invsym((M.W:^.5 :* M.X)' * (M.W:^.5 :* M.X))
+    else      ww = .
     optimize_init_conv_ptol(S, 1e-13)
   	optimize_init_conv_vtol(S, 1e-14)
   	optimize_init_conv_nrtol(S, 1e-12)
@@ -653,9 +654,14 @@ real colvector gmatch::cbps(| string scalar est, string scalar fctn, real scalar
     cbpswgt = M.logitweights(pscore, est)
 //  }
   /* */ "Weights for first 10 observations:";  cbpswgt[1..10]'
+  /* */ "Weights for first 10 observations / N:"  
+  real colvector cbpswgtsum1 
+  cbpswgtsum1 = cbpswgt
+  cbpswgtsum1[this.sel0] = cbpswgtsum1[this.sel0] :/ quadsum(cbpswgtsum1[this.sel0] :* this.W[this.sel0])
+  cbpswgtsum1[this.sel1] = cbpswgtsum1[this.sel1] :/ quadsum(cbpswgtsum1[this.sel1] :* this.W[this.sel1])
+  cbpswgtsum1[1..10]'
 
-  M.multweight(cbpswgt)
-
+  /* */ M.multweight(cbpswgt)
   /* */ "Balance after CBPS (" + fctn + "):"
   /* */ "optimize_result_value(S)" ; optimize_result_value(S)
   /* */ "balance table after matching (" + fctn + "):"; real matrix temp; temp = M.balancetable(denominator)
@@ -667,8 +673,6 @@ real colvector gmatch::cbps(| string scalar est, string scalar fctn, real scalar
   /* */ "M.sd_sq(denominator)"     ;  M.sd_sq(denominator)
   /* */ "M.asd(denominator)"       ;  M.asd(denominator)
   /* */ ""; ""; ""; ""; ""; ""; ""
-
-
 
   return(cbpswgt)
 }
@@ -861,23 +865,23 @@ void gmatch::cbps_port_r(real   scalar    todo,
      lnf = abs(w_cbps' * (this.W :* this.X) * ww * (this.W :* this.X)' * (w_cbps))
   }
   else {
-    real colvector gbar, wx0, wx1, wxP
+    real colvector gbar, wx1, wx2, wx3
     gbar = (1/this.N :*((this.W :* this.X)' * (this.T-pscore)) \ 
             1/this.N :*((this.W :* this.X)' * w_cbps))
 // Why did they use N1_raw instad of N1?
     if (strlower(est)=="atet") {
-      wx0   = (this.W:^.5):*this.X:*(((1:-pscore):*pscore):^.5)
-      wx1   = (this.W:^.5):*this.X:*((pscore:/(1:-pscore)):^.5)
-      wxP   = (this.W:^.5):*this.X:*(pscore:^.5)
-      V = ( (1/this.N) :* ( (wx0' * wx0) , (wxP' * wxP) ) :* (this.N:/this.N1_raw) \
-            (1/this.N) :* ( (wxP' * wxP) :* (this.N/this.N1_raw) , (wx1' * wx1 :* this.N^2:/this.N1_raw^2)) )
+      wx1   = (this.W:^.5):*this.X:*(((1:-pscore):*pscore):^.5)
+      wx2   = (this.W:^.5):*this.X:*((pscore:/(1:-pscore)):^.5)
+      wx3   = (this.W:^.5):*this.X:*(pscore:^.5)
+      V = ( (1/this.N) :* ( (wx1' * wx1) , (wx3' * wx3) ) :* (this.N:/this.N1_raw) \
+            (1/this.N) :* ( (wx3' * wx3) :* (this.N:/this.N1_raw) , (wx2' * wx2 :* this.N^2:/this.N1_raw^2)) )
     }
     else if (strlower(est)=="ate") {
-      wx0   = (this.W:^.5):*this.X:*(((1:-pscore):*pscore):^.5)
-      wx1   = (this.W:^.5):*this.X:*((pscore:*(1:-pscore)):^-.5)
-      wxP   = (this.W:^.5):*this.X
-      V = ((1/this.N) :* ( (wx0' * wx0) , (wxP' * wxP) ) \
-           (1/this.N) :* ( (wxP' * wxP) , (wx1' * wx1) ) )
+      wx1   = (this.W:^.5):*this.X:*(((1:-pscore):*pscore):^.5)
+      wx2   = (this.W:^.5):*this.X:*((pscore:*(1:-pscore)):^-.5)
+      wx3   = (this.W:^.5):*this.X
+      V = ((1/this.N) :* ( (wx1' * wx1) , (wx3' * wx3) ) \
+           (1/this.N) :* ( (wx3' * wx3) , (wx2' * wx2) ) )
     }
     else _error(est + " is not allowed.")
     lnf = gbar' * invsym(V) * gbar
