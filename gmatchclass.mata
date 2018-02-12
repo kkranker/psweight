@@ -550,7 +550,7 @@ real colvector gmatch::cbps(| string scalar est, string scalar fctn, real scalar
     M.X = (M.X :- M.meansP) :/ sdP_orig
     M.X = (J(M.N_raw,1,1), M.X) // add constant in 1st column
     _svd(M.X, svd_s, svd_v)
-    if (!oid) ww = invsym((M.W:^.5 :* M.X)' * (M.W:^.5 :* M.X))
+    if (!oid) ww = invsym(quadcross(M.X,M.W,M.X))
     else      ww = .
     optimize_init_conv_ptol(S, 1e-13)
   	optimize_init_conv_vtol(S, 1e-14)
@@ -575,8 +575,8 @@ real colvector gmatch::cbps(| string scalar est, string scalar fctn, real scalar
 
   "Step 1 (initial values from logit model):"
   real rowvector beta_logit
-  if (fctn=="cbps_port_r") beta_logit = M.logitfit(M.T, M.X, M.W,0)
-  else                     beta_logit = M.logitfit(M.T, M.X, M.W,1)
+  if (fctn=="cbps_port_r") beta_logit = M.logitfit(M.T, M.X, M.W, 0) // we added constant to X above
+  else                     beta_logit = M.logitfit(M.T, M.X, M.W, 1)
   optimize_init_params(S, beta_logit)
   // /* */ "  optimize_init_params(S)";   optimize_init_params(S)
   // /* */ "optimize_result_value0(S)"; optimize_result_value0(S)
@@ -641,21 +641,21 @@ real colvector gmatch::cbps(| string scalar est, string scalar fctn, real scalar
 
   pscore  = M.logitpredict(M.X, beta)
   pscore  = M.trim(pscore)
-  
+
 //  if (fctn=="cbps_port_r") {
 //    if (strlower(est)=="atet") {
 //       cbpswgt = (this.N/this.N1) :* (this.T:-pscore) :/ (1:-pscore)
 //    }
 //    else if (strlower(est)=="ate") {
 //       cbpswgt = (pscore:-1:+this.T):^-1
-//    }  
+//    }
 //  }
 //  else {
     cbpswgt = M.logitweights(pscore, est)
 //  }
   /* */ "Weights for first 10 observations:";  cbpswgt[1..10]'
-  /* */ "Weights for first 10 observations / N:"  
-  real colvector cbpswgtsum1 
+  /* */ "Weights for first 10 observations / N:"
+  real colvector cbpswgtsum1
   cbpswgtsum1 = cbpswgt
   cbpswgtsum1[this.sel0] = cbpswgtsum1[this.sel0] :/ quadsum(cbpswgtsum1[this.sel0] :* this.W[this.sel0])
   cbpswgtsum1[this.sel1] = cbpswgtsum1[this.sel1] :/ quadsum(cbpswgtsum1[this.sel1] :* this.W[this.sel1])
@@ -850,7 +850,6 @@ void gmatch::cbps_port_r(real   scalar    todo,
                          real   matrix    H)
 {
   real colvector pscore, w_cbps
-  real matrix V
   pscore = this.logitpredict(this.X, beta)
   pscore = this.trim(pscore)
   if (strlower(est)=="atet") {
@@ -859,10 +858,9 @@ void gmatch::cbps_port_r(real   scalar    todo,
   else if (strlower(est)=="ate") {
      w_cbps = (pscore:-1:+this.T):^-1
   }
-// these can be made more efficient someday, for example, using quadcross()
   if (!overid) {
      w_cbps = 1/this.N :* w_cbps
-     lnf = abs(w_cbps' * (this.W :* this.X) * ww * (this.W :* this.X)' * (w_cbps))
+     lnf = abs(quadcross(w_cbps, this.W, this.X) * ww * quadcross(this.X, this.W, w_cbps))
   }
   else {
     real colvector gbar, wx1, wx2, wx3
@@ -885,6 +883,24 @@ void gmatch::cbps_port_r(real   scalar    todo,
     }
     else _error(est + " is not allowed.")
     lnf = gbar' * invsym(V) * gbar
+
+//    gbar = (quadcross(this.X, this.W, this.T:-pscore) \ quadcross(this.X, this.W, w_cbps)) :/ this.N
+//    if (strlower(est)=="atet") {
+//      wx1 = this.X:*sqrt((1:-pscore):*pscore)
+//      wx2 = this.X:*sqrt(pscore:/(1:-pscore))
+//      wx3 = this.X:*sqrt(pscore)
+//      V =  (quadcross(wx1, this.W, wx1), quadcross(wx3, this.W, wx3) \
+//            quadcross(wx3, this.W, wx3), quadcross(wx2, this.W, wx2) :* (this.N:/this.N1_raw)) :/ this.N1_raw
+//    }
+//    else if (strlower(est)=="ate") {
+//      wx1 = this.X:*sqrt((1:-pscore):*pscore)
+//      wx2 = this.X:*(pscore:*(1:-pscore):^-.5)
+//      wx3 = this.X
+//      V = (quadcross(wx1, this.W, wx1), quadcross(wx3, this.W, wx3) \
+//           quadcross(wx3, this.W, wx3), quadcross(wx2, this.W, wx2)) :/ this.N
+//    }
+//    else _error(est + " is not allowed.")
+//    lnf = gbar' * invsym(V) * gbar
   }
 }
 
