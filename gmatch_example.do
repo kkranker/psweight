@@ -189,57 +189,57 @@ mata drop D M
 // * WEIGHTED DATA EXAMPLES *
 // **************************
 
-D = gmatch()
-D.set(st_local("treatvar"),st_local("varlist"),st_local("tousevar"),st_local("wgtvar"))
-if (depvars!="") D.set_Y(st_local("depvars"),st_local("tousevar"))
+DW = gmatch()
+DW.set(st_local("treatvar"),st_local("varlist"),st_local("tousevar"),st_local("wgtvar"))
+if (depvars!="") DW.set_Y(st_local("depvars"),st_local("tousevar"))
 
 // Misc balance measures
-  D.diff()
-  D.stddiff()
-  D.mean_asd()
-  D.stddiff(1)
-  D.stddiff(0)
-  D.varratio()
-  D.prognosticdiff()
+  DW.diff()
+  DW.stddiff()
+  DW.mean_asd()
+  DW.stddiff(1)
+  DW.stddiff(0)
+  DW.varratio()
+  DW.prognosticdiff()
 
   "Balance table before matching"
-  temp = D.balancetable(1)
+  temp = DW.balancetable(1)
 
 // Replicate CBPS
 
-  M = gmatch()
-  M.clone(D)
-  M.prognosticdiff()
+  MW = gmatch()
+  MW.clone(DW)
+  MW.prognosticdiff()
 
   "--- ATE (not overidentified) ---"; ""; ""
-    cbpsweight = M.cbps("ate" , "cbps_port_r",  2, 0)
+    cbpsweight = MW.cbps("ate" , "cbps_port_r",  2, 0)
 
   "--- ATE overidentified ---"; ""; ""
     // not working yet?
-    cbpsweight = M.cbps("ate" , "cbps_port_r",  2, 1)
+    cbpsweight = MW.cbps("ate" , "cbps_port_r",  2, 1)
 
   "--- ATET (not overidentified) ---"; ""; ""
-    cbpsweight = M.cbps("atet", "cbps_port_r",  2, 0)
+    cbpsweight = MW.cbps("atet", "cbps_port_r",  2, 0)
 
   "--- ATET overidentified ---"; ""; ""
     // not working yet? 
-    cbpsweight = M.cbps("atet", "cbps_port_r",  2, 1)
+    cbpsweight = MW.cbps("atet", "cbps_port_r",  2, 1)
 
 // IPW
 
   stata("teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' [iw=`wgtvar'], atet aequations")
   stata("tebalance summarize, baseline")  // I noticed the sum of weights in tebalance are weird
-  table = D.balancetable(3)
+  table = DW.balancetable(3)
 
   stata("teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' [iw=`wgtvar'], atet aequations")
-  ipw = D.ipw("atet")
+  ipw = DW.ipw("atet")
   stata("tebalance summarize")  // I noticed the sum of weights in tebalance are weird
-  D.multweight(ipw)
-  table = D.balancetable(3)
+  DW.multweight(ipw)
+  table = DW.balancetable(3)
 
   stata("teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' [iw=`wgtvar'], ate aequations")
-  D.multweight()
-  ipw = D.ipw("ate")
+  DW.multweight()
+  ipw = DW.ipw("ate")
 
 end  // end of Mata block
 
