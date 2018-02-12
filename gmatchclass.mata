@@ -864,43 +864,24 @@ void gmatch::cbps_port_r(real   scalar    todo,
   }
   else {
     real colvector gbar, wx1, wx2, wx3
-    gbar = (1/this.N :*((this.W :* this.X)' * (this.T-pscore)) \ 
-            1/this.N :*((this.W :* this.X)' * w_cbps))
-// Why did they use N1_raw instad of N1?
+    real matrix V
+    gbar = (quadcross(this.X, this.W, this.T:-pscore) \ quadcross(this.X, this.W, w_cbps)) :/ this.N
     if (strlower(est)=="atet") {
-      wx1   = (this.W:^.5):*this.X:*(((1:-pscore):*pscore):^.5)
-      wx2   = (this.W:^.5):*this.X:*((pscore:/(1:-pscore)):^.5)
-      wx3   = (this.W:^.5):*this.X:*(pscore:^.5)
-      V = ( (1/this.N) :* ( (wx1' * wx1) , (wx3' * wx3) ) :* (this.N:/this.N1_raw) \
-            (1/this.N) :* ( (wx3' * wx3) :* (this.N:/this.N1_raw) , (wx2' * wx2 :* this.N^2:/this.N1_raw^2)) )
+      wx1 = this.X:*sqrt((1:-pscore):*pscore)
+      wx2 = this.X:*sqrt(pscore:/(1:-pscore))
+      wx3 = this.X:*sqrt(pscore)
+      V =  (quadcross(wx1, this.W, wx1), quadcross(wx3, this.W, wx3) \
+            quadcross(wx3, this.W, wx3), quadcross(wx2, this.W, wx2) :* (this.N:/this.N1_raw)) :/ this.N1_raw
     }
     else if (strlower(est)=="ate") {
-      wx1   = (this.W:^.5):*this.X:*(((1:-pscore):*pscore):^.5)
-      wx2   = (this.W:^.5):*this.X:*((pscore:*(1:-pscore)):^-.5)
-      wx3   = (this.W:^.5):*this.X
-      V = ((1/this.N) :* ( (wx1' * wx1) , (wx3' * wx3) ) \
-           (1/this.N) :* ( (wx3' * wx3) , (wx2' * wx2) ) )
+      wx1 = this.X:*sqrt((1:-pscore):*pscore)
+      wx2   = this.X:*((pscore:*(1:-pscore)):^-.5)
+      wx3 = this.X
+      V = (quadcross(wx1, this.W, wx1), quadcross(wx3, this.W, wx3) \
+           quadcross(wx3, this.W, wx3), quadcross(wx2, this.W, wx2)) :/ this.N
     }
     else _error(est + " is not allowed.")
     lnf = gbar' * invsym(V) * gbar
-
-//    gbar = (quadcross(this.X, this.W, this.T:-pscore) \ quadcross(this.X, this.W, w_cbps)) :/ this.N
-//    if (strlower(est)=="atet") {
-//      wx1 = this.X:*sqrt((1:-pscore):*pscore)
-//      wx2 = this.X:*sqrt(pscore:/(1:-pscore))
-//      wx3 = this.X:*sqrt(pscore)
-//      V =  (quadcross(wx1, this.W, wx1), quadcross(wx3, this.W, wx3) \
-//            quadcross(wx3, this.W, wx3), quadcross(wx2, this.W, wx2) :* (this.N:/this.N1_raw)) :/ this.N1_raw
-//    }
-//    else if (strlower(est)=="ate") {
-//      wx1 = this.X:*sqrt((1:-pscore):*pscore)
-//      wx2 = this.X:*(pscore:*(1:-pscore):^-.5)
-//      wx3 = this.X
-//      V = (quadcross(wx1, this.W, wx1), quadcross(wx3, this.W, wx3) \
-//           quadcross(wx3, this.W, wx3), quadcross(wx2, this.W, wx2)) :/ this.N
-//    }
-//    else _error(est + " is not allowed.")
-//    lnf = gbar' * invsym(V) * gbar
   }
 }
 
