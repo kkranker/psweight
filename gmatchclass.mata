@@ -20,7 +20,7 @@ class gmatch
     real matrix      cbps_port_stata_wgt_matrix(), cbps_port_stata_gradient()
 
   public:
-    void             new(), set(), set_Y(), reweight(), XXX()
+    void             new(), set(), set_Y(), reweight()
     void             ipw(), cbps(), cbpseval()
     real rowvector   diff(), stddiff(), varratio(), prognosticdiff(), pomean(), wgt_moments()
     real scalar      mean_asd(), max_asd(), wgt_cv(), wgt_sd(), wgt_skewness(), wgt_kurtosis(), wgt_max()
