@@ -125,26 +125,22 @@ M.clone(D)
   "--- ATE (not overidentified) ---"; ""; ""
     stata(`"cbps `treatvar' `varlist' if `tousevar' , ate      logit optimization_technique("nr") evaluator_type("gf1")"')
     stata(`"cbps_imbalance"')
-    cbpsweight = M.cbps("ate" , "cbps_port_stata", 2, 0)
-    cbpsweight = M.cbps("ate" , "cbps_port_r",  2, 0)
+    cbpsweight = M.cbps("ate", "cbps", 2, 0)
 
   "--- ATE overidentified ---"; ""; ""
     stata(`"cbps `treatvar' `varlist' if `tousevar' , ate over logit optimization_technique("nr") evaluator_type("gf1")"')
     stata(`"cbps_imbalance"')
-    cbpsweight = M.cbps("ate" , "cbps_port_stata", 2, 1)
-    cbpsweight = M.cbps("ate" , "cbps_port_r",  2, 1)
+    cbpsweight = M.cbps("ate", "cbps", 2, 1)
 
   "--- ATET (not overidentified) ---"; ""; ""
     stata(`"cbps `treatvar' `varlist' if `tousevar' , att      logit optimization_technique("nr") evaluator_type("gf1")"')
     stata(`"cbps_imbalance"')
-    cbpsweight = M.cbps("atet", "cbps_port_stata", 2, 0)
-    cbpsweight = M.cbps("atet", "cbps_port_r",  2, 0)
+    cbpsweight = M.cbps("atet", "cbps", 2, 0)
 
   "--- ATET overidentified ---"; ""; ""
     stata(`"cbps `treatvar' `varlist' if `tousevar' , att over logit optimization_technique("nr") evaluator_type("gf1")"')
     stata(`"cbps_imbalance"')
-    cbpsweight = M.cbps("atet", "cbps_port_stata", 2, 1)
-    cbpsweight = M.cbps("atet", "cbps_port_r",  2, 1)
+    cbpsweight = M.cbps("atet", "cbps", 2, 1)
 
 // Other objective functions
   cbpsweight = M.cbps("atet","mean_sd_sq",1)
@@ -212,16 +208,16 @@ if (depvars!="") DW.set_Y(st_local("depvars"),st_local("tousevar"))
   MW.prognosticdiff()
 
   "--- ATE (not overidentified) ---"; ""; ""
-    cbpsweight = MW.cbps("ate" , "cbps_port_r",  2, 0)
+    cbpsweight = MW.cbps("ate", "cbps", 2, 0)
 
   "--- ATE overidentified ---"; ""; ""
-    cbpsweight = MW.cbps("ate" , "cbps_port_r",  2, 1)
+    cbpsweight = MW.cbps("ate", "cbps", 2, 1)
 
   "--- ATET (not overidentified) ---"; ""; ""
-    cbpsweight = MW.cbps("atet", "cbps_port_r",  2, 0)
+    cbpsweight = MW.cbps("atet", "cbps", 2, 0)
 
   "--- ATET overidentified ---"; ""; ""
-    cbpsweight = MW.cbps("atet", "cbps_port_r",  2, 1)
+    cbpsweight = MW.cbps("atet", "cbps", 2, 1)
   
 // Other objective functions
   cbpsweight = MW.cbps("atet","mean_sd_sq",1)
