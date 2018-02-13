@@ -529,8 +529,22 @@ real colvector gmatch::cbps(| string scalar est, string scalar fctn, real scalar
   if (args()<3) denominator=1
   if (args()<4) oid=0
   if (args()<5) cvopt=(0,0,0)
+
+  // If the user is asking for the IPW result, just call my ipw() function
   if (fctn=="ipw" & cvopt[1]==0) return(this.ipw(est))
-  
+
+  // I have two implimentations of the CBPS function.  Here I pick the one I need.
+  // cbps_port_stata - has the gradient functions built in (so it converges faster)
+  //                 - but it cannot deal with weighted data.
+  //                 - was based on the Stata implimentation of CBPS by Filip Premik
+  // cbps_port_r     - works with weighted data
+  //                 - doesn't have the gradient functions, and therefore 
+  //                      (1) works with cvopt and 
+  //                      (2) converges more slowly
+  //                 - was based on the R implimentation of CBPS on CRAN by Imai et al.
+  else if (fctn=="cbps" & cvopt[1]==0 & all(this.W:==1)) fctn="cbps_port_stata"
+  else if (fctn=="cbps")                                 fctn="cbps_port_r"
+
   // I'm cloning so that I can reweight the dataset to calculate objective function
   // ALl views are turned into regular variables
   M.clone(this)
@@ -547,9 +561,9 @@ real colvector gmatch::cbps(| string scalar est, string scalar fctn, real scalar
   optimize_init_argument(S, 5, oid)
   optimize_init_argument(S, 6, cvopt)
   optimize_init_singularHmethod(S,"hybrid")  // equivalent to ml's "difficult" option
-  optimize_init_technique(S, "bfgs 15 nr 15")
+  optimize_init_conv_maxiter(S, 120)         // probably want to make this setable
+  optimize_init_technique(S, "bfgs 12 nr 12")
   optimize_init_tracelevel(S, "value" )  // "none", "value", "params"
-  /* */ optimize_init_tracelevel(S, "none" )  // "none", "value", "params"
 
   // the remaining optimization options depend on the method
   if (fctn=="cbps_port_r") {
@@ -557,7 +571,6 @@ real colvector gmatch::cbps(| string scalar est, string scalar fctn, real scalar
     optimize_init_conv_vtol(S,  1e-14)
     optimize_init_conv_nrtol(S, 1e-12)
     optimize_init_evaluatortype(S,"d0")
-//    optimize_init_conv_ignorenrtol(S, "off")
   }
   else if (fctn=="cbps_port_stata") {
     optimize_init_conv_ptol(S,  1e-13)
@@ -565,8 +578,6 @@ real colvector gmatch::cbps(| string scalar est, string scalar fctn, real scalar
     optimize_init_conv_nrtol(S, 1e-12)
     if (oid)  optimize_init_evaluatortype(S,"gf1")  // for overidentified version
     else      optimize_init_evaluatortype(S,"d1")   // d1 if I'm running plain vanilla. otherwise just use "do" (numerical gradient)
-/* noisy */    optimize_init_tracelevel(S, "none" )  // "none", "value", "params"
-//  optimize_init_conv_ignorenrtol(S, "on")
   }
   else if (fctn=="mean_sd_sq" | fctn=="sd_sq") {
     if (fctn=="sd_sq") optimize_init_evaluatortype(S,"gf0")
@@ -575,26 +586,27 @@ real colvector gmatch::cbps(| string scalar est, string scalar fctn, real scalar
 /* */	// optimize_init_conv_ptol(S,  1e-10)
 /* */	// optimize_init_conv_vtol(S,  1e-11)
 /* */	// optimize_init_conv_nrtol(S, 1e-9)
+/* */ optimize_init_singularHmethod(S,"m-marquardt")  // "hybrid" is equivalent to ml's "difficult" option
 /* */ optimize_init_conv_ignorenrtol(S, "on")
 /* */	optimize_init_conv_ptol(S, 1e-7)
 /* */	optimize_init_conv_vtol(S, 1e-8)
-/* */	optimize_init_conv_nrtol(S, 1e-6)    
+/* */	optimize_init_conv_nrtol(S, 1e-6)
   }
   else {
     /* */ (fctn + " is invalid with gmatch::cbps()")
     /* */ return(.)
     /* */ // _error(fctn + " is invalid with gmatch::cbps()")
-    
+
   }
-  
-  // for certain methods, 
+
+  // for certain methods,
   // -- normalize Xs to mean 0, sd 1
   // -- add a constant term
   if (fctn=="cbps_port_r") {
     real matrix meansP_orig, sdP_orig, svd_s, svd_v, svd_s_inv
     unnorm = 1
     if (!length(M.variances1)) this.calcvariances()
-    meansP_orig = mean(M.X, M.W)    
+    meansP_orig = mean(M.X, M.W)
     sdP_orig = sqrt(this.diagvariance(M.X, M.W))
     M.Xstd = (J(M.N_raw,1,1), (M.X :- meansP_orig) :/ sdP_orig )
     _svd(M.Xstd, svd_s, svd_v)
@@ -627,8 +639,9 @@ real colvector gmatch::cbps(| string scalar est, string scalar fctn, real scalar
   optimize_init_argument(S, 7, ww)
   ""
 
-// /* */ real todo, lnf__, g__, H__
-// /* */ cbps_eval(todo=1,beta_logit, M, est, fctn, denominator, oid, ww, lnf__=., g__=., H__=.)
+// /* */ real todo__, lnf__, g__, H__
+// /* */ cbps_eval(todo__=0, beta_logit, M, est, fctn, denominator, oid, cvopt, ww, lnf__=., g__=., H__=.)
+// /* */ "Iteration X:   f(p) =" + strofreal(lnf__[1,1])
 // /* */  "todo"; todo
 // /* */  "beta_logit"; beta_logit
 // /* */  "est"; est
@@ -639,6 +652,7 @@ real colvector gmatch::cbps(| string scalar est, string scalar fctn, real scalar
 // /* */  "lnf__"; lnf__
 // /* */  "g__ "; g__
 // /* */  "H__"; H__
+
 
  // if (fctn=="cbps_port_r")  _error("X")
 
