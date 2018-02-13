@@ -1,9 +1,7 @@
-* clear all
-* cls
-
 mata:
 
 mata set matastrict on
+mata set matafavor speed
 
 class gmatch
 {
@@ -22,12 +20,13 @@ class gmatch
     real matrix      cbps_port_stata_wgt_matrix(), cbps_port_stata_gradient()
 
   public:
-    void             new(), set(), set_W(), set_Y(), reweight()
+    void             new(), set(), set_Y(), reweight(), XXX()
     void             ipw(), cbps(), cbpseval()
     real rowvector   diff(), stddiff(), varratio(), prognosticdiff(), pomean(), wgt_moments()
     real scalar      mean_asd(), max_asd(), wgt_cv(), wgt_sd(), wgt_skewness(), wgt_kurtosis(), wgt_max()
     real matrix      balancetable()
 }
+
 
 // The following functions read data into the instance of the class
 // set_W() needs to be called after set_T()
@@ -72,20 +71,38 @@ void gmatch::set(string scalar treatvar, string scalar varlist, string scalar to
   // Define covariates
   this.varlist  = tokens(varlist)
   st_view(this.X , .,    this.varlist                , tousevar)
-  /* */  "X contains" ; this.varlist
-  /* */  "X is " + strofreal(rows(this.X)) + " by " + strofreal(cols(this.X))
+  // /* */  "X contains" ; this.varlist
+  // /* */  "X is " + strofreal(rows(this.X)) + " by " + strofreal(cols(this.X))
 
   // Define weights
   // This code assumes weights are **already** normalized. Here's code to normalize: this.W = this.W :/ (rows(this.W) / quadcolsum(this.W))
   if (args()>=4) {
     this.wgtvar = wgtvar
     st_view(this.W_orig, ., this.wgtvar, tousevar) // an extra copy of the weight variable that can only be set via this function. Useful for reweighting/matching situations.
-    // /* */  "W is " + strofreal(rows(this.W)) + " by " + strofreal(cols(this.W))
   }
-  else this.W_orig = J(rows(T),1,1)
+  else this.W_orig = J(rows(this.T),1,1)
+  // /* */  "W is " + strofreal(rows(this.W)) + " by " + strofreal(cols(this.W))
   // initialize W_mtch=1 and W=W_orig
   // W_orig is a view, but W and W_mtch are not
   this.reweight()
+  // /* */  "W_orig is " + strofreal(rows(this.W_orig )) + " by " + strofreal(cols(this.W_orig))
+  // /* */  "W is " + strofreal(rows(this.W)) + " by " + strofreal(cols(this.W))
+
+  this.calcN()
+  if (all(this.W_orig:==1)) {
+    strofreal(this.N0_raw) + " control obs" 
+    strofreal(this.N1_raw) + " treatment obs" 
+    "(Data are unweighted.)"
+  }
+  else {
+    strofreal(this.N0_raw) + " control obs (sum of weights = " + strofreal(this.N0) + ")"
+    strofreal(this.N1_raw) + " treatment obs (sum of weights = " + strofreal(this.N1) + ")"
+  }
+}
+
+// flags observations with weights!=0
+// calculates unweighted/wegihted sample sizes for treatment and control group
+void gmatch::calcN() {
 
   // Index to select observations in control and treatment groups
   this.sel0 = selectindex(!this.T :& this.W_orig)
@@ -96,17 +113,6 @@ void gmatch::set(string scalar treatvar, string scalar varlist, string scalar to
   this.N1_raw = rows(this.sel1)
   this.N_raw = this.N0_raw + this.N1_raw
   if (min((this.N0_raw,this.N1_raw)==0)) _error("At least one treatment and control observation required.")
-
-  this.calcN()
-  strofreal(this.N0_raw) + " control obs (sum of weights = " + strofreal(this.N0) + ")"
-  strofreal(this.N1_raw) + " treatment obs (sum of weights = " + strofreal(this.N1) + ")"
-  if (all(this.W_orig:==1)) "(Data are unweighted.)"
-  else                      "(Data are weighted.)"
-}
-
-// flags observations with weights!=0
-// calculates unweighted/wegihted sample sizes for treatment and control group
-void gmatch::calcN() {
 
   // Save weighted number of observations
   this.N0 = quadcolsum(this.W[this.sel0])
@@ -512,7 +518,7 @@ real rowvector gmatch::logitbeta(real colvector Ymat, real matrix Xmat, | real c
   transmorphic S
   if (args()<4) addconst=1
   S=moptimize_init()
-  moptimize_init_evaluator(S, &logit_eval())
+  moptimize_init_evaluator(S, &gmatch_logit_eval())
   moptimize_init_evaluatortype(S,"lf")
   moptimize_init_depvar(S,1,Ymat)
   moptimize_init_eq_indepvars(S,1,Xmat)
@@ -526,7 +532,7 @@ real rowvector gmatch::logitbeta(real colvector Ymat, real matrix Xmat, | real c
   return(moptimize_result_coefs(S))
 }
 
-void logit_eval(transmorphic S, real rowvector beta, real colvector lnf)
+void gmatch_logit_eval(transmorphic S, real rowvector beta, real colvector lnf)
 {
   real colvector Y, pm, xb, lj
   Y  = moptimize_util_depvar(S, 1)
@@ -579,7 +585,10 @@ void gmatch::cbps(| string scalar est,
   if (isview(M.W)) _error("Something is wrong with the clone")
 
   // If the user is asking for the IPW result, just call my ipw() function
-  if (fctn=="ipw" & cvopt[1,1]==0) return(this.ipw(est))
+  if (fctn=="ipw" & cvopt[1,1]==0) {
+    this.ipw(est)
+    return
+  }
 
   // I have two implimentations of the CBPS function.  Here I pick the one I need.
   // cbps_port_stata - has the gradient functions built in (so it converges faster)
@@ -596,7 +605,7 @@ void gmatch::cbps(| string scalar est,
 
   transmorphic S
   S=optimize_init()
-  optimize_init_evaluator(S, &cbps_eval())
+  optimize_init_evaluator(S, &gmatch_cbps_eval())
   optimize_init_which(S, "min")
   optimize_init_argument(S, 1, M)
   optimize_init_argument(S, 2, est)
@@ -653,6 +662,8 @@ void gmatch::cbps(| string scalar est,
     meansP_orig = mean(M.X, M.W)
     sdP_orig = sqrt(this.diagvariance(M.X, M.W))
     M.Xstd = (J(M.N_raw,1,1), (M.X :- meansP_orig) :/ sdP_orig )
+    pragma unset svd_v
+    pragma unset svd_s
     _svd(M.Xstd, svd_s, svd_v)
   }
   else if (fctn=="cbps_port_stata") {
@@ -690,7 +701,7 @@ void gmatch::cbps(| string scalar est,
   ""
 
 // /* */   real todo__, lnf__, g__, H__
-// /* */   cbps_eval(todo__=0, beta_logit, M, est, fctn, denominator, oid, cvopt, ww, lnf__=., g__=., H__=.)
+// /* */   gmatch_cbps_eval(todo__=0, beta_logit, M, est, fctn, denominator, oid, cvopt, ww, lnf__=., g__=., H__=.)
 // /* */   "Iteration X:   f(p) ="; lnf__
 // /* */  "todo"; todo
 // /* */  "beta_logit"; beta_logit
@@ -720,7 +731,7 @@ void gmatch::cbps(| string scalar est,
   /* */                       // exit(optimize_result_returncode(S))
   /* */                       return(J(M.N,1,.))
   /* */               }
-  /* */ "optimize_result_iterations(S)"; optimize_result_iterations(S)
+  /* */ // "optimize_result_iterations(S)"; optimize_result_iterations(S)
   beta    = optimize_result_params(S)
 
 
@@ -770,15 +781,15 @@ void gmatch::cbps(| string scalar est,
 }
 
 // helper function -- note this is not a member of the class
-void cbps_eval(real todo, real beta,
-               class gmatch scalar M,
-               string est, string fctn, real denominator, real oid, real cvopt, real ww,
-               real lnf, real g, real H)
+void gmatch_cbps_eval(real todo, real beta,
+                      class gmatch scalar M,
+                      string est, string fctn, real denominator, real oid, real cvopt, real ww,
+                      real lnf, real g, real H)
 {
   M.cbpseval(todo,beta,est,fctn,denominator,oid,cvopt,ww,lnf,g,H)
 }
 
-
+// specify the function to be called by optimize() to evaluate f(p).
 void gmatch::cbpseval( real   scalar    todo,
                        real   rowvector beta,
                        string scalar    est,
@@ -839,7 +850,6 @@ void gmatch::cbps_port_stata( real   scalar    todo,
    g = G' * ww * gg :* (2:*this.N)
    g = g'
 }
-
 
 // Port of the moment function from the Stata verion of CBPS
 real colvector gmatch::cbps_port_stata_moments(real colvector pscore, real matrix dpscore, real scalar overid, string scalar est)
