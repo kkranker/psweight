@@ -88,6 +88,16 @@ void gmatch::set(string scalar treatvar, string scalar varlist, string scalar to
   // /* */  "W_orig is " + strofreal(rows(this.W_orig )) + " by " + strofreal(cols(this.W_orig))
   // /* */  "W is " + strofreal(rows(this.W)) + " by " + strofreal(cols(this.W))
 
+  // Index to select observations in control and treatment groups
+  this.sel0 = selectindex(!this.T :& this.W_orig)
+  this.sel1 = selectindex( this.T :& this.W_orig)
+
+  // Save raw number of observations
+  this.N0_raw = rows(this.sel0)
+  this.N1_raw = rows(this.sel1)
+  this.N_raw = this.N0_raw + this.N1_raw
+  if (min((this.N0_raw,this.N1_raw)==0)) _error("At least one treatment and control observation required.")
+  
   this.calcN()
   if (all(this.W_orig:==1)) {
     strofreal(this.N0_raw) + " control obs" 
@@ -103,16 +113,6 @@ void gmatch::set(string scalar treatvar, string scalar varlist, string scalar to
 // flags observations with weights!=0
 // calculates unweighted/wegihted sample sizes for treatment and control group
 void gmatch::calcN() {
-
-  // Index to select observations in control and treatment groups
-  this.sel0 = selectindex(!this.T :& this.W_orig)
-  this.sel1 = selectindex( this.T :& this.W_orig)
-
-  // Save raw number of observations
-  this.N0_raw = rows(this.sel0)
-  this.N1_raw = rows(this.sel1)
-  this.N_raw = this.N0_raw + this.N1_raw
-  if (min((this.N0_raw,this.N1_raw)==0)) _error("At least one treatment and control observation required.")
 
   // Save weighted number of observations
   this.N0 = quadcolsum(this.W[this.sel0])
