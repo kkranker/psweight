@@ -2,7 +2,7 @@
       name:  gmatch_example
        log:  C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\gmatch_example.log
   log type:  text
- opened on:  12 Feb 2018, 20:46:55
+ opened on:  12 Feb 2018, 23:59:35
 
 . 
 . // Multiple-equation models: An introduction and potential applications to our work at Mathematica
@@ -27,7 +27,7 @@
 : class gmatch
 > {
 >   private:
->     real colvector   T, W, sel1, sel0, Y0, W_orig
+>     real colvector   T, W, sel1, sel0, Y0, W_orig, W_mtch
 >     real matrix      X, XC, Xstd
 >     string scalar    treatvar, depvars, wgtvar
 >     string rowvector varlist
@@ -41,9 +41,9 @@
 >     real matrix      cbps_port_stata_wgt_matrix(), cbps_port_stata_gradient()
 > 
 >   public:
->     void             new(), set(), set_W(), set_Y(), clone(), multweight(), cbpseval()
->     real rowvector   diff(), stddiff(), varratio(), prognosticdiff(), pomean()
->     real scalar      mean_asd(), max_asd()
+>     void             new(), set(), set_W(), set_Y(), clone(), reweight(), cbpseval()
+>     real rowvector   diff(), stddiff(), varratio(), prognosticdiff(), pomean(), wgt_moments()
+>     real scalar      mean_asd(), max_asd(), wgt_cv(), wgt_sd(), wgt_skewness(), wgt_kurtosis(), wgt_max()
 >     real colvector   ipw(), cbps()
 >     real matrix      balancetable()
 > }
@@ -60,35 +60,33 @@
 > }
 
 : 
-: // clones a copy of an instant
-: // this isn't completely efficient -- views will be variables after the clone
+: // clones an instance of the class
+: // keeps the important stuff, but nothing related to weighting/analyses
+: // aLl views are turned into regular variables
+: // matching weights are reset to 1 and sample sizes are recalculated
 : void gmatch::clone(class gmatch scalar src)
 > {
->   this.N        = src.N
 >   this.N_raw    = src.N_raw
->   this.N0       = src.N0
 >   this.N0_raw   = src.N0_raw
->   this.N1       = src.N1
 >   this.N1_raw   = src.N1_raw
->   this.T        = src.T
->   this.W        = src.W
->   this.W_orig   = src.W_orig
->   this.X        = src.X
->   this.XC       = src.XC
->   this.Y0       = src.Y0
->   this.depvars  = src.depvars
 >   this.sel0     = src.sel0
 >   this.sel1     = src.sel1
+>   this.T        = src.T
+>   this.X        = src.X
+>   this.W_orig   = src.W_orig
+>   this.Y0       = src.Y0
 >   this.treatvar = src.treatvar
 >   this.varlist  = src.varlist
 >   this.wgtvar   = src.wgtvar
+>   this.depvars  = src.depvars
+>   this.reweight()
+>   this.calcN()
 > }
 
 : 
 : void gmatch::set(string scalar treatvar, string scalar varlist, string scalar tousevar, | string scalar wgtvar)
 > {
 >   // Define treatment dummy
->   this.T=this.X=this.W=.
 >   this.treatvar = treatvar
 >   st_view(this.T, ., treatvar, tousevar)
 >   // /* */  "T is " + strofreal(rows(this.T)) + " by " + strofreal(cols(this.T))
@@ -105,30 +103,34 @@
 >     this.wgtvar = wgtvar
 >     st_view(this.W_orig, ., this.wgtvar, tousevar) // an extra copy of the weight variable that can only be set via this function. Useful for reweighting/matc
 > hing situations.
->     this.W = this.W_orig // W_orig is a view, but W is not
 >     // /* */  "W is " + strofreal(rows(this.W)) + " by " + strofreal(cols(this.W))
 >   }
->   else {
->     this.W = this.W_orig = J(rows(T),1,1)
->     "Data are unweighted."
->   }
->   this.calcN()
->   strofreal(this.N0_raw) + " control obs (sum of weights = " + strofreal(this.N0) + ")"
->   strofreal(this.N1_raw) + " treatment obs (sum of weights = " + strofreal(this.N1) + ")"
-> }
-
-: 
-: void gmatch::calcN() {
+>   else this.W_orig = J(rows(T),1,1)
+>   // initialize W_mtch=1 and W=W_orig
+>   // W_orig is a view, but W and W_mtch are not
+>   this.reweight()
 > 
 >   // Index to select observations in control and treatment groups
->   this.sel0 = selectindex(!this.T :& this.W)
->   this.sel1 = selectindex( this.T :& this.W)
+>   this.sel0 = selectindex(!this.T :& this.W_orig)
+>   this.sel1 = selectindex( this.T :& this.W_orig)
 > 
->   // Save number of observations
+>   // Save raw number of observations
 >   this.N0_raw = rows(this.sel0)
 >   this.N1_raw = rows(this.sel1)
 >   this.N_raw = this.N0_raw + this.N1_raw
 >   if (min((this.N0_raw,this.N1_raw)==0)) _error("At least one treatment and control observation required.")
+>   
+>   this.calcN()
+>   strofreal(this.N0_raw) + " control obs (sum of weights = " + strofreal(this.N0) + ")"
+>   strofreal(this.N1_raw) + " treatment obs (sum of weights = " + strofreal(this.N1) + ")"
+>   if (all(this.W_orig:==1)) "(Data are unweighted.)" 
+>   else                      "(Data are weighted.)" 
+> }
+
+: 
+: // flags observations with weights!=0
+: // calculates unweighted/wegihted sample sizes for treatment and control group
+: void gmatch::calcN() {
 > 
 >   // Save weighted number of observations
 >   this.N0 = quadcolsum(this.W[this.sel0])
@@ -139,9 +141,8 @@
 >   // these means/varinaces are saved internally in the class (to avoid computing them over and over).
 >   // They need to be reset because we just reweighted the sample.
 >   // If I'm re-calcuating sample sizes, this is probably the case.  Set to missing here just to be safe.
->   this.means0 = this.means1 = this.variances0 = this.variances1 = this.variancesP = this.variancesA = J(1,0,.)
+>   this.means0 = this.means1 = this.meansP = this.variances0 = this.variances1 = this.variancesP = this.variancesA = J(1,0,.)
 >   this.covariances0 = this.covariances1 = this.covariancesP = this.covariancesA = J(0,0,.)
-> 
 > }
 
 : 
@@ -157,14 +158,15 @@
 > }
 
 : 
-: // multipy the original weights by something
-: void gmatch::multweight(|real colvector newweight)
+: // multipy the original weights by a matching weight
+: void gmatch::reweight(|real colvector newweight)
 > {
->   if (args()<1) newweight=1
->   this.W = this.W_orig :* newweight
+>   if (args()<1) this.W_mtch = J(rows(this.T),1,1)
+>   else          this.W_mtch = newweight
+>   this.W = this.W_orig :* this.W_mtch
 >   // some new weights could be zero.  recalculate N and set means/variances to missing.
 >   this.calcN()
->   this.means0 = this.means1 = this.variances0 = this.variances1 = this.variancesP = this.variancesA = J(1,0,.)
+>   this.means0 = this.means1 = this.meansP = this.variances0 = this.variances1 = this.variancesP = this.variancesA = J(1,0,.)
 >   this.covariances0 = this.covariances1 = this.covariancesP = this.covariancesA = J(0,0,.)
 > }
 
@@ -241,7 +243,6 @@
 >   return( quadcolsum( e ) )
 > }
 
-: 
 : 
 : // Define function diagvariance(x, w) == diagonal(quadvariance(x, w))'
 : // This function can be a lot faster than quadvariance, especially when you have lots of columns.
@@ -322,6 +323,49 @@
 >   return(stddiff)
 > }
 
+: 
+: // The following functions calculate UNWEIGHTED means, variance, CV, SD, skewness, kurtosis, and higher moments of the matching weights
+: // As usual, est controls whether we do with with all observations, the treatment group, or the control group
+: real rowvector gmatch::wgt_moments(real scalar r, string scalar est)
+> {
+>   real scalar v, m
+>   real colvector W_sel
+>   if      (strlower(est)=="ate" ) W_sel=this.W_mtch
+>   else if (strlower(est)=="atet") W_sel=this.W_mtch[this.sel0]
+>   else if (strlower(est)=="ateu") W_sel=this.W_mtch[this.sel1]
+>   else _error(est + " is an invalid argument for gmatch::wgt_moments()")
+>   m = mean(W_sel)
+>   if (r==0) { // the only exception is that r==0 gives the variance
+>     v = sqrt(quadcolsum((W_sel:-m):^2) / (rows(W_sel)-1))
+>   }
+>   else v = quadcolsum((W_sel:-m):^r)
+>   return((v,m))
+> }
+
+: real scalar gmatch::wgt_cv(string scalar est)
+> {
+>   real rowvector vm
+>   vm = this.wgt_moments(0,est)
+>   return(vm[1]/vm[2])
+> }
+
+: real scalar gmatch::wgt_sd(string scalar est)
+> {
+>   return(this.wgt_moments(0,est)[1])
+> }
+
+: real scalar gmatch::wgt_skewness(string scalar est)
+> {
+>   return((this.wgt_moments(3,est)[1]) * (this.wgt_moments(2,est)[1])^(-3/2))
+> }
+
+: real scalar gmatch::wgt_kurtosis(string scalar est)
+> {
+>   return((this.wgt_moments(4,est)[1]) * (this.wgt_moments(2,est)[1])^(-2))
+> }
+
+: 
+: 
 : 
 : // functions to return mean/max absolute standardized differences
 : real rowvector gmatch::asd(| real scalar denominator)
@@ -443,7 +487,7 @@
 >   real rowvector beta
 >   real colvector pscore, ipwwgt
 >   if (args()<1) est="ate"
->   beta   = this.logitbeta(this.T, this.X, this.W, 1)
+>   beta   = this.logitbeta(this.T, this.X, this.W_orig, 1)
 >   /* */ "propensity score (logit) model beta:"; beta
 >   pscore = this.logitpredict(this.X, beta)
 >   ipwwgt = this.logitweights(pscore, est)
@@ -452,7 +496,7 @@
 
 : 
 : 
-: // function that returns (weighted) mean of the dependent variable(s)
+: // function that returns (weighted) mean of the dependent variable(s) in the control group
 : real rowvector gmatch::pomean()
 > {
 >   if (this.depvars=="") _error("dependent variable not defined. use gmatch::set_Y()")
@@ -510,8 +554,8 @@
 >   else _error(est + " is an invalid argument for gmatch::logitweights()")
 > 
 >   // normalize the weights to have mean 1 in each group
->   if (strlower(est)=="ate" | strlower(est)=="atet") ipwwgt[this.sel0] = ipwwgt[this.sel0] :/ mean(ipwwgt[this.sel0], this.W[this.sel0])
->   if (strlower(est)=="ate" | strlower(est)=="ateu") ipwwgt[this.sel1] = ipwwgt[this.sel1] :/ mean(ipwwgt[this.sel1], this.W[this.sel1])
+>   if (strlower(est)=="ate" | strlower(est)=="atet") ipwwgt[this.sel0] = ipwwgt[this.sel0] :/ mean(ipwwgt[this.sel0], this.W_orig[this.sel0])
+>   if (strlower(est)=="ate" | strlower(est)=="ateu") ipwwgt[this.sel1] = ipwwgt[this.sel1] :/ mean(ipwwgt[this.sel1], this.W_orig[this.sel1])
 >   return(ipwwgt)
 > }
 
@@ -563,13 +607,17 @@
 : //    denominator is passed to stddiff() and related functions
 : //    oid=1 turns on the "over-identified" version of the CBPS model; oid=0 leaves it off
 : //    cvopt adds the CV of the matching weights to the optimization objective function
-: //         Let loss_0 be the ojbective function and CV be the coefficient of variabtion of the matching weights
-: //         Provided a 1*3 rowvector, (a,b,c), then the loss function is modified as
-: //         loss = loss_0 + b * abs((CV - a)^c)
-: //         The default is a=0 (prefer no variation in weights)
-: //                        b=0 (the loss function is unmodified)
+: //         Let loss_0 be the ojbective function and CV be the coefficient of variation of the matching weights
+: //         Then, if cvopt=(a,b,c), then the loss function is modified as:
+: //              loss = ( loss_0 \ a * ((CV - b)^c) )
+: //         The default is a=0 (the loss function is unmodified)
+: //                        b=0 (prefer no variation in weights)
 : //                        c=2 (a quadratic)
-: real colvector gmatch::cbps(| string scalar est, string scalar fctn, real scalar denominator, real scalar oid, real rowvector cvopt)
+: real colvector gmatch::cbps(| string scalar est,
+>                               string scalar fctn,
+>                               real scalar denominator,
+>                               real scalar oid,
+>                               real rowvector cvopt)
 > {
 >   real rowvector beta
 >   real colvector pscore, cbpswgt
@@ -582,26 +630,28 @@
 >   if (args()<4) oid=0
 >   if (args()<5) cvopt=(0,0,0)
 > 
+>   // Clone the class instance (so that I can reweight the dataset to calculate objective function)
+> 
+>   M.clone(this)
+>   if (isview(M.W)) _error("Something is wrong with the clone")
+> 
 >   // If the user is asking for the IPW result, just call my ipw() function
->   if (fctn=="ipw" & cvopt[1]==0) return(this.ipw(est))
+>   if (fctn=="ipw" & cvopt[1,1]==0) return(this.ipw(est))
 > 
 >   // I have two implimentations of the CBPS function.  Here I pick the one I need.
 >   // cbps_port_stata - has the gradient functions built in (so it converges faster)
 >   //                 - but it cannot deal with weighted data.
 >   //                 - was based on the Stata implimentation of CBPS by Filip Premik
 >   // cbps_port_r     - works with weighted data
->   //                 - doesn't have the gradient functions, and therefore 
->   //                      (1) works with cvopt and 
+>   //                 - doesn't have the gradient functions, and therefore
+>   //                      (1) works with cvopt and
 >   //                      (2) converges more slowly
 >   //                 - was based on the R implimentation of CBPS on CRAN by Imai et al.
->   else if (fctn=="cbps" & cvopt[1]==0 & all(this.W:==1)) fctn="cbps_port_stata"
->   else if (fctn=="cbps")                                 fctn="cbps_port_r"
-> 
->   // I'm cloning so that I can reweight the dataset to calculate objective function
->   // ALl views are turned into regular variables
->   M.clone(this)
->   if (isview(M.W)) _error("Something is wrong with the clone")
-> 
+>   else if (fctn=="cbps" & all(M.W_orig:==1)) fctn="cbps_port_stata"
+>   else if (fctn=="cbps")                     fctn="cbps_port_r"
+>   if (fctn=="cbps_port_r" & cvopt[1]) errprintf("{p}\nWarning: cvopt does not appear to substantially affect the reults with fctn=cbps. Consider switching to 
+> fctn=sd_sq or mean_sd_sq{p_end}\n")
+>   
 >   transmorphic S
 >   S=optimize_init()
 >   optimize_init_evaluator(S, &cbps_eval())
@@ -638,8 +688,10 @@
 > /* */   // optimize_init_conv_ptol(S,  1e-10)
 > /* */   // optimize_init_conv_vtol(S,  1e-11)
 > /* */   // optimize_init_conv_nrtol(S, 1e-9)
-> /* */ optimize_init_singularHmethod(S,"m-marquardt")  // "hybrid" is equivalent to ml's "difficult" option
+> /* */ // optimize_init_singularHmethod(S,"m-marquardt")  // "hybrid" is equivalent to ml's "difficult" option
+> /* */ optimize_init_singularHmethod(S,"hybrid")  // "hybrid" is equivalent to ml's "difficult" option
 > /* */ optimize_init_conv_ignorenrtol(S, "on")
+> /* */ // optimize_init_conv_ignorenrtol(S, "off")
 > /* */   optimize_init_conv_ptol(S, 1e-7)
 > /* */   optimize_init_conv_vtol(S, 1e-8)
 > /* */   optimize_init_conv_nrtol(S, 1e-6)
@@ -650,6 +702,7 @@
 >     /* */ // _error(fctn + " is invalid with gmatch::cbps()")
 > 
 >   }
+>   if (cvopt[1,1]!=0 & optimize_init_evaluatortype(S)!="gf0") optimize_init_evaluatortype(S,"gf0")
 > 
 >   // for certain methods,
 >   // -- normalize Xs to mean 0, sd 1
@@ -677,12 +730,18 @@
 >   // /* */ "  optimize_init_params(S)";   optimize_init_params(S)
 >   // /* */ "optimize_result_value0(S)"; optimize_result_value0(S)
 > 
+> //  /* */ if (cvopt[1,1]!=0 & (fctn=="cbps_port_stata" | fctn=="cbps_port_r")) {
+> //  /* */ beta    = optimize_init_params(S, J(1,cols(beta_logit),1))
+> //  /* */ }
+> 
+> 
 >   // This is an extra matrix the can be passed to optimiztion engine. I use it for different purposes.
 >   // It is only calculated once -- not once every time the ojective function is called.
 >   if (fctn=="cbps_port_stata") {
 >     // is this just M.covariancesP ?
 >     ww = M.cbps_port_stata_wgt_matrix(beta_logit, oid, est)
 >     ww = invsym(ww)
+>     if (!all(this.W_orig:==1)) _error("gmatch::cbps_port_stata_moments() does not yet accomodate weighted samples")
 >   }
 >   else if (fctn=="cbps_port_r" & !oid) {
 >     if (!oid) ww = invsym(quadcross(M.Xstd,M.W,M.Xstd))
@@ -691,9 +750,9 @@
 >   optimize_init_argument(S, 7, ww)
 >   ""
 > 
-> // /* */ real todo__, lnf__, g__, H__
-> // /* */ cbps_eval(todo__=0, beta_logit, M, est, fctn, denominator, oid, cvopt, ww, lnf__=., g__=., H__=.)
-> // /* */ "Iteration X:   f(p) =" + strofreal(lnf__[1,1])
+> // /* */   real todo__, lnf__, g__, H__
+> // /* */   cbps_eval(todo__=0, beta_logit, M, est, fctn, denominator, oid, cvopt, ww, lnf__=., g__=., H__=.)
+> // /* */   "Iteration X:   f(p) ="; lnf__
 > // /* */  "todo"; todo
 > // /* */  "beta_logit"; beta_logit
 > // /* */  "est"; est
@@ -725,6 +784,7 @@
 >   /* */ "optimize_result_iterations(S)"; optimize_result_iterations(S)
 >   beta    = optimize_result_params(S)
 > 
+> 
 >   // undoing the normalization and SVD
 >   if (unnorm)  {
 >     M.Xstd = .
@@ -733,7 +793,7 @@
 >     beta = (svd_v' * diag(svd_s_inv) * beta')'
 >     beta[2::cols(beta)] = (beta[2::cols(beta)] :/ sdP_orig)
 >     beta[1] = beta[1] :- meansP_orig * beta[2..cols(beta)]'
->     beta = (beta[2::cols(beta)] , beta[1]) // teh CBPS R code puts the contstant in the first column, but I want it in the last column (stata standard and to 
+>     beta = (beta[2::cols(beta)] , beta[1]) // the CBPS R code puts the contstant in the first column, but I want it in the last column (stata standard and to 
 > work with logit predict)
 >     /* */ "CBPS beta after undoing the normalization"; ((M.varlist,"_cons")', strofreal(beta)')
 >   }
@@ -747,18 +807,21 @@
 >   cbpswgt = M.logitweights(pscore, est)
 >   /* */ "Weights for first 10 observations:";  cbpswgt[1..10]'
 >   /* */ "Weights for first 10 observations / N:"
->   /* */ real colvector cbpswgtsum1
+>   /* */ real colvector cbpswgtsum1, thiscv
 >   /* */ cbpswgtsum1 = cbpswgt
 >   /* */ cbpswgtsum1[M.sel0] = cbpswgtsum1[M.sel0] :/ quadsum(cbpswgtsum1[M.sel0] :* M.W[M.sel0])
 >   /* */ cbpswgtsum1[M.sel1] = cbpswgtsum1[M.sel1] :/ quadsum(cbpswgtsum1[M.sel1] :* M.W[M.sel1])
 >   /* */ cbpswgtsum1[1..10]'
 > 
->   /* */ M.multweight(cbpswgt)
+>   /* */ M.reweight(cbpswgt)
 >   /* */ "Balance after CBPS (" + fctn + "):"
 >   /* */ "optimize_result_value(S)" ; optimize_result_value(S)
 >   /* */ "balance table after matching (" + fctn + "):"; real matrix temp; temp = M.balancetable(denominator)
 >   /* */ "entropydistance of control weights (" + fctn + "):"; (M.entropydistance(cbpswgt[M.sel0], M.W_orig[M.sel0]))
->   /* */ "cv of control weights (" + fctn + "):"; (sqrt(M.diagvariance(cbpswgt[M.sel0], M.W_orig[M.sel0])) :/  mean(cbpswgt[M.sel0], M.W_orig[M.sel0]))
+>   /* */ "cv of matching weights (" + fctn + "):"; M.wgt_cv(est)
+>   /* */ "sd of matching weights (" + fctn + "):"; M.wgt_sd(est)
+>   /* */ "skewness of matching weights (" + fctn + "):"; M.wgt_skewness(est)
+>   /* */ "kurtosis of matching weights (" + fctn + "):"; M.wgt_kurtosis(est)
 >   /* */ "M.mean_sd_sq(denominator)";  M.mean_sd_sq(denominator)
 >   /* */ "M.mean_asd(denominator)"  ;  M.mean_asd(denominator)
 >   /* */ "M.max_asd(denominator)"   ;  M.max_asd(denominator)
@@ -766,10 +829,12 @@
 >   /* */ "M.asd(denominator)"       ;  M.asd(denominator)
 >   /* */ ""; ""; ""; ""; ""; ""; ""
 > 
+>   // no need to set weights back to what they were, since I've been messing with M. instead of this.
 >   return(cbpswgt)
 > }
 note: variable svd_s may be used before set
 note: variable svd_v may be used before set
+note: variable thiscv unused
 note: variable temp set but not used
 
 : 
@@ -803,29 +868,25 @@ note: variable temp set but not used
 >     pscore = this.logitpredict(this.X, beta)
 >     pscore = this.trim(pscore)
 >     cbpswgt = this.logitweights(pscore, est)
->     this.multweight(cbpswgt)
+>     this.reweight(cbpswgt)
 >     if      (fctn=="mean_sd_sq")      lnf = this.mean_sd_sq(denominator)
 >     else if (fctn=="sd_sq")           lnf = this.sd_sq(denominator)'
 >     else                              _error(fctn + " is invalid with gmatch::cbpseval()")
 >   }
 > 
->   if (cvopt[1]) {
->     // if cvopt=(a,b,c), then loss = loss_0 + b * abs((CV - a)^c)
->     real scalar thiscv
->     if      (strlower(est)=="ate" ) thiscv = sqrt(this.diagvariance(cbpswgt           , this.W_orig           )) :/  mean(cbpswgt           , this.W_orig     
->       )
->     else if (strlower(est)=="atet") thiscv = sqrt(this.diagvariance(cbpswgt[this.sel0], this.W_orig[this.sel0])) :/  mean(cbpswgt[this.sel0], this.W_orig[this
-> .sel0])
->     else if (strlower(est)=="ateu") thiscv = sqrt(this.diagvariance(cbpswgt[this.sel1], this.W_orig[this.sel1])) :/  mean(cbpswgt[this.sel1], this.W_orig[this
-> .sel1])
->     else     _error(est + " is invalid with cvopt for gmatch::cbpseval()")
->     lnf = lnf + cvopt[2]*abs((thiscv - cvopt[1])^cvopt[3])
+>   // if cvopt=(a,b,c), then loss = ( loss_0 \ a * ((CV - b)^c) )
+>   if (cvopt[1,1]!=0) {
+>     if (todo>0) _error("cvopt[1,1]!=0 is not compatable with todo>0 in gmatch::cbpseval()")
+>     if (fctn=="cbps_port_stata" | fctn=="cbps_port_r") {
+>       pscore = this.logitpredict(this.X, beta)
+>       pscore = this.trim(pscore)
+>       cbpswgt = this.logitweights(pscore, est)
+>       this.reweight(cbpswgt)
+>     }
+>     lnf = (lnf \ (cvopt[1,1]:*((this.wgt_cv(est):-cvopt[1,2]):^cvopt[1,3])))
 >   }
 > }
 
-: 
-: /* still need clean up all the remaining code -- it could be improved or sped up in various ways */
-: 
 : 
 : // Port of the objective function from the Stata verion of CBPS
 : void gmatch::cbps_port_stata( real   scalar    todo,
@@ -857,7 +918,6 @@ note: argument H unused
 : real colvector gmatch::cbps_port_stata_moments(real colvector pscore, real matrix dpscore, real scalar overid, string scalar est)
 > {
 >   real colvector gg
->   if (any(this.W:!=1)) _error("gmatch::cbps_port_stata_moments() does not yet accomodate weighted samples")
 > 
 > // this is inefficient
 >   if (strlower(est)=="ate") {
@@ -956,25 +1016,25 @@ note: argument H unused
 >   }
 >   if (!overid) {
 >      w_cbps = 1/this.N :* w_cbps
->      lnf = abs(quadcross(w_cbps, this.W, this.Xstd) * ww * quadcross(this.Xstd, this.W, w_cbps))
+>      lnf = abs(quadcross(w_cbps, this.W_orig, this.Xstd) * ww * quadcross(this.Xstd, this.W_orig, w_cbps))
 >   }
 >   else {
 >     real colvector gbar, wx1, wx2, wx3
 >     real matrix V
->     gbar = (quadcross(this.Xstd, this.W, this.T:-pscore) \ quadcross(this.Xstd, this.W, w_cbps)) :/ this.N
+>     gbar = (quadcross(this.Xstd, this.W_orig, this.T:-pscore) \ quadcross(this.Xstd, this.W_orig, w_cbps)) :/ this.N
 >     if (strlower(est)=="atet") {
 >       wx1 = this.Xstd:*sqrt((1:-pscore):*pscore)
 >       wx2 = this.Xstd:*sqrt(pscore:/(1:-pscore))
 >       wx3 = this.Xstd:*sqrt(pscore)
->       V =  (quadcross(wx1, this.W, wx1), quadcross(wx3, this.W, wx3) \
->             quadcross(wx3, this.W, wx3), quadcross(wx2, this.W, wx2) :* (this.N:/this.N1_raw)) :/ this.N1_raw
+>       V =  (quadcross(wx1, this.W_orig, wx1), quadcross(wx3, this.W_orig, wx3) \
+>             quadcross(wx3, this.W_orig, wx3), quadcross(wx2, this.W_orig, wx2) :* (this.N:/this.N1_raw)) :/ this.N1_raw
 >     }
 >     else if (strlower(est)=="ate") {
 >       wx1 = this.Xstd:*sqrt((1:-pscore):*pscore)
 >       wx2 = this.Xstd:*((pscore:*(1:-pscore)):^-.5)
 >       wx3 = this.Xstd
->       V = (quadcross(wx1, this.W, wx1), quadcross(wx3, this.W, wx3) \
->            quadcross(wx3, this.W, wx3), quadcross(wx2, this.W, wx2)) :/ this.N
+>       V = (quadcross(wx1, this.W_orig, wx1), quadcross(wx3, this.W_orig, wx3) \
+>            quadcross(wx3, this.W_orig, wx3), quadcross(wx2, this.W_orig, wx2)) :/ this.N
 >     }
 >     else _error(est + " is not allowed.")
 >     lnf = gbar' * invsym(V) * gbar
@@ -1000,7 +1060,7 @@ note: argument H unused
 Current user: KKranker
 Environment: Windows PC (64-bit x86-64) KKRANKER
 Stata: 15.1
-Date: 12 Feb 2018 20:46:55
+Date: 12 Feb 2018 23:59:35
 
 . 
 . 
@@ -1170,11 +1230,10 @@ file testfile.csv saved
   1 |    x1   1.x2   1.x3     x4     x5     x6     x7    x90    x91    x92    x93    x94    x95  |
     +--------------------------------------------------------------------------------------------+
   X is 500 by 13
-  Data are unweighted.
   408 control obs (sum of weights = 408)
   92 treatment obs (sum of weights = 92)
+  (Data are unweighted.)
 
-: 
 : if (depvars!="") D.set_Y(st_local("depvars"),st_local("tousevar"))
 > 
 > M = gmatch()
@@ -1396,8 +1455,14 @@ Iteration 17:  f(p) =  3.968e-25
      +---------------------------------------------------------------------------------------------------+
   entropydistance of control weights (cbps_port_stata):
   2477.54534
-  cv of control weights (cbps_port_stata):
-  .4390400161
+  cv of matching weights (cbps_port_stata):
+  .5275374066
+  sd of matching weights (cbps_port_stata):
+  .5275374066
+  skewness of matching weights (cbps_port_stata):
+  .2158747756
+  kurtosis of matching weights (cbps_port_stata):
+  .0860729366
   M.mean_sd_sq(denominator)
   1.29573e-20
   M.mean_asd(denominator)
@@ -1552,8 +1617,14 @@ Iteration 15:  f(p) =  5.714e-08
      +---------------------------------------------------------------------------------------------------+
   entropydistance of control weights (cbps_port_stata):
   2458.474471
-  cv of control weights (cbps_port_stata):
-  .1799935016
+  cv of matching weights (cbps_port_stata):
+  .2958975518
+  sd of matching weights (cbps_port_stata):
+  .2958975518
+  skewness of matching weights (cbps_port_stata):
+  .1574497673
+  kurtosis of matching weights (cbps_port_stata):
+  .065431859
   M.mean_sd_sq(denominator)
   .0027971508
   M.mean_asd(denominator)
@@ -1705,8 +1776,14 @@ Iteration 15:  f(p) =  2.607e-24
      +---------------------------------------------------------------------------------------------------+
   entropydistance of control weights (cbps_port_stata):
   2605.10307
-  cv of control weights (cbps_port_stata):
+  cv of matching weights (cbps_port_stata):
   .9884371288
+  sd of matching weights (cbps_port_stata):
+  .9884371288
+  skewness of matching weights (cbps_port_stata):
+  .1100078305
+  kurtosis of matching weights (cbps_port_stata):
+  .0225364399
   M.mean_sd_sq(denominator)
   5.64485e-20
   M.mean_asd(denominator)
@@ -1860,8 +1937,14 @@ Iteration 15:  f(p) =  1.211e-07
      +---------------------------------------------------------------------------------------------------+
   entropydistance of control weights (cbps_port_stata):
   2587.152909
-  cv of control weights (cbps_port_stata):
+  cv of matching weights (cbps_port_stata):
   .9155855903
+  sd of matching weights (cbps_port_stata):
+  .9155855903
+  skewness of matching weights (cbps_port_stata):
+  .1040781462
+  kurtosis of matching weights (cbps_port_stata):
+  .0213437015
   M.mean_sd_sq(denominator)
   7.49044e-07
   M.mean_asd(denominator)
@@ -1944,48 +2027,54 @@ Iteration 3:   f(p) =  1.465e-13
   Weights for first 10 observations:
                  1             2             3             4             5             6             7             8             9            10
     +---------------------------------------------------------------------------------------------------------------------------------------------+
-  1 |  .4392343388    2.12990746   .5761745999   .4830251838   .2745044141   2.516161157   .8341006926   .8225538284   .5735872754   .6518155515  |
+  1 |   .446135147   2.163370427   .5852268795   .4906139941   .2788171528   2.555692567   .8472052449   .8354769702   .5825989034   .6620562231  |
     +---------------------------------------------------------------------------------------------------------------------------------------------+
   Weights for first 10 observations / N:
                  1             2             3             4             5             6             7             8             9            10
     +---------------------------------------------------------------------------------------------------------------------------------------------+
-  1 |  .0010765548   .0052203614   .0014121926   .0011838853   .0006728049   .0061670617   .0020443644   .0020160633   .0014058512   .0015975871  |
+  1 |  .0010934685   .0053023785   .0014343796   .0012024853   .0006833754   .0062639524   .0020764834   .0020477377   .0014279385   .0016226868  |
     +---------------------------------------------------------------------------------------------------------------------------------------------+
   Balance after CBPS (mean_sd_sq):
   optimize_result_value(S)
-  1.46512e-13
+  1.46475e-13
   balance table after matching (mean_sd_sq):
                  1            2            3            4            5            6            7
      +--------------------------------------------------------------------------------------------+
    1 |    Variable     mean (T)     mean (C)       diff()    stddiff()       sd (T)   varratio()  |
-   2 |          x1     .4673913     .5065699    -.0391786    -.0780965     .5016695     1.004356  |
-   3 |        1.x2     .0108696     .0094032     .0014663     .0140644     .1042572     1.164005  |
-   4 |        1.x3     .0217391     .0217076     .0000315     .0002149     .1466296     1.009904  |
-   5 |          x4     .4347826     .4181838     .0165988     .0333012     .4984448     1.018588  |
-   6 |          x5     25.46739     26.05539    -.5880033     -.108011     5.443922     .5832447  |
-   7 |          x6     11.86957     11.79935     .0702201     .0437493     1.605057     .5528784  |
-   8 |          x7     6.858696      6.77528     .0834157     .0234531     3.556704     1.141111  |
-   9 |         x90     .0972024      .056997     .0402054     .0421535     .9537854     .8487489  |
-  10 |         x91    -.0890157     -.062197    -.0268186    -.0284411     .9429542     .9668598  |
-  11 |         x92     .0453787     .0391245     .0062542     .0059497     1.051175     1.151835  |
-  12 |         x93     .0865687       .10444    -.0178714    -.0191144     .9349714     .9622439  |
-  13 |         x94    -.1299173    -.1873487     .0574314     .0621009     .9248091     .7464861  |
-  14 |         x95    -.0807251    -.0886595     .0079344     .0086809      .914005     .8927406  |
+   2 |          x1     .4673913     .5065699    -.0391786    -.0780965     .5016695     1.004395  |
+   3 |        1.x2     .0108696     .0094032     .0014663     .0140644     .1042572      1.16405  |
+   4 |        1.x3     .0217391     .0217076     .0000315     .0002149     .1466296     1.009943  |
+   5 |          x4     .4347826     .4181838     .0165988     .0333012     .4984448     1.018627  |
+   6 |          x5     25.46739     26.05539    -.5880034     -.108011     5.443922     .5832672  |
+   7 |          x6     11.86957     11.79935     .0702201     .0437493     1.605057     .5528997  |
+   8 |          x7     6.858696      6.77528     .0834157     .0234531     3.556704     1.141156  |
+   9 |         x90     .0972024      .056997     .0402054     .0421535     .9537854     .8487816  |
+  10 |         x91    -.0890157     -.062197    -.0268186    -.0284411     .9429542     .9668971  |
+  11 |         x92     .0453787     .0391245     .0062542     .0059497     1.051175     1.151879  |
+  12 |         x93     .0865687       .10444    -.0178714    -.0191144     .9349714     .9622811  |
+  13 |         x94    -.1299173    -.1873487     .0574314     .0621009     .9248091     .7465149  |
+  14 |         x95    -.0807251    -.0886595     .0079344     .0086809      .914005     .8927751  |
      +--------------------------------------------------------------------------------------------+
   entropydistance of control weights (mean_sd_sq):
-  2562.276729
-  cv of control weights (mean_sd_sq):
-  1.041361058
+  2608.892909
+  cv of matching weights (mean_sd_sq):
+  1.041361059
+  sd of matching weights (mean_sd_sq):
+  1.041361059
+  skewness of matching weights (mean_sd_sq):
+  .171087219
+  kurtosis of matching weights (mean_sd_sq):
+  .0624911137
   M.mean_sd_sq(denominator)
-  1.46512e-13
+  1.46475e-13
   M.mean_asd(denominator)
-  .035948528
+  .0359485287
   M.max_asd(denominator)
-  .1080109775
+  .1080109802
   M.sd_sq(denominator)
                  1             2             3             4             5             6             7             8             9            10
     +---------------------------------------------------------------------------------------------------------------------------------------------
-  1 |   .006099068   .0001978085   4.61840e-08    .001108967   .0116663713   .0019140035    .000550048   .0017769195   .0008088952   .0000353987
+  1 |  .0060990682   .0001978085   4.61840e-08   .0011089671   .0116663718   .0019140035   .0005500481   .0017769195   .0008088952   .0000353987
     +---------------------------------------------------------------------------------------------------------------------------------------------
                 11            12            13
      -------------------------------------------+
@@ -1994,11 +2083,11 @@ Iteration 3:   f(p) =  1.465e-13
   M.asd(denominator)
                  1             2             3             4             5             6             7             8             9            10
     +---------------------------------------------------------------------------------------------------------------------------------------------
-  1 |    .07809653     .01406444   .0002149047   .0333011567   .1080109775   .0437493263   .0234531021   .0421535229   .0284410832   .0059496844
+  1 |  .0780965313   .0140644401   .0002149047   .0333011578   .1080109802   .0437493259   .0234531042   .0421535235   .0284410834   .0059496842
     +---------------------------------------------------------------------------------------------------------------------------------------------
                 11            12            13
      -------------------------------------------+
-  1    .0191143535   .0621008719   .0086809114  |
+  1    .0191143539   .0621008719   .0086809119  |
      -------------------------------------------+
   
   
@@ -2063,146 +2152,134 @@ flat or discontinuous region encountered
 Iteration 12:  f(p) =   .0000443  (not concave)
 numerical derivatives are approximate
 flat or discontinuous region encountered
-Iteration 13:  f(p) =  .00001279  (not concave)
+Iteration 13:  f(p) =   .0000369  (not concave)
 numerical derivatives are approximate
 flat or discontinuous region encountered
-Iteration 14:  f(p) =  .00001037  (not concave)
+Iteration 14:  f(p) =  .00002338  (not concave)
 numerical derivatives are approximate
 flat or discontinuous region encountered
-Iteration 15:  f(p) =  8.350e-06  (not concave)
+Iteration 15:  f(p) =  .00001546  (not concave)
 numerical derivatives are approximate
 flat or discontinuous region encountered
-Iteration 16:  f(p) =  7.197e-06  (not concave)
+Iteration 16:  f(p) =  .00001346  (not concave)
 numerical derivatives are approximate
 flat or discontinuous region encountered
-Iteration 17:  f(p) =  6.540e-06  (not concave)
+Iteration 17:  f(p) =  .00001212  (not concave)
 numerical derivatives are approximate
 flat or discontinuous region encountered
-Iteration 18:  f(p) =  6.507e-06  (not concave)
+Iteration 18:  f(p) =  .00001088  (not concave)
 numerical derivatives are approximate
 flat or discontinuous region encountered
-Iteration 19:  f(p) =  5.420e-06  (not concave)
+Iteration 19:  f(p) =  .00001082  (not concave)
 numerical derivatives are approximate
 flat or discontinuous region encountered
-Iteration 20:  f(p) =  5.187e-06  (not concave)
+Iteration 20:  f(p) =  9.573e-06  (not concave)
 numerical derivatives are approximate
 flat or discontinuous region encountered
-Iteration 21:  f(p) =  2.781e-06  (not concave)
+Iteration 21:  f(p) =  9.389e-06  (not concave)
 numerical derivatives are approximate
 flat or discontinuous region encountered
-Iteration 22:  f(p) =  2.598e-06  (not concave)
+Iteration 22:  f(p) =  4.485e-06  (not concave)
 numerical derivatives are approximate
 flat or discontinuous region encountered
-Iteration 23:  f(p) =  2.258e-06  (not concave)
+Iteration 23:  f(p) =  4.003e-06  (not concave)
 (switching technique to bfgs)
 numerical derivatives are approximate
 flat or discontinuous region encountered
-Iteration 24:  f(p) =  2.164e-06  
+Iteration 24:  f(p) =  3.814e-06  
 numerical derivatives are approximate
 flat or discontinuous region encountered
-Iteration 25:  f(p) =  1.647e-06  
+Iteration 25:  f(p) =  3.376e-06  
 numerical derivatives are approximate
 flat or discontinuous region encountered
-Iteration 26:  f(p) =  1.491e-06  
+Iteration 26:  f(p) =  3.119e-06  
 numerical derivatives are approximate
 flat or discontinuous region encountered
-Iteration 27:  f(p) =  1.410e-06  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 28:  f(p) =  8.461e-07  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 29:  f(p) =  6.309e-07  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 30:  f(p) =  5.887e-07  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 31:  f(p) =  3.851e-07  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 32:  f(p) =  2.785e-07  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 33:  f(p) =  2.729e-07  
+Iteration 27:  f(p) =  3.112e-06  
   optimize_result_iterations(S)
-  34
+  28
   CBPS beta
                 1           2
      +-------------------------+
-   1 |         x1   -1.339422  |
-   2 |       1.x2   -1.526109  |
-   3 |       1.x3   -.5988897  |
-   4 |         x4   -.3169822  |
-   5 |         x5    .0588638  |
-   6 |         x6   -.2435677  |
-   7 |         x7    .0340664  |
-   8 |        x90    .1587018  |
-   9 |        x91   -.1617249  |
-  10 |        x92    .1392417  |
-  11 |        x93    .0571738  |
-  12 |        x94   -.1175276  |
-  13 |        x95     .011522  |
-  14 |      _cons    1.382076  |
+   1 |         x1   -1.342283  |
+   2 |       1.x2   -1.536597  |
+   3 |       1.x3   -.5895909  |
+   4 |         x4   -.3200163  |
+   5 |         x5    .0587867  |
+   6 |         x6   -.2431739  |
+   7 |         x7    .0340359  |
+   8 |        x90    .1583933  |
+   9 |        x91   -.1615859  |
+  10 |        x92    .1382431  |
+  11 |        x93    .0570086  |
+  12 |        x94    -.117411  |
+  13 |        x95    .0107444  |
+  14 |      _cons    1.396628  |
      +-------------------------+
   Weights for first 10 observations:
                  1             2             3             4             5             6             7             8             9            10
     +---------------------------------------------------------------------------------------------------------------------------------------------+
-  1 |  .4805738017   2.261236543   .4990254521   .4879998951   .2761118161   2.555537373   .8601244148   .7937684904   .5802572706   .6836539324  |
+  1 |  .4809066126   2.282561297   .5041746001    .488550401   .2752524023   2.558047321   .8604397501   .7909550816   .5775535985   .6848514565  |
     +---------------------------------------------------------------------------------------------------------------------------------------------+
   Weights for first 10 observations / N:
                  1             2             3             4             5             6             7             8             9            10
     +---------------------------------------------------------------------------------------------------------------------------------------------+
-  1 |   .001177877   .0055422464   .0012231016   .0011960782   .0006767446    .006263572   .0021081481    .001945511   .0014221992   .0016756224  |
+  1 |  .0011786927    .005594513   .0012357221   .0011974275   .0006746382   .0062697238    .002108921   .0019386154   .0014155725   .0016785575  |
     +---------------------------------------------------------------------------------------------------------------------------------------------+
   Balance after CBPS (sd_sq):
   optimize_result_value(S)
-  2.72851e-07
+  3.11232e-06
   balance table after matching (sd_sq):
                  1            2            3            4            5            6            7
      +--------------------------------------------------------------------------------------------+
    1 |    Variable     mean (T)     mean (C)       diff()    stddiff()       sd (T)   varratio()  |
-   2 |          x1     .4673913      .467425    -.0000337    -.0000671     .5016695     1.008502  |
-   3 |        1.x2     .0108696     .0108594     .0000101     .0000971     .1042572     1.009441  |
-   4 |        1.x3     .0217391     .0217469    -7.72e-06    -.0000527     .1466296     1.008161  |
-   5 |          x4     .4347826     .4349966     -.000214    -.0004293     .4984448     1.008397  |
-   6 |          x5     25.46739      25.4682    -.0008105    -.0001489     5.443922     .6194721  |
-   7 |          x6     11.86957     11.86973     -.000167    -.0001041     1.605057     .5668756  |
-   8 |          x7     6.858696      6.85827     .0004255     .0001196     3.556704     1.145233  |
-   9 |         x90     .0972024     .0972724      -.00007    -.0000734     .9537854     .8453675  |
-  10 |         x91    -.0890157    -.0889516    -.0000641     -.000068     .9429542     .9655095  |
-  11 |         x92     .0453787     .0454933    -.0001146     -.000109     1.051175     1.136533  |
-  12 |         x93     .0865687     .0865896     -.000021    -.0000224     .9349714     .9577543  |
-  13 |         x94    -.1299173    -.1298987    -.0000185      -.00002     .9248091     .7795189  |
-  14 |         x95    -.0807251    -.0807634     .0000383     .0000419      .914005     .8888046  |
+   2 |          x1     .4673913     .4669726     .0004187     .0008347     .5016695     1.008622  |
+   3 |        1.x2     .0108696     .0107984     .0000712     .0006826     .1042572     1.015084  |
+   4 |        1.x3     .0217391     .0218933    -.0001541    -.0010512     .1466296     1.001568  |
+   5 |          x4     .4347826     .4345332     .0002494     .0005004     .4984448     1.008645  |
+   6 |          x5     25.46739     25.46671     .0006823     .0001253     5.443922     .6197459  |
+   7 |          x6     11.86957     11.87004    -.0004781    -.0002979     1.605057     .5670785  |
+   8 |          x7     6.858696     6.858366     .0003297     .0000927     3.556704     1.145052  |
+   9 |         x90     .0972024     .0971255     .0000769     .0000806     .9537854     .8451478  |
+  10 |         x91    -.0890157    -.0888662    -.0001495    -.0001585     .9429542     .9655653  |
+  11 |         x92     .0453787     .0447441     .0006345     .0006036     1.051175     1.136783  |
+  12 |         x93     .0865687     .0865005     .0000681     .0000729     .9349714     .9577067  |
+  13 |         x94    -.1299173    -.1298303     -.000087    -.0000941     .9248091     .7795743  |
+  14 |         x95    -.0807251    -.0809687     .0002436     .0002665      .914005     .8885584  |
      +--------------------------------------------------------------------------------------------+
   entropydistance of control weights (sd_sq):
-  2605.064525
-  cv of control weights (sd_sq):
-  .9882747174
+  2605.245654
+  cv of matching weights (sd_sq):
+  .9889151443
+  sd of matching weights (sd_sq):
+  .9889151443
+  skewness of matching weights (sd_sq):
+  .1098386248
+  kurtosis of matching weights (sd_sq):
+  .022431189
   M.mean_sd_sq(denominator)
-  4.13694e-09
+  1.62578e-08
   M.mean_asd(denominator)
-  .0001041131
+  .000373925
   M.max_asd(denominator)
-  .0004292875
+  .001051243
   M.sd_sq(denominator)
                  1             2             3             4             5             6             7             8             9            10
     +---------------------------------------------------------------------------------------------------------------------------------------------
-  1 |  4.50146e-09   9.42981e-09   2.77480e-09   1.84288e-07   2.21667e-08   1.08289e-08   1.43130e-08   5.38734e-09   4.61803e-09   1.18831e-08
+  1 |  6.96710e-07   4.65905e-07   1.10511e-06   2.50376e-07   1.57074e-08   8.87213e-08   8.59132e-09   6.50329e-09   2.51339e-08   3.64382e-07
     +---------------------------------------------------------------------------------------------------------------------------------------------
                 11            12            13
      -------------------------------------------+
-  1    5.02765e-10   4.00738e-10   1.75704e-09  |
+  1    5.31036e-09   8.85142e-09   7.10159e-08  |
      -------------------------------------------+
   M.asd(denominator)
                  1             2             3             4             5             6             7             8             9            10
     +---------------------------------------------------------------------------------------------------------------------------------------------
-  1 |   .000067093   .0000971072   .0000526764   .0004292875   .0001488849   .0001040618   .0001196368   .0000733985   .0000679561   .0001090096
+  1 |  .0008346915   .0006825724    .001051243   .0005003763   .0001253291   .0002978613   .0000926894    .000080643   .0001585367   .0006036403
     +---------------------------------------------------------------------------------------------------------------------------------------------
                 11            12            13
      -------------------------------------------+
-  1    .0000224224   .0000200184    .000041917  |
+  1    .0000728722    .000094082   .0002664882  |
      -------------------------------------------+
   
   
@@ -2219,7 +2296,6 @@ Iteration 33:  f(p) =  2.729e-07
   max_asd is invalid with gmatch::cbps()
 
 : //  cbpsweight = M.cbps("atet","mean_sd_sq_cv",1, (1,1,6)
-: 
 : 
 : // IPW
 :   M = gmatch()
@@ -2248,7 +2324,7 @@ Iteration 4:   f(p) = -211.17753
      -------------------------------------------------------------+
 
 : 
-:   M.multweight(iwpweight)
+:   M.reweight(iwpweight)
 
 : 
 :   stata("di _b[POmean:0.treat]")
@@ -2349,7 +2425,7 @@ Iteration 4:   f(p) = -211.17753
               x95 |  -.0658282   -.0807251      1.008285   .8354051
   -----------------------------------------------------------------
 
-:   M.multweight()
+:   M.reweight()
 
 :   table = M.balancetable(3)
                  1            2            3            4            5            6            7
@@ -2590,8 +2666,735 @@ Iteration 4:   f(p) = -211.17753
      -------------------------------------------------------------+
 
 : 
+: // tradeoff between CBPS-like balance and variance in weights
+:   cbpsweight = M.cbps("atet","cbps", 1, 0)
+  Step 1 (initial values from logit model):
+initial:       f(p) = -346.57359
+alternative:   f(p) = -283.03849
+rescale:       f(p) = -247.46401
+Iteration 0:   f(p) = -247.46401  
+Iteration 1:   f(p) = -223.85141  
+Iteration 2:   f(p) = -211.21588  
+Iteration 3:   f(p) = -211.17754  
+Iteration 4:   f(p) = -211.17753  
+  
+  Step 2 (CBPS) :
+(setting technique to bfgs)
+Iteration 0:   f(p) =  7.881e-09  
+Iteration 1:   f(p) =  7.799e-09  (backed up)
+Iteration 2:   f(p) =  7.301e-09  
+Iteration 3:   f(p) =  5.045e-09  
+Iteration 4:   f(p) =  4.162e-09  
+Iteration 5:   f(p) =  3.700e-09  
+Iteration 6:   f(p) =  3.063e-09  
+Iteration 7:   f(p) =  2.655e-09  
+Iteration 8:   f(p) =  2.353e-09  
+Iteration 9:   f(p) =  2.232e-09  
+Iteration 10:  f(p) =  1.928e-09  
+Iteration 11:  f(p) =  1.687e-09  
+(switching technique to nr)
+Iteration 12:  f(p) =  1.155e-09  
+Iteration 13:  f(p) =  8.181e-12  
+Iteration 14:  f(p) =  4.655e-16  
+Iteration 15:  f(p) =  2.607e-24  
+  optimize_result_iterations(S)
+  16
+  CBPS beta
+                1           2
+     +-------------------------+
+   1 |         x1   -1.339291  |
+   2 |       1.x2   -1.525175  |
+   3 |       1.x3   -.5996277  |
+   4 |         x4   -.3183658  |
+   5 |         x5    .0587883  |
+   6 |         x6   -.2435676  |
+   7 |         x7    .0341034  |
+   8 |        x90     .158599  |
+   9 |        x91   -.1617619  |
+  10 |        x92    .1391156  |
+  11 |        x93    .0571151  |
+  12 |        x94   -.1175052  |
+  13 |        x95     .011505  |
+  14 |      _cons     .782858  |
+     +-------------------------+
+  Weights for first 10 observations:
+                 1             2             3             4             5             6             7             8             9            10
+    +---------------------------------------------------------------------------------------------------------------------------------------------+
+  1 |  .4811079444   2.261606558   .4991638891   .4882359828   .2759896013   2.553265921   .8609777413   .7930262479   .5798857016   .6841964034  |
+    +---------------------------------------------------------------------------------------------------------------------------------------------+
+  Weights for first 10 observations / N:
+                 1             2             3             4             5             6             7             8             9            10
+    +---------------------------------------------------------------------------------------------------------------------------------------------+
+  1 |  .0011791861   .0055431533   .0012234409   .0011966568   .0006764451   .0062580047   .0021102396   .0019436918   .0014212885    .001676952  |
+    +---------------------------------------------------------------------------------------------------------------------------------------------+
+  Balance after CBPS (cbps_port_stata):
+  optimize_result_value(S)
+  2.60710e-24
+  balance table after matching (cbps_port_stata):
+                 1            2            3            4            5            6            7
+     +--------------------------------------------------------------------------------------------+
+   1 |    Variable     mean (T)     mean (C)       diff()    stddiff()       sd (T)   varratio()  |
+   2 |          x1     .4673913     .4673913    -1.38e-10    -2.76e-10     .5016695     1.008511  |
+   3 |        1.x2     .0108696     .0108696    -7.66e-11    -7.34e-10     .1042572     1.008511  |
+   4 |        1.x3     .0217391     .0217391    -8.17e-11    -5.57e-10     .1466296     1.008511  |
+   5 |          x4     .4347826     .4347826    -4.03e-10    -8.08e-10     .4984448     1.008511  |
+   6 |          x5     25.46739     25.46739    -1.76e-09    -3.24e-10     5.443922     .6195799  |
+   7 |          x6     11.86957     11.86957    -1.98e-09    -1.23e-09     1.605057     .5669465  |
+   8 |          x7     6.858696     6.858696    -1.77e-10    -4.99e-11     3.556704     1.145237  |
+   9 |         x90     .0972024     .0972024     4.54e-11     4.76e-11     .9537854      .845302  |
+  10 |         x91    -.0890157    -.0890157    -3.25e-11    -3.45e-11     .9429542     .9654928  |
+  11 |         x92     .0453787     .0453787     4.05e-11     3.85e-11     1.051175     1.136731  |
+  12 |         x93     .0865687     .0865687    -6.32e-11    -6.76e-11     .9349714     .9577067  |
+  13 |         x94    -.1299173    -.1299173     5.29e-10     5.72e-10     .9248091     .7795321  |
+  14 |         x95    -.0807251    -.0807251     8.07e-11     8.83e-11      .914005     .8888006  |
+     +--------------------------------------------------------------------------------------------+
+  entropydistance of control weights (cbps_port_stata):
+  2605.10307
+  cv of matching weights (cbps_port_stata):
+  .9884371288
+  sd of matching weights (cbps_port_stata):
+  .9884371288
+  skewness of matching weights (cbps_port_stata):
+  .1100078305
+  kurtosis of matching weights (cbps_port_stata):
+  .0225364399
+  M.mean_sd_sq(denominator)
+  6.60012e-20
+  M.mean_asd(denominator)
+  3.71686e-10
+  M.max_asd(denominator)
+  1.23414e-09
+  M.sd_sq(denominator)
+                 1             2             3             4             5             6             7             8             9            10
+    +---------------------------------------------------------------------------------------------------------------------------------------------
+  1 |  7.60376e-20   5.39317e-19   3.10627e-19   6.53248e-19   1.04978e-19   1.52311e-18   2.48861e-21   2.26323e-21   1.18891e-21   1.48392e-21
+    +---------------------------------------------------------------------------------------------------------------------------------------------
+                11            12            13
+     -------------------------------------------+
+  1    4.57440e-21   3.26828e-19   7.79365e-21  |
+     -------------------------------------------+
+  M.asd(denominator)
+                 1             2             3             4             5             6             7             8             9            10
+    +---------------------------------------------------------------------------------------------------------------------------------------------
+  1 |  2.75749e-10   7.34382e-10   5.57339e-10   8.08238e-10   3.24002e-10   1.23414e-09   4.98860e-11   4.75734e-11   3.44806e-11   3.85217e-11
+    +---------------------------------------------------------------------------------------------------------------------------------------------
+                11            12            13
+     -------------------------------------------+
+  1    6.76343e-11   5.71688e-10   8.82817e-11  |
+     -------------------------------------------+
+  
+  
+  
+  
+  
+  
+  
+
+:   cbpsweight = M.cbps("atet","cbps", 1, 0, (1,.75,6))
+  Step 1 (initial values from logit model):
+initial:       f(p) = -346.57359
+alternative:   f(p) = -283.03849
+rescale:       f(p) = -247.46401
+Iteration 0:   f(p) = -247.46401  
+Iteration 1:   f(p) = -223.85141  
+Iteration 2:   f(p) = -211.21588  
+Iteration 3:   f(p) = -211.17754  
+Iteration 4:   f(p) = -211.17753  
+  
+  Step 2 (CBPS) :
+(setting technique to bfgs)
+Iteration 0:   f(p) =  .00061284  
+Iteration 1:   f(p) =  2.181e-07  
+Iteration 2:   f(p) =  1.269e-07  
+Iteration 3:   f(p) =  1.206e-07  
+Iteration 4:   f(p) =  1.176e-07  
+Iteration 5:   f(p) =  1.171e-07  
+Iteration 6:   f(p) =  1.170e-07  
+Iteration 7:   f(p) =  1.161e-07  
+Iteration 8:   f(p) =  8.930e-08  
+Iteration 9:   f(p) =  8.347e-08  
+Iteration 10:  f(p) =  8.293e-08  
+Iteration 11:  f(p) =  8.282e-08  
+(switching technique to nr)
+Iteration 12:  f(p) =  8.217e-08  (not concave)
+Iteration 13:  f(p) =  6.170e-08  (not concave)
+Iteration 14:  f(p) =  4.531e-08  (not concave)
+Iteration 15:  f(p) =  3.155e-08  (not concave)
+Iteration 16:  f(p) =  2.949e-08  (not concave)
+Iteration 17:  f(p) =  2.389e-08  
+Iteration 18:  f(p) =  1.733e-08  
+Iteration 19:  f(p) =  1.234e-08  
+Iteration 20:  f(p) =  1.147e-08  
+Iteration 21:  f(p) =  1.143e-08  
+Iteration 22:  f(p) =  1.143e-08  
+Iteration 23:  f(p) =  1.143e-08  
+  optimize_result_iterations(S)
+  24
+  CBPS beta
+                1           2
+     +-------------------------+
+   1 |         x1   -1.069921  |
+   2 |       1.x2   -1.301676  |
+   3 |       1.x3   -.4865722  |
+   4 |         x4   -.2463173  |
+   5 |         x5    .0447741  |
+   6 |         x6   -.1995635  |
+   7 |         x7    .0257331  |
+   8 |        x90    .1236242  |
+   9 |        x91   -.1270511  |
+  10 |        x92    .1015911  |
+  11 |        x93    .0470551  |
+  12 |        x94   -.0948948  |
+  13 |        x95    .0008498  |
+  14 |      _cons    .4556063  |
+     +-------------------------+
+  Weights for first 10 observations:
+                 1             2             3             4             5             6             7             8             9            10
+    +---------------------------------------------------------------------------------------------------------------------------------------------+
+  1 |  .5822018711   2.018596819   .6340109411   .6077424077   .3871426506   2.302490291   .9374143113   .8951552962   .6867643494    .771568196  |
+    +---------------------------------------------------------------------------------------------------------------------------------------------+
+  Weights for first 10 observations / N:
+                 1             2             3             4             5             6             7             8             9            10
+    +---------------------------------------------------------------------------------------------------------------------------------------------+
+  1 |  .0008896773   .0030846685    .000968848   .0009287064   .0005916024   .0035184933   .0014324864   .0013679093   .0010494619   .0011790527  |
+    +---------------------------------------------------------------------------------------------------------------------------------------------+
+  Balance after CBPS (cbps_port_stata):
+  optimize_result_value(S)
+  1.14344e-08
+  balance table after matching (cbps_port_stata):
+                 1            2            3            4            5            6            7
+     +--------------------------------------------------------------------------------------------+
+   1 |    Variable     mean (T)     mean (C)       diff()    stddiff()       sd (T)   varratio()  |
+   2 |          x1     .4673913     .5182506    -.0508593    -.1013802     .5016695     1.005561  |
+   3 |        1.x2     .0108696      .012455    -.0015855    -.0152072     .1042572     .8815459  |
+   4 |        1.x3     .0217391     .0242826    -.0025435    -.0173465     .1466296     .9052271  |
+   5 |          x4     .4347826     .4521396    -.0173569    -.0348222     .4984448      1.00052  |
+   6 |          x5     25.46739     25.54157    -.0741743    -.0136252     5.443922     .6518318  |
+   7 |          x6     11.86957     12.06656    -.1969953    -.1227342     1.605057     .5447873  |
+   8 |          x7     6.858696     6.811629      .047067     .0132333     3.556704     1.145782  |
+   9 |         x90     .0972024     .0715906     .0256118     .0268528     .9537854     .8605673  |
+  10 |         x91    -.0890157    -.0737238    -.0152918    -.0162169     .9429542     .9393008  |
+  11 |         x92     .0453787     .0269169     .0184618      .017563     1.051175     1.126957  |
+  12 |         x93     .0865687     .0765419     .0100267     .0107241     .9349714     .9352735  |
+  13 |         x94    -.1299173    -.0967909    -.0331264    -.0358197     .9248091      .797834  |
+  14 |         x95    -.0807251    -.0889146     .0081896     .0089601      .914005     .8763149  |
+     +--------------------------------------------------------------------------------------------+
+  entropydistance of control weights (cbps_port_stata):
+  2554.903768
+  cv of matching weights (cbps_port_stata):
+  .7780723044
+  sd of matching weights (cbps_port_stata):
+  .7780723044
+  skewness of matching weights (cbps_port_stata):
+  .0867263921
+  kurtosis of matching weights (cbps_port_stata):
+  .0156197343
+  M.mean_sd_sq(denominator)
+  .0004633049
+  M.mean_asd(denominator)
+  .033421951
+  M.max_asd(denominator)
+  .1227341892
+  M.sd_sq(denominator)
+                 1             2             3             4             5             6             7             8             9            10
+    +---------------------------------------------------------------------------------------------------------------------------------------------
+  1 |  .0102779379    .000231259   .0003009014   .0012125855   .0001856449   .0150636812   .0001751209   .0007210744   .0002629893   .0003084583
+    +---------------------------------------------------------------------------------------------------------------------------------------------
+                11            12            13
+     -------------------------------------------+
+  1    .0001150061   .0012830503    .000080283  |
+     -------------------------------------------+
+  M.asd(denominator)
+                 1             2             3             4             5             6             7             8             9            10
+    +---------------------------------------------------------------------------------------------------------------------------------------------
+  1 |  .1013801653   .0152072019   .0173465092   .0348221979   .0136251554   .1227341892    .013233326   .0268528281   .0162169458   .0175629816
+    +---------------------------------------------------------------------------------------------------------------------------------------------
+                11            12            13
+     -------------------------------------------+
+  1    .0107240918   .0358196911   .0089600796  |
+     -------------------------------------------+
+  
+  
+  
+  
+  
+  
+  
+
+:   cbpsweight = M.cbps("atet","cbps", 1, 0, (1,.50,6))
+  Step 1 (initial values from logit model):
+initial:       f(p) = -346.57359
+alternative:   f(p) = -283.03849
+rescale:       f(p) = -247.46401
+Iteration 0:   f(p) = -247.46401  
+Iteration 1:   f(p) = -223.85141  
+Iteration 2:   f(p) = -211.21588  
+Iteration 3:   f(p) = -211.17754  
+Iteration 4:   f(p) = -211.17753  
+  
+  Step 2 (CBPS) :
+(setting technique to bfgs)
+Iteration 0:   f(p) =  .02519573  
+Iteration 1:   f(p) =  .00037232  
+Iteration 2:   f(p) =  .00018115  
+Iteration 3:   f(p) =  .00007047  
+Iteration 4:   f(p) =  .00006335  
+Iteration 5:   f(p) =  .00005995  
+Iteration 6:   f(p) =  .00003158  
+Iteration 7:   f(p) =  .00001706  
+Iteration 8:   f(p) =  .00001448  
+Iteration 9:   f(p) =  .00001017  
+Iteration 10:  f(p) =  9.753e-06  
+Iteration 11:  f(p) =  9.539e-06  
+(switching technique to nr)
+Iteration 12:  f(p) =  9.503e-06  (not concave)
+Iteration 13:  f(p) =  5.050e-06  (not concave)
+Iteration 14:  f(p) =  1.640e-06  (not concave)
+Iteration 15:  f(p) =  8.277e-07  (not concave)
+Iteration 16:  f(p) =  1.184e-07  (not concave)
+Iteration 17:  f(p) =  1.058e-07  (not concave)
+Iteration 18:  f(p) =  8.792e-08  (not concave)
+Iteration 19:  f(p) =  6.713e-08  
+Iteration 20:  f(p) =  6.430e-08  (not concave)
+Iteration 21:  f(p) =  5.229e-08  
+Iteration 22:  f(p) =  5.138e-08  
+Iteration 23:  f(p) =  5.134e-08  
+(switching technique to bfgs)
+Iteration 24:  f(p) =  5.114e-08  
+Iteration 25:  f(p) =  5.114e-08  
+Iteration 26:  f(p) =  5.114e-08  
+Iteration 27:  f(p) =  5.114e-08  
+Iteration 28:  f(p) =  5.114e-08  
+  optimize_result_iterations(S)
+  29
+  CBPS beta
+                1           2
+     +-------------------------+
+   1 |         x1   -.7224138  |
+   2 |       1.x2   -.9764887  |
+   3 |       1.x3   -.3663548  |
+   4 |         x4    -.168158  |
+   5 |         x5    .0290492  |
+   6 |         x6   -.1459132  |
+   7 |         x7    .0167638  |
+   8 |        x90    .0854738  |
+   9 |        x91   -.0882829  |
+  10 |        x92    .0659837  |
+  11 |        x93    .0343202  |
+  12 |        x94   -.0658758  |
+  13 |        x95   -.0067123  |
+  14 |      _cons   -.0849365  |
+     +-------------------------+
+  Weights for first 10 observations:
+                 1             2             3             4             5             6             7             8             9            10
+    +---------------------------------------------------------------------------------------------------------------------------------------------+
+  1 |  .7188186651   1.668502749   .7913497473   .7648597359   .5600168416   1.890836827   1.017401711   1.006111899   .8257673124   .8686646317  |
+    +---------------------------------------------------------------------------------------------------------------------------------------------+
+  Weights for first 10 observations / N:
+                 1             2             3             4             5             6             7             8             9            10
+    +---------------------------------------------------------------------------------------------------------------------------------------------+
+  1 |  .0013737566   .0031887273    .001512373   .0014617471   .0010702655   .0036136368   .0019443879   .0019228116   .0015781495   .0016601319  |
+    +---------------------------------------------------------------------------------------------------------------------------------------------+
+  Balance after CBPS (cbps_port_stata):
+  optimize_result_value(S)
+  5.11366e-08
+  balance table after matching (cbps_port_stata):
+                 1            2            3            4            5            6            7
+     +--------------------------------------------------------------------------------------------+
+   1 |    Variable     mean (T)     mean (C)       diff()    stddiff()       sd (T)   varratio()  |
+   2 |          x1     .4673913     .5906749    -.1232836    -.2457468     .5016695     1.038371  |
+   3 |        1.x2     .0108696     .0149903    -.0041207    -.0395243     .1042572     .7343394  |
+   4 |        1.x3     .0217391     .0280491      -.00631    -.0430336     .1466296     .7867085  |
+   5 |          x4     .4347826      .466862    -.0320794    -.0643589     .4984448     .9957268  |
+   6 |          x5     25.46739     25.77278    -.3053876     -.056097     5.443922     .6996665  |
+   7 |          x6     11.86957     12.34747    -.4779045    -.2977493     1.605057     .5220231  |
+   8 |          x7     6.858696     6.764909     .0937868      .026369     3.556704     1.148402  |
+   9 |         x90     .0972024     .0379817     .0592207     .0620902     .9537854     .8843597  |
+  10 |         x91    -.0890157    -.0569168    -.0320989    -.0340408     .9429542      .911345  |
+  11 |         x92     .0453787      .011174     .0342046     .0325394     1.051175     1.115674  |
+  12 |         x93     .0865687     .0661146     .0204541     .0218767     .9349714     .9136066  |
+  13 |         x94    -.1299173    -.0574348    -.0724824    -.0783756     .9248091     .8189414  |
+  14 |         x95    -.0807251    -.0931508     .0124257     .0135947      .914005     .8623481  |
+     +--------------------------------------------------------------------------------------------+
+  entropydistance of control weights (cbps_port_stata):
+  2504.5033
+  cv of matching weights (cbps_port_stata):
+  .5321354845
+  sd of matching weights (cbps_port_stata):
+  .5321354845
+  skewness of matching weights (cbps_port_stata):
+  .062927843
+  kurtosis of matching weights (cbps_port_stata):
+  .0108020119
+  M.mean_sd_sq(denominator)
+  .0029197911
+  M.mean_asd(denominator)
+  .0781074082
+  M.max_asd(denominator)
+  .2977493254
+  M.sd_sq(denominator)
+                 1             2             3             4             5             6             7             8             9            10
+    +---------------------------------------------------------------------------------------------------------------------------------------------
+  1 |  .0603914711   .0015621682   .0018518897   .0041420708   .0031468721   .0886546607   .0006953258   .0038551886    .001158777   .0010588142
+    +---------------------------------------------------------------------------------------------------------------------------------------------
+                11            12            13
+     -------------------------------------------+
+  1    .0004785896   .0061427308   .0001848171  |
+     -------------------------------------------+
+  M.asd(denominator)
+                 1             2             3             4             5             6             7             8             9            10
+    +---------------------------------------------------------------------------------------------------------------------------------------------
+  1 |  .2457467621   .0395242741   .0430335886   .0643589219   .0560969879   .2977493254   .0263690314   .0620901655   .0340408134   .0325394252
+    +---------------------------------------------------------------------------------------------------------------------------------------------
+                11            12            13
+     -------------------------------------------+
+  1    .0218766901    .078375575   .0135947465  |
+     -------------------------------------------+
+  
+  
+  
+  
+  
+  
+  
+
+:   
+:   cbpsweight = M.cbps("atet","mean_sd_sq", 1, 0, (1,.75,6))
+  Step 1 (initial values from logit model):
+initial:       f(p) = -346.57359
+alternative:   f(p) = -283.03849
+rescale:       f(p) = -247.46401
+Iteration 0:   f(p) = -247.46401  
+Iteration 1:   f(p) = -223.85141  
+Iteration 2:   f(p) = -211.21588  
+Iteration 3:   f(p) = -211.17754  
+Iteration 4:   f(p) = -211.17753  
+  
+  Step 2 (CBPS) :
+numerical derivatives are approximate
+flat or discontinuous region encountered
+(setting technique to bfgs)
+Iteration 0:   f(p) =  .00093921  
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 1:   f(p) =  .00042753  
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 2:   f(p) =  .00003686  
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 3:   f(p) =  .00002767  
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 4:   f(p) =  .00001518  
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 5:   f(p) =  6.684e-06  
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 6:   f(p) =  3.117e-06  
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 7:   f(p) =  1.306e-06  
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 8:   f(p) =  3.889e-07  
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 9:   f(p) =  1.977e-07  
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 10:  f(p) =  7.502e-08  
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 11:  f(p) =  5.838e-08  
+(switching technique to nr)
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 12:  f(p) =  4.674e-08  (not concave)
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 13:  f(p) =  4.385e-08  (not concave)
+  optimize_result_iterations(S)
+  14
+  CBPS beta
+                1           2
+     +-------------------------+
+   1 |         x1   -1.169707  |
+   2 |       1.x2   -1.627965  |
+   3 |       1.x3    -.580193  |
+   4 |         x4   -.2667316  |
+   5 |         x5      .00093  |
+   6 |         x6    -.084199  |
+   7 |         x7    -.012288  |
+   8 |        x90    .1101824  |
+   9 |        x91   -.1318251  |
+  10 |        x92     .102793  |
+  11 |        x93    .0292863  |
+  12 |        x94   -.1183492  |
+  13 |        x95    .0107489  |
+  14 |      _cons    1.404818  |
+     +-------------------------+
+  Weights for first 10 observations:
+                 1             2             3             4             5             6             7             8             9            10
+    +---------------------------------------------------------------------------------------------------------------------------------------------+
+  1 |  .5998639961   1.925502769    .501439042   .6416568426   .4957083452   2.351425186   .6630446655   .8484616236   .7700500435    .672783707  |
+    +---------------------------------------------------------------------------------------------------------------------------------------------+
+  Weights for first 10 observations / N:
+                 1             2             3             4             5             6             7             8             9            10
+    +---------------------------------------------------------------------------------------------------------------------------------------------+
+  1 |  .0014702549   .0047193695   .0012290173   .0015726883   .0012149714    .005763297   .0016251095   .0020795628   .0018873776   .0016489797  |
+    +---------------------------------------------------------------------------------------------------------------------------------------------+
+  Balance after CBPS (mean_sd_sq):
+  optimize_result_value(S)
+  4.38502e-08
+  balance table after matching (mean_sd_sq):
+                 1            2            3            4            5            6            7
+     +--------------------------------------------------------------------------------------------+
+   1 |    Variable     mean (T)     mean (C)       diff()    stddiff()       sd (T)   varratio()  |
+   2 |          x1     .4673913     .4636655     .0037258     .0074267     .5016695     1.009553  |
+   3 |        1.x2     .0108696     .0091688     .0017008     .0163135     .1042572     1.193537  |
+   4 |        1.x3     .0217391     .0193982     .0023409     .0159647     .1466296     1.127516  |
+   5 |          x4     .4347826     .5028705    -.0680879    -.1366006     .4984448     .9913857  |
+   6 |          x5     25.46739     24.33974     1.127651     .2071394     5.443922      .756809  |
+   7 |          x6     11.86957     12.24397    -.3744095    -.2332687     1.605057     .5355518  |
+   8 |          x7     6.858696     6.388786     .4699092     .1321193     3.556704     1.139287  |
+   9 |         x90     .0972024     .1170389    -.0198364    -.0207976     .9537854     .8363061  |
+  10 |         x91    -.0890157    -.0852899    -.0037257    -.0039511     .9429542     .9332198  |
+  11 |         x92     .0453787     .0526538    -.0072751     -.006921     1.051175     1.110548  |
+  12 |         x93     .0865687     .0602509     .0263178     .0281482     .9349714     .9496523  |
+  13 |         x94    -.1299173    -.1306693     .0007521     .0008132     .9248091     .8386995  |
+  14 |         x95    -.0807251     -.075398     -.005327    -.0058282      .914005     .8746094  |
+     +--------------------------------------------------------------------------------------------+
+  entropydistance of control weights (mean_sd_sq):
+  2559.207294
+  cv of matching weights (mean_sd_sq):
+  .8089600201
+  sd of matching weights (mean_sd_sq):
+  .8089600201
+  skewness of matching weights (mean_sd_sq):
+  .0881944961
+  kurtosis of matching weights (mean_sd_sq):
+  .0143938379
+  M.mean_sd_sq(denominator)
+  1.84090e-09
+  M.mean_asd(denominator)
+  .0627147941
+  M.max_asd(denominator)
+  .2332687373
+  M.sd_sq(denominator)
+                 1             2             3             4             5             6             7             8             9            10
+    +---------------------------------------------------------------------------------------------------------------------------------------------
+  1 |  .0000551565   .0002661305    .000254872   .0186597253   .0429067151   .0544143038   .0174555085   .0004325399   .0000156115   .0000478996
+    +---------------------------------------------------------------------------------------------------------------------------------------------
+                11            12            13
+     -------------------------------------------+
+  1    .0007923216   6.61333e-07   .0000339684  |
+     -------------------------------------------+
+  M.asd(denominator)
+                 1             2             3             4             5             6             7             8             9            10
+    +---------------------------------------------------------------------------------------------------------------------------------------------
+  1 |  .0074267399   .0163135079   .0159647116   .1366006049   .2071393616   .2332687373   .1321192966   .0207975937   .0039511431   .0069209522
+    +---------------------------------------------------------------------------------------------------------------------------------------------
+                11            12            13
+     -------------------------------------------+
+  1     .028148207   .0008132236   .0058282434  |
+     -------------------------------------------+
+  
+  
+  
+  
+  
+  
+  
+
+:   cbpsweight = M.cbps("atet","mean_sd_sq", 1, 0, (1,.50,6))
+  Step 1 (initial values from logit model):
+initial:       f(p) = -346.57359
+alternative:   f(p) = -283.03849
+rescale:       f(p) = -247.46401
+Iteration 0:   f(p) = -247.46401  
+Iteration 1:   f(p) = -223.85141  
+Iteration 2:   f(p) = -211.21588  
+Iteration 3:   f(p) = -211.17754  
+Iteration 4:   f(p) = -211.17753  
+  
+  Step 2 (CBPS) :
+numerical derivatives are approximate
+flat or discontinuous region encountered
+(setting technique to bfgs)
+Iteration 0:   f(p) =   .0255221  
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 1:   f(p) =  .00707055  
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 2:   f(p) =  .00121893  
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 3:   f(p) =  .00077435  
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 4:   f(p) =  .00038439  
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 5:   f(p) =  .00027065  
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 6:   f(p) =  .00020657  
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 7:   f(p) =  .00014905  
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 8:   f(p) =  .00004814  
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 9:   f(p) =  .00002729  
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 10:  f(p) =  .00002254  
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 11:  f(p) =  .00001783  
+(switching technique to nr)
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 12:  f(p) =  .00001699  (not concave)
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 13:  f(p) =  .00001033  (not concave)
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 14:  f(p) =  7.210e-06  (not concave)
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 15:  f(p) =  3.223e-06  (not concave)
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 16:  f(p) =  2.672e-06  (not concave)
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 17:  f(p) =  1.259e-06  (not concave)
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 18:  f(p) =  1.089e-06  (not concave)
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 19:  f(p) =  1.059e-06  (not concave)
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 20:  f(p) =  6.598e-07  (not concave)
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 21:  f(p) =  5.851e-07  (not concave)
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 22:  f(p) =  5.704e-07  (not concave)
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 23:  f(p) =  2.666e-07  (not concave)
+(switching technique to bfgs)
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 24:  f(p) =  2.621e-07  
+  optimize_result_iterations(S)
+  25
+  CBPS beta
+                1           2
+     +-------------------------+
+   1 |         x1   -.8824632  |
+   2 |       1.x2   -2.564508  |
+   3 |       1.x3   -.1876487  |
+   4 |         x4   -.1072799  |
+   5 |         x5    .0144915  |
+   6 |         x6   -.0401028  |
+   7 |         x7   -.0328468  |
+   8 |        x90   -.0893701  |
+   9 |        x91     -.15651  |
+  10 |        x92   -.1346063  |
+  11 |        x93   -.1007194  |
+  12 |        x94   -.1207242  |
+  13 |        x95   -.1326203  |
+  14 |      _cons    1.419705  |
+     +-------------------------+
+  Weights for first 10 observations:
+                 1             2             3             4             5             6             7             8             9            10
+    +---------------------------------------------------------------------------------------------------------------------------------------------+
+  1 |  .6755686168   1.222671891   1.094491173   .8121035101   .5059871274   2.708143858   .9356764736   .6783752876   .5161940287   1.042859465  |
+    +---------------------------------------------------------------------------------------------------------------------------------------------+
+  Weights for first 10 observations / N:
+                 1             2             3             4             5             6             7             8             9            10
+    +---------------------------------------------------------------------------------------------------------------------------------------------+
+  1 |  .0016541594   .0029937658   .0026799097   .0019884711   .0012389317   .0066310092   .0022910449   .0016610317   .0012639237   .0025534872  |
+    +---------------------------------------------------------------------------------------------------------------------------------------------+
+  Balance after CBPS (mean_sd_sq):
+  optimize_result_value(S)
+  2.62127e-07
+  balance table after matching (mean_sd_sq):
+                 1            2            3            4            5            6            7
+     +--------------------------------------------------------------------------------------------+
+   1 |    Variable     mean (T)     mean (C)       diff()    stddiff()       sd (T)   varratio()  |
+   2 |          x1     .4673913     .5844559    -.1170646    -.2333501     .5016695     1.033715  |
+   3 |        1.x2     .0108696     .0034975     .0073721     .0707107     .1042572     3.111105  |
+   4 |        1.x3     .0217391     .0254154    -.0036762    -.0250716     .1466296     .8658875  |
+   5 |          x4     .4347826     .5066966     -.071914    -.1442768     .4984448     .9915309  |
+   6 |          x5     25.46739      25.5818    -.1144052    -.0210152     5.443922     .7481279  |
+   7 |          x6     11.86957     12.62414    -.7545699    -.4701205     1.605057     .4987375  |
+   8 |          x7     6.858696     6.327533     .5311628     .1493413     3.556704     1.128347  |
+   9 |         x90     .0972024    -.1028475       .20005     .2097432     .9537854     .8836741  |
+  10 |         x91    -.0890157    -.1202121     .0311964     .0330837     .9429542     .9470659  |
+  11 |         x92     .0453787    -.1493203      .194699     .1852202     1.051175     1.095645  |
+  12 |         x93     .0865687    -.0577474     .1443161     .1543535     .9349714     .8542852  |
+  13 |         x94    -.1299173    -.1200942     -.009823    -.0106217     .9248091     .8263152  |
+  14 |         x95    -.0807251    -.1738245     .0930994     .1018588      .914005     .8626109  |
+     +--------------------------------------------------------------------------------------------+
+  entropydistance of control weights (mean_sd_sq):
+  2513.326312
+  cv of matching weights (mean_sd_sq):
+  .5799928361
+  sd of matching weights (mean_sd_sq):
+  .5799928361
+  skewness of matching weights (mean_sd_sq):
+  .077236408
+  kurtosis of matching weights (mean_sd_sq):
+  .0147167682
+  M.mean_sd_sq(denominator)
+  1.23688e-10
+  M.mean_asd(denominator)
+  .1391359431
+  M.max_asd(denominator)
+  .4701204636
+  M.sd_sq(denominator)
+                 1             2             3             4             5             6             7             8             9            10
+    +---------------------------------------------------------------------------------------------------------------------------------------------
+  1 |  .0544522799   .0050000041   .0006285873   .0208157845   .0004416396   .2210132503   .0223028251   .0439921964   .0010945292   .0343065391
+    +---------------------------------------------------------------------------------------------------------------------------------------------
+                11            12            13
+     -------------------------------------------+
+  1    .0238249916   .0001128206   .0103752118  |
+     -------------------------------------------+
+  M.asd(denominator)
+                 1             2             3             4             5             6             7             8             9            10
+    +---------------------------------------------------------------------------------------------------------------------------------------------
+  1 |  .2333501229    .070710707   .0250716435   .1442767637   .0210152231   .4701204636   .1493413041   .2097431676     .03308367   .1852202448
+    +---------------------------------------------------------------------------------------------------------------------------------------------
+                11            12            13
+     -------------------------------------------+
+  1    .1543534631   .0106217031   .1018587838  |
+     -------------------------------------------+
+  
+  
+  
+  
+  
+  
+  
+
+:    
 : mata drop D M
 
+: 
 : 
 : // **************************
 : // * WEIGHTED DATA EXAMPLES *
@@ -2608,11 +3411,17 @@ Iteration 4:   f(p) = -211.17753
   X is 500 by 13
   408 control obs (sum of weights = 802.3793)
   92 treatment obs (sum of weights = 180.1725)
+  (Data are weighted.)
 
 : if (depvars!="") DW.set_Y(st_local("depvars"),st_local("tousevar"))
 > 
-> // Misc balance measures
->   DW.diff()
+> MW = gmatch()
+
+: MW.clone(DW)
+
+: 
+: // Misc balance measures
+:   DW.diff()
                   1              2              3              4              5              6              7              8              9             10
     +-------------------------------------------------------------------------------------------------------------------------------------------------------
   1 |   -.295813959   -.0156488223   -.0187317786   -.0757286195   -1.051311077   -1.308590669     .297707166    .1231935602   -.0575694681    .0828891447
@@ -2703,22 +3512,6 @@ Iteration 4:   f(p) = -211.17753
 : 
 : // Replicate CBPS
 : 
-:   MW = gmatch()
-
-:   MW.clone(DW)
-
-:   MW.prognosticdiff()
-                       1                   2                   3                   4
-    +---------------------------------------------------------------------------------+
-  1 |     Dependent var.   mean of y_hat (T)   mean of y_hat (C)    prognosticdiff()  |
-  2 |                 y1             3448.29            3459.434           -11.14415  |
-  3 |          y1_binary              .95075            .9627243           -.0119743  |
-    +---------------------------------------------------------------------------------+
-                  1              2
-    +-------------------------------+
-  1 |  -11.14415063    -.011974287  |
-    +-------------------------------+
-
 : 
 :   "--- ATE (not overidentified) ---"; ""; ""
   --- ATE (not overidentified) ---
@@ -2818,8 +3611,14 @@ Iteration 24:  f(p) =  2.405e-27
      +---------------------------------------------------------------------------------------------------+
   entropydistance of control weights (cbps_port_r):
   2750.417544
-  cv of control weights (cbps_port_r):
-  .4351202284
+  cv of matching weights (cbps_port_r):
+  .5270998694
+  sd of matching weights (cbps_port_r):
+  .5284997369
+  skewness of matching weights (cbps_port_r):
+  .2026515012
+  kurtosis of matching weights (cbps_port_r):
+  .0762370775
   M.mean_sd_sq(denominator)
   8.32408e-28
   M.mean_asd(denominator)
@@ -2941,8 +3740,14 @@ Iteration 15:  f(p) =  .01777184
      +---------------------------------------------------------------------------------------------------+
   entropydistance of control weights (cbps_port_r):
   2733.070247
-  cv of control weights (cbps_port_r):
-  .1959655194
+  cv of matching weights (cbps_port_r):
+  .3236892358
+  sd of matching weights (cbps_port_r):
+  .3244154091
+  skewness of matching weights (cbps_port_r):
+  .1499732973
+  kurtosis of matching weights (cbps_port_r):
+  .0569705853
   M.mean_sd_sq(denominator)
   .0025726925
   M.mean_asd(denominator)
@@ -3067,8 +3872,14 @@ Iteration 18:  f(p) =  8.653e-26
      +---------------------------------------------------------------------------------------------------+
   entropydistance of control weights (cbps_port_r):
   2876.289278
-  cv of control weights (cbps_port_r):
-  1.033606536
+  cv of matching weights (cbps_port_r):
+  1.031924564
+  sd of matching weights (cbps_port_r):
+  1.02710789
+  skewness of matching weights (cbps_port_r):
+  .1135011509
+  kurtosis of matching weights (cbps_port_r):
+  .0229206639
   M.mean_sd_sq(denominator)
   2.32907e-24
   M.mean_asd(denominator)
@@ -3190,8 +4001,14 @@ Iteration 15:  f(p) =  .00017215
      +---------------------------------------------------------------------------------------------------+
   entropydistance of control weights (cbps_port_r):
   2872.573597
-  cv of control weights (cbps_port_r):
-  1.02146686
+  cv of matching weights (cbps_port_r):
+  1.019033715
+  sd of matching weights (cbps_port_r):
+  1.014129106
+  skewness of matching weights (cbps_port_r):
+  .1128933006
+  kurtosis of matching weights (cbps_port_r):
+  .0230686436
   M.mean_sd_sq(denominator)
   3.24223e-06
   M.mean_asd(denominator)
@@ -3248,10 +4065,10 @@ flat or discontinuous region encountered
 Iteration 1:   f(p) =  .00001126  
 numerical derivatives are approximate
 flat or discontinuous region encountered
-Iteration 2:   f(p) =  4.734e-09  
+Iteration 2:   f(p) =  4.733e-09  
 numerical derivatives are approximate
 flat or discontinuous region encountered
-Iteration 3:   f(p) =  3.833e-12  
+Iteration 3:   f(p) =  1.762e-13  
   optimize_result_iterations(S)
   4
   CBPS beta
@@ -3261,75 +4078,81 @@ Iteration 3:   f(p) =  3.833e-12
    2 |       1.x2    -1.62991  |
    3 |       1.x3   -.4511738  |
    4 |         x4   -.3553036  |
-   5 |         x5    .0715785  |
-   6 |         x6    -.277333  |
-   7 |         x7    .0371344  |
+   5 |         x5    .0715797  |
+   6 |         x6   -.2773325  |
+   7 |         x7    .0371348  |
    8 |        x90    .1283825  |
-   9 |        x91   -.0952386  |
-  10 |        x92    .1409151  |
-  11 |        x93    .0743038  |
-  12 |        x94   -.1419194  |
-  13 |        x95   -.0201502  |
-  14 |      _cons    1.249089  |
+   9 |        x91   -.0952385  |
+  10 |        x92    .1409152  |
+  11 |        x93    .0743039  |
+  12 |        x94   -.1419192  |
+  13 |        x95   -.0201501  |
+  14 |      _cons    1.248956  |
      +-------------------------+
   Weights for first 10 observations:
                  1             2             3             4             5             6             7             8             9            10
     +---------------------------------------------------------------------------------------------------------------------------------------------+
-  1 |   .440941654   2.371748502   .6449005449   .4903097253   .2548482047   2.237097629   .9046078177   .8342218405    .517119168   .6275498638  |
+  1 |  .4409419622   2.371729579   .6448954675   .4903088572   .2548460925   2.237097762   .9046108099   .8342196796   .5171160279    .627555102  |
     +---------------------------------------------------------------------------------------------------------------------------------------------+
   Weights for first 10 observations / N:
                  1             2             3             4             5             6             7             8             9            10
     +---------------------------------------------------------------------------------------------------------------------------------------------+
-  1 |  .0005495426   .0029558943   .0008037352   .0006110697   .0003176156   .0027880798   .0011274067   .0010396851   .0006444822   .0007821112  |
+  1 |   .000549543   .0029558707   .0008037289   .0006110686    .000317613     .00278808   .0011274104   .0010396824   .0006444782   .0007821177  |
     +---------------------------------------------------------------------------------------------------------------------------------------------+
   Balance after CBPS (mean_sd_sq):
   optimize_result_value(S)
-  3.83324e-12
+  1.76189e-13
   balance table after matching (mean_sd_sq):
                  1            2            3            4            5            6            7
      +--------------------------------------------------------------------------------------------+
    1 |    Variable     mean (T)     mean (C)       diff()    stddiff()       sd (T)   varratio()  |
-   2 |          x1     .4512231     .4879774    -.0367542    -.0736555     .4990018     .9953455  |
-   3 |        1.x2     .0114039      .010119     .0012849     .0120677     .1064741     1.130388  |
-   4 |        1.x3     .0240637     .0243904    -.0003267    -.0021258     .1536741     .9912079  |
-   5 |          x4     .4218861     .4077101      .014176     .0286247     .4952368     1.014375  |
-   6 |          x5     25.44699     25.93846    -.4914717    -.0906418     5.422129     .5820467  |
-   7 |          x6     11.84757     11.77831     .0692637     .0421843     1.641931     .5870672  |
-   8 |          x7     7.015422     6.877171     .1382508     .0388844     3.555432     1.150412  |
-   9 |         x90     .0839738     .0558989      .028075     .0292534     .9597153     .8505907  |
-  10 |         x91    -.0648837    -.0314166    -.0334672    -.0356561       .93861     .9896463  |
-  11 |         x92     .0575388     .0508002     .0067386     .0065073      1.03554     1.132825  |
-  12 |         x93     .1016523       .11091    -.0092577    -.0097823     .9463749     1.021043  |
-  13 |         x94    -.1252265    -.1752569     .0500304     .0546926     .9147554     .7291559  |
-  14 |         x95    -.1044649    -.1041679    -.0002971    -.0003275     .9069849     .8690487  |
+   2 |          x1     .4512231     .4879803    -.0367571    -.0736613     .4990018     .9953453  |
+   3 |        1.x2     .0114039     .0101189     .0012849      .012068     .1064741     1.130391  |
+   4 |        1.x3     .0240637     .0243904    -.0003267    -.0021259     .1536741     .9912072  |
+   5 |          x4     .4218861     .4077079     .0141782     .0286292     .4952368     1.014376  |
+   6 |          x5     25.44699     25.93852    -.4915369    -.0906539     5.422129     .5820458  |
+   7 |          x6     11.84757     11.77832     .0692544     .0421787     1.641931     .5870661  |
+   8 |          x7     7.015422     6.877176     .1382457     .0388829     3.555432     1.150412  |
+   9 |         x90     .0839738     .0558968      .028077     .0292556     .9597153     .8505927  |
+  10 |         x91    -.0648837    -.0314163    -.0334674    -.0356564       .93861     .9896463  |
+  11 |         x92     .0575388     .0508004     .0067383     .0065071      1.03554     1.132825  |
+  12 |         x93     .1016523     .1109107    -.0092584     -.009783     .9463749     1.021042  |
+  13 |         x94    -.1252265    -.1752569     .0500305     .0546927     .9147554     .7291545  |
+  14 |         x95    -.1044649    -.1041672    -.0002977    -.0003283     .9069849     .8690485  |
      +--------------------------------------------------------------------------------------------+
   entropydistance of control weights (mean_sd_sq):
-  2884.45373
-  cv of control weights (mean_sd_sq):
-  1.064749554
+  2884.454316
+  cv of matching weights (mean_sd_sq):
+  1.067016337
+  sd of matching weights (mean_sd_sq):
+  1.064358243
+  skewness of matching weights (mean_sd_sq):
+  .1583883422
+  kurtosis of matching weights (mean_sd_sq):
+  .0509006234
   M.mean_sd_sq(denominator)
-  3.83324e-12
+  1.76189e-13
   M.mean_asd(denominator)
-  .0326464229
+  .0326479167
   M.max_asd(denominator)
-  .0906418414
+  .0906538643
   M.sd_sq(denominator)
                  1             2             3             4             5             6             7             8             9            10
     +---------------------------------------------------------------------------------------------------------------------------------------------
-  1 |  .0054251322   .0001456299   4.51905e-06    .000819375   .0082159434   .0017795127   .0015119967   .0008557627   .0012713565   .0000423448
+  1 |  .0054259815   .0001456374   4.51954e-06   .0008196302   .0082181231   .0017790395   .0015118837   .0008558881   .0012713778   .0000423419
     +---------------------------------------------------------------------------------------------------------------------------------------------
                 11            12            13
      -------------------------------------------+
-  1    .0000956926   .0029912859   1.07278e-07  |
+  1    .0000957078   .0029912944   1.07754e-07  |
      -------------------------------------------+
   M.asd(denominator)
                  1             2             3             4             5             6             7             8             9            10
     +---------------------------------------------------------------------------------------------------------------------------------------------
-  1 |  .0736554967   .0120677202   .0021258067   .0286247268   .0906418414   .0421842709   .0388844022   .0292534214   .0356560865   .0065072847
+  1 |   .073661262   .0120680307   .0021259207   .0286291852   .0906538643   .0421786622    .038882949   .0292555647   .0356563854   .0065070683
     +---------------------------------------------------------------------------------------------------------------------------------------------
                 11            12            13
      -------------------------------------------+
-  1    .0097822587    .054692649   .0003275329  |
+  1    .0097830386   .0546927269   .0003282594  |
      -------------------------------------------+
   
   
@@ -3367,7 +4190,7 @@ flat or discontinuous region encountered
 Iteration 3:   f(p) =  .00864462  
 numerical derivatives are approximate
 flat or discontinuous region encountered
-Iteration 4:   f(p) =  .00309573  
+Iteration 4:   f(p) =  .00309574  
 numerical derivatives are approximate
 flat or discontinuous region encountered
 Iteration 5:   f(p) =  .00232235  
@@ -3395,152 +4218,143 @@ flat or discontinuous region encountered
 Iteration 12:  f(p) =  .00002689  (not concave)
 numerical derivatives are approximate
 flat or discontinuous region encountered
-Iteration 13:  f(p) =  9.912e-06  (not concave)
+Iteration 13:  f(p) =  .00002208  (not concave)
 numerical derivatives are approximate
 flat or discontinuous region encountered
-Iteration 14:  f(p) =  8.138e-06  (not concave)
+Iteration 14:  f(p) =  .00002167  (not concave)
 numerical derivatives are approximate
 flat or discontinuous region encountered
-Iteration 15:  f(p) =  7.173e-06  (not concave)
+Iteration 15:  f(p) =  .00001909  (not concave)
 numerical derivatives are approximate
 flat or discontinuous region encountered
-Iteration 16:  f(p) =  6.875e-06  (not concave)
+Iteration 16:  f(p) =  .00001789  (not concave)
 numerical derivatives are approximate
 flat or discontinuous region encountered
-Iteration 17:  f(p) =  6.135e-06  (not concave)
+Iteration 17:  f(p) =  .00001648  (not concave)
 numerical derivatives are approximate
 flat or discontinuous region encountered
-Iteration 18:  f(p) =  5.890e-06  (not concave)
+Iteration 18:  f(p) =  .00001642  (not concave)
 numerical derivatives are approximate
 flat or discontinuous region encountered
-Iteration 19:  f(p) =  4.308e-06  (not concave)
+Iteration 19:  f(p) =  .00001107  (not concave)
 numerical derivatives are approximate
 flat or discontinuous region encountered
-Iteration 20:  f(p) =  4.241e-06  (not concave)
+Iteration 20:  f(p) =  9.799e-06  (not concave)
 numerical derivatives are approximate
 flat or discontinuous region encountered
-Iteration 21:  f(p) =  3.979e-06  (not concave)
+Iteration 21:  f(p) =  9.140e-06  (not concave)
 numerical derivatives are approximate
 flat or discontinuous region encountered
-Iteration 22:  f(p) =  3.920e-06  (not concave)
+Iteration 22:  f(p) =  8.255e-06  (not concave)
 numerical derivatives are approximate
 flat or discontinuous region encountered
-Iteration 23:  f(p) =  3.625e-06  (not concave)
+Iteration 23:  f(p) =  5.364e-06  (not concave)
 (switching technique to bfgs)
 numerical derivatives are approximate
 flat or discontinuous region encountered
-Iteration 24:  f(p) =  3.276e-06  
+Iteration 24:  f(p) =  4.308e-06  
 numerical derivatives are approximate
 flat or discontinuous region encountered
-Iteration 25:  f(p) =  3.202e-06  
+Iteration 25:  f(p) =  4.225e-06  
 numerical derivatives are approximate
 flat or discontinuous region encountered
-Iteration 26:  f(p) =  2.726e-06  
+Iteration 26:  f(p) =  3.639e-06  
 numerical derivatives are approximate
 flat or discontinuous region encountered
-Iteration 27:  f(p) =  2.180e-06  
+Iteration 27:  f(p) =  3.476e-06  
 numerical derivatives are approximate
 flat or discontinuous region encountered
-Iteration 28:  f(p) =  2.109e-06  
+Iteration 28:  f(p) =  3.375e-06  
 numerical derivatives are approximate
 flat or discontinuous region encountered
-Iteration 29:  f(p) =  1.990e-06  
+Iteration 29:  f(p) =  3.283e-06  
 numerical derivatives are approximate
 flat or discontinuous region encountered
-Iteration 30:  f(p) =  1.867e-06  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 31:  f(p) =  1.843e-06  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 32:  f(p) =  1.628e-06  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 33:  f(p) =  9.889e-07  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 34:  f(p) =  8.951e-07  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 35:  f(p) =  8.951e-07  
+Iteration 30:  f(p) =  3.274e-06  
   optimize_result_iterations(S)
-  36
+  31
   CBPS beta
                 1           2
      +-------------------------+
-   1 |         x1   -1.450105  |
-   2 |       1.x2   -1.546859  |
-   3 |       1.x3   -.4693216  |
-   4 |         x4    -.381326  |
-   5 |         x5    .0637561  |
-   6 |         x6   -.2429901  |
-   7 |         x7    .0476905  |
-   8 |        x90    .1337113  |
-   9 |        x91   -.1339388  |
-  10 |        x92    .1521739  |
-  11 |        x93    .0758905  |
-  12 |        x94   -.1016142  |
-  13 |        x95   -.0385948  |
-  14 |      _cons    1.391866  |
+   1 |         x1   -1.448267  |
+   2 |       1.x2   -1.565342  |
+   3 |       1.x3   -.4664383  |
+   4 |         x4   -.3840641  |
+   5 |         x5    .0635287  |
+   6 |         x6   -.2430673  |
+   7 |         x7    .0477054  |
+   8 |        x90    .1333153  |
+   9 |        x91   -.1334921  |
+  10 |        x92    .1520502  |
+  11 |        x93    .0756012  |
+  12 |        x94   -.1015022  |
+  13 |        x95   -.0391333  |
+  14 |      _cons      1.3916  |
      +-------------------------+
   Weights for first 10 observations:
                  1             2             3             4             5             6             7             8             9            10
     +---------------------------------------------------------------------------------------------------------------------------------------------+
-  1 |  .4709022638   2.397755782    .531646422   .4565583151   .2371447438   2.246299711    .953210921   .8037576445   .4930788915   .6820333696  |
+  1 |  .4739932626    2.41572274    .537565583   .4597048968   .2383265213   2.246533095   .9596582997   .8071502651   .4950796077    .684767681  |
     +---------------------------------------------------------------------------------------------------------------------------------------------+
   Weights for first 10 observations / N:
                  1             2             3             4             5             6             7             8             9            10
     +---------------------------------------------------------------------------------------------------------------------------------------------+
-  1 |  .0005868823    .002988307   .0006625874   .0005690056   .0002955519   .0027995483   .0011879804   .0010017178   .0006145209   .0008500136  |
+  1 |  .0005907346   .0030106991   .0006699644   .0005729271   .0002970247   .0027998392   .0011960157    .001005946   .0006170144   .0008534214  |
     +---------------------------------------------------------------------------------------------------------------------------------------------+
   Balance after CBPS (sd_sq):
   optimize_result_value(S)
-  8.95088e-07
+  3.27406e-06
   balance table after matching (sd_sq):
                  1            2            3            4            5            6            7
      +--------------------------------------------------------------------------------------------+
    1 |    Variable     mean (T)     mean (C)       diff()    stddiff()       sd (T)   varratio()  |
-   2 |          x1     .4512231     .4508798     .0003433      .000688     .4990018     1.004459  |
-   3 |        1.x2     .0114039     .0114186    -.0000147    -.0001381     .1064741     1.003044  |
-   4 |        1.x3     .0240637     .0240931    -.0000294    -.0001911     .1536741     1.003129  |
-   5 |          x4     .4218861      .421982    -.0000959    -.0001937     .4952368     1.004261  |
-   6 |          x5     25.44699     25.44839    -.0014069    -.0002595     5.422129     .6144021  |
-   7 |          x6     11.84757     11.84824    -.0006673    -.0004064     1.641931     .5982652  |
-   8 |          x7     7.015422     7.015544    -.0001223    -.0000344     3.555432     1.161701  |
-   9 |         x90     .0839738     .0841556    -.0001818    -.0001895     .9597153     .8505686  |
-  10 |         x91    -.0648837    -.0650494     .0001657     .0001765       .93861     .9924936  |
-  11 |         x92     .0575388     .0574039     .0001349     .0001303      1.03554     1.118042  |
-  12 |         x93     .1016523     .1017137    -.0000614    -.0000649     .9463749     1.012643  |
-  13 |         x94    -.1252265    -.1252339     7.40e-06     8.09e-06     .9147554     .7576661  |
-  14 |         x95    -.1044649    -.1045388     .0000738     .0000814     .9069849     .8645471  |
+   2 |          x1     .4512231     .4511035     .0001196     .0002398     .4990018     1.004375  |
+   3 |        1.x2     .0114039     .0112293     .0001746     .0016398     .1064741     1.019764  |
+   4 |        1.x3     .0240637     .0240848    -.0000211    -.0001373     .1536741      1.00347  |
+   5 |          x4     .4218861     .4216434     .0002427     .0004901     .4952368     1.004484  |
+   6 |          x5     25.44699     25.44639     .0005986     .0001104     5.422129     .6145825  |
+   7 |          x6     11.84757     11.84769    -.0001229    -.0000748     1.641931     .5983502  |
+   8 |          x7     7.015422     7.015471     -.000049    -.0000138     3.555432     1.161615  |
+   9 |         x90     .0839738     .0838468     .0001271     .0001324     .9597153      .850452  |
+  10 |         x91    -.0648837    -.0648426    -.0000411    -.0000438       .93861     .9923018  |
+  11 |         x92     .0575388     .0574363     .0001025     .0000989      1.03554     1.118291  |
+  12 |         x93     .1016523     .1015954     .0000569     .0000601     .9463749     1.012463  |
+  13 |         x94    -.1252265    -.1251737    -.0000528    -.0000577     .9147554     .7576589  |
+  14 |         x95    -.1044649    -.1048848     .0004199     .0004629     .9069849     .8645414  |
      +--------------------------------------------------------------------------------------------+
   entropydistance of control weights (sd_sq):
-  2863.26952
-  cv of control weights (sd_sq):
-  1.034186038
+  2876.454222
+  cv of matching weights (sd_sq):
+  1.032542433
+  sd of matching weights (sd_sq):
+  1.027719636
+  skewness of matching weights (sd_sq):
+  .1134621492
+  kurtosis of matching weights (sd_sq):
+  .0228846418
   M.mean_sd_sq(denominator)
-  9.15308e-10
+  5.00071e-08
   M.mean_asd(denominator)
-  .0001970684
+  .0002739944
   M.max_asd(denominator)
-  .0006880073
+  .0016398253
   M.sd_sq(denominator)
                  1             2             3             4             5             6             7             8             9            10
     +---------------------------------------------------------------------------------------------------------------------------------------------
-  1 |  4.73354e-07   1.90817e-08   3.65210e-08   3.75201e-08   6.73261e-08   1.65172e-07   1.18413e-09   3.58924e-08   3.11693e-08   1.69654e-08
+  1 |  5.74884e-08   2.68903e-06   1.88463e-08   2.40216e-07   1.21887e-08   5.60180e-09   1.89902e-10   1.75312e-08   1.91730e-09   9.78978e-09
     +---------------------------------------------------------------------------------------------------------------------------------------------
                 11            12            13
      -------------------------------------------+
-  1    4.21246e-09   6.55209e-11   6.62457e-09  |
+  1    3.61219e-09   3.33182e-09   2.14320e-07  |
      -------------------------------------------+
   M.asd(denominator)
                  1             2             3             4             5             6             7             8             9            10
     +---------------------------------------------------------------------------------------------------------------------------------------------
-  1 |  .0006880073   .0001381366   .0001911047   .0001937011   .0002594727   .0004064132   .0000344112   .0001894529   .0001765484   .0001302513
+  1 |  .0002397674   .0016398253   .0001372817   .0004901182   .0001104023   .0000748452   .0000137805   .0001324053    .000043787   .0000989433
     +---------------------------------------------------------------------------------------------------------------------------------------------
                 11            12            13
      -------------------------------------------+
-  1    .0000649035   8.09450e-06   .0000813915  |
+  1    .0000601015   .0000577219   .0004629476  |
      -------------------------------------------+
   
   
@@ -3550,7 +4364,34 @@ Iteration 35:  f(p) =  8.951e-07
   
   
 
-:     
+: 
+:   MW.prognosticdiff()
+                       1                   2                   3                   4
+    +---------------------------------------------------------------------------------+
+  1 |     Dependent var.   mean of y_hat (T)   mean of y_hat (C)    prognosticdiff()  |
+  2 |                 y1             3448.29            3459.434           -11.14415  |
+  3 |          y1_binary              .95075            .9627243           -.0119743  |
+    +---------------------------------------------------------------------------------+
+                  1              2
+    +-------------------------------+
+  1 |  -11.14415063    -.011974287  |
+    +-------------------------------+
+
+:   MW.reweight(cbpsweight)
+
+:   MW.prognosticdiff()
+                       1                   2                   3                   4
+    +---------------------------------------------------------------------------------+
+  1 |     Dependent var.   mean of y_hat (T)   mean of y_hat (C)    prognosticdiff()  |
+  2 |                 y1            3431.367            3431.444           -.0769451  |
+  3 |          y1_binary            .9509095            .9509224           -.0000129  |
+    +---------------------------------------------------------------------------------+
+                  1              2
+    +-------------------------------+
+  1 |  -.0769451086   -.0000129265  |
+    +-------------------------------+
+
+:   
 : // IPW
 : 
 :   stata("teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' [iw=`wgtvar'], atet aequations")
@@ -3745,7 +4586,7 @@ Iteration 5:   f(p) = -411.19865
               x95 |  -.0155155    .0398234      .8285405   .8815991
   -----------------------------------------------------------------
 
-:   DW.multweight(ipw)
+:   DW.reweight(ipw)
 
 :   table = DW.balancetable(3)
                  1            2            3            4            5            6            7
@@ -3809,7 +4650,7 @@ TME1                    |
                   _cons |    1.24872   .6712769     1.86   0.063    -.0669587    2.564399
 -----------------------------------------------------------------------------------------
 
-:   DW.multweight()
+:   DW.reweight()
 
 :   ipw = DW.ipw("ate")
 initial:       f(p) = -681.05307
@@ -3832,6 +4673,725 @@ Iteration 5:   f(p) = -411.19865
      -------------------------------------------------------------+
 
 : 
+: // tradeoff between CBPS-like balance and variance in weights
+: 
+:   mata drop MW
+
+:   MW = gmatch()
+
+:   MW.clone(DW)
+
+:   
+:   cbpsweight = MW.cbps("atet","cbps", 1, 0)
+  Step 1 (initial values from logit model):
+initial:       f(p) = -681.05307
+alternative:   f(p) =  -555.8915
+rescale:       f(p) = -485.05844
+Iteration 0:   f(p) = -485.05844  
+Iteration 1:   f(p) = -436.04895  
+Iteration 2:   f(p) = -411.28759  
+Iteration 3:   f(p) = -411.19869  
+Iteration 4:   f(p) = -411.19865  
+  
+  Step 2 (CBPS) :
+(setting technique to bfgs)
+Iteration 0:   f(p) =  .00001735  
+Iteration 1:   f(p) =  6.450e-06  
+Iteration 2:   f(p) =  5.892e-06  
+Iteration 3:   f(p) =  5.889e-06  
+Iteration 4:   f(p) =  5.889e-06  
+Iteration 5:   f(p) =  5.884e-06  
+Iteration 6:   f(p) =  5.782e-06  
+Iteration 7:   f(p) =  1.662e-06  
+Iteration 8:   f(p) =  1.352e-06  
+Iteration 9:   f(p) =  1.347e-06  
+Iteration 10:  f(p) =  1.347e-06  
+Iteration 11:  f(p) =  1.347e-06  
+(switching technique to nr)
+Iteration 12:  f(p) =  1.337e-06  (not concave)
+Iteration 13:  f(p) =  8.478e-08  
+Iteration 14:  f(p) =  1.602e-08  
+Iteration 15:  f(p) =  7.712e-10  
+Iteration 16:  f(p) =  5.651e-13  
+Iteration 17:  f(p) =  5.938e-20  
+Iteration 18:  f(p) =  8.653e-26  
+  optimize_result_iterations(S)
+  19
+  CBPS beta after undoing the normalization
+                1           2
+     +-------------------------+
+   1 |         x1   -1.447047  |
+   2 |       1.x2   -1.546891  |
+   3 |       1.x3   -.4710623  |
+   4 |         x4   -.3822539  |
+   5 |         x5    .0635824  |
+   6 |         x6    -.243227  |
+   7 |         x7    .0477027  |
+   8 |        x90    .1334992  |
+   9 |        x91   -.1336117  |
+  10 |        x92    .1522937  |
+  11 |        x93    .0757732  |
+  12 |        x94   -.1016171  |
+  13 |        x95   -.0383391  |
+  14 |      _cons    .6265763  |
+     +-------------------------+
+  Weights for first 10 observations:
+                 1             2             3             4             5             6             7             8             9            10
+    +---------------------------------------------------------------------------------------------------------------------------------------------+
+  1 |  .4737920689   2.405738599   .5345336261   .4592314503   .2387116236   2.248410136   .9587650606   .8076241521   .4960818726   .6846179686  |
+    +---------------------------------------------------------------------------------------------------------------------------------------------+
+  Weights for first 10 observations / N:
+                 1             2             3             4             5             6             7             8             9            10
+    +---------------------------------------------------------------------------------------------------------------------------------------------+
+  1 |  .0005904839   .0029982559   .0006661857   .0005723371   .0002975047   .0028021785   .0011949025   .0010065366   .0006182635   .0008532348  |
+    +---------------------------------------------------------------------------------------------------------------------------------------------+
+  Balance after CBPS (cbps_port_r):
+  optimize_result_value(S)
+  8.65286e-26
+  balance table after matching (cbps_port_r):
+                 1            2            3            4            5            6            7
+     +--------------------------------------------------------------------------------------------+
+   1 |    Variable     mean (T)     mean (C)       diff()    stddiff()       sd (T)   varratio()  |
+   2 |          x1     .4512231     .4512231     2.63e-12     5.26e-12     .4990018     1.004328  |
+   3 |        1.x2     .0114039     .0114039     2.63e-13     2.47e-12     .1064741     1.004328  |
+   4 |        1.x3     .0240637     .0240637     3.94e-13     2.57e-12     .1536741     1.004328  |
+   5 |          x4     .4218861     .4218861     7.43e-13     1.50e-12     .4952368     1.004328  |
+   6 |          x5     25.44699     25.44699     1.28e-11     2.36e-12     5.422129     .6144662  |
+   7 |          x6     11.84757     11.84757     1.34e-11     8.13e-12     1.641931     .5982513  |
+   8 |          x7     7.015422     7.015422    -1.00e-11    -2.82e-12     3.555432     1.161761  |
+   9 |         x90     .0839738     .0839738    -1.05e-14    -1.09e-14     .9597153     .8505325  |
+  10 |         x91    -.0648837    -.0648837     3.35e-12     3.57e-12       .93861     .9922891  |
+  11 |         x92     .0575388     .0575388    -1.11e-12    -1.07e-12      1.03554     1.118263  |
+  12 |         x93     .1016523     .1016523    -1.98e-12    -2.09e-12     .9463749     1.012572  |
+  13 |         x94    -.1252265    -.1252265     1.63e-12     1.78e-12     .9147554     .7576623  |
+  14 |         x95    -.1044649    -.1044649     6.17e-13     6.80e-13     .9069849     .8646431  |
+     +--------------------------------------------------------------------------------------------+
+  entropydistance of control weights (cbps_port_r):
+  2876.289278
+  cv of matching weights (cbps_port_r):
+  1.031924564
+  sd of matching weights (cbps_port_r):
+  1.02710789
+  skewness of matching weights (cbps_port_r):
+  .1135011509
+  kurtosis of matching weights (cbps_port_r):
+  .0229206639
+  M.mean_sd_sq(denominator)
+  2.95033e-24
+  M.mean_asd(denominator)
+  2.63972e-12
+  M.max_asd(denominator)
+  8.13242e-12
+  M.sd_sq(denominator)
+                 1             2             3             4             5             6             7             8             9            10
+    +---------------------------------------------------------------------------------------------------------------------------------------------
+  1 |  2.77129e-23   6.07999e-24   6.58746e-24   2.25232e-24   5.57017e-24   6.61363e-23   7.94870e-24   1.19509e-28   1.27311e-23   1.14330e-24
+    +---------------------------------------------------------------------------------------------------------------------------------------------
+                11            12            13
+     -------------------------------------------+
+  1    4.38458e-24   3.18620e-24   4.62223e-25  |
+     -------------------------------------------+
+  M.asd(denominator)
+                 1             2             3             4             5             6             7             8             9            10
+    +---------------------------------------------------------------------------------------------------------------------------------------------
+  1 |  5.26431e-12   2.46576e-12   2.56660e-12   1.50077e-12   2.36012e-12   8.13242e-12   2.81934e-12   1.09320e-14   3.56807e-12   1.06925e-12
+    +---------------------------------------------------------------------------------------------------------------------------------------------
+                11            12            13
+     -------------------------------------------+
+  1    2.09394e-12   1.78499e-12   6.79870e-13  |
+     -------------------------------------------+
+  
+  
+  
+  
+  
+  
+  
+
+:   cbpsweight = MW.cbps("atet","cbps", 1, 0, (1,.75,6))
+Warning: cvopt does not appear to substantially affect the reults with fctn=cbps. Consider switching to fctn=sd_sq or mean_sd_sq
+  Step 1 (initial values from logit model):
+initial:       f(p) = -681.05307
+alternative:   f(p) =  -555.8915
+rescale:       f(p) = -485.05844
+Iteration 0:   f(p) = -485.05844  
+Iteration 1:   f(p) = -436.04895  
+Iteration 2:   f(p) = -411.28759  
+Iteration 3:   f(p) = -411.19869  
+Iteration 4:   f(p) = -411.19865  
+  
+  Step 2 (CBPS) :
+(setting technique to bfgs)
+Iteration 0:   f(p) =  .17799586  
+Iteration 1:   f(p) =  .17799428  (backed up)
+Iteration 2:   f(p) =  .17798375  
+Iteration 3:   f(p) =  .17798365  
+Iteration 4:   f(p) =  .17798365  
+Iteration 5:   f(p) =  .17798364  
+Iteration 6:   f(p) =  .17798171  
+Iteration 7:   f(p) =     .17798  
+Iteration 8:   f(p) =  .17797995  
+Iteration 9:   f(p) =  .17797995  
+Iteration 10:  f(p) =  .17797995  
+Iteration 11:  f(p) =  .17797995  
+(switching technique to nr)
+Iteration 12:  f(p) =  .17797989  
+Iteration 13:  f(p) =  .17797853  
+Iteration 14:  f(p) =  .17797852  
+Iteration 15:  f(p) =  .17797852  
+Iteration 16:  f(p) =  .17797852  (backed up)
+  optimize_result_iterations(S)
+  17
+  CBPS beta after undoing the normalization
+                1           2
+     +-------------------------+
+   1 |         x1    -1.44703  |
+   2 |       1.x2   -1.546957  |
+   3 |       1.x3   -.4711251  |
+   4 |         x4   -.3822612  |
+   5 |         x5     .063581  |
+   6 |         x6   -.2432253  |
+   7 |         x7     .047703  |
+   8 |        x90     .133496  |
+   9 |        x91   -.1336043  |
+  10 |        x92    .1522877  |
+  11 |        x93    .0757711  |
+  12 |        x94   -.1016181  |
+  13 |        x95   -.0383358  |
+  14 |      _cons    .6265859  |
+     +-------------------------+
+  Weights for first 10 observations:
+                 1             2             3             4             5             6             7             8             9            10
+    +---------------------------------------------------------------------------------------------------------------------------------------------+
+  1 |  .4738050002   2.405600695   .5345100744   .4592383379   .2387162368   2.248390313   .9587736243   .8076139299    .496084208   .6846266491  |
+    +---------------------------------------------------------------------------------------------------------------------------------------------+
+  Weights for first 10 observations / N:
+                 1             2             3             4             5             6             7             8             9            10
+    +---------------------------------------------------------------------------------------------------------------------------------------------+
+  1 |     .0005905    .002998084   .0006661563   .0005723457   .0002975104   .0028021538   .0011949131   .0010065238   .0006182664   .0008532456  |
+    +---------------------------------------------------------------------------------------------------------------------------------------------+
+  Balance after CBPS (cbps_port_r):
+  optimize_result_value(S)
+  .1779785156
+  balance table after matching (cbps_port_r):
+                 1            2            3            4            5            6            7
+     +--------------------------------------------------------------------------------------------+
+   1 |    Variable     mean (T)     mean (C)       diff()    stddiff()       sd (T)   varratio()  |
+   2 |          x1     .4512231     .4512254    -2.28e-06    -4.57e-06     .4990018     1.004327  |
+   3 |        1.x2     .0114039     .0114028     1.10e-06     .0000103     .1064741     1.004424  |
+   4 |        1.x3     .0240637     .0240619     1.83e-06     .0000119     .1536741     1.004402  |
+   5 |          x4     .4218861     .4218858     3.47e-07     7.00e-07     .4952368     1.004328  |
+   6 |          x5     25.44699     25.44699    -7.28e-08    -1.34e-08     5.422129     .6144678  |
+   7 |          x6     11.84757     11.84758    -7.96e-06    -4.85e-06     1.641931     .5982507  |
+   8 |          x7     7.015422      7.01543    -8.81e-06    -2.48e-06     3.555432      1.16176  |
+   9 |         x90     .0839738     .0839704     3.43e-06     3.58e-06     .9597153     .8505319  |
+  10 |         x91    -.0648837    -.0648782    -5.53e-06    -5.89e-06       .93861     .9922873  |
+  11 |         x92     .0575388     .0575326     6.12e-06     5.91e-06      1.03554     1.118264  |
+  12 |         x93     .1016523     .1016513     1.04e-06     1.10e-06     .9463749     1.012569  |
+  13 |         x94    -.1252265    -.1252272     7.45e-07     8.14e-07     .9147554     .7576633  |
+  14 |         x95    -.1044649    -.1044615    -3.48e-06    -3.84e-06     .9069849     .8646435  |
+     +--------------------------------------------------------------------------------------------+
+  entropydistance of control weights (cbps_port_r):
+  2876.287329
+  cv of matching weights (cbps_port_r):
+  1.031917533
+  sd of matching weights (cbps_port_r):
+  1.027100831
+  skewness of matching weights (cbps_port_r):
+  .1135002103
+  kurtosis of matching weights (cbps_port_r):
+  .0229202661
+  M.mean_sd_sq(denominator)
+  9.46598e-13
+  M.mean_asd(denominator)
+  4.30250e-06
+  M.max_asd(denominator)
+  .0000118814
+  M.sd_sq(denominator)
+                 1             2             3             4             5             6             7             8             9            10
+    +---------------------------------------------------------------------------------------------------------------------------------------------
+  1 |  2.08691e-11   1.06353e-10   1.41168e-10   4.89885e-13   1.80097e-16   2.35108e-11   6.14555e-12   1.27969e-11   3.47173e-11   3.48841e-11
+    +---------------------------------------------------------------------------------------------------------------------------------------------
+                11            12            13
+     -------------------------------------------+
+  1    1.20687e-12   6.62804e-13   1.47497e-11  |
+     -------------------------------------------+
+  M.asd(denominator)
+                 1             2             3             4             5             6             7             8             9            10
+    +---------------------------------------------------------------------------------------------------------------------------------------------
+  1 |  4.56828e-06   .0000103127   .0000118814   6.99918e-07   1.34200e-08   4.84880e-06   2.47902e-06   3.57727e-06   5.89214e-06   5.90627e-06
+    +---------------------------------------------------------------------------------------------------------------------------------------------
+                11            12            13
+     -------------------------------------------+
+  1    1.09857e-06   8.14128e-07   3.84053e-06  |
+     -------------------------------------------+
+  
+  
+  
+  
+  
+  
+  
+
+:   cbpsweight = MW.cbps("atet","cbps", 1, 0, (1,.50,6))
+Warning: cvopt does not appear to substantially affect the reults with fctn=cbps. Consider switching to fctn=sd_sq or mean_sd_sq
+  Step 1 (initial values from logit model):
+initial:       f(p) = -681.05307
+alternative:   f(p) =  -555.8915
+rescale:       f(p) = -485.05844
+Iteration 0:   f(p) = -485.05844  
+Iteration 1:   f(p) = -436.04895  
+Iteration 2:   f(p) = -411.28759  
+Iteration 3:   f(p) = -411.19869  
+Iteration 4:   f(p) = -411.19865  
+  
+  Step 2 (CBPS) :
+(setting technique to bfgs)
+Iteration 0:   f(p) =  .01564235  
+Iteration 1:   f(p) =  .01563174  
+Iteration 2:   f(p) =  .01563166  
+Iteration 3:   f(p) =  .01563166  
+Iteration 4:   f(p) =  .01563166  
+Iteration 5:   f(p) =  .01563163  
+Iteration 6:   f(p) =  .01563123  
+Iteration 7:   f(p) =  .01562716  
+Iteration 8:   f(p) =  .01562646  
+Iteration 9:   f(p) =  .01562645  
+Iteration 10:  f(p) =  .01562645  
+Iteration 11:  f(p) =  .01562645  
+(switching technique to nr)
+Iteration 12:  f(p) =  .01562645  
+Iteration 13:  f(p) =  .01562501  
+Iteration 14:  f(p) =    .015625  
+Iteration 15:  f(p) =    .015625  
+Iteration 16:  f(p) =    .015625  
+  optimize_result_iterations(S)
+  17
+  CBPS beta after undoing the normalization
+                1           2
+     +-------------------------+
+   1 |         x1   -1.447046  |
+   2 |       1.x2   -1.546894  |
+   3 |       1.x3   -.4710656  |
+   4 |         x4   -.3822545  |
+   5 |         x5    .0635823  |
+   6 |         x6   -.2432271  |
+   7 |         x7    .0477027  |
+   8 |        x90    .1334992  |
+   9 |        x91   -.1336111  |
+  10 |        x92    .1522936  |
+  11 |        x93    .0757731  |
+  12 |        x94   -.1016171  |
+  13 |        x95   -.0383388  |
+  14 |      _cons     .626579  |
+     +-------------------------+
+  Weights for first 10 observations:
+                 1             2             3             4             5             6             7             8             9            10
+    +---------------------------------------------------------------------------------------------------------------------------------------------+
+  1 |  .4737927857   2.405733079   .5345326114   .4592319301   .2387120075   2.248407095    .958765376   .8076237869   .4960823893   .6846178153  |
+    +---------------------------------------------------------------------------------------------------------------------------------------------+
+  Weights for first 10 observations / N:
+                 1             2             3             4             5             6             7             8             9            10
+    +---------------------------------------------------------------------------------------------------------------------------------------------+
+  1 |  .0005904848    .002998249   .0006661844   .0005723377   .0002975052   .0028021747   .0011949029   .0010065361   .0006182642   .0008532346  |
+    +---------------------------------------------------------------------------------------------------------------------------------------------+
+  Balance after CBPS (cbps_port_r):
+  optimize_result_value(S)
+  .015625
+  balance table after matching (cbps_port_r):
+                 1            2            3            4            5            6            7
+     +--------------------------------------------------------------------------------------------+
+   1 |    Variable     mean (T)     mean (C)       diff()    stddiff()       sd (T)   varratio()  |
+   2 |          x1     .4512231     .4512233    -1.29e-07    -2.59e-07     .4990018     1.004328  |
+   3 |        1.x2     .0114039     .0114038     5.58e-08     5.24e-07     .1064741     1.004333  |
+   4 |        1.x3     .0240637     .0240636     8.93e-08     5.81e-07     .1536741     1.004332  |
+   5 |          x4     .4218861     .4218861     2.19e-08     4.43e-08     .4952368     1.004328  |
+   6 |          x5     25.44699     25.44698     1.14e-06     2.10e-07     5.422129     .6144663  |
+   7 |          x6     11.84757     11.84757     1.01e-07     6.13e-08     1.641931     .5982513  |
+   8 |          x7     7.015422     7.015422    -2.88e-07    -8.09e-08     3.555432     1.161761  |
+   9 |         x90     .0839738     .0839738     5.56e-08     5.79e-08     .9597153     .8505324  |
+  10 |         x91    -.0648837    -.0648833    -3.76e-07    -4.01e-07       .93861     .9922889  |
+  11 |         x92     .0575388     .0575386     1.37e-07     1.33e-07      1.03554     1.118263  |
+  12 |         x93     .1016523     .1016523     5.48e-08     5.79e-08     .9463749     1.012572  |
+  13 |         x94    -.1252265    -.1252265     1.98e-08     2.17e-08     .9147554     .7576623  |
+  14 |         x95    -.1044649    -.1044647    -2.85e-07    -3.14e-07     .9069849     .8646431  |
+     +--------------------------------------------------------------------------------------------+
+  entropydistance of control weights (cbps_port_r):
+  2876.28917
+  cv of matching weights (cbps_port_r):
+  1.031924268
+  sd of matching weights (cbps_port_r):
+  1.027107584
+  skewness of matching weights (cbps_port_r):
+  .1135011307
+  kurtosis of matching weights (cbps_port_r):
+  .0229206584
+  M.mean_sd_sq(denominator)
+  2.39664e-15
+  M.mean_asd(denominator)
+  2.11202e-07
+  M.max_asd(denominator)
+  5.80789e-07
+  M.sd_sq(denominator)
+                 1             2             3             4             5             6             7             8             9            10
+    +---------------------------------------------------------------------------------------------------------------------------------------------
+  1 |  6.68309e-14   2.75098e-13   3.37316e-13   1.95836e-15   4.41547e-14   3.75482e-15   6.54674e-15   3.35781e-15   1.60623e-13   1.75678e-14
+    +---------------------------------------------------------------------------------------------------------------------------------------------
+                11            12            13
+     -------------------------------------------+
+  1    3.35256e-15   4.70333e-16   9.88455e-14  |
+     -------------------------------------------+
+  M.asd(denominator)
+                 1             2             3             4             5             6             7             8             9            10
+    +---------------------------------------------------------------------------------------------------------------------------------------------
+  1 |  2.58517e-07   5.24498e-07   5.80789e-07   4.42534e-08   2.10130e-07   6.12766e-08   8.09119e-08   5.79467e-08   4.00778e-07   1.32543e-07
+    +---------------------------------------------------------------------------------------------------------------------------------------------
+                11            12            13
+     -------------------------------------------+
+  1    5.79013e-08   2.16872e-08   3.14397e-07  |
+     -------------------------------------------+
+  
+  
+  
+  
+  
+  
+  
+
+:   
+:   cbpsweight = MW.cbps("atet","mean_sd_sq", 1, 0, (1,.75,6))
+  Step 1 (initial values from logit model):
+initial:       f(p) = -681.05307
+alternative:   f(p) =  -555.8915
+rescale:       f(p) = -485.05844
+Iteration 0:   f(p) = -485.05844  
+Iteration 1:   f(p) = -436.32795  
+Iteration 2:   f(p) = -411.29045  
+Iteration 3:   f(p) = -411.19869  
+Iteration 4:   f(p) = -411.19865  
+Iteration 5:   f(p) = -411.19865  
+  
+  Step 2 (CBPS) :
+numerical derivatives are approximate
+flat or discontinuous region encountered
+(setting technique to bfgs)
+Iteration 0:   f(p) =  .00118407  
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 1:   f(p) =  .00047827  
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 2:   f(p) =  .00006974  
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 3:   f(p) =  .00004509  
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 4:   f(p) =  9.893e-06  
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 5:   f(p) =  2.962e-06  
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 6:   f(p) =  1.695e-06  
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 7:   f(p) =  6.546e-07  
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 8:   f(p) =  2.889e-07  
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 9:   f(p) =  1.307e-07  
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 10:  f(p) =  8.558e-08  
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 11:  f(p) =  7.610e-08  
+  optimize_result_iterations(S)
+  12
+  CBPS beta
+                1           2
+     +-------------------------+
+   1 |         x1   -1.255753  |
+   2 |       1.x2   -1.628901  |
+   3 |       1.x3   -.4503974  |
+   4 |         x4   -.3346771  |
+   5 |         x5    .0070273  |
+   6 |         x6   -.0775803  |
+   7 |         x7   -.0178256  |
+   8 |        x90    .0982705  |
+   9 |        x91   -.1024415  |
+  10 |        x92     .114491  |
+  11 |        x93    .0410172  |
+  12 |        x94   -.1023475  |
+  13 |        x95   -.0263129  |
+  14 |      _cons    1.256348  |
+     +-------------------------+
+  Weights for first 10 observations:
+                 1             2             3             4             5             6             7             8             9            10
+    +---------------------------------------------------------------------------------------------------------------------------------------------+
+  1 |  .5554998467   2.051933755   .5667054499   .6903363575   .4650460412    2.20598965   .6594662351   .8599826842     .68671065   .6264822664  |
+    +---------------------------------------------------------------------------------------------------------------------------------------------+
+  Weights for first 10 observations / N:
+                 1             2             3             4             5             6             7             8             9            10
+    +---------------------------------------------------------------------------------------------------------------------------------------------+
+  1 |  .0006923157   .0025573113   .0007062812   .0008603616   .0005795838   .0027493101   .0008218884   .0010717907   .0008558429   .0007807807  |
+    +---------------------------------------------------------------------------------------------------------------------------------------------+
+  Balance after CBPS (mean_sd_sq):
+  optimize_result_value(S)
+  7.60975e-08
+  balance table after matching (mean_sd_sq):
+                 1            2            3            4            5            6            7
+     +--------------------------------------------------------------------------------------------+
+   1 |    Variable     mean (T)     mean (C)       diff()    stddiff()       sd (T)   varratio()  |
+   2 |          x1     .4512231      .457953    -.0067298    -.0134866     .4990018     1.001855  |
+   3 |        1.x2     .0114039      .009755     .0016489     .0154863     .1064741     1.172135  |
+   4 |        1.x3     .0240637     .0216688      .002395     .0155846     .1536741     1.112602  |
+   5 |          x4     .4218861     .4825009    -.0606148    -.1223957     .4952368     .9810168  |
+   6 |          x5     25.44699     24.45723     .9897571     .1825403     5.422129     .7465604  |
+   7 |          x6     11.84757      12.2595    -.4119275      -.25088     1.641931     .5550162  |
+   8 |          x7     7.015422     6.363199      .652223     .1834441     3.555432     1.144074  |
+   9 |         x90     .0839738     .1069147    -.0229409    -.0239039     .9597153     .8365983  |
+  10 |         x91    -.0648837    -.0681262     .0032425     .0034546       .93861     .9534483  |
+  11 |         x92     .0575388     .0729413    -.0154025    -.0148739      1.03554     1.090563  |
+  12 |         x93     .1016523     .0768846     .0247677     .0261712     .9463749     1.002152  |
+  13 |         x94    -.1252265    -.1318526     .0066261     .0072436     .9147554     .8085824  |
+  14 |         x95    -.1044649    -.0957594    -.0087055    -.0095983     .9069849     .8538529  |
+     +--------------------------------------------------------------------------------------------+
+  entropydistance of control weights (mean_sd_sq):
+  2815.792812
+  cv of matching weights (mean_sd_sq):
+  .8137908636
+  sd of matching weights (mean_sd_sq):
+  .8087486412
+  skewness of matching weights (mean_sd_sq):
+  .0900538996
+  kurtosis of matching weights (mean_sd_sq):
+  .0148661301
+  M.mean_sd_sq(denominator)
+  8.71442e-09
+  M.mean_asd(denominator)
+  .0668509993
+  M.max_asd(denominator)
+  .2508799649
+  M.sd_sq(denominator)
+                 1             2             3             4             5             6             7             8             9            10
+    +---------------------------------------------------------------------------------------------------------------------------------------------
+  1 |   .000181888   .0002398261   .0002428805   .0149807008   .0333209693   .0629407568   .0336517411   .0005713944   .0000119342   .0002212323
+    +---------------------------------------------------------------------------------------------------------------------------------------------
+                11            12            13
+     -------------------------------------------+
+  1    .0006849294   .0000524696   .0000921277  |
+     -------------------------------------------+
+  M.asd(denominator)
+                 1             2             3             4             5             6             7             8             9            10
+    +---------------------------------------------------------------------------------------------------------------------------------------------
+  1 |  .0134865862   .0154863206   .0155846245   .1223956731   .1825403224   .2508799649    .183444109   .0239038566   .0034545894   .0148738783
+    +---------------------------------------------------------------------------------------------------------------------------------------------
+                11            12            13
+     -------------------------------------------+
+  1    .0261711568   .0072435907   .0095983181  |
+     -------------------------------------------+
+  
+  
+  
+  
+  
+  
+  
+
+:   cbpsweight = MW.cbps("atet","mean_sd_sq", 1, 0, (1,.50,6))
+  Step 1 (initial values from logit model):
+initial:       f(p) = -681.05307
+alternative:   f(p) =  -555.8915
+rescale:       f(p) = -485.05844
+Iteration 0:   f(p) = -485.05844  
+Iteration 1:   f(p) = -436.32795  
+Iteration 2:   f(p) = -411.29045  
+Iteration 3:   f(p) = -411.19869  
+Iteration 4:   f(p) = -411.19865  
+Iteration 5:   f(p) = -411.19865  
+  
+  Step 2 (CBPS) :
+numerical derivatives are approximate
+flat or discontinuous region encountered
+(setting technique to bfgs)
+Iteration 0:   f(p) =  .03174366  
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 1:   f(p) =  .01880683  
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 2:   f(p) =  .01499079  
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 3:   f(p) =  .00460016  
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 4:   f(p) =  .00088681  
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 5:   f(p) =  .00069868  
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 6:   f(p) =  .00016284  
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 7:   f(p) =  .00008031  
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 8:   f(p) =  .00004972  
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 9:   f(p) =  .00003906  
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 10:  f(p) =  .00003723  
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 11:  f(p) =  .00002755  
+(switching technique to nr)
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 12:  f(p) =  .00001175  (not concave)
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 13:  f(p) =  9.832e-06  (not concave)
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 14:  f(p) =  5.783e-06  (not concave)
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 15:  f(p) =  5.150e-06  (not concave)
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 16:  f(p) =  4.504e-06  (not concave)
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 17:  f(p) =  3.517e-06  (not concave)
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 18:  f(p) =  3.214e-06  (not concave)
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 19:  f(p) =  2.933e-06  (not concave)
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 20:  f(p) =  2.837e-06  (not concave)
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 21:  f(p) =  2.310e-06  (not concave)
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 22:  f(p) =  2.097e-06  (not concave)
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 23:  f(p) =  9.961e-07  (not concave)
+(switching technique to bfgs)
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 24:  f(p) =  8.701e-07  
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 25:  f(p) =  8.661e-07  
+  optimize_result_iterations(S)
+  26
+  CBPS beta
+                1           2
+     +-------------------------+
+   1 |         x1   -.9690922  |
+   2 |       1.x2   -1.704319  |
+   3 |       1.x3   -.4959917  |
+   4 |         x4   -.2589244  |
+   5 |         x5    .0106514  |
+   6 |         x6   -.0301908  |
+   7 |         x7   -.0501008  |
+   8 |        x90   -.0363644  |
+   9 |        x91   -.1071162  |
+  10 |        x92   -.1057992  |
+  11 |        x93   -.0909857  |
+  12 |        x94   -.0565093  |
+  13 |        x95   -.1379859  |
+  14 |      _cons     1.27396  |
+     +-------------------------+
+  Weights for first 10 observations:
+                 1             2             3             4             5             6             7             8             9            10
+    +---------------------------------------------------------------------------------------------------------------------------------------------+
+  1 |  .6279189255   .9795285332   .8364105576   1.093736958   .5475453615   2.457535595   .8016916939   .6612969756   .5204676308   .8100635395  |
+    +---------------------------------------------------------------------------------------------------------------------------------------------+
+  Weights for first 10 observations / N:
+                 1             2             3             4             5             6             7             8             9            10
+    +---------------------------------------------------------------------------------------------------------------------------------------------+
+  1 |  .0007825712   .0012207799   .0010424129    .001363117   .0006824021   .0030628102    .000999143     .00082417   .0006486553   .0010095768  |
+    +---------------------------------------------------------------------------------------------------------------------------------------------+
+  Balance after CBPS (mean_sd_sq):
+  optimize_result_value(S)
+  8.66061e-07
+  balance table after matching (mean_sd_sq):
+                 1            2            3            4            5            6            7
+     +--------------------------------------------------------------------------------------------+
+   1 |    Variable     mean (T)     mean (C)       diff()    stddiff()       sd (T)   varratio()  |
+   2 |          x1     .4512231     .5605247    -.1093015    -.2190404     .4990018     1.009563  |
+   3 |        1.x2     .0114039     .0082293     .0031746     .0298158     .1064741     1.387313  |
+   4 |        1.x3     .0240637     .0201238       .00394     .0256384     .1536741     1.196133  |
+   5 |          x4     .4218861     .4853435    -.0634574    -.1281355     .4952368     .9806578  |
+   6 |          x5     25.44699     25.38972     .0572613     .0105607     5.422129      .752994  |
+   7 |          x6     11.84757     12.58987    -.7422999    -.4520897     1.641931      .527518  |
+   8 |          x7     7.015422     6.151162     .8642601     .2430816     3.555432     1.128012  |
+   9 |         x90     .0839738     -.040307     .1242808     .1294976     .9597153     .8622194  |
+  10 |         x91    -.0648837    -.0791887      .014305     .0152406       .93861     .9586889  |
+  11 |         x92     .0575388    -.1120972     .1696359     .1638139      1.03554     1.079439  |
+  12 |         x93     .1016523    -.0289827      .130635     .1380372     .9463749     .9216689  |
+  13 |         x94    -.1252265    -.0852702    -.0399563    -.0436797     .9147554     .8107032  |
+  14 |         x95    -.1044649    -.1828354     .0783704     .0864076     .9069849     .8468416  |
+     +--------------------------------------------------------------------------------------------+
+  entropydistance of control weights (mean_sd_sq):
+  2790.12915
+  cv of matching weights (mean_sd_sq):
+  .5975509931
+  sd of matching weights (mean_sd_sq):
+  .5973291805
+  skewness of matching weights (mean_sd_sq):
+  .0805389686
+  kurtosis of matching weights (mean_sd_sq):
+  .0148835008
+  M.mean_sd_sq(denominator)
+  4.29337e-09
+  M.mean_asd(denominator)
+  .1296183578
+  M.max_asd(denominator)
+  .452089668
+  M.sd_sq(denominator)
+                 1             2             3             4             5             6             7             8             9            10
+    +---------------------------------------------------------------------------------------------------------------------------------------------
+  1 |  .0479786765   .0008889799   .0006573274   .0164187008   .0001115276   .2043850679   .0590886666   .0167696207   .0002322767   .0268349951
+    +---------------------------------------------------------------------------------------------------------------------------------------------
+                11            12            13
+     -------------------------------------------+
+  1    .0190542802   .0019079189   .0074662815  |
+     -------------------------------------------+
+  M.asd(denominator)
+                 1             2             3             4             5             6             7             8             9            10
+    +---------------------------------------------------------------------------------------------------------------------------------------------
+  1 |  .2190403537   .0298157666   .0256383961   .1281354781   .0105606621    .452089668   .2430816048   .1294975703   .0152406279   .1638139037
+    +---------------------------------------------------------------------------------------------------------------------------------------------
+                11            12            13
+     -------------------------------------------+
+  1    .1380372421    .043679731   .0864076474  |
+     -------------------------------------------+
+  
+  
+  
+  
+  
+  
+  
+
+:    
+:   
+: 
 : end  // end of Mata block
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -3840,5 +5400,5 @@ Iteration 5:   f(p) = -411.19865
       name:  gmatch_example
        log:  C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\gmatch_example.log
   log type:  text
- closed on:  12 Feb 2018, 20:47:12
+ closed on:  13 Feb 2018, 00:00:04
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
