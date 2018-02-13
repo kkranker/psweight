@@ -10,7 +10,7 @@ class gmatch
   private:
     real colvector   T, W, sel1, sel0, Y0, W_orig
     real matrix      X, XC, Xstd
-    string scalar    treatvar, depvars, wgtvar, constvar
+    string scalar    treatvar, depvars, wgtvar
     string rowvector varlist
     real rowvector   means1, means0, meansP, variances0, variances1, variancesP, variancesA
     real matrix      covariances0, covariances1, covariancesP, covariancesA
@@ -55,7 +55,6 @@ void gmatch::clone(class gmatch scalar src)
   this.X        = src.X
   this.XC       = src.XC
   this.Y0       = src.Y0
-  this.constvar = src.constvar
   this.depvars  = src.depvars
   this.sel0     = src.sel0
   this.sel1     = src.sel1
@@ -64,27 +63,23 @@ void gmatch::clone(class gmatch scalar src)
   this.wgtvar   = src.wgtvar
 }
 
-void gmatch::set(string scalar treatvar, string scalar varlist, string scalar constvar, string scalar tousevar, | string scalar wgtvar)
+void gmatch::set(string scalar treatvar, string scalar varlist, string scalar tousevar, | string scalar wgtvar)
 {
   // Define treatment dummy
-  this.T=this.X=this.XC=this.W=.
+  this.T=this.X=this.W=.
   this.treatvar = treatvar
   st_view(this.T, ., treatvar, tousevar)
   // /* */  "T is " + strofreal(rows(this.T)) + " by " + strofreal(cols(this.T))
 
   // Define covariates
-  this.constvar = constvar
   this.varlist  = tokens(varlist)
-  st_view(this.XC, .,   (this.varlist, this.constvar), tousevar)
   st_view(this.X , .,    this.varlist                , tousevar)
-  // this makes Stata crash; see my post at https://www.statalist.org/forums/forum/general-stata-discussion/mata/1429795 */   
-  //   st_subview(this.X , this.XC, ., 1\(cols(this.XC)-1))
   /* */  "X contains" ; this.varlist
   /* */  "X is " + strofreal(rows(this.X)) + " by " + strofreal(cols(this.X))
 
   // Define weights
   // This code assumes weights are **already** normalized. Here's code to normalize: this.W = this.W :/ (rows(this.W) / quadcolsum(this.W))
-  if (args()>4) {
+  if (args()>=4) {
     this.wgtvar = wgtvar
     st_view(this.W_orig, ., this.wgtvar, tousevar) // an extra copy of the weight variable that can only be set via this function. Useful for reweighting/matching situations.
     this.W = this.W_orig // W_orig is a view, but W is not
@@ -348,7 +343,7 @@ real rowvector gmatch::prognosticdiff()
   progdiff = yhat_bar_1 :- yhat_bar_0
 
   // print to screen with labels
-  (("Dependent var." \ depvars'), 
+  (("Dependent var." \ depvars'),
   (( "mean of y_hat (T)", "mean of y_hat (C)","prognosticdiff()")
     \ strofreal((yhat_bar_1', yhat_bar_0', progdiff'))))
 
@@ -514,18 +509,32 @@ void logit_eval(transmorphic S, real rowvector beta, real colvector lnf)
 //    fctn corresponds to the balance measure
 //        "mean_sd_sq" minimizes the mean standardized difference squared
 //    denominator is passed to stddiff() and related functions
-real colvector gmatch::cbps(| string scalar est, string scalar fctn, real scalar denominator, real scalar oid)
+//    oid=1 turns on the "over-identified" version of the CBPS model; oid=0 leaves it off
+//    cvopt adds the CV of the matching weights to the optimization objective function
+//         Let loss_0 be the ojbective function and CV be the coefficient of variabtion of the matching weights
+//         Provided a 1*3 rowvector, (a,b,c), then the loss function is modified as
+//         loss = loss_0 + b * abs((CV - a)^c)
+//         The default is a=0 (prefer no variation in weights)
+//                        b=0 (the loss function is unmodified)
+//                        c=2 (a quadratic)
+real colvector gmatch::cbps(| string scalar est, string scalar fctn, real scalar denominator, real scalar oid, real rowvector cvopt)
 {
   real rowvector beta
   real colvector pscore, cbpswgt
   real matrix ww
+  real scalar unnorm
   class gmatch scalar M
   if (args()<1) est="ate"
   if (args()<2) fctn="sd_sq"
   if (args()<3) denominator=1
   if (args()<4) oid=0
-
+  if (args()<5) cvopt=(0,0,0)
+  if (fctn=="ipw" & cvopt[1]==0) return(this.ipw(est))
+  
+  // I'm cloning so that I can reweight the dataset to calculate objective function
+  // ALl views are turned into regular variables
   M.clone(this)
+  if (isview(M.W)) _error("Something is wrong with the clone")
 
   transmorphic S
   S=optimize_init()
@@ -536,48 +545,65 @@ real colvector gmatch::cbps(| string scalar est, string scalar fctn, real scalar
   optimize_init_argument(S, 3, fctn)
   optimize_init_argument(S, 4, denominator)
   optimize_init_argument(S, 5, oid)
-	optimize_init_singularHmethod(S,"hybrid")  // equivalent to ml's "difficult" option
+  optimize_init_argument(S, 6, cvopt)
+  optimize_init_singularHmethod(S,"hybrid")  // equivalent to ml's "difficult" option
   optimize_init_technique(S, "bfgs 15 nr 15")
   optimize_init_tracelevel(S, "value" )  // "none", "value", "params"
   /* */ optimize_init_tracelevel(S, "none" )  // "none", "value", "params"
 
-/* */	optimize_init_conv_ptol(S, 1e-7)
-/* */	optimize_init_conv_vtol(S, 1e-8)
-/* */	optimize_init_conv_nrtol(S, 1e-6)
-
-  if (fctn=="sd_sq" | fctn=="asd") {
-    optimize_init_evaluatortype(S,"gf0")
-    optimize_init_conv_ignorenrtol(S, "on")
-  }
-  else if (fctn=="cbps_port_r") {
-    // normalize Xs to mean 0, sd 1
-    // this is inefficent. and X starts out as a view but then gets reassigned to a Mata matrix
-    // just make a xnorm variable and calc_norm_X function?
-    real matrix meansP_orig, sdP_orig, svd_s, svd_v, svd_s_inv
-    meansP_orig = mean(M.X, M.W)
-    sdP_orig = sqrt(this.diagvariance(M.X, M.W))
-    M.Xstd = (J(M.N_raw,1,1), (M.X :- meansP_orig) :/ sdP_orig )
-    _svd(M.Xstd, svd_s, svd_v)
+  // the remaining optimization options depend on the method
+  if (fctn=="cbps_port_r") {
     optimize_init_conv_ptol(S,  1e-13)
     optimize_init_conv_vtol(S,  1e-14)
     optimize_init_conv_nrtol(S, 1e-12)
     optimize_init_evaluatortype(S,"d0")
-    optimize_init_conv_ignorenrtol(S, "off")
+//    optimize_init_conv_ignorenrtol(S, "off")
   }
   else if (fctn=="cbps_port_stata") {
-    // optimize_init_evaluatortype(S,"d1")
-    optimize_init_conv_ptol(S, 1e-13)
-    optimize_init_conv_vtol(S, 1e-14)
-    optimize_init_conv_vtol(S, 1e-12)
+    optimize_init_conv_ptol(S,  1e-13)
+    optimize_init_conv_vtol(S,  1e-14)
+    optimize_init_conv_nrtol(S, 1e-12)
     if (oid)  optimize_init_evaluatortype(S,"gf1")  // for overidentified version
     else      optimize_init_evaluatortype(S,"d1")   // d1 if I'm running plain vanilla. otherwise just use "do" (numerical gradient)
-/* */    optimize_init_tracelevel(S, "none" )  // "none", "value", "params"
+/* noisy */    optimize_init_tracelevel(S, "none" )  // "none", "value", "params"
 //  optimize_init_conv_ignorenrtol(S, "on")
   }
-  else {
-    optimize_init_evaluatortype(S,"d0")
-    optimize_init_conv_ignorenrtol(S, "off")
+  else if (fctn=="mean_sd_sq" | fctn=="sd_sq") {
+    if (fctn=="sd_sq") optimize_init_evaluatortype(S,"gf0")
+    else               optimize_init_evaluatortype(S,"d0")
+/* */	// optimize_init_conv_ignorenrtol(S, "off")
+/* */	// optimize_init_conv_ptol(S,  1e-10)
+/* */	// optimize_init_conv_vtol(S,  1e-11)
+/* */	// optimize_init_conv_nrtol(S, 1e-9)
+/* */ optimize_init_conv_ignorenrtol(S, "on")
+/* */	optimize_init_conv_ptol(S, 1e-7)
+/* */	optimize_init_conv_vtol(S, 1e-8)
+/* */	optimize_init_conv_nrtol(S, 1e-6)    
   }
+  else {
+    /* */ (fctn + " is invalid with gmatch::cbps()")
+    /* */ return(.)
+    /* */ // _error(fctn + " is invalid with gmatch::cbps()")
+    
+  }
+  
+  // for certain methods, 
+  // -- normalize Xs to mean 0, sd 1
+  // -- add a constant term
+  if (fctn=="cbps_port_r") {
+    real matrix meansP_orig, sdP_orig, svd_s, svd_v, svd_s_inv
+    unnorm = 1
+    if (!length(M.variances1)) this.calcvariances()
+    meansP_orig = mean(M.X, M.W)    
+    sdP_orig = sqrt(this.diagvariance(M.X, M.W))
+    M.Xstd = (J(M.N_raw,1,1), (M.X :- meansP_orig) :/ sdP_orig )
+    _svd(M.Xstd, svd_s, svd_v)
+  }
+  else if (fctn=="cbps_port_stata") {
+    unnorm=0
+    if (!length(M.XC)) M.XC = (M.X, J(M.N_raw,1,1)) // not the most efficient -- data is copied from a view into a matrix -- but at least I only do it once
+  }
+  else unnorm=0
 
   "Step 1 (initial values from logit model):"
   real rowvector beta_logit
@@ -587,6 +613,8 @@ real colvector gmatch::cbps(| string scalar est, string scalar fctn, real scalar
   // /* */ "  optimize_init_params(S)";   optimize_init_params(S)
   // /* */ "optimize_result_value0(S)"; optimize_result_value0(S)
 
+  // This is an extra matrix the can be passed to optimiztion engine. I use it for different purposes.
+  // It is only calculated once -- not once every time the ojective function is called.
   if (fctn=="cbps_port_stata") {
     // is this just M.covariancesP ?
     ww = M.cbps_port_stata_wgt_matrix(beta_logit, oid, est)
@@ -632,7 +660,7 @@ real colvector gmatch::cbps(| string scalar est, string scalar fctn, real scalar
   beta    = optimize_result_params(S)
 
   // undoing the normalization and SVD
-  if (fctn=="cbps_port_r")  {
+  if (unnorm)  {
     M.Xstd = .
     svd_s_inv = svd_s:^-1
     svd_s_inv = svd_s_inv :* (svd_s :> 1e-5)
@@ -699,23 +727,25 @@ void gmatch::cbpseval( real   scalar    todo,
   real colvector  pscore, cbpswgt
   if      (fctn=="cbps_port_stata")  this.cbps_port_stata(todo,beta,est,oid,ww,lnf,g,H)
   else if (fctn=="cbps_port_r")      this.cbps_port_r(todo,beta,est,oid,ww,lnf,g,H)
-  else {
+  else if (fctn=="mean_sd_sq" | fctn=="sd_sq") {
     pscore = this.logitpredict(this.X, beta)
     pscore = this.trim(pscore)
     cbpswgt = this.logitweights(pscore, est)
     this.multweight(cbpswgt)
     if      (fctn=="mean_sd_sq")      lnf = this.mean_sd_sq(denominator)
-    else if (fctn=="mean_asd")        lnf = this.mean_asd(denominator)
-    else if (fctn=="max_asd")         lnf = this.max_asd(denominator)
     else if (fctn=="sd_sq")           lnf = this.sd_sq(denominator)'
-    else if (fctn=="mean_sd_sq_ent")  lnf = this.mean_sd_sq(denominator) + .25*(this.entropydistance(cbpswgt[this.sel0], this.W_orig[this.sel0]))
-    else if (fctn=="mean_sd_sq_cv")   lnf = this.mean_sd_sq(denominator) + .25*(sqrt(this.diagvariance(cbpswgt[this.sel0], this.W_orig[this.sel0])) :/  mean(cbpswgt[this.sel0], this.W_orig[this.sel0]))
-    else if (fctn=="asd")             lnf = this.asd(denominator)'
     else                              _error(fctn + " is invalid with gmatch::cbpseval()")
   }
 
-  // if (add_entropy), lnf = lnf+f(this.entropydistance()) ...
-  // if (add_cv), lnf = lnf+f(...) ...
+  if (cvopt[1]) {
+    // if cvopt=(a,b,c), then loss = loss_0 + b * abs((CV - a)^c)
+    real scalar thiscv
+    if      (strlower(est)=="ate" ) thiscv = sqrt(this.diagvariance(cbpswgt           , this.W_orig           )) :/  mean(cbpswgt           , this.W_orig           )
+    else if (strlower(est)=="atet") thiscv = sqrt(this.diagvariance(cbpswgt[this.sel0], this.W_orig[this.sel0])) :/  mean(cbpswgt[this.sel0], this.W_orig[this.sel0])
+    else if (strlower(est)=="ateu") thiscv = sqrt(this.diagvariance(cbpswgt[this.sel1], this.W_orig[this.sel1])) :/  mean(cbpswgt[this.sel1], this.W_orig[this.sel1])
+    else     _error(est + " is invalid with cvopt for gmatch::cbpseval()")
+    lnf = lnf + cvopt[2]*abs((thiscv - cvopt[1])^cvopt[3])
+  }
 }
 
 /* still need clean up all the remaining code -- it could be improved or sped up in various ways */
@@ -796,27 +826,27 @@ real matrix gmatch::cbps_port_stata_wgt_matrix(real rowvector beta, real scalar 
   real colvector pscore, dpscore
   pscore  = this.logitpredict(this.X, beta)
   pscore  = this.trim(pscore)
-  dpscore = pscore:*(1:-pscore)
   if (!overid) {
     if (strlower(est)=="ate") {
-      ww = quadcross((this.XC:/(pscore:*(1:-pscore))), this.XC)
+      ww = quadcross(this.XC:/(pscore:*(1:-pscore)), this.XC)
     }
     else if (strlower(est)=="atet") {
-      ww = quadcross((this.XC:*(pscore:/(1:-pscore)):*(this.N_raw/this.N1_raw):^2), this.XC)
+      ww = quadcross(this.XC:*(pscore:/(1:-pscore)):*(this.N_raw/this.N1_raw):^2, this.XC)
     }
   }
   else {
+    dpscore = pscore:*(1:-pscore)
     if (strlower(est)=="ate") {
-      ww = (      quadcross(this.XC:*(dpscore:^2:/pscore:/(1:-pscore)),this.XC), // this seems inefficint. isn't  pscore:/(1:-pscore) = dpscore:^-1 ?
-                  quadcross(this.XC:*(dpscore:/pscore:/(1:-pscore)),this.XC))
-      ww = ( ww \ quadcross(this.XC:*(dpscore:/pscore:/(1:-pscore)),this.XC),
-                  quadcross(this.XC:*(1:/pscore:/(1:-pscore)),this.XC))
+      ww = (       quadcross(this.XC:*(dpscore:^2:/pscore:/(1:-pscore)),this.XC), // this seems inefficint. isn't  pscore:/(1:-pscore) = dpscore:^-1 ?
+                   quadcross(this.XC:*(dpscore:/pscore:/(1:-pscore)),this.XC))
+      ww = ( ww \ (quadcross(this.XC:*(dpscore:/pscore:/(1:-pscore)),this.XC),
+                   quadcross(this.XC:*(1:/pscore:/(1:-pscore)),this.XC)))
     }
     else if (strlower(est)=="atet") {
-      ww = (      quadcross(this.XC:*(pscore:/(1:-pscore):*dpscore:^2:/pscore:^2),this.XC),
-                  quadcross(this.XC:*(pscore:/(1:-pscore):*dpscore:/pscore):*(this.N_raw/this.N1_raw),this.XC))
-      ww = ( ww \ quadcross(this.XC:*(pscore:/(1:-pscore):*dpscore:/pscore):*(this.N_raw/this.N1_raw),this.XC),
-                  quadcross(this.XC:*(pscore:/(1:-pscore)):*((this.N_raw/this.N1_raw)^2),this.XC) )
+      ww = (       quadcross(this.XC:*(pscore:/(1:-pscore):*dpscore:^2:/pscore:^2),this.XC),
+                   quadcross(this.XC:*(pscore:/(1:-pscore):*dpscore:/pscore):*(this.N_raw/this.N1_raw),this.XC))
+      ww = ( ww \ (quadcross(this.XC:*(pscore:/(1:-pscore):*dpscore:/pscore):*(this.N_raw/this.N1_raw),this.XC),
+                   quadcross(this.XC:*(pscore:/(1:-pscore)):*((this.N_raw/this.N1_raw)^2),this.XC) ))
     }
   }
   ww=ww:/this.N_raw
