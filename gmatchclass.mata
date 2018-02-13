@@ -14,7 +14,7 @@ class gmatch
     string rowvector varlist
     real rowvector   means1, means0, meansP, variances0, variances1, variancesP, variancesA
     real matrix      covariances0, covariances1, covariancesP, covariancesA
-    void             calcmeans(), calcvariances(), calcN(), calccovariances(), cbps_port_stata(), cbps_port_r()
+    void             clone(), calcmeans(), calcvariances(), calcN(), calccovariances(), cbps_port_stata(), cbps_port_r()
     real scalar      N1, N0, N, N1_raw, N0_raw, N_raw
     real scalar      mean_sd_sq(),  entropydistance()
     real rowvector   olsbeta(), diagvariance(), logitbeta(), sd_sq(), asd()
@@ -22,10 +22,10 @@ class gmatch
     real matrix      cbps_port_stata_wgt_matrix(), cbps_port_stata_gradient()
 
   public:
-    void             new(), set(), set_W(), set_Y(), clone(), reweight(), cbpseval()
+    void             new(), set(), set_W(), set_Y(), reweight()
+    void             ipw(), cbps(), cbpseval()
     real rowvector   diff(), stddiff(), varratio(), prognosticdiff(), pomean(), wgt_moments()
     real scalar      mean_asd(), max_asd(), wgt_cv(), wgt_sd(), wgt_skewness(), wgt_kurtosis(), wgt_max()
-    real colvector   ipw(), cbps()
     real matrix      balancetable()
 }
 
@@ -96,12 +96,12 @@ void gmatch::set(string scalar treatvar, string scalar varlist, string scalar to
   this.N1_raw = rows(this.sel1)
   this.N_raw = this.N0_raw + this.N1_raw
   if (min((this.N0_raw,this.N1_raw)==0)) _error("At least one treatment and control observation required.")
-  
+
   this.calcN()
   strofreal(this.N0_raw) + " control obs (sum of weights = " + strofreal(this.N0) + ")"
   strofreal(this.N1_raw) + " treatment obs (sum of weights = " + strofreal(this.N1) + ")"
-  if (all(this.W_orig:==1)) "(Data are unweighted.)" 
-  else                      "(Data are weighted.)" 
+  if (all(this.W_orig:==1)) "(Data are unweighted.)"
+  else                      "(Data are weighted.)"
 }
 
 // flags observations with weights!=0
@@ -427,12 +427,12 @@ real colvector gmatch::olspredict(real matrix X, real rowvector beta)
 }
 
 
-// function that returns IPW weights
+// function that computes  weights (and returns them in this.W_mtch)
 //    est corresponds to the options in gmatch::logitweights()
 //    est = "ate"  computes weights for average treatment effect (the default)
 //        = "atet" computes weights for average treatment effect on the treated
 //        = "ateu" computes weights for average treatment effect on the untreated
-real colvector gmatch::ipw(string scalar est)
+void gmatch::ipw(string scalar est)
 {
   real rowvector beta
   real colvector pscore, ipwwgt
@@ -441,7 +441,7 @@ real colvector gmatch::ipw(string scalar est)
   /* */ "propensity score (logit) model beta:"; beta
   pscore = this.logitpredict(this.X, beta)
   ipwwgt = this.logitweights(pscore, est)
-  return(ipwwgt)
+  reweight(ipwwgt)
 }
 
 
@@ -540,7 +540,7 @@ void logit_eval(transmorphic S, real rowvector beta, real colvector lnf)
   lnf  = ln(lj)
 }
 
-// function that returns CBPS weights
+// function that computes CBPS weights (and returns them in this.W_mtch)
 //    est corresponds to the options in gmatch::logitweights()
 //        "ate"  computes weights for average treatment effect (the default)
 //        "atet" computes weights for average treatment effect on the treated
@@ -556,11 +556,11 @@ void logit_eval(transmorphic S, real rowvector beta, real colvector lnf)
 //         The default is a=0 (the loss function is unmodified)
 //                        b=0 (prefer no variation in weights)
 //                        c=2 (a quadratic)
-real colvector gmatch::cbps(| string scalar est,
-                              string scalar fctn,
-                              real scalar denominator,
-                              real scalar oid,
-                              real rowvector cvopt)
+void gmatch::cbps(| string scalar est,
+                    string scalar fctn,
+                    real scalar denominator,
+                    real scalar oid,
+                    real rowvector cvopt)
 {
   real rowvector beta
   real colvector pscore, cbpswgt
@@ -593,7 +593,7 @@ real colvector gmatch::cbps(| string scalar est,
   else if (fctn=="cbps" & all(M.W_orig:==1)) fctn="cbps_port_stata"
   else if (fctn=="cbps")                     fctn="cbps_port_r"
   if (fctn=="cbps_port_r" & cvopt[1]) errprintf("{p}\nWarning: cvopt does not appear to substantially affect the reults with fctn=cbps. Consider switching to fctn=sd_sq or mean_sd_sq{p_end}\n")
-  
+
   transmorphic S
   S=optimize_init()
   optimize_init_evaluator(S, &cbps_eval())
@@ -638,12 +638,9 @@ real colvector gmatch::cbps(| string scalar est,
 /* */	optimize_init_conv_vtol(S, 1e-8)
 /* */	optimize_init_conv_nrtol(S, 1e-6)
   }
-  else {
-    /* */ (fctn + " is invalid with gmatch::cbps()")
-    /* */ return(.)
-    /* */ // _error(fctn + " is invalid with gmatch::cbps()")
+  else _error(fctn + " is invalid with gmatch::cbps()")
 
-  }
+  // cvopt adds 1 element to loss function
   if (cvopt[1,1]!=0 & optimize_init_evaluatortype(S)!="gf0") optimize_init_evaluatortype(S,"gf0")
 
   // for certain methods,
@@ -748,13 +745,14 @@ real colvector gmatch::cbps(| string scalar est,
   cbpswgt = M.logitweights(pscore, est)
   /* */ "Weights for first 10 observations:";  cbpswgt[1..10]'
   /* */ "Weights for first 10 observations / N:"
-  /* */ real colvector cbpswgtsum1, thiscv
+  /* */ real colvector cbpswgtsum1
   /* */ cbpswgtsum1 = cbpswgt
   /* */ cbpswgtsum1[M.sel0] = cbpswgtsum1[M.sel0] :/ quadsum(cbpswgtsum1[M.sel0] :* M.W[M.sel0])
   /* */ cbpswgtsum1[M.sel1] = cbpswgtsum1[M.sel1] :/ quadsum(cbpswgtsum1[M.sel1] :* M.W[M.sel1])
   /* */ cbpswgtsum1[1..10]'
 
-  /* */ M.reweight(cbpswgt)
+  // no need to set weights back to what they were, since I've been messing with M. instead of this.
+  M.reweight(cbpswgt)
   /* */ "Balance after CBPS (" + fctn + "):"
   /* */ "optimize_result_value(S)" ; optimize_result_value(S)
   /* */ "balance table after matching (" + fctn + "):"; real matrix temp; temp = M.balancetable(denominator)
@@ -769,9 +767,6 @@ real colvector gmatch::cbps(| string scalar est,
   /* */ "M.sd_sq(denominator)"     ;  M.sd_sq(denominator)
   /* */ "M.asd(denominator)"       ;  M.asd(denominator)
   /* */ ""; ""; ""; ""; ""; ""; ""
-
-  // no need to set weights back to what they were, since I've been messing with M. instead of this.
-  return(cbpswgt)
 }
 
 // helper function -- note this is not a member of the class
