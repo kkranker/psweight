@@ -2,7 +2,7 @@
       name:  gmatch_example
        log:  C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\gmatch_example.log
   log type:  text
- opened on:  12 Feb 2018, 23:59:35
+ opened on:  13 Feb 2018, 00:39:13
 
 . 
 . // Multiple-equation models: An introduction and potential applications to our work at Mathematica
@@ -33,7 +33,7 @@
 >     string rowvector varlist
 >     real rowvector   means1, means0, meansP, variances0, variances1, variancesP, variancesA
 >     real matrix      covariances0, covariances1, covariancesP, covariancesA
->     void             calcmeans(), calcvariances(), calcN(), calccovariances(), cbps_port_stata(), cbps_port_r()
+>     void             clone(), calcmeans(), calcvariances(), calcN(), calccovariances(), cbps_port_stata(), cbps_port_r()
 >     real scalar      N1, N0, N, N1_raw, N0_raw, N_raw
 >     real scalar      mean_sd_sq(),  entropydistance()
 >     real rowvector   olsbeta(), diagvariance(), logitbeta(), sd_sq(), asd()
@@ -41,10 +41,10 @@
 >     real matrix      cbps_port_stata_wgt_matrix(), cbps_port_stata_gradient()
 > 
 >   public:
->     void             new(), set(), set_W(), set_Y(), clone(), reweight(), cbpseval()
+>     void             new(), set(), set_W(), set_Y(), reweight()
+>     void             ipw(), cbps(), cbpseval()
 >     real rowvector   diff(), stddiff(), varratio(), prognosticdiff(), pomean(), wgt_moments()
 >     real scalar      mean_asd(), max_asd(), wgt_cv(), wgt_sd(), wgt_skewness(), wgt_kurtosis(), wgt_max()
->     real colvector   ipw(), cbps()
 >     real matrix      balancetable()
 > }
 
@@ -119,12 +119,12 @@
 >   this.N1_raw = rows(this.sel1)
 >   this.N_raw = this.N0_raw + this.N1_raw
 >   if (min((this.N0_raw,this.N1_raw)==0)) _error("At least one treatment and control observation required.")
->   
+> 
 >   this.calcN()
 >   strofreal(this.N0_raw) + " control obs (sum of weights = " + strofreal(this.N0) + ")"
 >   strofreal(this.N1_raw) + " treatment obs (sum of weights = " + strofreal(this.N1) + ")"
->   if (all(this.W_orig:==1)) "(Data are unweighted.)" 
->   else                      "(Data are weighted.)" 
+>   if (all(this.W_orig:==1)) "(Data are unweighted.)"
+>   else                      "(Data are weighted.)"
 > }
 
 : 
@@ -477,12 +477,12 @@
 
 : 
 : 
-: // function that returns IPW weights
+: // function that computes  weights (and returns them in this.W_mtch)
 : //    est corresponds to the options in gmatch::logitweights()
 : //    est = "ate"  computes weights for average treatment effect (the default)
 : //        = "atet" computes weights for average treatment effect on the treated
 : //        = "ateu" computes weights for average treatment effect on the untreated
-: real colvector gmatch::ipw(string scalar est)
+: void gmatch::ipw(string scalar est)
 > {
 >   real rowvector beta
 >   real colvector pscore, ipwwgt
@@ -491,7 +491,7 @@
 >   /* */ "propensity score (logit) model beta:"; beta
 >   pscore = this.logitpredict(this.X, beta)
 >   ipwwgt = this.logitweights(pscore, est)
->   return(ipwwgt)
+>   reweight(ipwwgt)
 > }
 
 : 
@@ -597,7 +597,7 @@
 > }
 
 : 
-: // function that returns CBPS weights
+: // function that computes CBPS weights (and returns them in this.W_mtch)
 : //    est corresponds to the options in gmatch::logitweights()
 : //        "ate"  computes weights for average treatment effect (the default)
 : //        "atet" computes weights for average treatment effect on the treated
@@ -613,11 +613,11 @@
 : //         The default is a=0 (the loss function is unmodified)
 : //                        b=0 (prefer no variation in weights)
 : //                        c=2 (a quadratic)
-: real colvector gmatch::cbps(| string scalar est,
->                               string scalar fctn,
->                               real scalar denominator,
->                               real scalar oid,
->                               real rowvector cvopt)
+: void gmatch::cbps(| string scalar est,
+>                     string scalar fctn,
+>                     real scalar denominator,
+>                     real scalar oid,
+>                     real rowvector cvopt)
 > {
 >   real rowvector beta
 >   real colvector pscore, cbpswgt
@@ -651,7 +651,7 @@
 >   else if (fctn=="cbps")                     fctn="cbps_port_r"
 >   if (fctn=="cbps_port_r" & cvopt[1]) errprintf("{p}\nWarning: cvopt does not appear to substantially affect the reults with fctn=cbps. Consider switching to 
 > fctn=sd_sq or mean_sd_sq{p_end}\n")
->   
+> 
 >   transmorphic S
 >   S=optimize_init()
 >   optimize_init_evaluator(S, &cbps_eval())
@@ -696,12 +696,9 @@
 > /* */   optimize_init_conv_vtol(S, 1e-8)
 > /* */   optimize_init_conv_nrtol(S, 1e-6)
 >   }
->   else {
->     /* */ (fctn + " is invalid with gmatch::cbps()")
->     /* */ return(.)
->     /* */ // _error(fctn + " is invalid with gmatch::cbps()")
+>   else _error(fctn + " is invalid with gmatch::cbps()")
 > 
->   }
+>   // cvopt adds 1 element to loss function
 >   if (cvopt[1,1]!=0 & optimize_init_evaluatortype(S)!="gf0") optimize_init_evaluatortype(S,"gf0")
 > 
 >   // for certain methods,
@@ -807,13 +804,14 @@
 >   cbpswgt = M.logitweights(pscore, est)
 >   /* */ "Weights for first 10 observations:";  cbpswgt[1..10]'
 >   /* */ "Weights for first 10 observations / N:"
->   /* */ real colvector cbpswgtsum1, thiscv
+>   /* */ real colvector cbpswgtsum1
 >   /* */ cbpswgtsum1 = cbpswgt
 >   /* */ cbpswgtsum1[M.sel0] = cbpswgtsum1[M.sel0] :/ quadsum(cbpswgtsum1[M.sel0] :* M.W[M.sel0])
 >   /* */ cbpswgtsum1[M.sel1] = cbpswgtsum1[M.sel1] :/ quadsum(cbpswgtsum1[M.sel1] :* M.W[M.sel1])
 >   /* */ cbpswgtsum1[1..10]'
 > 
->   /* */ M.reweight(cbpswgt)
+>   // no need to set weights back to what they were, since I've been messing with M. instead of this.
+>   M.reweight(cbpswgt)
 >   /* */ "Balance after CBPS (" + fctn + "):"
 >   /* */ "optimize_result_value(S)" ; optimize_result_value(S)
 >   /* */ "balance table after matching (" + fctn + "):"; real matrix temp; temp = M.balancetable(denominator)
@@ -828,13 +826,9 @@
 >   /* */ "M.sd_sq(denominator)"     ;  M.sd_sq(denominator)
 >   /* */ "M.asd(denominator)"       ;  M.asd(denominator)
 >   /* */ ""; ""; ""; ""; ""; ""; ""
-> 
->   // no need to set weights back to what they were, since I've been messing with M. instead of this.
->   return(cbpswgt)
 > }
 note: variable svd_s may be used before set
 note: variable svd_v may be used before set
-note: variable thiscv unused
 note: variable temp set but not used
 
 : 
@@ -1060,7 +1054,7 @@ note: argument H unused
 Current user: KKranker
 Environment: Windows PC (64-bit x86-64) KKRANKER
 Stata: 15.1
-Date: 12 Feb 2018 23:59:35
+Date: 13 Feb 2018 00:39:13
 
 . 
 . 
@@ -1236,13 +1230,8 @@ file testfile.csv saved
 
 : if (depvars!="") D.set_Y(st_local("depvars"),st_local("tousevar"))
 > 
-> M = gmatch()
-
-: M.clone(D)
-
-: 
-: // Misc balance measures
-:   D.diff()
+> // Misc balance measures
+>   D.diff()
                   1              2              3              4              5              6              7              8              9             10
     +-------------------------------------------------------------------------------------------------------------------------------------------------------
   1 |  -.2826086957   -.0160912191   -.0223785166   -.0603154305   -1.101236147   -1.289748508    .1626172208    .1457104569   -.0812723301    .0681588142
@@ -1370,7 +1359,7 @@ treat        |
 Total average covariate imbalance: 1.5e-10
 Average covariate imbalance on the treated: 1.26
 
-:     cbpsweight = M.cbps("ate", "cbps", 2, 0)
+:     D.cbps("ate", "cbps", 2, 0)
   Step 1 (initial values from logit model):
 initial:       f(p) = -346.57359
 alternative:   f(p) = -283.03849
@@ -1534,7 +1523,7 @@ J test for overidentifying restrictions: P(chisq>7.142, 14) = 0.929
 Total average covariate imbalance: .313
 Average covariate imbalance on the treated: .168
 
-:     cbpsweight = M.cbps("ate", "cbps", 2, 1)
+:     D.cbps("ate", "cbps", 2, 1)
   Step 1 (initial values from logit model):
 initial:       f(p) = -346.57359
 alternative:   f(p) = -283.03849
@@ -1693,7 +1682,7 @@ treat        |
 Total average covariate imbalance: .374
 Average covariate imbalance on the treated: 1.1e-10
 
-:     cbpsweight = M.cbps("atet", "cbps", 2, 0)
+:     D.cbps("atet", "cbps", 2, 0)
   Step 1 (initial values from logit model):
 initial:       f(p) = -346.57359
 alternative:   f(p) = -283.03849
@@ -1854,7 +1843,7 @@ J test for overidentifying restrictions: P(chisq>15.137, 14) = 0.369
 Total average covariate imbalance:  .34
 Average covariate imbalance on the treated: .073
 
-:     cbpsweight = M.cbps("atet", "cbps", 2, 1)
+:     D.cbps("atet", "cbps", 2, 1)
   Step 1 (initial values from logit model):
 initial:       f(p) = -346.57359
 alternative:   f(p) = -283.03849
@@ -1979,7 +1968,7 @@ Iteration 15:  f(p) =  1.211e-07
 
 : 
 : // Other objective functions
-:   cbpsweight = M.cbps("atet","mean_sd_sq",1)
+:   D.cbps("atet","mean_sd_sq",1)
   Step 1 (initial values from logit model):
 initial:       f(p) = -346.57359
 alternative:   f(p) = -283.03849
@@ -2097,7 +2086,7 @@ Iteration 3:   f(p) =  1.465e-13
   
   
 
-:   cbpsweight = M.cbps("atet","sd_sq",1)
+:   D.cbps("atet","sd_sq",1)
   Step 1 (initial values from logit model):
 initial:       f(p) = -346.57359
 alternative:   f(p) = -283.03849
@@ -2289,19 +2278,8 @@ Iteration 27:  f(p) =  3.112e-06
   
   
 
-:   cbpsweight = M.cbps("atet","mean_asd") // I took these out; should error
-  mean_asd is invalid with gmatch::cbps()
-
-:   cbpsweight = M.cbps("atet","max_asd")  // I took these out; should error  
-  max_asd is invalid with gmatch::cbps()
-
-: //  cbpsweight = M.cbps("atet","mean_sd_sq_cv",1, (1,1,6)
 : 
 : // IPW
-:   M = gmatch()
-
-:   M.clone(D)
-
 :   stata("qui teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' , atet aequations")
 
 :   iwpweight = D.ipw("atet")
@@ -2324,13 +2302,10 @@ Iteration 4:   f(p) = -211.17753
      -------------------------------------------------------------+
 
 : 
-:   M.reweight(iwpweight)
-
-: 
 :   stata("di _b[POmean:0.treat]")
 3417.8947
 
-:   M.pomean()
+:   D.pomean()
                  1             2
     +-----------------------------+
   1 |  3417.894673   .9465175518  |
@@ -2371,7 +2346,7 @@ Iteration 4:   f(p) = -211.17753
               x95 |  -.0155155     .017858      .8285405   .8879817
   -----------------------------------------------------------------
 
-:   table = M.balancetable(3)
+:   table = D.balancetable(3)
                  1            2            3            4            5            6            7
      +--------------------------------------------------------------------------------------------+
    1 |    Variable     mean (T)     mean (C)       diff()    stddiff()     sd (Avg)   varratio()  |
@@ -2425,9 +2400,9 @@ Iteration 4:   f(p) = -211.17753
               x95 |  -.0658282   -.0807251      1.008285   .8354051
   -----------------------------------------------------------------
 
-:   M.reweight()
+:   D.reweight()
 
-:   table = M.balancetable(3)
+:   table = D.balancetable(3)
                  1            2            3            4            5            6            7
      +--------------------------------------------------------------------------------------------+
    1 |    Variable     mean (T)     mean (C)       diff()    stddiff()     sd (Avg)   varratio()  |
@@ -2667,7 +2642,7 @@ Iteration 4:   f(p) = -211.17753
 
 : 
 : // tradeoff between CBPS-like balance and variance in weights
-:   cbpsweight = M.cbps("atet","cbps", 1, 0)
+:   cbpsweight = D.cbps("atet","cbps", 1, 0)
   Step 1 (initial values from logit model):
 initial:       f(p) = -346.57359
 alternative:   f(p) = -283.03849
@@ -2790,7 +2765,7 @@ Iteration 15:  f(p) =  2.607e-24
   
   
 
-:   cbpsweight = M.cbps("atet","cbps", 1, 0, (1,.75,6))
+:   cbpsweight = D.cbps("atet","cbps", 1, 0, (1,.75,6))
   Step 1 (initial values from logit model):
 initial:       f(p) = -346.57359
 alternative:   f(p) = -283.03849
@@ -2921,7 +2896,7 @@ Iteration 23:  f(p) =  1.143e-08
   
   
 
-:   cbpsweight = M.cbps("atet","cbps", 1, 0, (1,.50,6))
+:   cbpsweight = D.cbps("atet","cbps", 1, 0, (1,.50,6))
   Step 1 (initial values from logit model):
 initial:       f(p) = -346.57359
 alternative:   f(p) = -283.03849
@@ -3058,8 +3033,8 @@ Iteration 28:  f(p) =  5.114e-08
   
   
 
-:   
-:   cbpsweight = M.cbps("atet","mean_sd_sq", 1, 0, (1,.75,6))
+: 
+:   cbpsweight = D.cbps("atet","mean_sd_sq", 1, 0, (1,.75,6))
   Step 1 (initial values from logit model):
 initial:       f(p) = -346.57359
 alternative:   f(p) = -283.03849
@@ -3208,7 +3183,7 @@ Iteration 13:  f(p) =  4.385e-08  (not concave)
   
   
 
-:   cbpsweight = M.cbps("atet","mean_sd_sq", 1, 0, (1,.50,6))
+:   cbpsweight = D.cbps("atet","mean_sd_sq", 1, 0, (1,.50,6))
   Step 1 (initial values from logit model):
 initial:       f(p) = -346.57359
 alternative:   f(p) = -283.03849
@@ -3391,8 +3366,8 @@ Iteration 24:  f(p) =  2.621e-07
   
   
 
-:    
-: mata drop D M
+: 
+: mata drop D
 
 : 
 : 
@@ -3415,13 +3390,8 @@ Iteration 24:  f(p) =  2.621e-07
 
 : if (depvars!="") DW.set_Y(st_local("depvars"),st_local("tousevar"))
 > 
-> MW = gmatch()
-
-: MW.clone(DW)
-
-: 
-: // Misc balance measures
-:   DW.diff()
+> // Misc balance measures
+>   DW.diff()
                   1              2              3              4              5              6              7              8              9             10
     +-------------------------------------------------------------------------------------------------------------------------------------------------------
   1 |   -.295813959   -.0156488223   -.0187317786   -.0757286195   -1.051311077   -1.308590669     .297707166    .1231935602   -.0575694681    .0828891447
@@ -3512,13 +3482,12 @@ Iteration 24:  f(p) =  2.621e-07
 : 
 : // Replicate CBPS
 : 
-: 
 :   "--- ATE (not overidentified) ---"; ""; ""
   --- ATE (not overidentified) ---
   
   
 
-:     cbpsweight = MW.cbps("ate", "cbps", 2, 0)
+:     DW.cbps("ate", "cbps", 2, 0)
   Step 1 (initial values from logit model):
 initial:       f(p) = -681.05307
 alternative:   f(p) =  -555.8915
@@ -3657,7 +3626,7 @@ Iteration 24:  f(p) =  2.405e-27
   
   
 
-:     cbpsweight = MW.cbps("ate", "cbps", 2, 1)
+:     DW.cbps("ate", "cbps", 2, 1)
   Step 1 (initial values from logit model):
 initial:       f(p) = -681.05307
 alternative:   f(p) =  -555.8915
@@ -3786,7 +3755,7 @@ Iteration 15:  f(p) =  .01777184
   
   
 
-:     cbpsweight = MW.cbps("atet", "cbps", 2, 0)
+:     DW.cbps("atet", "cbps", 2, 0)
   Step 1 (initial values from logit model):
 initial:       f(p) = -681.05307
 alternative:   f(p) =  -555.8915
@@ -3918,7 +3887,7 @@ Iteration 18:  f(p) =  8.653e-26
   
   
 
-:     cbpsweight = MW.cbps("atet", "cbps", 2, 1)
+:     DW.cbps("atet", "cbps", 2, 1)
   Step 1 (initial values from logit model):
 initial:       f(p) = -681.05307
 alternative:   f(p) =  -555.8915
@@ -4041,9 +4010,9 @@ Iteration 15:  f(p) =  .00017215
   
   
 
-:   
+: 
 : // Other objective functions
-:   cbpsweight = MW.cbps("atet","mean_sd_sq",1)
+:   DW.cbps("atet","mean_sd_sq",1)
   Step 1 (initial values from logit model):
 initial:       f(p) = -681.05307
 alternative:   f(p) =  -555.8915
@@ -4162,7 +4131,7 @@ Iteration 3:   f(p) =  1.762e-13
   
   
 
-:   cbpsweight = MW.cbps("atet","sd_sq",1)
+:   DW.cbps("atet","sd_sq",1)
   Step 1 (initial values from logit model):
 initial:       f(p) = -681.05307
 alternative:   f(p) =  -555.8915
@@ -4365,7 +4334,7 @@ Iteration 30:  f(p) =  3.274e-06
   
 
 : 
-:   MW.prognosticdiff()
+:   DW.prognosticdiff()
                        1                   2                   3                   4
     +---------------------------------------------------------------------------------+
   1 |     Dependent var.   mean of y_hat (T)   mean of y_hat (C)    prognosticdiff()  |
@@ -4377,21 +4346,21 @@ Iteration 30:  f(p) =  3.274e-06
   1 |  -11.14415063    -.011974287  |
     +-------------------------------+
 
-:   MW.reweight(cbpsweight)
+:   DW.reweight()
 
-:   MW.prognosticdiff()
+:   DW.prognosticdiff()
                        1                   2                   3                   4
     +---------------------------------------------------------------------------------+
   1 |     Dependent var.   mean of y_hat (T)   mean of y_hat (C)    prognosticdiff()  |
-  2 |                 y1            3431.367            3431.444           -.0769451  |
-  3 |          y1_binary            .9509095            .9509224           -.0000129  |
+  2 |                 y1             3448.29            3459.434           -11.14415  |
+  3 |          y1_binary              .95075            .9627243           -.0119743  |
     +---------------------------------------------------------------------------------+
                   1              2
     +-------------------------------+
-  1 |  -.0769451086   -.0000129265  |
+  1 |  -11.14415063    -.011974287  |
     +-------------------------------+
 
-:   
+: 
 : // IPW
 : 
 :   stata("teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' [iw=`wgtvar'], atet aequations")
@@ -4436,122 +4405,6 @@ TME1                    |
                   _cons |    1.24872   .6712769     1.86   0.063    -.0669587    2.564399
 -----------------------------------------------------------------------------------------
 
-:   stata("tebalance summarize, baseline")  // I noticed the sum of weights in tebalance are weird
-
-  Covariate balance summary
-                                                   Raw     Weighted
-                          -----------------------------------------
-                          Number of obs =          500        500.0
-                          Treated obs   =           92        249.5
-                          Control obs   =          408        250.5
-                          -----------------------------------------
-
-  -----------------------------------------------------------------
-                  |           Means                  Variances     
-                  |    Control     Treated       Control    Treated
-  ----------------+------------------------------------------------
-               x1 |        .75    .4673913      .1879607   .2516722
-                  |
-               x2 |
-               1  |   .0269608    .0108696      .0262984   .0108696
-                  |
-               x3 |
-               1  |   .0441176    .0217391      .0422749   .0215002
-                  |
-               x4 |    .495098    .4347826      .2505902   .2484472
-               x5 |   26.56863    25.46739      34.50142   29.63629
-               x6 |   13.15931    11.86957      5.195687   2.576206
-               x7 |   6.696078    6.858696      10.90495   12.65014
-              x90 |   -.048508    .0972024      .9792937   .9097065
-              x91 |  -.0077434   -.0890157      1.011341   .8891627
-              x92 |  -.0227801    .0453787      1.013567    1.10497
-              x93 |   .0403853    .0865687      .9793358   .8741716
-              x94 |   .0160559   -.1299173      .9846065   .8552718
-              x95 |  -.0658282   -.0807251      1.008285   .8354051
-  -----------------------------------------------------------------
-
-:   table = DW.balancetable(3)
-                 1            2            3            4            5            6            7
-     +--------------------------------------------------------------------------------------------+
-   1 |    Variable     mean (T)     mean (C)       diff()    stddiff()     sd (Avg)   varratio()  |
-   2 |          x1     .4512231     .7470371     -.295814    -.6319633     .4680872     1.316024  |
-   3 |        1.x2     .0114039     .0270527    -.0156488    -.1139938     .1372778     .4301765  |
-   4 |        1.x3     .0240637     .0427955    -.0187318    -.1042015     .1797649     .5757804  |
-   5 |          x4     .4218861     .4976147    -.0757286    -.1521333     .4977779     .9798375  |
-   6 |          x5     25.44699      26.4983    -1.051311    -.1863779      5.64075      .858714  |
-   7 |          x6     11.84757     13.15616    -1.308591    -.6594519     1.984361     .5205072  |
-   8 |          x7     7.015422     6.717714     .2977072     .0866021     3.437643     1.149851  |
-   9 |         x90     .0839738    -.0392197     .1231936     .1258938     .9785514     .9265459  |
-  10 |         x91    -.0648837    -.0073142    -.0575695    -.0596653      .964873     .8980782  |
-  11 |         x92     .0575388    -.0253504     .0828891     .0813611     1.018781     1.068619  |
-  12 |         x93     .1016523     .0464178     .0552345     .0572377     .9650011     .9263536  |
-  13 |         x94    -.1252265     .0045953    -.1298217    -.1361687     .9533888     .8528771  |
-  14 |         x95    -.1044649    -.0695904    -.0348746    -.0364286     .9573389     .8141756  |
-     +--------------------------------------------------------------------------------------------+
-
-: 
-:   stata("teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' [iw=`wgtvar'], atet aequations")
-
-Iteration 0:   EE criterion =  3.987e-18  
-Iteration 1:   EE criterion =  1.444e-26  
-
-Treatment-effects estimation                    Number of obs     =        500
-Estimator      : inverse-probability weights
-Outcome model  : weighted mean
-Treatment model: logit
------------------------------------------------------------------------------------------
-                        |               Robust
-                     y1 |      Coef.   Std. Err.      z    P>|z|     [95% Conf. Interval]
-------------------------+----------------------------------------------------------------
-ATET                    |
-                  treat |
-(Treated vs Untreated)  |  -373.2561   49.21885    -7.58   0.000    -469.7233   -276.7889
-------------------------+----------------------------------------------------------------
-POmean                  |
-                  treat |
-             Untreated  |   3424.879   30.82585   111.10   0.000     3364.462    3485.297
-------------------------+----------------------------------------------------------------
-TME1                    |
-                     x1 |  -1.299227   .2371935    -5.48   0.000    -1.764118   -.8343367
-                        |
-                     x2 |
-                     1  |  -1.630014    .746001    -2.19   0.029    -3.092149   -.1678787
-                        |
-                     x3 |
-                     1  |  -.4513753   .5770312    -0.78   0.434    -1.582336    .6795851
-                     x4 |  -.3551911    .204881    -1.73   0.083    -.7567506    .0463684
-                     x5 |    .058452   .0195046     3.00   0.003     .0202237    .0966803
-                     x6 |  -.2821622    .049775    -5.67   0.000    -.3797195    -.184605
-                     x7 |   .0332008   .0279849     1.19   0.235    -.0216486    .0880501
-                    x90 |   .1276778   .0907109     1.41   0.159    -.0501124     .305468
-                    x91 |  -.0961159   .0916737    -1.05   0.294     -.275793    .0835612
-                    x92 |   .1400043   .0976573     1.43   0.152    -.0514004    .3314091
-                    x93 |   .0734557   .0916967     0.80   0.423    -.1062665     .253178
-                    x94 |  -.1435742   .0862727    -1.66   0.096    -.3126656    .0255172
-                    x95 |  -.0212452   .0898768    -0.24   0.813    -.1974006    .1549102
-                  _cons |    1.24872   .6712769     1.86   0.063    -.0669587    2.564399
------------------------------------------------------------------------------------------
-
-:   ipw = DW.ipw("atet")
-initial:       f(p) = -681.05307
-alternative:   f(p) =  -555.8915
-rescale:       f(p) = -485.05844
-Iteration 0:   f(p) = -485.05844  
-Iteration 1:   f(p) = -436.32795  
-Iteration 2:   f(p) = -411.28929  
-Iteration 3:   f(p) = -411.19869  
-Iteration 4:   f(p) = -411.19865  
-Iteration 5:   f(p) = -411.19865  
-  propensity score (logit) model beta:
-                  1              2              3              4              5              6              7              8              9             10
-    +-------------------------------------------------------------------------------------------------------------------------------------------------------
-  1 |  -1.299227462   -1.630013723    -.451375265   -.3551910971    .0584519984    -.282162246    .0332007599    .1276777932   -.0961158854    .1400043185
-    +-------------------------------------------------------------------------------------------------------------------------------------------------------
-                 11             12             13             14
-     -------------------------------------------------------------+
-  1     .0734557382   -.1435741845   -.0212452286    1.248719931  |
-     -------------------------------------------------------------+
-
 :   stata("tebalance summarize")  // I noticed the sum of weights in tebalance are weird
 
   Covariate balance summary
@@ -4586,7 +4439,25 @@ Iteration 5:   f(p) = -411.19865
               x95 |  -.0155155    .0398234      .8285405   .8815991
   -----------------------------------------------------------------
 
-:   DW.reweight(ipw)
+:   DW.ipw("atet")
+initial:       f(p) = -681.05307
+alternative:   f(p) =  -555.8915
+rescale:       f(p) = -485.05844
+Iteration 0:   f(p) = -485.05844  
+Iteration 1:   f(p) = -436.32795  
+Iteration 2:   f(p) = -411.28929  
+Iteration 3:   f(p) = -411.19869  
+Iteration 4:   f(p) = -411.19865  
+Iteration 5:   f(p) = -411.19865  
+  propensity score (logit) model beta:
+                  1              2              3              4              5              6              7              8              9             10
+    +-------------------------------------------------------------------------------------------------------------------------------------------------------
+  1 |  -1.299227462   -1.630013723    -.451375265   -.3551910971    .0584519984    -.282162246    .0332007599    .1276777932   -.0961158854    .1400043185
+    +-------------------------------------------------------------------------------------------------------------------------------------------------------
+                 11             12             13             14
+     -------------------------------------------------------------+
+  1     .0734557382   -.1435741845   -.0212452286    1.248719931  |
+     -------------------------------------------------------------+
 
 :   table = DW.balancetable(3)
                  1            2            3            4            5            6            7
@@ -4606,6 +4477,16 @@ Iteration 5:   f(p) = -411.19865
   13 |         x94    -.1252265    -.1745685     .0493421     .0498225     .9903584     .7439065  |
   14 |         x95    -.1044649    -.1114622     .0069973     .0074459     .9397461     .8717687  |
      +--------------------------------------------------------------------------------------------+
+
+: 
+:   stata("di _b[POmean:0.treat]")
+3424.8791
+
+:   DW.pomean()
+                 1             2
+    +-----------------------------+
+  1 |  3424.879077   .9506406354  |
+    +-----------------------------+
 
 : 
 :   stata("teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' [iw=`wgtvar'], ate aequations")
@@ -4650,9 +4531,7 @@ TME1                    |
                   _cons |    1.24872   .6712769     1.86   0.063    -.0669587    2.564399
 -----------------------------------------------------------------------------------------
 
-:   DW.reweight()
-
-:   ipw = DW.ipw("ate")
+:   DW.ipw("ate")
 initial:       f(p) = -681.05307
 alternative:   f(p) =  -555.8915
 rescale:       f(p) = -485.05844
@@ -4673,16 +4552,65 @@ Iteration 5:   f(p) = -411.19865
      -------------------------------------------------------------+
 
 : 
+:   stata("tebalance summarize, baseline")  // I noticed the sum of weights in tebalance are weird
+
+  Covariate balance summary
+                                                   Raw     Weighted
+                          -----------------------------------------
+                          Number of obs =          500        500.0
+                          Treated obs   =           92        243.3
+                          Control obs   =          408        256.7
+                          -----------------------------------------
+
+  -----------------------------------------------------------------
+                  |           Means                  Variances     
+                  |    Control     Treated       Control    Treated
+  ----------------+------------------------------------------------
+               x1 |        .75    .4673913      .1879607   .2516722
+                  |
+               x2 |
+               1  |   .0269608    .0108696      .0262984   .0108696
+                  |
+               x3 |
+               1  |   .0441176    .0217391      .0422749   .0215002
+                  |
+               x4 |    .495098    .4347826      .2505902   .2484472
+               x5 |   26.56863    25.46739      34.50142   29.63629
+               x6 |   13.15931    11.86957      5.195687   2.576206
+               x7 |   6.696078    6.858696      10.90495   12.65014
+              x90 |   -.048508    .0972024      .9792937   .9097065
+              x91 |  -.0077434   -.0890157      1.011341   .8891627
+              x92 |  -.0227801    .0453787      1.013567    1.10497
+              x93 |   .0403853    .0865687      .9793358   .8741716
+              x94 |   .0160559   -.1299173      .9846065   .8552718
+              x95 |  -.0658282   -.0807251      1.008285   .8354051
+  -----------------------------------------------------------------
+
+:   DW.reweight()
+
+:   table = DW.balancetable(3)
+                 1            2            3            4            5            6            7
+     +--------------------------------------------------------------------------------------------+
+   1 |    Variable     mean (T)     mean (C)       diff()    stddiff()     sd (Avg)   varratio()  |
+   2 |          x1     .4512231     .7470371     -.295814    -.6319633     .4680872     1.316024  |
+   3 |        1.x2     .0114039     .0270527    -.0156488    -.1139938     .1372778     .4301765  |
+   4 |        1.x3     .0240637     .0427955    -.0187318    -.1042015     .1797649     .5757804  |
+   5 |          x4     .4218861     .4976147    -.0757286    -.1521333     .4977779     .9798375  |
+   6 |          x5     25.44699      26.4983    -1.051311    -.1863779      5.64075      .858714  |
+   7 |          x6     11.84757     13.15616    -1.308591    -.6594519     1.984361     .5205072  |
+   8 |          x7     7.015422     6.717714     .2977072     .0866021     3.437643     1.149851  |
+   9 |         x90     .0839738    -.0392197     .1231936     .1258938     .9785514     .9265459  |
+  10 |         x91    -.0648837    -.0073142    -.0575695    -.0596653      .964873     .8980782  |
+  11 |         x92     .0575388    -.0253504     .0828891     .0813611     1.018781     1.068619  |
+  12 |         x93     .1016523     .0464178     .0552345     .0572377     .9650011     .9263536  |
+  13 |         x94    -.1252265     .0045953    -.1298217    -.1361687     .9533888     .8528771  |
+  14 |         x95    -.1044649    -.0695904    -.0348746    -.0364286     .9573389     .8141756  |
+     +--------------------------------------------------------------------------------------------+
+
+: 
 : // tradeoff between CBPS-like balance and variance in weights
 : 
-:   mata drop MW
-
-:   MW = gmatch()
-
-:   MW.clone(DW)
-
-:   
-:   cbpsweight = MW.cbps("atet","cbps", 1, 0)
+:   DW.cbps("atet","cbps", 1, 0)
   Step 1 (initial values from logit model):
 initial:       f(p) = -681.05307
 alternative:   f(p) =  -555.8915
@@ -4808,7 +4736,7 @@ Iteration 18:  f(p) =  8.653e-26
   
   
 
-:   cbpsweight = MW.cbps("atet","cbps", 1, 0, (1,.75,6))
+:   DW.cbps("atet","cbps", 1, 0, (1,.75,6))
 Warning: cvopt does not appear to substantially affect the reults with fctn=cbps. Consider switching to fctn=sd_sq or mean_sd_sq
   Step 1 (initial values from logit model):
 initial:       f(p) = -681.05307
@@ -4933,7 +4861,7 @@ Iteration 16:  f(p) =  .17797852  (backed up)
   
   
 
-:   cbpsweight = MW.cbps("atet","cbps", 1, 0, (1,.50,6))
+:   DW.cbps("atet","cbps", 1, 0, (1,.50,6))
 Warning: cvopt does not appear to substantially affect the reults with fctn=cbps. Consider switching to fctn=sd_sq or mean_sd_sq
   Step 1 (initial values from logit model):
 initial:       f(p) = -681.05307
@@ -5058,8 +4986,8 @@ Iteration 16:  f(p) =    .015625
   
   
 
-:   
-:   cbpsweight = MW.cbps("atet","mean_sd_sq", 1, 0, (1,.75,6))
+: 
+:   DW.cbps("atet","mean_sd_sq", 1, 0, (1,.75,6))
   Step 1 (initial values from logit model):
 initial:       f(p) = -681.05307
 alternative:   f(p) =  -555.8915
@@ -5202,7 +5130,7 @@ Iteration 11:  f(p) =  7.610e-08
   
   
 
-:   cbpsweight = MW.cbps("atet","mean_sd_sq", 1, 0, (1,.50,6))
+:   DW.cbps("atet","mean_sd_sq", 1, 0, (1,.50,6))
   Step 1 (initial values from logit model):
 initial:       f(p) = -681.05307
 alternative:   f(p) =  -555.8915
@@ -5389,8 +5317,6 @@ Iteration 25:  f(p) =  8.661e-07
   
   
 
-:    
-:   
 : 
 : end  // end of Mata block
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -5400,5 +5326,5 @@ Iteration 25:  f(p) =  8.661e-07
       name:  gmatch_example
        log:  C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\gmatch_example.log
   log type:  text
- closed on:  13 Feb 2018, 00:00:04
+ closed on:  13 Feb 2018, 00:39:41
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
