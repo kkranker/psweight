@@ -4,7 +4,7 @@ cls
 set varabbrev off
 set scheme mpr_blue
 set linesize 160
-set maxiter 75
+set maxiter 100
 cap log close gmatch_example
 local makegraphs = 01
 cd "C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\"
@@ -86,16 +86,12 @@ local varlist : copy local varlist1
 fvrevar `varlist'
 export delimited `treatvar' `r(varlist)' `wgtvar' using testfile.csv if `tousevar', replace nolabel
 
-tempvar constvar
-gen byte `constvar' = 1 if `tousevar'
-
 mata:
 
 depvars  = st_local("depvars" )
 treatvar = st_local("treatvar")
 wgtvar   = st_local("wgtvar"  )
 varlist  = st_local("varlist" )
-constvar = st_local("constvar")
 tousevar = st_local("tousevar")
 estimate = st_local("estimate")
 
@@ -105,7 +101,7 @@ estimate = st_local("estimate")
 // ****************************
 
 D = gmatch()
-D.set( st_local("treatvar"),st_local("varlist"), st_local("constvar"), st_local("tousevar"))
+D.set( st_local("treatvar"),st_local("varlist"), st_local("tousevar"))
 
 if (depvars!="") D.set_Y(st_local("depvars"),st_local("tousevar"))
 
@@ -136,7 +132,6 @@ M.clone(D)
     stata(`"cbps `treatvar' `varlist' if `tousevar' , ate over logit optimization_technique("nr") evaluator_type("gf1")"')
     stata(`"cbps_imbalance"')
     cbpsweight = M.cbps("ate" , "cbps_port_stata", 2, 1)
-    // not working yet?
     cbpsweight = M.cbps("ate" , "cbps_port_r",  2, 1)
 
   "--- ATET (not overidentified) ---"; ""; ""
@@ -149,14 +144,13 @@ M.clone(D)
     stata(`"cbps `treatvar' `varlist' if `tousevar' , att over logit optimization_technique("nr") evaluator_type("gf1")"')
     stata(`"cbps_imbalance"')
     cbpsweight = M.cbps("atet", "cbps_port_stata", 2, 1)
-    // not working yet?
     cbpsweight = M.cbps("atet", "cbps_port_r",  2, 1)
 
 // Other objective functions
   cbpsweight = M.cbps("atet","mean_sd_sq",1)
   cbpsweight = M.cbps("atet","sd_sq",1)
-  cbpsweight = M.cbps("atet","mean_asd")
-  cbpsweight = M.cbps("atet","max_asd")
+  cbpsweight = M.cbps("atet","mean_asd") // I took these out; should error
+  cbpsweight = M.cbps("atet","max_asd")  // I took these out; should error  
 //  cbpsweight = M.cbps("atet","mean_sd_sq_cv",1, (1,1,6)
 
 
@@ -196,7 +190,7 @@ mata drop D M
 // **************************
 
 DW = gmatch()
-DW.set(st_local("treatvar"),st_local("varlist"), st_local("constvar"), st_local("tousevar"), st_local("wgtvar"))
+DW.set(st_local("treatvar"),st_local("varlist"), st_local("tousevar"), st_local("wgtvar"))
 if (depvars!="") DW.set_Y(st_local("depvars"),st_local("tousevar"))
 
 // Misc balance measures
@@ -221,16 +215,18 @@ if (depvars!="") DW.set_Y(st_local("depvars"),st_local("tousevar"))
     cbpsweight = MW.cbps("ate" , "cbps_port_r",  2, 0)
 
   "--- ATE overidentified ---"; ""; ""
-    // not working yet?
     cbpsweight = MW.cbps("ate" , "cbps_port_r",  2, 1)
 
   "--- ATET (not overidentified) ---"; ""; ""
     cbpsweight = MW.cbps("atet", "cbps_port_r",  2, 0)
 
   "--- ATET overidentified ---"; ""; ""
-    // not working yet? 
     cbpsweight = MW.cbps("atet", "cbps_port_r",  2, 1)
-
+  
+// Other objective functions
+  cbpsweight = MW.cbps("atet","mean_sd_sq",1)
+  cbpsweight = MW.cbps("atet","sd_sq",1)
+    
 // IPW
 
   stata("teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' [iw=`wgtvar'], atet aequations")
