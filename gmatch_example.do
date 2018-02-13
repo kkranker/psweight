@@ -19,7 +19,8 @@ log using gmatch_example.log, name(gmatch_example) replace
 // Stata_code_2_IPW.do This program includes all the examples in the powerpoint slides, plus more.
 // This program includes examples of how to code inverse propensity weighting (IPW) estimators using Stata's GMM command
 
-include C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\gmatchclass.mata
+// include C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\gmatchclass.mata
+do C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\cr_lgmatch.do
 
 version 15.1
 set type double
@@ -101,8 +102,8 @@ estimate = st_local("estimate")
 // ****************************
 
 D = gmatch()
-D.set( st_local("treatvar"),st_local("varlist"), st_local("tousevar"))
-if (depvars!="") D.set_Y(st_local("depvars"),st_local("tousevar"))
+D.set(treatvar, varlist, tousevar)
+if (depvars!="") D.set_Y(depvars,tousevar)
 
 // Misc balance measures
   D.diff()
@@ -183,8 +184,8 @@ mata drop D
 // **************************
 
 DW = gmatch()
-DW.set(st_local("treatvar"),st_local("varlist"), st_local("tousevar"), st_local("wgtvar"))
-if (depvars!="") DW.set_Y(st_local("depvars"),st_local("tousevar"))
+DW.set(treatvar, varlist, tousevar, wgtvar)
+if (depvars!="") DW.set_Y(depvars,tousevar)
 
 // Misc balance measures
   DW.diff()
@@ -247,5 +248,12 @@ if (depvars!="") DW.set_Y(st_local("depvars"),st_local("tousevar"))
   DW.cbps("atet","mean_sd_sq", 1, 0, (1,.50,6))
 
 end  // end of Mata block
+
+set tracedepth 2
+//set trace on
+gmatch `treatvar' `varlist' if `tousevar'              , cbps
+gmatch `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], cbps
+gmatch `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], sd
+gmatch `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], sd cvopt(1 .6667 4)
 
 log close gmatch_example
