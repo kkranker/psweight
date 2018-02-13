@@ -6,6 +6,7 @@ set scheme mpr_blue
 set linesize 160
 set maxiter 100
 cap log close gmatch_example
+cap log close gmatch_example_ado
 local makegraphs = 01
 cd "C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\"
 
@@ -144,23 +145,16 @@ if (depvars!="") D.set_Y(depvars,tousevar)
   D.cbps("atet","sd_sq",1)
 
 // IPW
-  stata("qui teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' , atet aequations")
-  iwpweight = D.ipw("atet")
-
+  stata("teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' , atet aequations")
   stata("di _b[POmean:0.treat]")
-  D.pomean()
-
   stata("tebalance summarize")
-  table = D.balancetable(3)
-
   stata("tebalance summarize, baseline")
+
+  D.ipw("atet")
+  D.pomean()
+  table = D.balancetable(3)
   D.reweight()
   table = D.balancetable(3)
-
-  stata("teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' , atet aequations")
-  stata("predict pscore1, tlevel(1) ")
-  stata("list `treatvar' pscore1 in 1/20, nolab ")
-  ipw = D.ipw("atet")
 
   stata("teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' , ate aequations")
   ipw = D.ipw("ate")
@@ -224,19 +218,21 @@ if (depvars!="") DW.set_Y(depvars,tousevar)
 // IPW
 
   stata("teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' [iw=`wgtvar'], atet aequations")
-  stata("tebalance summarize")  // I noticed the sum of weights in tebalance are weird
+  stata("di _b[POmean:0.treat]")
+  stata("tebalance summarize")  
+  stata("tebalance summarize, baseline")  // I noticed the sum of weights in tebalance are weird
+  
   DW.ipw("atet")
   table = DW.balancetable(3)
-
-  stata("di _b[POmean:0.treat]")
   DW.pomean()
+  DW.reweight()
+  table = DW.balancetable(3)
 
   stata("teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' [iw=`wgtvar'], ate aequations")
   DW.ipw("ate")
 
-  stata("tebalance summarize, baseline")  // I noticed the sum of weights in tebalance are weird
-  DW.reweight()
-  table = DW.balancetable(3)
+  stata("teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' [iw=`wgtvar'], atet aequations tlevel(0) control(1)")
+  DW.ipw("ateu")
 
 // tradeoff between CBPS-like balance and variance in weights
 
@@ -256,4 +252,45 @@ gmatch `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], cbps
 gmatch `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], sd
 gmatch `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], sd cvopt(1 .6667 4)
 
-log close gmatch_example
+// tradeoff between CBPS-like balance and variance in weights
+gmatch `treatvar' `varlist' if `tousevar' , atet cbps treatvariance
+gmatch `treatvar' `varlist' if `tousevar' , atet cbps treatvariance cvopt(1 .75 6)
+gmatch `treatvar' `varlist' if `tousevar' , atet cbps treatvariance cvopt(1 .50 6)
+gmatch `treatvar' `varlist' if `tousevar' , atet mean_sd_sq treatvariance cvopt(1 .75 6)
+gmatch `treatvar' `varlist' if `tousevar' , atet mean_sd_sq treatvariance cvopt(1 .50 6)
+
+
+// **************************
+// * WEIGHTED DATA EXAMPLES *
+// **************************
+
+// Replicate CBPS
+gmatch `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], ate cbps pooledvariance
+gmatch `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], ate cbps ipw pooledvariance
+gmatch `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet cbps pooledvariance
+gmatch `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet cbps ipw pooledvariance
+
+// Other objective functions
+gmatch `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet mean_sd_sq treatvariance
+gmatch `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet sd_sq treatvariance
+
+// IPW
+teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' [iw=`wgtvar'], atet aequations
+di _b[POmean:0.treat]
+tebalance summarize
+gmatch `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet ipw treatvariance
+gmatch `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet ipw averagevariance
+teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' [iw=`wgtvar'], ate aequations
+gmatch `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], ate ipw treatvariance
+teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' [iw=`wgtvar'], atet aequations tlevel(0) control(1)
+gmatch `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], ateu ipw treatvariance
+
+// tradeoff between CBPS-like balance and variance in weights
+gmatch `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet cbps treatvariance
+gmatch `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet cbps treatvariance cvopt(1 .75 6)
+gmatch `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet cbps treatvariance cvopt(1 .50 6)
+gmatch `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet mean_sd_sq treatvariance cvopt(1 .75 6)
+gmatch `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet mean_sd_sq treatvariance cvopt(1 .50 6)
+
+log close gmatch_example_ado
+
