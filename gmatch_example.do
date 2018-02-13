@@ -72,8 +72,8 @@ local estimate = "atet"
 if "`wgtvar'"!="" local wgtexp "[iw=`wgtvar']"
 mark    `tousevar' `if' `in' `wgtexp'
 markout `tousevar' `depvars' `treatvar' `varlist'
-_rmdcoll `treatvar' `varlist' if `tousevar' `wgtexp', noconstant expand
-// _rmcoll `treatvar' `varlist' if `tousevar' `wgtexp', noconstant expand logit touse(`tousevar')
+_rmdcoll `treatvar' `varlist' if `tousevar' `wgtexp', expand
+// _rmcoll `treatvar' `varlist' if `tousevar' `wgtexp', expand logit touse(`tousevar')
 // fvexpand `varlist' if `tousevar'
 local varlist `r(varlist)'
 forvalues j=1/`: list sizeof varlist' {
@@ -86,12 +86,16 @@ local varlist : copy local varlist1
 fvrevar `varlist'
 export delimited `treatvar' `r(varlist)' `wgtvar' using testfile.csv if `tousevar', replace nolabel
 
+tempvar constvar
+gen byte `constvar' = 1 if `tousevar'
+
 mata:
 
 depvars  = st_local("depvars" )
 treatvar = st_local("treatvar")
 wgtvar   = st_local("wgtvar"  )
 varlist  = st_local("varlist" )
+constvar = st_local("constvar")
 tousevar = st_local("tousevar")
 estimate = st_local("estimate")
 
@@ -101,8 +105,10 @@ estimate = st_local("estimate")
 // ****************************
 
 D = gmatch()
-D.set(st_local("treatvar"),st_local("varlist") ,st_local("tousevar"))
+D.set( st_local("treatvar"),st_local("varlist"), st_local("constvar"), st_local("tousevar"))
+
 if (depvars!="") D.set_Y(st_local("depvars"),st_local("tousevar"))
+
 M = gmatch()
 M.clone(D)
 
@@ -117,7 +123,6 @@ M.clone(D)
 
   "Balance table before matching"
   table = D.balancetable(1)
-
 
 // Replicate CBPS
 
@@ -152,14 +157,15 @@ M.clone(D)
   cbpsweight = M.cbps("atet","sd_sq",1)
   cbpsweight = M.cbps("atet","mean_asd")
   cbpsweight = M.cbps("atet","max_asd")
-  cbpsweight = M.cbps("atet","mean_sd_sq_ent",1)
-  cbpsweight = M.cbps("atet","mean_sd_sq_cv",1)
+//  cbpsweight = M.cbps("atet","mean_sd_sq_cv",1, (1,1,6)
+
 
 // IPW
   M = gmatch()
   M.clone(D)
   stata("qui teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' , atet aequations")
   iwpweight = D.ipw("atet")
+
   M.multweight(iwpweight)
 
   stata("di _b[POmean:0.treat]")
@@ -190,7 +196,7 @@ mata drop D M
 // **************************
 
 DW = gmatch()
-DW.set(st_local("treatvar"),st_local("varlist"),st_local("tousevar"),st_local("wgtvar"))
+DW.set(st_local("treatvar"),st_local("varlist"), st_local("constvar"), st_local("tousevar"), st_local("wgtvar"))
 if (depvars!="") DW.set_Y(st_local("depvars"),st_local("tousevar"))
 
 // Misc balance measures
