@@ -36,7 +36,7 @@ program Estimate, eclass sortpreserve
             ate atet ateu /// to fill in est
             ipw cbps mean_sd sd mean_sd_sq sd_sq /// to fill in fctn and oid
             TREatvariance CONtrolvariance POOledvariance Averagevariance /// to fill in denominator
-            cvopt(numlist min=3 max=3) ///
+            cvtarget(numlist min=3 max=3) skewtarget(numlist min=3 max=3) kurttarget(numlist min=3 max=3) maxtarget(numlist min=3 max=3) ///
             * ] //  display and ml options are allowed
 
   marksample tousevar
@@ -62,6 +62,21 @@ program Estimate, eclass sortpreserve
     di as err `"The treatment variable (`treatvar') must be a dummy variable with >1 treatment obs and >1 control obs."'
     error 125
   }
+
+  // remove collinear variables   
+  _rmcoll `treatvar' `varlist' if `tousevar' `wgtexp', expand logit touse(`tousevar')
+  local varlist `r(varlist)'
+  
+  // Just in case there's some oddball situation where Mata would read in the blank columns for omitted variables
+  fvexpand `varlist' if `tousevar'
+  local varlist `r(varlist)'
+  gettoken trash varlist : varlist
+  forvalues j=1/`: list sizeof varlist' {
+    local v : word `j' of `varlist'
+    _ms_parse_parts `v'
+    if !r(omit) local varlist1 `"`varlist1' `v'"'
+  }
+  local varlist : copy local varlist1
 
   // check type of dependent variables (if any)
   foreach v of local depvars {
@@ -95,7 +110,16 @@ program Estimate, eclass sortpreserve
   }
 
   // parse the "cvopt" option
-  if ("`cvopt'"=="") local cvopt "0 0 0"
+  if (!mi("`maxtarget'")  & mi("`kurttarget'")) local kurttarget "0 0 2"
+  if (!mi("`kurttarget'") & mi("`skewtarget'")) local skewtarget "0 0 2"
+  if (!mi("`skewtarget'") & mi("`cvtarget'"))   local cvtarget   "0 0 2"
+  local cvopt "`cvtarget' `skewtarget' `kurttarget' `maxtarget'"
+  local cvopt : list clean cvopt
+  if (!inlist(`: list sizeof cvopt',0,3,6,9,12)) {
+    di as error `"cvopt() requires 3, 6, 9, 12 elements"'
+    error 198    
+  }
+  if (trim("`cvopt'")!="") mac list _cvopt
 
   // parse the "denominator" options
   local denominator "`treatvariance'`controlvariance'`pooledvariance'`averagevariance'"
@@ -130,9 +154,10 @@ program Estimate, eclass sortpreserve
   else if ("`fctn'"=="ipwcbps"   ) di as txt "Loss = CBPS + IPW (overidentified)" _c
   else if ("`fctn'"=="mean_sd_sq") di as txt "Loss = mean(stddiff())^2" _c
   else if ("`fctn'"=="sd_sq"     ) di as txt "Loss = stddiff():^2" _c
-  if ("`cvopt'"!="0 0 0") {
+  if ("`cvopt'"!="") {
      gettoken a b : cvopt
      gettoken b c : b
+     gettoken c d : c
      di as txt   " + `a'*abs(CV-`b')^`c')"
   }
   else di ""
@@ -177,7 +202,10 @@ void Estimate()
   fctn        = st_local("fctn")
   denominator = strtoreal(st_local("denominator"))
   oid         = strtoreal(st_local("oid"))
-  cvopt       = strtoreal(tokens(st_local("cvopt")))
+  if  (st_local("cvopt")!="") {  
+    cvopt       = strtoreal(tokens(st_local("cvopt")))
+  }
+  else cvopt = J(1,0,.)
 
   gmatch_ado_most_recent = gmatch()
   if  (wgtvar!="") gmatch_ado_most_recent.set(treatvar, varlist, tousevar, wgtvar)
