@@ -41,7 +41,8 @@ program Estimate, eclass sortpreserve
             * ] //  display options are allowed
 
   marksample tousevar
-  _get_diopts diopts /*options*/, `options'
+  _get_diopts diopts options, `options'
+  mlopts      mlopts options, `options'
   if ("`weight'"!="") {
     tempvar wgtvar
     qui gen double `wgtvar'=`exp'
@@ -136,6 +137,11 @@ program Estimate, eclass sortpreserve
   }
   else di ""
   ereturn post `gmatch_beta_out' `wgtexp', obs(`gmatch_N_out') buildfvinfo esample(`tousevar')
+  ereturn local est          = "`est'"
+  ereturn local fctn         = "`fctn'"
+  ereturn scalar denominator = `denominator'
+  ereturn scalar oid         = `oid'
+  ereturn local cvopt        = "`cvopt'"
   _coef_table, `diopts'
 
   // print distribution of weights to screen
