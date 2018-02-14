@@ -42,7 +42,7 @@ program Estimate, eclass sortpreserve
 
   marksample tousevar
   _get_diopts diopts options, `options'
-  mlopts      mlopts options, `options'
+  mlopts      mlopts        , `options'  // rest is not specified, so any other options will cause error
   if ("`weight'"!="") {
     tempvar wgtvar
     qui gen double `wgtvar'=`exp'
