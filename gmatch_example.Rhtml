@@ -12,13 +12,13 @@
 mydata <- read.csv("C:\\Users\\kkranker\\Documents\\Stata\\Ado\\Devel\\gmatch\\testfile.csv", stringsAsFactors = F)
 options(width=120)
 library(CBPS)
-library(cobalt)
 stdall=TRUE
 
 end.rcode-->
 
 <h1>Unweighted</h1>
 
+  
 <h2>ATE:</h2>
 
 <!--begin.rcode 
@@ -84,6 +84,31 @@ W_fit_ATET_over <- CBPS(treat ~ x1 + x1 + X__000000 + X__000001 +x4 + x5 + x6 +x
 summary(W_fit_ATET_over)
 print(  W_fit_ATET_over$weights[1:10])
 balance(W_fit_ATET_over)
+
+end.rcode-->
+
+
+<h1> Call the Stata code from R </h1>
+
+<!--begin.rcode 
+
+library(RStata)
+
+options("RStata.StataPath" = "\"C:\\Program Files (x86)\\Stata15\\StataMP-64\"")
+options("RStata.StataVersion" = 15)
+
+stata_src <- "
+pwd
+cap nois cd ./stata/ado/devel/gmatch
+pwd
+gmatch treat x1-x7 [iw=wgt], atet mean_sd_sq treatvariance cvtarget(1 .75 6)
+gmatchcall balanceresults()
+keep _weight _weight_mtch  _pscore _treated
+summ
+"
+newvars <- stata(stata_src, data.in = mydata, data.out = TRUE)
+
+summary(newvars)
 
 end.rcode-->
 

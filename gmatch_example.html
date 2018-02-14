@@ -99,23 +99,13 @@
 ##   Xiaolin Yang [ctb],
 ##   Sida Peng [ctb]
 </pre></div>
-<div class="source"><pre class="knitr r"><span class="hl kwd">library</span><span class="hl std">(cobalt)</span>
-</pre></div>
-<div class="warning"><pre class="knitr r">## Warning: package 'cobalt' was built under R version 3.4.3
-</pre></div>
-<div class="message"><pre class="knitr r">## 
-## Attaching package: 'cobalt'
-</pre></div>
-<div class="message"><pre class="knitr r">## The following object is masked from 'package:MatchIt':
-## 
-##     lalonde
-</pre></div>
 <div class="source"><pre class="knitr r"><span class="hl std">stdall</span><span class="hl kwb">=</span><span class="hl num">TRUE</span>
 </pre></div>
 </div></div>
 
 <h1>Unweighted</h1>
 
+  
 <h2>ATE:</h2>
 
 <div class="chunk" id="unnamed-chunk-2"><div class="rcode"><div class="source"><pre class="knitr r"><span class="hl std">fit_ATE</span>       <span class="hl kwb">&lt;-</span> <span class="hl kwd">CBPS</span><span class="hl std">(treat</span> <span class="hl opt">~</span> <span class="hl std">x1</span> <span class="hl opt">+</span> <span class="hl std">x1</span> <span class="hl opt">+</span> <span class="hl std">X__000000</span> <span class="hl opt">+</span> <span class="hl std">X__000001</span> <span class="hl opt">+</span><span class="hl std">x4</span> <span class="hl opt">+</span> <span class="hl std">x5</span> <span class="hl opt">+</span> <span class="hl std">x6</span> <span class="hl opt">+</span><span class="hl std">x7</span> <span class="hl opt">+</span><span class="hl std">x90</span> <span class="hl opt">+</span><span class="hl std">x91</span><span class="hl opt">+</span> <span class="hl std">x92</span> <span class="hl opt">+</span><span class="hl std">x93</span> <span class="hl opt">+</span><span class="hl std">x94</span><span class="hl opt">+</span> <span class="hl std">x95,</span> <span class="hl kwc">data</span> <span class="hl std">= mydata,</span> <span class="hl kwc">ATT</span> <span class="hl std">=</span> <span class="hl num">0</span><span class="hl std">,</span> <span class="hl kwc">method</span><span class="hl std">=</span><span class="hl str">'exact'</span><span class="hl std">,</span> <span class="hl kwc">standardize</span><span class="hl std">=stdall)</span>
@@ -705,6 +695,235 @@
 ## x93        0.040385344  0.08656867  0.041250019  0.08842216
 ## x94        0.016055935 -0.12991726  0.016367825 -0.13244093
 ## x95       -0.065828219 -0.08072509 -0.066674669 -0.08176309
+</pre></div>
+</div></div>
+
+
+<h1> Call the Stata code from R </h1>
+
+<div class="chunk" id="unnamed-chunk-6"><div class="rcode"><div class="source"><pre class="knitr r"><span class="hl kwd">library</span><span class="hl std">(RStata)</span>
+
+<span class="hl kwd">options</span><span class="hl std">(</span><span class="hl str">&quot;RStata.StataPath&quot;</span> <span class="hl std">=</span> <span class="hl str">&quot;\&quot;C:\\Program Files (x86)\\Stata15\\StataMP-64\&quot;&quot;</span><span class="hl std">)</span>
+<span class="hl kwd">options</span><span class="hl std">(</span><span class="hl str">&quot;RStata.StataVersion&quot;</span> <span class="hl std">=</span> <span class="hl num">15</span><span class="hl std">)</span>
+
+<span class="hl std">stata_src</span> <span class="hl kwb">&lt;-</span> <span class="hl str">&quot;
+pwd
+cap nois cd ./stata/ado/devel/gmatch
+pwd
+gmatch treat x1-x7 [iw=wgt], atet mean_sd_sq treatvariance cvtarget(1 .75 6)
+gmatchcall balanceresults()
+keep _weight _weight_mtch  _pscore _treated
+summ
+&quot;</span>
+<span class="hl std">newvars</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">stata</span><span class="hl std">(stata_src,</span> <span class="hl kwc">data.in</span> <span class="hl std">= mydata,</span> <span class="hl kwc">data.out</span> <span class="hl std">=</span> <span class="hl num">TRUE</span><span class="hl std">)</span>
+</pre></div>
+<div class="output"><pre class="knitr r">## . 
+## . pwd
+## C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch
+## . cap nois cd ./stata/ado/devel/gmatch
+## unable to change to ./stata/ado/devel/gmatch
+## . pwd
+## C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch
+## . gmatch treat x1-x7 [iw=wgt], atet mean_sd_sq treatvariance cvtarget(1 .75 6)
+## 
+## _cvopt:         1 .75 6
+##   408 control obs (sum of weights = 802.3793)
+##   92 treatment obs (sum of weights = 180.1725)
+##   Step 1 (initial values from logit model):
+## initial:       f(p) = -681.05307
+## alternative:   f(p) =  -555.8915
+## rescale:       f(p) = -485.05844
+## Iteration 0:   f(p) = -485.05844  
+## Iteration 1:   f(p) = -439.22191  
+## Iteration 2:   f(p) = -415.52361  
+## Iteration 3:   f(p) = -415.44687  
+## Iteration 4:   f(p) = -415.44684  
+##   
+##   Step 2 (CBPS) :
+## numerical derivatives are approximate
+## flat or discontinuous region encountered
+## (setting technique to bfgs)
+## Iteration 0:   f(p) =  .00084232  
+## numerical derivatives are approximate
+## flat or discontinuous region encountered
+## Iteration 1:   f(p) =  .00050448  
+## numerical derivatives are approximate
+## flat or discontinuous region encountered
+## Iteration 2:   f(p) =  .00001962  
+## numerical derivatives are approximate
+## flat or discontinuous region encountered
+## Iteration 3:   f(p) =  7.398e-06  
+## numerical derivatives are approximate
+## flat or discontinuous region encountered
+## Iteration 4:   f(p) =  7.791e-08  
+## numerical derivatives are approximate
+## flat or discontinuous region encountered
+## Iteration 5:   f(p) =  3.113e-08  
+## numerical derivatives are approximate
+## flat or discontinuous region encountered
+## Iteration 6:   f(p) =  2.944e-08  
+## numerical derivatives are approximate
+## flat or discontinuous region encountered
+## Iteration 7:   f(p) =  2.795e-09  
+## numerical derivatives are approximate
+## flat or discontinuous region encountered
+## Iteration 8:   f(p) =  2.526e-09  
+## numerical derivatives are approximate
+## flat or discontinuous region encountered
+## Iteration 9:   f(p) =  2.225e-09  
+## numerical derivatives are approximate
+## flat or discontinuous region encountered
+## Iteration 10:  f(p) =  1.676e-09  
+## numerical derivatives are approximate
+## flat or discontinuous region encountered
+## Iteration 11:  f(p) =  1.231e-09  
+## (switching technique to nr)
+## numerical derivatives are approximate
+## flat or discontinuous region encountered
+## Iteration 12:  f(p) =  9.547e-10  (not concave)
+## numerical derivatives are approximate
+## flat or discontinuous region encountered
+## Iteration 13:  f(p) =  8.664e-10  (not concave)
+## numerical derivatives are approximate
+## flat or discontinuous region encountered
+## Iteration 14:  f(p) =  8.653e-10  (not concave)
+## numerical derivatives are approximate
+## flat or discontinuous region encountered
+## Iteration 15:  f(p) =  8.639e-10  (not concave)
+## numerical derivatives are approximate
+## flat or discontinuous region encountered
+## Iteration 16:  f(p) =  8.636e-10  (not concave)
+## numerical derivatives are approximate
+## flat or discontinuous region encountered
+## Iteration 17:  f(p) =  8.629e-10  (not concave)
+## numerical derivatives are approximate
+## flat or discontinuous region encountered
+## Iteration 18:  f(p) =  8.625e-10  (not concave)
+## numerical derivatives are approximate
+## flat or discontinuous region encountered
+## Iteration 19:  f(p) =  8.622e-10  
+## numerical derivatives are approximate
+## flat or discontinuous region encountered
+## Iteration 20:  f(p) =  7.195e-10  (not concave)
+## numerical derivatives are approximate
+## flat or discontinuous region encountered
+## Iteration 21:  f(p) =  2.802e-10  (not concave)
+## numerical derivatives are approximate
+## flat or discontinuous region encountered
+## Iteration 22:  f(p) =  2.795e-10  (not concave)
+## numerical derivatives are approximate
+## flat or discontinuous region encountered
+## numerical derivatives are approximate
+## flat or discontinuous region encountered
+## Iteration 23:  f(p) =  2.793e-10  
+## 
+## Propensity score model coefficients                Number of obs  =        983
+## Generalization of IPW/CPBS-type reweigting
+## Loss = mean(stddiff())^2 + 1*abs(CV-.75)^6)
+## ------------------------------------------------------------------------------
+##              |      Coef.
+## -------------+----------------------------------------------------------------
+##           x1 |  -1.269707
+##    X__000000 |  -1.535947
+##    X__000001 |  -.3955733
+##           x4 |  -.3509633
+##           x5 |   .0011531
+##           x6 |  -.0696706
+##           x7 |  -.0178499
+##        _cons |   1.262998
+## ------------------------------------------------------------------------------
+## 
+## New variables (unweighted summary statistics)
+## 
+## Summary for variables: _weight _weight_mtch _pscore
+##      by categories of: _treated 
+## 
+## _treated |         N      mean        sd       min        p1       p10
+## ---------+------------------------------------------------------------
+##        0 |       408      1.97      1.63      .186      .414      .771
+##          |       408      .996      .773     .0991      .271      .419
+##          |       408      .298      .137     .0473       .12      .173
+## ---------+------------------------------------------------------------
+##        1 |        92      1.96      .391      .877      .877      1.39
+##          |        92         1         0         1         1         1
+##          |        92      .405      .149      .163      .163      .213
+## ---------+------------------------------------------------------------
+##    Total |       500      1.97      1.48      .186      .434      .806
+##          |       500      .997      .698     .0991      .273      .428
+##          |       500      .318      .145     .0473       .12      .176
+## ----------------------------------------------------------------------
+## 
+## _treated |       p25       p50       p75       p90       p99       max
+## ---------+------------------------------------------------------------
+##        0 |      .931      1.31      2.04      4.63      7.95      9.99
+##          |      .521      .638      .873      2.26      3.18      3.81
+##          |      .207      .242      .304      .531      .615      .656
+## ---------+------------------------------------------------------------
+##        1 |      1.72         2      2.25      2.45      2.67      2.67
+##          |         1         1         1         1         1         1
+##          |       .27       .43      .545      .595      .651      .651
+## ---------+------------------------------------------------------------
+##    Total |         1      1.46      2.14      4.41       7.7      9.99
+##          |       .55      .761         1      2.15      3.15      3.81
+##          |      .213      .264      .478       .56      .632      .656
+## ----------------------------------------------------------------------
+## . gmatchcall balanceresults()
+##   Balance table:
+##                  1             2             3             4             5
+##     +-----------------------------------------------------------------------
+##   1 |     Variable      mean (T)      mean (C)        diff()     stddiff()
+##   2 |           x1      .4512231      .4487924      .0024307      .0048842
+##   3 |    X__000000      .0114039      .0108201      .0005837      .0056122
+##   4 |    X__000001      .0240637      .0225079      .0015558      .0104192
+##   5 |           x4      .4218861      .4922584     -.0703723      -.140793
+##   6 |           x5      25.44699      24.38885      1.058139      .1726627
+##   7 |           x6      11.84757      12.22684     -.3792729     -.1791522
+##   8 |           x7      7.015422      6.455582      .5598401      .1662277
+##     +-----------------------------------------------------------------------
+##                  6             7
+##      -----------------------------+
+##   1    sd (Pooled)    varratio()  |
+##   2       .4976699      1.005315  |
+##   3       .1040133      1.057886  |
+##   4       .1493197       1.07204  |
+##   5        .499828      .9800502  |
+##   6       6.128358      .7495684  |
+##   7       2.117044      .5546788  |
+##   8       3.367911      1.148234  |
+##      -----------------------------+
+##   Mean standardized diff., squared
+##   .0000324263
+##   Mean absolute standardized diff.
+##   .0971073134
+##   Maximum absolute standardized diff.
+##   .1791521505
+##   C.V. of matching weights:
+##   .6999472771
+##   S.D. of matching weights:
+##   .6977997625
+##   Skewness of matching weights:
+##   .0731620567
+##   Kurtosis of matching weights:
+##   .0097079946
+## . keep _weight _weight_mtch  _pscore _treated
+## . summ
+## 
+##     Variable |        Obs        Mean    Std. Dev.       Min        Max
+## -------------+---------------------------------------------------------
+##      _weight |        500    1.965104    1.480611   .1858275   9.993502
+## _weight_mtch |        500    .9969319    .6977998   .0990608   3.805038
+##      _pscore |        500    .3176607    .1452483   .0472585   .6558005
+##     _treated |        500        .184    .3878723          0          1
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl kwd">summary</span><span class="hl std">(newvars)</span>
+</pre></div>
+<div class="output"><pre class="knitr r">##     _weight        _weight_mtch        _pscore           _treated    
+##  Min.   :0.1858   Min.   :0.09906   Min.   :0.04726   Min.   :0.000  
+##  1st Qu.:0.9998   1st Qu.:0.55030   1st Qu.:0.21262   1st Qu.:0.000  
+##  Median :1.4557   Median :0.76059   Median :0.26401   Median :0.000  
+##  Mean   :1.9651   Mean   :0.99693   Mean   :0.31766   Mean   :0.184  
+##  3rd Qu.:2.1368   3rd Qu.:1.00000   3rd Qu.:0.47749   3rd Qu.:0.000  
+##  Max.   :9.9935   Max.   :3.80504   Max.   :0.65580   Max.   :1.000
 </pre></div>
 </div></div>
 
