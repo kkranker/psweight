@@ -72,7 +72,7 @@ program Estimate, eclass sortpreserve
   // parse the "est" options
   local est "`ate'`atet'`ateu'"
   if ("`est'"=="") local est ate
-  else if (!inlist("`est'", "ate", "atet", "ateu") {
+  else if (!inlist("`est'", "ate", "atet", "ateu")) {
     di as err `"Specify one of the following: ate, atet, or ateu"'
     error 198
   }
@@ -109,10 +109,37 @@ program Estimate, eclass sortpreserve
     error 198
   }
 
-
+  // clear existing results  (varnames match those from psmatch2)
+  foreach v in _weight _weight_mtch _pscore _treated {
+    cap drop `v'
+    gen double `v' = .
+    format %7.3g `v' 
+  }
   ereturn clear
   return  clear
   mata: Estimate()
+  
+  
+  // print results to screen
+  di as txt _n "Propensity score model coefficients" _c
+  di as txt _col(52) "Number of obs" _col(67) "=" _col(69) as res %10.0fc `gmatch_N_out'
+  di as txt "Generalization of IPW/CPBS-type reweigting" 
+  if      ("`fctn'"=="ipw"       ) di as txt "Loss = IPW" _c
+  else if ("`fctn'"=="cbps"      ) di as txt "Loss = CBPS" _c
+  else if ("`fctn'"=="ipwcbps"   ) di as txt "Loss = CBPS + IPW (overidentified)" _c
+  else if ("`fctn'"=="mean_sd_sq") di as txt "Loss = mean(stddiff())^2" _c
+  else if ("`fctn'"=="sd_sq"     ) di as txt "Loss = stddiff():^2" _c 
+  if ("`cvopt'"!="0 0 0") {
+     gettoken a b : cvopt
+     gettoken b c : b
+     di as txt   " + `a'*abs(CV-`b')^`c')"
+  }
+  else di ""
+  ereturn post `gmatch_beta_out' `wgtexp', obs(`gmatch_N_out') buildfvinfo esample(`tousevar')
+  _coef_table, `diopts'
+
+  // print distribution of weights to screen
+  return clear
 
 /*
   // add to ereturn
@@ -248,15 +275,16 @@ void Estimate()
   oid         = strtoreal(st_local("oid"))
   cvopt       = strtoreal(tokens(st_local("cvopt")))
 
-  "(Loading data into mata.)"
   class gmatch scalar D
   D = gmatch()
   if  (wgtvar!="") D.set(treatvar, varlist, tousevar, wgtvar)
   else             D.set(treatvar, varlist, tousevar)
   if (depvars!="") D.set_Y(depvars,tousevar)
   
-  "(Estimating model.)"
   D.cbps(est, fctn, denominator, oid, cvopt)
+  
+  D.get_scores("_weight _weight_mtch _pscore _treated", tousevar)
+  
 }
 end
 

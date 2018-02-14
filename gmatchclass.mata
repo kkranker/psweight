@@ -1,3 +1,4 @@
+version 15.1
 mata:
 
 mata set matastrict on
@@ -6,13 +7,13 @@ mata set matafavor speed
 class gmatch
 {
   private:
-    real colvector   T, W, sel1, sel0, Y0, W_orig, W_mtch
+    real colvector   T, W, sel1, sel0, Y0, W_orig, W_mtch, PS_mtch
     real matrix      X, XC, Xstd
     string scalar    treatvar, depvars, wgtvar
     string rowvector varlist
     real rowvector   means1, means0, meansP, variances0, variances1, variancesP, variancesA
     real matrix      covariances0, covariances1, covariancesP, covariancesA
-    void             clone(), calcmeans(), calcvariances(), calcN(), calccovariances(), cbps_port_stata(), cbps_port_r()
+    void             clone(), calcmeans(), calcvariances(), calcN(), calccovariances(), cbps_port_stata(), cbps_port_r(), postbeta()
     real scalar      N1, N0, N, N1_raw, N0_raw, N_raw
     real scalar      mean_sd_sq(),  entropydistance()
     real rowvector   olsbeta(), diagvariance(), logitbeta(), sd_sq(), asd()
@@ -20,7 +21,7 @@ class gmatch
     real matrix      cbps_port_stata_wgt_matrix(), cbps_port_stata_gradient()
 
   public:
-    void             new(), set(), set_Y(), reweight()
+    void             new(), set(), set_Y(), reweight(), get_scores()
     void             ipw(), cbps(), cbpseval()
     real rowvector   diff(), stddiff(), varratio(), prognosticdiff(), pomean(), wgt_moments()
     real scalar      mean_asd(), max_asd(), wgt_cv(), wgt_sd(), wgt_skewness(), wgt_kurtosis(), wgt_max()
@@ -61,6 +62,7 @@ void gmatch::clone(class gmatch scalar src)
   this.calcN()
 }
 
+// loads the main data into the class, using views wherever possible
 void gmatch::set(string scalar treatvar, string scalar varlist, string scalar tousevar, | string scalar wgtvar)
 {
   // Define treatment dummy
@@ -97,11 +99,11 @@ void gmatch::set(string scalar treatvar, string scalar varlist, string scalar to
   this.N1_raw = rows(this.sel1)
   this.N_raw = this.N0_raw + this.N1_raw
   if (min((this.N0_raw,this.N1_raw)==0)) _error("At least one treatment and control observation required.")
-  
+
   this.calcN()
   if (all(this.W_orig:==1)) {
-    strofreal(this.N0_raw) + " control obs" 
-    strofreal(this.N1_raw) + " treatment obs" 
+    strofreal(this.N0_raw) + " control obs"
+    strofreal(this.N1_raw) + " treatment obs"
     "(Data are unweighted.)"
   }
   else {
@@ -139,17 +141,46 @@ void gmatch::set_Y(string scalar depvarnames, string scalar tousevar)
 }
 
 // multipy the original weights by a matching weight
-void gmatch::reweight(|real colvector newweight)
+// and, optimally, store IPW weights in this.PS_mtch
+// without any arguments
+void gmatch::reweight(|real colvector newweight, real colvector newpscores)
 {
+  // weights
   if (args()<1) this.W_mtch = J(rows(this.T),1,1)
   else          this.W_mtch = newweight
   this.W = this.W_orig :* this.W_mtch
-  // some new weights could be zero.  recalculate N and set means/variances to missing.
+  // p-scores
+  if (args()>1) this.PS_mtch = newpscores
+  else if (args()<1) this.PS_mtch = .
+  // recalculate N and set means/variances to missing.
   this.calcN()
   this.means0 = this.means1 = this.meansP = this.variances0 = this.variances1 = this.variancesP = this.variancesA = J(1,0,.)
   this.covariances0 = this.covariances1 = this.covariancesP = this.covariancesA = J(0,0,.)
 }
 
+// used to push the resulting weights and propensity scores back into Stata.
+void gmatch::get_scores(string rowvector newvarnames, string scalar tousevar)
+{
+  real matrix thisview
+  newvarnames = tokens(newvarnames)
+  if (length(newvarnames)!=4) _error("gmatch::get_scores() requires four variable names")
+  st_view(thisview, ., newvarnames, tousevar)
+
+  if (rows(thisview)==rows(this.W)) thisview[.,1] = this.W
+  else thisview[.,1] = J(rows(thisview),1,.)
+
+  if (rows(thisview)==rows(this.W_mtch)) thisview[.,2] = this.W_mtch
+  else thisview[.,2] = J(rows(thisview),1,.)
+
+  if (rows(thisview)==rows(this.PS_mtch)) thisview[.,3] = this.PS_mtch
+  else thisview[.,3] = J(rows(thisview),1,.)
+
+  if (rows(thisview)==rows(this.T)) thisview[.,4] = this.T
+  else thisview[.,4] = J(rows(thisview),1,.)
+
+  "New variables (unweighted summary statistics):"
+  stata("tabstat " + invtokens(newvarnames[1..3]) + " if " + tousevar + ", by(" + invtokens(newvarnames[4]) + ") c(s) s(N mean sd min p1 p10 p25 p50 p75 p90 p99 max) format")
+}
 
 // This function makes a balance table and prints it to the screen
 // The argument is the same as their definition in stddiff() and varratio()
@@ -442,14 +473,15 @@ void gmatch::ipw(string scalar est)
 {
   real rowvector beta
   real colvector pscore, ipwwgt
+  this.reweight()
   if (args()<1) est="ate"
   beta   = this.logitbeta(this.T, this.X, this.W_orig, 1)
   /* */ "propensity score (logit) model beta:"; beta
   pscore = this.logitpredict(this.X, beta)
   ipwwgt = this.logitweights(pscore, est)
-  reweight(ipwwgt)
+  this.postbeta(beta)
+  this.reweight(ipwwgt, pscore)
 }
-
 
 // function that returns (weighted) mean of the dependent variable(s) in the control group
 real rowvector gmatch::pomean()
@@ -532,6 +564,19 @@ real rowvector gmatch::logitbeta(real colvector Ymat, real matrix Xmat, | real c
   return(moptimize_result_coefs(S))
 }
 
+// sends coefficients and N back to Stata in a matrix named `gmatch_beta_out'
+void gmatch::postbeta(real rowvector beta) {
+  string scalar tempmatname
+  st_eclear()
+  tempmatname=st_tempname()
+  st_matrix(tempmatname,beta)
+  st_local("gmatch_beta_out",tempmatname)
+  if      ((cols(this.varlist)==cols(beta)  ) & cols(beta)) st_matrixcolstripe(tempmatname, (J(cols(beta),1,""),this.varlist'))
+  else if ((cols(this.varlist)==cols(beta)-1) & cols(beta)) st_matrixcolstripe(tempmatname, (J(cols(beta),1,""),(this.varlist' \ "_cons")))
+  else                                                      _error("beta does not have the expected dimensions.")
+  st_local("gmatch_N_out",strofreal(this.N))
+}
+
 void gmatch_logit_eval(transmorphic S, real rowvector beta, real colvector lnf)
 {
   real colvector Y, pm, xb, lj
@@ -558,7 +603,7 @@ void gmatch_logit_eval(transmorphic S, real rowvector beta, real colvector lnf)
 //    cvopt adds the CV of the matching weights to the optimization objective function
 //         Let loss_0 be the ojbective function and CV be the coefficient of variation of the matching weights
 //         Then, if cvopt=(a,b,c), then the loss function is modified as:
-//              loss = ( loss_0 \ a * ((CV - b)^c) )
+//              loss = ( loss_0 \ a * abs((CV - b)^c) )
 //         The default is a=0 (the loss function is unmodified)
 //                        b=0 (prefer no variation in weights)
 //                        c=2 (a quadratic)
@@ -578,9 +623,9 @@ void gmatch::cbps(| string scalar est,
   if (args()<3) denominator=1
   if (args()<4) oid=0
   if (args()<5) cvopt=(0,0,0)
+  this.reweight()
 
   // Clone the class instance (so that I can reweight the dataset to calculate objective function)
-
   M.clone(this)
   if (isview(M.W)) _error("Something is wrong with the clone")
 
@@ -734,7 +779,6 @@ void gmatch::cbps(| string scalar est,
   /* */ // "optimize_result_iterations(S)"; optimize_result_iterations(S)
   beta    = optimize_result_params(S)
 
-
   // undoing the normalization and SVD
   if (unnorm)  {
     M.Xstd = .
@@ -750,34 +794,31 @@ void gmatch::cbps(| string scalar est,
     /* */ "CBPS beta"; ( (M.varlist,"_cons")', strofreal(beta)')
   }
 
-  pscore  = M.logitpredict(M.X, beta)
-  pscore  = M.trim(pscore)
-
+  pscore = M.logitpredict(M.X, beta)
+  pscore = M.trim(pscore)
   cbpswgt = M.logitweights(pscore, est)
-  /* */ "Weights for first 10 observations:";  cbpswgt[1..10]'
-  /* */ "Weights for first 10 observations / N:"
-  /* */ real colvector cbpswgtsum1
-  /* */ cbpswgtsum1 = cbpswgt
-  /* */ cbpswgtsum1[M.sel0] = cbpswgtsum1[M.sel0] :/ quadsum(cbpswgtsum1[M.sel0] :* M.W[M.sel0])
-  /* */ cbpswgtsum1[M.sel1] = cbpswgtsum1[M.sel1] :/ quadsum(cbpswgtsum1[M.sel1] :* M.W[M.sel1])
-  /* */ cbpswgtsum1[1..10]'
+  // /* */ "Weights for first 10 observations:";  cbpswgt[1..10]'
+  // /* */ "Weights for first 10 observations / N:"
+  // /* */ real colvector cbpswgtsum1
+  // /* */ cbpswgtsum1 = cbpswgt
+  // /* */ cbpswgtsum1[M.sel0] = cbpswgtsum1[M.sel0] :/ quadsum(cbpswgtsum1[M.sel0] :* M.W[M.sel0])
+  // /* */ cbpswgtsum1[M.sel1] = cbpswgtsum1[M.sel1] :/ quadsum(cbpswgtsum1[M.sel1] :* M.W[M.sel1])
+  // /* */ cbpswgtsum1[1..10]'
 
   // no need to set weights back to what they were, since I've been messing with M. instead of this.
-  M.reweight(cbpswgt)
+  this.postbeta(beta)
+  this.reweight(cbpswgt, pscore)
   /* */ "Balance after CBPS (" + fctn + "):"
   /* */ "optimize_result_value(S)" ; optimize_result_value(S)
-  /* */ "balance table after matching (" + fctn + "):"; real matrix temp; temp = M.balancetable(denominator)
-  /* */ "entropydistance of control weights (" + fctn + "):"; (M.entropydistance(cbpswgt[M.sel0], M.W_orig[M.sel0]))
-  /* */ "cv of matching weights (" + fctn + "):"; M.wgt_cv(est)
-  /* */ "sd of matching weights (" + fctn + "):"; M.wgt_sd(est)
-  /* */ "skewness of matching weights (" + fctn + "):"; M.wgt_skewness(est)
-  /* */ "kurtosis of matching weights (" + fctn + "):"; M.wgt_kurtosis(est)
-  /* */ "M.mean_sd_sq(denominator)";  M.mean_sd_sq(denominator)
-  /* */ "M.mean_asd(denominator)"  ;  M.mean_asd(denominator)
-  /* */ "M.max_asd(denominator)"   ;  M.max_asd(denominator)
-  /* */ "M.sd_sq(denominator)"     ;  M.sd_sq(denominator)
-  /* */ "M.asd(denominator)"       ;  M.asd(denominator)
-  /* */ ""; ""; ""; ""; ""; ""; ""
+  /* */ "balance table after matching (" + fctn + "):"; real matrix temp; temp = this.balancetable(denominator)
+  /* */ "entropydistance of control weights (" + fctn + "):"; (this.entropydistance(cbpswgt[this.sel0], this.W_orig[this.sel0]))
+  /* */ "cv of matching weights (" + fctn + "):"; this.wgt_cv(est)
+  /* */ "sd of matching weights (" + fctn + "):"; this.wgt_sd(est)
+  /* */ "skewness of matching weights (" + fctn + "):"; this.wgt_skewness(est)
+  /* */ "kurtosis of matching weights (" + fctn + "):"; this.wgt_kurtosis(est)
+  /* */ "this.mean_sd_sq(denominator)";  this.mean_sd_sq(denominator)
+  /* */ "this.mean_asd(denominator)"  ;  this.mean_asd(denominator)
+  /* */ "this.max_asd(denominator)"   ;  this.max_asd(denominator)
 }
 
 // helper function -- note this is not a member of the class
@@ -815,7 +856,7 @@ void gmatch::cbpseval( real   scalar    todo,
     else                              _error(fctn + " is invalid with gmatch::cbpseval()")
   }
 
-  // if cvopt=(a,b,c), then loss = ( loss_0 \ a * ((CV - b)^c) )
+  // if cvopt=(a,b,c), then loss = ( loss_0 \ a * abs((CV - b)^c) )
   if (cvopt[1,1]!=0) {
     if (todo>0) _error("cvopt[1,1]!=0 is not compatable with todo>0 in gmatch::cbpseval()")
     if (fctn=="cbps_port_stata" | fctn=="cbps_port_r") {
@@ -824,7 +865,7 @@ void gmatch::cbpseval( real   scalar    todo,
       cbpswgt = this.logitweights(pscore, est)
       this.reweight(cbpswgt)
     }
-    lnf = (lnf \ (cvopt[1,1]:*((this.wgt_cv(est):-cvopt[1,2]):^cvopt[1,3])))
+    lnf = (lnf \ (cvopt[1,1]:*abs((this.wgt_cv(est):-cvopt[1,2]):^cvopt[1,3])))
   }
 }
 
