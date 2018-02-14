@@ -238,7 +238,7 @@ void gmatch::balanceresults(| string scalar est, real scalar denominator)
   "S.D. of matching weights:";           this.wgt_sd(est)
   "Skewness of matching weights:";       this.wgt_skewness(est)
   "Kurtosis of matching weights:";       this.wgt_kurtosis(est)
-  if (this.depvars!="") {                
+  if (this.depvars!="") {
     "Difference in prognostic scores:";  temp = this.prognosticdiff()
   }
 }
@@ -578,6 +578,7 @@ real colvector gmatch::logitweights(real colvector pscore, | string scalar est)
 
 // Define function to calculate coefficients for a logit regression model
 // A contant term is added to the model and its coefficient is included in the vector of betas
+// The program looks at Stata local mlopts with instructions for controlling maximization
 real rowvector gmatch::logitbeta(real colvector Ymat, real matrix Xmat, | real colvector Wmat, real scalar addconst)
 {
   transmorphic S
@@ -672,6 +673,7 @@ real rowvector gmatch::cbps(| string scalar est,
   //                      (1) works with cvopt and
   //                      (2) converges more slowly
   //                 - was based on the R implimentation of CBPS on CRAN by Imai et al.
+  // In addition, the program looks at Stata local mlopts with instructions for controlling maximization
   else if (fctn=="cbps" & all(this.W_orig:==1)) fctn="cbps_port_stata"
   else if (fctn=="cbps") fctn="cbps_port_r"
   if (fctn=="cbps_port_r" & cvopt[1]) errprintf("{p}\nWarning: cvopt does not appear to substantially affect the reults with fctn=cbps. Consider switching to fctn=sd_sq or mean_sd_sq{p_end}\n")
@@ -712,11 +714,9 @@ real rowvector gmatch::cbps(| string scalar est,
     optimize_init_conv_ptol(S,  1e-10)
     optimize_init_conv_vtol(S,  1e-11)
     optimize_init_conv_nrtol(S, 1e-9)
-    optimize_init_singularHmethod(S,"hybrid")  // "m-marquardt" or "hybrid"; "hybrid" is equivalent to ml's "difficult" option
-    optimize_init_conv_ignorenrtol(S, "off")
   }
   else _error(fctn + " is invalid with gmatch::cbps()")
-  if (st_local("mlopts")!="") moptimize_init_mlopts(S, st_local("mlopts"))
+  if (st_local("mlopts")!="") optimize_init_mlopts(S, st_local("mlopts"))
 
   // cvopt adds 1 element to loss function
   if (cvopt[1,1]!=0 & optimize_init_evaluatortype(S)!="gf0") optimize_init_evaluatortype(S,"gf0")
@@ -1022,6 +1022,73 @@ void gmatch::cbps_port_r(real   scalar    todo,
   }
   if (todo<1) return
   else _error("gmatch::cbps_port_r() is not compatable with todo>=1")
+}
+
+
+
+// extract optimize_init_*() options parsed by Stata program -mlopts-
+// I just copied moptimize_init_mlopts source code, then updated according to
+// the optimize() help manual
+void optimize_init_mlopts(transmorphic scalar M, string scalar mlopts)
+{
+        string scalar arg, arg1, tok
+        transmorphic t, t1
+
+        t = tokeninit(" ","","()")
+        tokenset(t,mlopts)
+        arg = tokenget(t)
+        t1 = tokeninit("()")
+
+        while (strlen(arg)) {
+                arg1 = ""
+                if (strmatch(arg,"trace")) {
+                        optimize_init_tracelevel(M, "value")
+                }
+                else if (strmatch(arg,"gradient")) {
+                        optimize_init_tracelevel(M, "gradient")
+                }
+                else if (strmatch(arg,"hessian")) {
+                        optimize_init_tracelevel(M, "hessian")
+                }
+                else if (strmatch(arg,"showstep")) {
+                        optimize_init_tracelevel(M, "step")
+                }
+                else if (strmatch(arg,"nonrtolerance")) {
+                         optimize_init_conv_ignorenrtol(M, "on")
+                }
+                else if (strmatch(arg,"showtolerance")) {
+                        optimize_init_tracelevel(M, "tolerance")
+                }
+                else if (strmatch(arg,"difficult")) {
+                        optimize_init_singularHmethod(M, "hybrid")
+                }
+                else {
+                        arg1 = tokenget(t)
+                        tokenset(t1,arg1)
+                        tok = tokenget(t1)
+                        if (strmatch(arg,"technique")) {
+                                optimize_init_technique(M, tok)
+                        }
+                        else if (strmatch(arg,"iterate")) {
+                                optimize_init_conv_maxiter(M, strtoreal(tok))
+                        }
+                        else if (strmatch(arg,"tolerance")) {
+                                optimize_init_conv_ptol(M, strtoreal(tok))
+                        }
+                        else if (strmatch(arg,"ltolerance")) {
+                                optimize_init_conv_vtol(M, strtoreal(tok))
+                        }
+                        else if (strmatch(arg,"nrtolerance")) {
+                                optimize_init_conv_nrtol(M, strtoreal(tok))
+                        }
+                        else {
+                                arg = arg1
+                        }
+                }
+                if (!strmatch(arg,arg1)) {
+                        arg = tokenget(t)
+                }
+        }
 }
 
 end
