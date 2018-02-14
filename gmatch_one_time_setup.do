@@ -28,8 +28,9 @@
 //    It will show you were your PERSONAL directory is located.
 // 
 // 2. Drop these files into your PERSONAL directory (in a subfolder named /g/)
-//      <<PERSONAL>>/g/gmatchclass.mata
-//      <<PERSONAL>>/g/gmatch.ado
+//      <PERSONAL>/g/gmatchclass.mata
+//      <PERSONAL>/g/gmatch.ado
+//      <PERSONAL>/g/gmatchcall.ado
 //      
 // 3. Update the filepath to gmatchclass.mata below.
 // 
