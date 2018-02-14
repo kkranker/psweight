@@ -20,8 +20,7 @@ log using gmatch_example.log, name(gmatch_example) replace
 // Stata_code_2_IPW.do This program includes all the examples in the powerpoint slides, plus more.
 // This program includes examples of how to code inverse propensity weighting (IPW) estimators using Stata's GMM command
 
-// include C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\gmatchclass.mata
-do C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\cr_lgmatch.do
+do C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\gmatch_one_time_setup.do
 
 version 15.1
 set type double
@@ -59,6 +58,7 @@ forvalues i = 90/95 {
 // tab2    treat x1
 
 
+
 local depvars = "y1 y1_binary"
 local treatvar = "treat"
 local varlist = "x1 i.x2 i.x3 x4 x5 x6 x7 x9*"
@@ -88,6 +88,11 @@ local varlist : copy local varlist1
 fvrevar `varlist'
 export delimited `treatvar' `r(varlist)' `wgtvar' using testfile.csv if `tousevar', replace nolabel
 
+
+// *******************************
+// * RUN MODELS DIRECTLY in MATA *
+// *******************************
+
 mata:
 
 depvars  = st_local("depvars" )
@@ -98,9 +103,7 @@ tousevar = st_local("tousevar")
 estimate = st_local("estimate")
 
 
-// ****************************
 // * UNWEIGHTED DATA EXAMPLES *
-// ****************************
 
 D = gmatch()
 D.set(treatvar, varlist, tousevar)
@@ -173,9 +176,7 @@ if (depvars!="") D.set_Y(depvars,tousevar)
 mata drop D
 
 
-// **************************
 // * WEIGHTED DATA EXAMPLES *
-// **************************
 
 DW = gmatch()
 DW.set(treatvar, varlist, tousevar, wgtvar)
@@ -245,12 +246,48 @@ if (depvars!="") DW.set_Y(depvars,tousevar)
 
 end  // end of Mata block
 
-set tracedepth 2
-//set trace on
-gmatch `treatvar' `varlist' if `tousevar'              , cbps
-gmatch `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], cbps
-gmatch `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], sd
-gmatch `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], sd cvopt(1 .6667 4)
+log close gmatch_example
+
+
+
+// *************************************
+// * NOW RE-RUN WITH .ADO FILE VERSION *
+// *************************************
+
+log using gmatch_example_ado.log, name(gmatch_example_ado) replace
+di as txt "Current user: `c(username)'" _n "Environment: `c(os)' `c(machine_type)' `: environment computername'" _n "Stata: `c(stata_version)'" cond(c(stata_version)==c(version),""," (set to version `c(version)')") _n "Date: " c(current_date) " " c(current_time)
+desc, short
+summ `treatvar' `varlist' `tousevar' `wgtvar' `depvars'
+
+
+// * UNWEIGHTED DATA EXAMPLES *
+
+// Replicate CBPS
+
+cbps `treatvar' `varlist' if `tousevar' , ate logit optimization_technique("nr") evaluator_type("gf1")
+gmatch `treatvar' `varlist' if `tousevar' , ate cbps pooledvariance
+cbps `treatvar' `varlist' if `tousevar' , ate over logit optimization_technique("nr") evaluator_type("gf1")
+gmatch `treatvar' `varlist' if `tousevar' , ate cbps ipw pooledvariance
+cbps `treatvar' `varlist' if `tousevar' , att logit optimization_technique("nr") evaluator_type("gf1")
+gmatch `treatvar' `varlist' if `tousevar' , atet cbps pooledvariance
+cbps `treatvar' `varlist' if `tousevar' , att over logit optimization_technique("nr") evaluator_type("gf1")
+gmatch `treatvar' `varlist' if `tousevar' , atet cbps ipw pooledvariance
+
+// Other objective functions
+gmatch `treatvar' `varlist' if `tousevar' , atet mean_sd_sq treatvariance
+gmatch `treatvar' `varlist' if `tousevar' , atet sd_sq treatvariance
+
+// IPW
+teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' , atet aequations
+di _b[POmean:0.treat]
+tebalance summarize
+tebalance summarize, baseline
+gmatch `treatvar' `varlist' if `tousevar' , atet ipw treatvariance
+gmatch `treatvar' `varlist' if `tousevar' , atet ipw averagevariance
+teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' , ate aequations
+gmatch `treatvar' `varlist' if `tousevar' , ate ipw treatvariance
+teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' , atet aequations tlevel(0) control(1)
+gmatch `treatvar' `varlist' if `tousevar' , ateu ipw treatvariance
 
 // tradeoff between CBPS-like balance and variance in weights
 gmatch `treatvar' `varlist' if `tousevar' , atet cbps treatvariance
@@ -258,11 +295,10 @@ gmatch `treatvar' `varlist' if `tousevar' , atet cbps treatvariance cvopt(1 .75 
 gmatch `treatvar' `varlist' if `tousevar' , atet cbps treatvariance cvopt(1 .50 6)
 gmatch `treatvar' `varlist' if `tousevar' , atet mean_sd_sq treatvariance cvopt(1 .75 6)
 gmatch `treatvar' `varlist' if `tousevar' , atet mean_sd_sq treatvariance cvopt(1 .50 6)
+gmatch `treatvar' `varlist' if `tousevar' , atet cbps ipw treatvariance cvopt(1 .75 6)
 
 
-// **************************
 // * WEIGHTED DATA EXAMPLES *
-// **************************
 
 // Replicate CBPS
 gmatch `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], ate cbps pooledvariance
@@ -278,6 +314,7 @@ gmatch `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet sd_sq treatvarianc
 teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' [iw=`wgtvar'], atet aequations
 di _b[POmean:0.treat]
 tebalance summarize
+tebalance summarize, baseline
 gmatch `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet ipw treatvariance
 gmatch `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet ipw averagevariance
 teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' [iw=`wgtvar'], ate aequations
@@ -294,3 +331,4 @@ gmatch `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet mean_sd_sq treatva
 
 log close gmatch_example_ado
 
+cap nois beep 
