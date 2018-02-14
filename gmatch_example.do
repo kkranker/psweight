@@ -80,8 +80,6 @@ forvalues j=1/`: list sizeof varlist' {
 local varlist : copy local varlist1
 
 
-replace `tousevar'=1
-
 // *******************************
 // * RUN MODELS DIRECTLY IN MATA *
 // *******************************
@@ -94,7 +92,6 @@ wgtvar   = st_local("wgtvar"  )
 varlist  = st_local("varlist" )
 tousevar = st_local("tousevar")
 estimate = st_local("estimate")
-
 // * UNWEIGHTED DATA EXAMPLES *
 
 D = gmatch()
@@ -184,12 +181,12 @@ if (depvars!="") D.set_Y(depvars,tousevar)
 
   D.cbps("atet","mean_sd_sq", 1, 0, (1,.50,6))
   D.balanceresults("atet",1)
-  st_local("mlopts", "")
 
 // furthermore, you can target skiwness, kurtosis, or max weight
-  DW.cbps("atet","cbps", 1, 0, (1,.50,6,1,0,2,1,0,2))
-  DW.balanceresults("atet",1)
-  
+  D.cbps("atet","cbps", 1, 0, (1,.50,6,1,0.7,2))
+  D.balanceresults("atet",1)
+  st_local("mlopts", "")
+
 mata drop D
 
 
@@ -272,7 +269,7 @@ if (depvars!="") DW.set_Y(depvars,tousevar)
   DW.cbps("atet","cbps", 1, 0, (1,.50,6))
   DW.balanceresults("atet",1)
 
-  st_local("mlopts", "difficult nonrtolerance")
+  st_local("mlopts", " nonrtolerance")
   DW.cbps("atet","mean_sd_sq", 1, 0, (1,.75,6))
   DW.balanceresults("atet",1)
 
@@ -283,9 +280,7 @@ if (depvars!="") DW.set_Y(depvars,tousevar)
   DW.balanceresults("atet",1)
   st_local("mlopts", "")
 
-// furthermore, you can target skiwness, kurtosis, or max weight
-  DW.cbps("atet","mean_sd_sq", 1, 0, (1,.50,6,1,0,2,1,0,2))
-  DW.balanceresults("atet",1)
+  // you can also target skiwness, kurtosis, or max weight, but it's finicky
 
 end  // end of Mata block
 
@@ -327,10 +322,10 @@ gmatchcall diff()
 gmatchcall balancetable()
 
 // Other objective functions
-gmatch `treatvar' `varlist' if `tousevar' , atet mean_sd_sq treatvariance
+gmatch `treatvar' `varlist' if `tousevar' , atet mean_sd_sq treatvariance difficult nonrtolerance
 gmatchcall balanceresults()
 
-gmatch `treatvar' `varlist' if `tousevar' , atet sd_sq treatvariance difficult
+gmatch `treatvar' `varlist' if `tousevar' , atet sd_sq treatvariance difficult nonrtolerance
 gmatchcall balanceresults()
 
 // IPW
@@ -362,21 +357,21 @@ gmatchcall balanceresults()
 gmatch `treatvar' `varlist' if `tousevar' , atet cbps treatvariance cvtarget(1 .50 6)
 gmatchcall balanceresults()
 
-gmatch `treatvar' `varlist' if `tousevar' , atet mean_sd_sq treatvariance cvtarget(1 .75 6) difficult
+gmatch `treatvar' `varlist' if `tousevar' , atet mean_sd_sq treatvariance cvtarget(1 .75 6) difficult nonrtolerance
 gmatchcall balanceresults()
 
-gmatch `treatvar' `varlist' if `tousevar' , atet mean_sd_sq treatvariance cvtarget(1 .50 6) difficult
+gmatch `treatvar' `varlist' if `tousevar' , atet mean_sd_sq treatvariance cvtarget(1 .50 6) difficult nonrtolerance
 gmatchcall balanceresults()
 
 gmatch `treatvar' `varlist' if `tousevar' , atet cbps ipw treatvariance cvtarget(1 .75 6)
 gmatchcall balanceresults()
 
 // furthermore, you can target skiwness, kurtosis, or max weight
-gmatch `treatvar' `varlist' if `tousevar', atet cbps treatvariance cvtarget(1 .5 6) skewtarget(1 0 2) kurttarget(1 0 2)
+gmatch `treatvar' `varlist' if `tousevar', atet cbps treatvariance cvtarget(1 .5 6) skewtarget(1 0.07 2) 
 gmatchcall balanceresults()
 
 capture nois {
-gmatch `treatvar' `varlist' if `tousevar', atet cbps treatvariance maxtarget(1 10 2) difficult
+gmatch `treatvar' `varlist' if `tousevar', atet cbps treatvariance maxtarget(1 10 2) difficult nonrtolerance
 gmatchcall balanceresults()
 }
 
@@ -396,10 +391,10 @@ gmatch `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet cbps ipw pooledvar
 gmatchcall balanceresults()
 
 // Other objective functions
-gmatch `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet mean_sd_sq treatvariance difficult
+gmatch `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet mean_sd_sq treatvariance difficult nonrtolerance
 gmatchcall balanceresults()
 
-gmatch `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet sd_sq treatvariance difficult
+gmatch `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet sd_sq treatvariance difficult nonrtolerance
 gmatchcall balanceresults()
 
 // IPW
@@ -433,18 +428,16 @@ gmatchcall balanceresults()
 gmatch `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet cbps treatvariance cvtarget(1 .50 6)
 gmatchcall balanceresults()
 
-gmatch `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet mean_sd_sq treatvariance cvtarget(1 .75 6)
+gmatch `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet mean_sd_sq treatvariance cvtarget(1 .75 6) difficult nonrtolerance
 gmatchcall balanceresults()
 
-gmatch `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet mean_sd_sq treatvariance cvtarget(1 .50 6)
+gmatch `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet mean_sd_sq treatvariance cvtarget(1 .50 6) difficult nonrtolerance
 gmatchcall balanceresults()
 
-// furthermore, you can target skiwness, kurtosis, or max weight
-gmatch `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet mean_sd_sq treatvariance cvtarget(1 .5 6) skewtarget(1 0 2) kurttarget(1 0 2)
-gmatchcall balanceresults()
+// you can also target skiwness, kurtosis, or max weight, but it's finicky
 
 capture nois {
-gmatch `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet mean_sd_sq treatvariance maxtarget(1 10 2) difficult
+gmatch `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet mean_sd_sq treatvariance maxtarget(1 10 2) difficult nonrtolerance
 gmatchcall balanceresults()
 }
 

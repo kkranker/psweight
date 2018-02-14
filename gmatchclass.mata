@@ -230,6 +230,7 @@ void gmatch::balanceresults(| string scalar est, real scalar denominator)
   if (args()<1) est="ate"
   if (args()<2) denominator=2
   transmorphic temp
+  if (all(this.W_mtch:==1)) "Unmatched data"
   "Balance table:";                      temp = this.balancetable(denominator)
   "Mean standardized diff., squared";    this.mean_sd_sq(denominator)
   "Mean absolute standardized diff.";    this.mean_asd(denominator)
@@ -238,6 +239,7 @@ void gmatch::balanceresults(| string scalar est, real scalar denominator)
   "S.D. of matching weights:";           this.wgt_sd(est)
   "Skewness of matching weights:";       this.wgt_skewness(est)
   "Kurtosis of matching weights:";       this.wgt_kurtosis(est)
+  "Maximum matching weight:";            this.wgt_max(est)
   if (this.depvars!="") {
     "Difference in prognostic scores:";  temp = this.prognosticdiff()
   }
@@ -586,7 +588,7 @@ real colvector gmatch::logitweights(real colvector pscore, | string scalar est)
 
 // Define function to calculate coefficients for a logit regression model
 // A contant term is added to the model and its coefficient is included in the vector of betas
-// The program looks at Stata local mlopts with instructions for controlling maximization
+// The program looks at Stata local mlopts for options related to controlling maximization
 real rowvector gmatch::logitbeta(real colvector Ymat, real matrix Xmat, | real colvector Wmat, real scalar addconst)
 {
   transmorphic S
@@ -875,7 +877,7 @@ void gmatch::cbpseval( real   scalar    todo,
   // cvopt, a row vector, modifies the loss function as documented above
   if (!length(cvopt)) return
   else if (mod(length(cvopt),3)!=0 | length(cvopt)<3 | length(cvopt)>12) _error("cvopt() should have 0, 3, 6, 9, or 12 elements")
-  else if (todo>0) _error("cvopt is not compatable with todo>0 in gmatch::cbpseval()") 
+  else if (todo>0) _error("cvopt is not compatable with todo>0 in gmatch::cbpseval()")
   if (fctn=="cbps_port_stata" | fctn=="cbps_port_r") {
     pscore = this.logitpredict(this.X, beta)
     pscore = this.trim(pscore)
@@ -883,13 +885,13 @@ void gmatch::cbpseval( real   scalar    todo,
     this.reweight(cbpswgt)
   }
   if (cvopt[1,1]) lnf = (lnf \ (cvopt[1,1]:*abs((this.wgt_cv(est):-cvopt[1,2]):^cvopt[1,3])))
-  
+
   if (length(cvopt)<6) return
   if (cvopt[1,4]) lnf = (lnf \ (cvopt[1,4]:*abs((this.wgt_skewness(est):-cvopt[1,5]):^cvopt[1,6])))
-  
+
   if (length(cvopt)<9) return
   if (cvopt[1,7]) lnf = (lnf \ (cvopt[1,7]:*abs((this.wgt_kurtosis(est):-cvopt[1,8]):^cvopt[1,9])))
-  
+
   if (length(cvopt)<12) return
   if (cvopt[1,10]) lnf = (lnf \ (cvopt[1,10]:*abs((this.wgt_max(est):-cvopt[1,11]):^cvopt[1,12])))
 }
