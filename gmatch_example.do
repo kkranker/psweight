@@ -1,4 +1,3 @@
-mac drop _all
 clear all
 cls
 set varabbrev off
@@ -10,9 +9,11 @@ cap log close gmatch_example_ado
 local makegraphs = 01
 cd "C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\"
 
+do C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\gmatch_one_time_setup.do
+
 log using gmatch_example.log, name(gmatch_example) replace
 
-//****************************************************************************/
+// ***************************************************************************
 *! $Id$
 *! Generalization of IPW and CBPS estimators
 *! Example files
@@ -23,13 +24,11 @@ log using gmatch_example.log, name(gmatch_example) replace
 // Copyright (C) Mathematica Policy Research, Inc.
 // This code cannot be copied, distributed or used without the express written
 // permission of Mathematica Policy Research, Inc.
-//*****************************************************************************/
+// ***************************************************************************
 
 version 15.1
 set type double
 di as txt "Current user: `c(username)'" _n "Environment: `c(os)' `c(machine_type)' `: environment computername'" _n "Stata: `c(stata_version)'" cond(c(stata_version)==c(version),""," (set to version `c(version)')") _n "Date: " c(current_date) " " c(current_time)
-
-// do C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\gmatch_one_time_setup.do
 
 which gmatch
 which gmatchcall
@@ -80,12 +79,8 @@ forvalues j=1/`: list sizeof varlist' {
 }
 local varlist : copy local varlist1
 
-// file for testing in R
-if 0 {
-  fvrevar `varlist'
-  export delimited `treatvar' `r(varlist)' `wgtvar' using testfile.csv if `tousevar', replace nolabel
-}
 
+replace `tousevar'=1
 
 // *******************************
 // * RUN MODELS DIRECTLY IN MATA *
@@ -145,11 +140,13 @@ if (depvars!="") D.set_Y(depvars,tousevar)
     D.balanceresults("atet",2)
 
 // Other objective functions
+  st_local("mlopts", "difficult nonrtolerance")
   D.cbps("atet","mean_sd_sq",1)
   D.balanceresults("atet",1)
 
   D.cbps("atet","sd_sq",1)
   D.balanceresults("atet",1)
+  st_local("mlopts", "")
 
 // IPW
   stata("teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' , atet aequations")
@@ -181,12 +178,18 @@ if (depvars!="") D.set_Y(depvars,tousevar)
   D.cbps("atet","cbps", 1, 0, (1,.50,6))
   D.balanceresults("atet",1)
 
+  st_local("mlopts", "difficult nonrtolerance")
   D.cbps("atet","mean_sd_sq", 1, 0, (1,.75,6))
   D.balanceresults("atet",1)
 
   D.cbps("atet","mean_sd_sq", 1, 0, (1,.50,6))
   D.balanceresults("atet",1)
+  st_local("mlopts", "")
 
+// furthermore, you can target skiwness, kurtosis, or max weight
+  DW.cbps("atet","cbps", 1, 0, (1,.50,6,1,0,2,1,0,2))
+  DW.balanceresults("atet",1)
+  
 mata drop D
 
 
@@ -227,11 +230,13 @@ if (depvars!="") DW.set_Y(depvars,tousevar)
     DW.balanceresults("atet",2)
 
 // Other objective functions
+  st_local("mlopts", "difficult nonrtolerance")
   DW.cbps("atet","mean_sd_sq",1)
   DW.balanceresults("atet",1)
 
   DW.cbps("atet","sd_sq",1)
   DW.balanceresults("atet",1)
+  st_local("mlopts", "")
 
   DW.prognosticdiff()
   DW.reweight()
@@ -267,36 +272,30 @@ if (depvars!="") DW.set_Y(depvars,tousevar)
   DW.cbps("atet","cbps", 1, 0, (1,.50,6))
   DW.balanceresults("atet",1)
 
+  st_local("mlopts", "difficult nonrtolerance")
   DW.cbps("atet","mean_sd_sq", 1, 0, (1,.75,6))
   DW.balanceresults("atet",1)
 
   DW.cbps("atet","mean_sd_sq", 1, 0, (1,.50,6))
   DW.balanceresults("atet",1)
 
+  DW.cbps("atet","mean_sd_sq", 1, 0)
+  DW.balanceresults("atet",1)
+  st_local("mlopts", "")
+
+// furthermore, you can target skiwness, kurtosis, or max weight
+  DW.cbps("atet","mean_sd_sq", 1, 0, (1,.50,6,1,0,2,1,0,2))
+  DW.balanceresults("atet",1)
 
 end  // end of Mata block
 
 log close gmatch_example
-
 
 // *************************************
 // * NOW RE-RUN WITH .ADO FILE VERSION *
 // *************************************
 
 log using gmatch_example_ado.log, name(gmatch_example_ado) replace
-
-//****************************************************************************/
-*! $Id$
-*! Generalization of IPW and CBPS estimators
-*! Example files
-//
-*! By Keith Kranker
-// Last updated $Date$
-//
-// Copyright (C) Mathematica Policy Research, Inc.
-// This code cannot be copied, distributed or used without the express written
-// permission of Mathematica Policy Research, Inc.
-//*****************************************************************************/
 
 di as txt "Current user: `c(username)'" _n "Environment: `c(os)' `c(machine_type)' `: environment computername'" _n "Stata: `c(stata_version)'" cond(c(stata_version)==c(version),""," (set to version `c(version)')") _n "Date: " c(current_date) " " c(current_time)
 desc, short
@@ -357,21 +356,29 @@ gmatchcall balanceresults()
 gmatch `treatvar' `varlist' if `tousevar' , atet cbps treatvariance
 gmatchcall balanceresults()
 
-gmatch `treatvar' `varlist' if `tousevar' , atet cbps treatvariance cvopt(1 .75 6)
+gmatch `treatvar' `varlist' if `tousevar' , atet cbps treatvariance cvtarget(1 .75 6)
 gmatchcall balanceresults()
 
-gmatch `treatvar' `varlist' if `tousevar' , atet cbps treatvariance cvopt(1 .50 6)
+gmatch `treatvar' `varlist' if `tousevar' , atet cbps treatvariance cvtarget(1 .50 6)
 gmatchcall balanceresults()
 
-gmatch `treatvar' `varlist' if `tousevar' , atet mean_sd_sq treatvariance cvopt(1 .75 6) difficult
+gmatch `treatvar' `varlist' if `tousevar' , atet mean_sd_sq treatvariance cvtarget(1 .75 6) difficult
 gmatchcall balanceresults()
 
-gmatch `treatvar' `varlist' if `tousevar' , atet mean_sd_sq treatvariance cvopt(1 .50 6) difficult
+gmatch `treatvar' `varlist' if `tousevar' , atet mean_sd_sq treatvariance cvtarget(1 .50 6) difficult
 gmatchcall balanceresults()
 
-gmatch `treatvar' `varlist' if `tousevar' , atet cbps ipw treatvariance cvopt(1 .75 6)
+gmatch `treatvar' `varlist' if `tousevar' , atet cbps ipw treatvariance cvtarget(1 .75 6)
 gmatchcall balanceresults()
 
+// furthermore, you can target skiwness, kurtosis, or max weight
+gmatch `treatvar' `varlist' if `tousevar', atet cbps treatvariance cvtarget(1 .5 6) skewtarget(1 0 2) kurttarget(1 0 2)
+gmatchcall balanceresults()
+
+capture nois {
+gmatch `treatvar' `varlist' if `tousevar', atet cbps treatvariance maxtarget(1 10 2) difficult
+gmatchcall balanceresults()
+}
 
 // * WEIGHTED DATA EXAMPLES *
 
@@ -420,18 +427,81 @@ gmatch `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], ateu ipw treatvariance
 gmatch `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet cbps treatvariance
 gmatchcall balanceresults()
 
-gmatch `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet cbps treatvariance cvopt(1 .75 6)
+gmatch `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet cbps treatvariance cvtarget(1 .75 6)
 gmatchcall balanceresults()
 
-gmatch `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet cbps treatvariance cvopt(1 .50 6)
+gmatch `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet cbps treatvariance cvtarget(1 .50 6)
 gmatchcall balanceresults()
 
-gmatch `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet mean_sd_sq treatvariance cvopt(1 .75 6)
+gmatch `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet mean_sd_sq treatvariance cvtarget(1 .75 6)
 gmatchcall balanceresults()
 
-gmatch `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet mean_sd_sq treatvariance cvopt(1 .50 6)
+gmatch `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet mean_sd_sq treatvariance cvtarget(1 .50 6)
 gmatchcall balanceresults()
+
+// furthermore, you can target skiwness, kurtosis, or max weight
+gmatch `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet mean_sd_sq treatvariance cvtarget(1 .5 6) skewtarget(1 0 2) kurttarget(1 0 2)
+gmatchcall balanceresults()
+
+capture nois {
+gmatch `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet mean_sd_sq treatvariance maxtarget(1 10 2) difficult
+gmatchcall balanceresults()
+}
 
 log close gmatch_example_ado
+
+
+// *******************************
+// * BENCHMARK A FEW MODELS IN R *
+// *******************************
+
+log using gmatch_example_R.log, name(gmatch_example_R) replace
+
+fvrevar `varlist'
+tempfile data_to_csv
+export delimited `treatvar' `r(varlist)' `wgtvar' using "C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\testfile.csv" if `tousevar', replace nolabel
+
+rsource, terminator(END_OF_R)
+  mydata <- read.csv("C:\\Users\\kkranker\\Documents\\Stata\\Ado\\Devel\\gmatch\\testfile.csv", stringsAsFactors = F);
+  "Hello world";
+  library(CBPS);
+  "Hello world";
+  fit_ATE       <- CBPS(treat ~ x1 + x1 + X__000000 + X__000001 +x4 + x5 + x6 +x7 +x90 +x91+ x92 +x93 +x94+ x95, data = mydata, ATT = 0, method='exact', standardize=stdall);
+  summary(fit_ATE);
+  print(  fit_ATE$weights[1:10]);
+  balance(fit_ATE);
+  fit_ATE_over  <- CBPS(treat ~ x1 + x1 + X__000000 + X__000001 +x4 + x5 + x6 +x7 +x90 +x91+ x92 +x93 +x94+ x95, data = mydata, ATT = 0, method="over", standardize=stdall);
+  summary(fit_ATE_over);
+  print(  fit_ATE_over$weights[1:10]);
+  balance(fit_ATE_over);
+  fit_ATET      <- CBPS(treat ~ x1 + x1 + X__000000 + X__000001 +x4 + x5 + x6 +x7 +x90 +x91+ x92 +x93 +x94+ x95, data = mydata, ATT = 1, method="exact", standardize=stdall);
+  summary(fit_ATET);
+  print(  fit_ATET$weights[1:10]);
+  balance(fit_ATET);
+  fit_ATET_over <- CBPS(treat ~ x1 + x1 + X__000000 + X__000001 +x4 + x5 + x6 +x7 +x90 +x91+ x92 +x93 +x94+ x95, data = mydata, ATT = 1, method="over", standardize=stdall);
+  summary(fit_ATET_over);
+  print(  fit_ATET_over$weights[1:10]);
+  balance(fit_ATET_over);
+  W_fit_ATE       <- CBPS(treat ~ x1 + x1 + X__000000 + X__000001 +x4 + x5 + x6 +x7 +x90 +x91+ x92 +x93 +x94+ x95, data = mydata, ATT = 0, method='exact', standardize=stdall, sample.weights=mydata$wgt);
+  summary(W_fit_ATE);
+  print(  W_fit_ATE$weights[1:10]);
+  balance(W_fit_ATE);
+  W_fit_ATE_over  <- CBPS(treat ~ x1 + x1 + X__000000 + X__000001 +x4 + x5 + x6 +x7 +x90 +x91+ x92 +x93 +x94+ x95, data = mydata, ATT = 0, method="over", standardize=stdall, sample.weights=mydata$wgt);
+  summary(W_fit_ATE_over);
+  print(  W_fit_ATE_over$weights[1:10]);
+  balance(W_fit_ATE_over);
+  W_fit_ATET      <- CBPS(treat ~ x1 + x1 + X__000000 + X__000001 +x4 + x5 + x6 +x7 +x90 +x91+ x92 +x93 +x94+ x95, data = mydata, ATT = 1, method="exact", standardize=stdall, sample.weights=mydata$wgt);
+  summary(W_fit_ATET);
+  print(  W_fit_ATET$weights[1:10]);
+  balance(W_fit_ATET);
+  W_fit_ATET_over <- CBPS(treat ~ x1 + x1 + X__000000 + X__000001 +x4 + x5 + x6 +x7 +x90 +x91+ x92 +x93 +x94+ x95, data = mydata, ATT = 1, method="over", standardize=stdall, sample.weights=mydata$wgt);
+  summary(W_fit_ATET_over);
+  print(  W_fit_ATET_over$weights[1:10]);
+  balance(W_fit_ATET_over);
+  q();
+END_OF_R
+
+
+log close gmatch_example_R
 
 cap nois beep
