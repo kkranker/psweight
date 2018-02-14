@@ -6,6 +6,7 @@ set linesize 160
 set maxiter 100
 cap log close gmatch_example
 cap log close gmatch_example_ado
+cap log close gmatch_example_R
 local makegraphs = 01
 cd "C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\"
 
@@ -451,14 +452,11 @@ log close gmatch_example_ado
 log using gmatch_example_R.log, name(gmatch_example_R) replace
 
 fvrevar `varlist'
-tempfile data_to_csv
 export delimited `treatvar' `r(varlist)' `wgtvar' using "C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\testfile.csv" if `tousevar', replace nolabel
 
 rsource, terminator(END_OF_R)
   mydata <- read.csv("C:\\Users\\kkranker\\Documents\\Stata\\Ado\\Devel\\gmatch\\testfile.csv", stringsAsFactors = F);
-  "Hello world";
   library(CBPS);
-  "Hello world";
   fit_ATE       <- CBPS(treat ~ x1 + x1 + X__000000 + X__000001 +x4 + x5 + x6 +x7 +x90 +x91+ x92 +x93 +x94+ x95, data = mydata, ATT = 0, method='exact', standardize=stdall);
   summary(fit_ATE);
   print(  fit_ATE$weights[1:10]);

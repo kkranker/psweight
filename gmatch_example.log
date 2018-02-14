@@ -2,21 +2,21 @@
       name:  gmatch_example
        log:  C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\gmatch_example.log
   log type:  text
- opened on:  14 Feb 2018, 01:21:17
+ opened on:  14 Feb 2018, 16:48:35
 
 . 
-. //****************************************************************************/
-. *! $Id: gmatch_example.do,v e38398bcb0ac 2018/02/14 08:16:27 kkranker $
+. // ***************************************************************************
+. *! $Id: gmatch_example.do,v d3799586f919 2018/02/14 23:40:29 kkranker $
 . *! Generalization of IPW and CBPS estimators
 . *! Example files
 . //
 . *! By Keith Kranker
-. // Last updated $Date: 2018/02/14 08:16:27 $
+. // Last updated $Date: 2018/02/14 23:40:29 $
 . //
 . // Copyright (C) Mathematica Policy Research, Inc.
 . // This code cannot be copied, distributed or used without the express written
 . // permission of Mathematica Policy Research, Inc.
-. //*****************************************************************************/
+. // ***************************************************************************
 . 
 . version 15.1
 
@@ -27,14 +27,12 @@
 Current user: KKranker
 Environment: Windows PC (64-bit x86-64) KKRANKER
 Stata: 15.1
-Date: 14 Feb 2018 01:21:18
+Date: 14 Feb 2018 16:48:35
 
-. 
-. // do C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\gmatch_one_time_setup.do
 . 
 . which gmatch
 .\gmatch.ado
-*! $Id: gmatch.ado,v 64c1f9ba17f5 2018/02/14 08:13:08 kkranker $
+*! $Id: gmatch.ado,v 1d7bb6ea04c0 2018/02/14 22:05:21 kkranker $
 *! Generalization of IPW and CBPS estimators
 *! Stata command to estimate models
 *! By Keith Kranker
@@ -48,26 +46,26 @@ Date: 14 Feb 2018 01:21:18
 *! By Keith Kranker
 
 . mata: mata describe using lgmatch
-(library contains 48 members)
+(library contains 49 members)
 
 
       # bytes   type                        name and extent
 -------------------------------------------------------------------------------
         4,032   auto classdef scalar        gmatch()
           208   auto real rowvector          ::asd()
-        1,316   auto void                    ::balanceresults()
+        1,504   auto void                    ::balanceresults()
         1,312   auto real matrix             ::balancetable()
           628   auto void                    ::calcN()
           816   auto void                    ::calccovariances()
           320   auto void                    ::calcmeans()
           576   auto void                    ::calcvariances()
-        6,176   auto real rowvector          ::cbps()
+        6,180   auto real rowvector          ::cbps()
         2,136   auto void                    ::cbps_port_r()
           768   auto void                    ::cbps_port_stata()
           676   auto real matrix             ::cbps_port_stata_gradient()
           748   auto real colvector          ::cbps_port_stata_moments()
         1,668   auto real matrix             ::cbps_port_stata_wgt_matrix()
-        1,960   auto void                    ::cbpseval()
+        3,028   auto void                    ::cbpseval()
           592   auto void                    ::clone()
           568   auto real rowvector          ::diagvariance()
           168   auto real rowvector          ::diff()
@@ -95,6 +93,7 @@ Date: 14 Feb 2018 01:21:18
           168   auto real rowvector          ::varratio()
           200   auto real scalar             ::wgt_cv()
           264   auto real scalar             ::wgt_kurtosis()
+          488   auto real scalar             ::wgt_max()
           784   auto real rowvector          ::wgt_moments()
           140   auto real scalar             ::wgt_sd()
           272   auto real scalar             ::wgt_skewness()
@@ -222,13 +221,6 @@ _dta:
 . local varlist : copy local varlist1
 
 . 
-. // file for testing in R
-. if 0 {
-.   fvrevar `varlist'
-.   export delimited `treatvar' `r(varlist)' `wgtvar' using testfile.csv if `tousevar', replace nolabel
-. }
-
-. 
 . 
 . // *******************************
 . // * RUN MODELS DIRECTLY IN MATA *
@@ -249,7 +241,6 @@ _dta:
 
 : estimate = st_local("estimate")
 
-: 
 : // * UNWEIGHTED DATA EXAMPLES *
 : 
 : D = gmatch()
@@ -464,6 +455,8 @@ Iteration 17:  f(p) =  3.960e-25
   .2158747756
   Kurtosis of matching weights:
   .0860729366
+  Maximum matching weight:
+  6.906400443
   Difference in prognostic scores:
                        1                   2                   3                   4                   5
     +-----------------------------------------------------------------------------------------------------+
@@ -583,6 +576,8 @@ Iteration 15:  f(p) =  5.714e-08
   .1574497662
   Kurtosis of matching weights:
   .0654318582
+  Maximum matching weight:
+  4.204588915
   Difference in prognostic scores:
                        1                   2                   3                   4                   5
     +-----------------------------------------------------------------------------------------------------+
@@ -699,6 +694,8 @@ Iteration 15:  f(p) =  2.607e-24
   .1100078305
   Kurtosis of matching weights:
   .0225364399
+  Maximum matching weight:
+  7.032260601
   Difference in prognostic scores:
                        1                   2                   3                   4                   5
     +-----------------------------------------------------------------------------------------------------+
@@ -817,6 +814,8 @@ Iteration 15:  f(p) =  1.211e-07
   .1040781457
   Kurtosis of matching weights:
   .0213437013
+  Maximum matching weight:
+  6.683351127
   Difference in prognostic scores:
                        1                   2                   3                   4                   5
     +-----------------------------------------------------------------------------------------------------+
@@ -827,6 +826,8 @@ Iteration 15:  f(p) =  1.211e-07
 
 : 
 : // Other objective functions
+:   st_local("mlopts", "difficult nonrtolerance")
+
 :   D.cbps("atet","mean_sd_sq",1)
   Step 1 (initial values from logit model):
 initial:       f(p) = -346.57359
@@ -855,196 +856,13 @@ Iteration 3:   f(p) =  1.466e-13
 numerical derivatives are approximate
 flat or discontinuous region encountered
 Iteration 4:   f(p) =  1.466e-13  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 5:   f(p) =  1.466e-13  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-BFGS stepping has contracted, resetting BFGS Hessian
-Iteration 6:   f(p) =  1.466e-13  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 7:   f(p) =  2.506e-15  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 8:   f(p) =  5.073e-17  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 9:   f(p) =  7.201e-18  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 10:  f(p) =  6.086e-19  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 11:  f(p) =  5.095e-19  
-(switching technique to nr)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 12:  f(p) =  2.126e-20  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 13:  f(p) =  2.126e-20  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 14:  f(p) =  2.126e-20  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 15:  f(p) =  2.126e-20  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 16:  f(p) =  2.126e-20  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 17:  f(p) =  2.126e-20  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 18:  f(p) =  2.126e-20  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 19:  f(p) =  2.126e-20  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 20:  f(p) =  2.126e-20  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 21:  f(p) =  2.126e-20  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 22:  f(p) =  2.126e-20  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 23:  f(p) =  2.126e-20  (not concave)
-(switching technique to bfgs)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-BFGS stepping has contracted, resetting BFGS Hessian
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 24:  f(p) =  2.126e-20  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 25:  f(p) =  3.635e-22  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 26:  f(p) =  2.172e-23  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 27:  f(p) =  9.035e-24  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 28:  f(p) =  1.164e-24  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 29:  f(p) =  9.941e-25  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 30:  f(p) =  3.682e-25  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 31:  f(p) =  1.470e-25  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 32:  f(p) =  4.609e-26  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 33:  f(p) =  1.885e-26  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 34:  f(p) =  3.515e-27  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 35:  f(p) =  2.855e-27  (backed up)
-(switching technique to nr)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 36:  f(p) =  2.128e-27  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 37:  f(p) =  2.126e-27  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 38:  f(p) =  2.124e-27  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 39:  f(p) =  2.124e-27  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 40:  f(p) =  2.124e-27  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 41:  f(p) =  2.124e-27  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 42:  f(p) =  2.124e-27  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 43:  f(p) =  2.124e-27  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 44:  f(p) =  2.124e-27  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 45:  f(p) =  2.124e-27  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 46:  f(p) =  2.124e-27  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 47:  f(p) =  2.124e-27  (not concave)
-(switching technique to bfgs)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-BFGS stepping has contracted, resetting BFGS Hessian
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 48:  f(p) =  2.124e-27  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 49:  f(p) =  4.726e-29  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 50:  f(p) =  5.379e-31  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 51:  f(p) =  1.548e-31  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 52:  f(p) =  3.080e-32  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 53:  f(p) =  5.743e-33  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 54:  f(p) =  2.086e-33  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 55:  f(p) =  4.922e-34  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 56:  f(p) =  7.046e-35  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-BFGS stepping has contracted, resetting BFGS Hessian
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 57:  f(p) =  2.047e-35  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-BFGS stepping has contracted, resetting BFGS Hessian
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 58:  f(p) =  7.313e-36  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-BFGS stepping has contracted, resetting BFGS Hessian
-Iteration 59:  f(p) =  4.408e-36  (backed up)
                   1              2              3              4              5              6              7              8              9             10
     +-------------------------------------------------------------------------------------------------------------------------------------------------------
-  1 |  -1.206443369   -1.628676255    -.580309938   -.2832336978     .069416312   -.2787869252    .0283208958    .1446874441   -.1322012754    .1288212848
+  1 |  -1.206443392   -1.628676257    -.580309943    -.283233696    .0694159956   -.2787870498    .0283207984    .1446874281    -.132201296    .1288212627
     +-------------------------------------------------------------------------------------------------------------------------------------------------------
                  11             12             13             14
      -------------------------------------------------------------+
-  1     .0633599596   -.1645468361    .0190734612    1.412502861  |
+  1     .0633599379   -.1645468755    .0190734331    1.379530321  |
      -------------------------------------------------------------+
 
 :   D.balanceresults("atet",1)
@@ -1052,40 +870,42 @@ Iteration 59:  f(p) =  4.408e-36  (backed up)
                  1            2            3            4            5            6            7
      +--------------------------------------------------------------------------------------------+
    1 |    Variable     mean (T)     mean (C)       diff()    stddiff()       sd (T)   varratio()  |
-   2 |          x1     .4673913     .5065707    -.0391794     -.078098     .5016695     1.004395  |
-   3 |        1.x2     .0108696     .0094032     .0014663     .0140645     .1042572     1.164051  |
-   4 |        1.x3     .0217391     .0217076     .0000315     .0002149     .1466296     1.009942  |
-   5 |          x4     .4347826     .4181832     .0165994     .0333023     .4984448     1.018628  |
-   6 |          x5     25.46739     26.05541      -.58802     -.108014     5.443922      .583267  |
-   7 |          x6     11.86957     11.79935     .0702179     .0437479     1.605057     .5528994  |
-   8 |          x7     6.858696     6.775281     .0834144     .0234527     3.556704     1.141156  |
-   9 |         x90     .0972024     .0569964      .040206     .0421541     .9537854     .8487821  |
+   2 |          x1     .4673913     .5065699    -.0391786    -.0780965     .5016695     1.004395  |
+   3 |        1.x2     .0108696     .0094032     .0014663     .0140644     .1042572      1.16405  |
+   4 |        1.x3     .0217391     .0217076     .0000315     .0002149     .1466296     1.009943  |
+   5 |          x4     .4347826     .4181838     .0165988     .0333011     .4984448     1.018627  |
+   6 |          x5     25.46739     26.05539    -.5880032     -.108011     5.443922     .5832672  |
+   7 |          x6     11.86957     11.79935     .0702201     .0437493     1.605057     .5528997  |
+   8 |          x7     6.858696      6.77528     .0834157     .0234531     3.556704     1.141156  |
+   9 |         x90     .0972024      .056997     .0402054     .0421535     .9537854     .8487816  |
   10 |         x91    -.0890157     -.062197    -.0268186    -.0284411     .9429542     .9668971  |
-  11 |         x92     .0453787     .0391246     .0062541     .0059496     1.051175     1.151879  |
-  12 |         x93     .0865687     .1044403    -.0178716    -.0191146     .9349714     .9622808  |
-  13 |         x94    -.1299173    -.1873487     .0574315     .0621009     .9248091     .7465145  |
-  14 |         x95    -.0807251    -.0886593     .0079342     .0086807      .914005      .892775  |
+  11 |         x92     .0453787     .0391245     .0062542     .0059497     1.051175     1.151879  |
+  12 |         x93     .0865687       .10444    -.0178714    -.0191143     .9349714     .9622811  |
+  13 |         x94    -.1299173    -.1873487     .0574314     .0621009     .9248091     .7465149  |
+  14 |         x95    -.0807251    -.0886595     .0079344     .0086809      .914005     .8927751  |
      +--------------------------------------------------------------------------------------------+
   Mean standardized diff., squared
-  4.40832e-36
+  1.46602e-13
   Mean absolute standardized diff.
-  .0359488733
+  .0359485226
   Maximum absolute standardized diff.
-  .1080140326
+  .1080109549
   C.V. of matching weights:
-  1.041361442
+  1.041361038
   S.D. of matching weights:
-  1.041361442
+  1.041361038
   Skewness of matching weights:
-  .1710882156
+  .1710872074
   Kurtosis of matching weights:
-  .0624918361
+  .0624911056
+  Maximum matching weight:
+  11.09495523
   Difference in prognostic scores:
                        1                   2                   3                   4                   5
     +-----------------------------------------------------------------------------------------------------+
   1 |     Dependent var.   Mean of y_hat (T)   Mean of y_hat (C)    prognosticdiff()       Mean of y (C)  |
-  2 |                 y1            3424.964            3426.474           -1.509908            3426.474  |
-  3 |          y1_binary            .9468831            .9481476           -.0012646            .9481476  |
+  2 |                 y1            3424.964            3426.474           -1.509749            3426.474  |
+  3 |          y1_binary            .9468831            .9481476           -.0012645            .9481476  |
     +-----------------------------------------------------------------------------------------------------+
 
 : 
@@ -1205,8 +1025,6 @@ flat or discontinuous region encountered
 Iteration 32:  f(p) =  1.942e-13  
 numerical derivatives are approximate
 flat or discontinuous region encountered
-numerical derivatives are approximate
-flat or discontinuous region encountered
 Iteration 33:  f(p) =  3.595e-17  
                   1              2              3              4              5              6              7              8              9             10
     +-------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -1250,6 +1068,8 @@ Iteration 33:  f(p) =  3.595e-17
   .1100078314
   Kurtosis of matching weights:
   .0225364402
+  Maximum matching weight:
+  7.032260633
   Difference in prognostic scores:
                        1                   2                   3                   4                   5
     +-----------------------------------------------------------------------------------------------------+
@@ -1257,6 +1077,8 @@ Iteration 33:  f(p) =  3.595e-17
   2 |                 y1            3424.753            3424.753            1.62e-08            3424.753  |
   3 |          y1_binary            .9470393            .9470393           -6.21e-12            .9470393  |
     +-----------------------------------------------------------------------------------------------------+
+
+:   st_local("mlopts", "")
 
 : 
 : // IPW
@@ -1425,6 +1247,8 @@ Iteration 4:   f(p) = -211.17753
   .1334759569
   Kurtosis of matching weights:
   .0358990805
+  Maximum matching weight:
+  9.288959219
   Difference in prognostic scores:
                        1                   2                   3                   4                   5
     +-----------------------------------------------------------------------------------------------------+
@@ -1567,6 +1391,8 @@ Iteration 4:   f(p) = -211.17753
   .1843123883
   Kurtosis of matching weights:
   .0838509706
+  Maximum matching weight:
+  4.89816874
   Difference in prognostic scores:
                        1                   2                   3                   4                   5
     +-----------------------------------------------------------------------------------------------------+
@@ -1669,6 +1495,8 @@ Iteration 4:   f(p) = -211.17753
   .2680619555
   Kurtosis of matching weights:
   .1550433574
+  Maximum matching weight:
+  5.869225798
   Difference in prognostic scores:
                        1                   2                   3                   4                   5
     +-----------------------------------------------------------------------------------------------------+
@@ -1751,6 +1579,8 @@ Iteration 15:  f(p) =  2.607e-24
   .1100078305
   Kurtosis of matching weights:
   .0225364399
+  Maximum matching weight:
+  7.032260601
   Difference in prognostic scores:
                        1                   2                   3                   4                   5
     +-----------------------------------------------------------------------------------------------------+
@@ -1791,20 +1621,19 @@ Iteration 13:  f(p) =  7.516e-08
 Iteration 14:  f(p) =  6.789e-08  
 Iteration 15:  f(p) =  4.227e-08  
 Iteration 16:  f(p) =  2.563e-08  (not concave)
-Iteration 17:  f(p) =  1.868e-08  (not concave)
-Iteration 18:  f(p) =  1.309e-08  (not concave)
-Iteration 19:  f(p) =  1.230e-08  
-Iteration 20:  f(p) =  1.163e-08  
-Iteration 21:  f(p) =  1.144e-08  
+Iteration 17:  f(p) =  1.606e-08  
+Iteration 18:  f(p) =  1.235e-08  
+Iteration 19:  f(p) =  1.146e-08  
+Iteration 20:  f(p) =  1.143e-08  
+Iteration 21:  f(p) =  1.143e-08  
 Iteration 22:  f(p) =  1.143e-08  
-Iteration 23:  f(p) =  1.143e-08  
                   1              2              3              4              5              6              7              8              9             10
     +-------------------------------------------------------------------------------------------------------------------------------------------------------
-  1 |  -1.069921157   -1.301676324   -.4865722909   -.2463173344    .0447740691   -.1995635542    .0257331036    .1236240922   -.1270510658    .1015911479
+  1 |  -1.069921496   -1.301676371   -.4865721144   -.2463172338    .0447740862    -.199563491    .0257330976    .1236241663   -.1270510686    .1015911223
     +-------------------------------------------------------------------------------------------------------------------------------------------------------
                  11             12             13             14
      -------------------------------------------------------------+
-  1      .047055079   -.0948947731    .0008498405    .4556068033  |
+  1     .0470550868   -.0948947299    .0008498108    .4556057595  |
      -------------------------------------------------------------+
 
 :   D.balanceresults("atet",1)
@@ -1812,39 +1641,41 @@ Iteration 23:  f(p) =  1.143e-08
                  1            2            3            4            5            6            7
      +--------------------------------------------------------------------------------------------+
    1 |    Variable     mean (T)     mean (C)       diff()    stddiff()       sd (T)   varratio()  |
-   2 |          x1     .4673913     .5182506    -.0508593    -.1013802     .5016695     1.005561  |
+   2 |          x1     .4673913     .5182506    -.0508593    -.1013801     .5016695     1.005561  |
    3 |        1.x2     .0108696      .012455    -.0015855    -.0152072     .1042572     .8815459  |
-   4 |        1.x3     .0217391     .0242826    -.0025435    -.0173465     .1466296     .9052272  |
-   5 |          x4     .4347826     .4521395    -.0173569    -.0348222     .4984448      1.00052  |
-   6 |          x5     25.46739     25.54157    -.0741742    -.0136251     5.443922     .6518318  |
-   7 |          x6     11.86957     12.06656    -.1969952    -.1227341     1.605057     .5447873  |
+   4 |        1.x3     .0217391     .0242826    -.0025435    -.0173465     .1466296     .9052271  |
+   5 |          x4     .4347826     .4521396    -.0173569    -.0348222     .4984448      1.00052  |
+   6 |          x5     25.46739     25.54157    -.0741744    -.0136252     5.443922     .6518318  |
+   7 |          x6     11.86957     12.06656    -.1969954    -.1227342     1.605057     .5447873  |
    8 |          x7     6.858696     6.811629      .047067     .0132333     3.556704     1.145782  |
-   9 |         x90     .0972024     .0715905     .0256119     .0268529     .9537854     .8605673  |
+   9 |         x90     .0972024     .0715906     .0256118     .0268528     .9537854     .8605673  |
   10 |         x91    -.0890157    -.0737238    -.0152918    -.0162169     .9429542     .9393008  |
   11 |         x92     .0453787     .0269169     .0184618      .017563     1.051175     1.126957  |
-  12 |         x93     .0865687     .0765419     .0100267     .0107241     .9349714     .9352735  |
-  13 |         x94    -.1299173    -.0967909    -.0331264    -.0358197     .9248091      .797834  |
-  14 |         x95    -.0807251    -.0889146     .0081896     .0089601      .914005     .8763149  |
+  12 |         x93     .0865687      .076542     .0100267     .0107241     .9349714     .9352735  |
+  13 |         x94    -.1299173    -.0967908    -.0331264    -.0358197     .9248091      .797834  |
+  14 |         x95    -.0807251    -.0889147     .0081896     .0089601      .914005     .8763149  |
      +--------------------------------------------------------------------------------------------+
   Mean standardized diff., squared
-  .0004633043
+  .0004633052
   Mean absolute standardized diff.
-  .0334219473
+  .0334219595
   Maximum absolute standardized diff.
-  .1227341119
+  .1227342493
   C.V. of matching weights:
-  .7780723145
+  .7780723078
   S.D. of matching weights:
-  .7780723145
+  .7780723078
   Skewness of matching weights:
-  .086726395
+  .0867263832
   Kurtosis of matching weights:
-  .015619736
+  .0156197301
+  Maximum matching weight:
+  4.997305895
   Difference in prognostic scores:
                        1                   2                   3                   4                   5
     +-----------------------------------------------------------------------------------------------------+
   1 |     Dependent var.   Mean of y_hat (T)   Mean of y_hat (C)    prognosticdiff()       Mean of y (C)  |
-  2 |                 y1            3425.501            3432.853           -7.352076            3432.853  |
+  2 |                 y1            3425.501            3432.853           -7.352078            3432.853  |
   3 |          y1_binary             .947131            .9496087           -.0024777            .9496087  |
     +-----------------------------------------------------------------------------------------------------+
 
@@ -1876,29 +1707,36 @@ Iteration 10:  f(p) =  9.753e-06
 Iteration 11:  f(p) =  9.539e-06  
 (switching technique to nr)
 Iteration 12:  f(p) =  9.503e-06  (not concave)
-Iteration 13:  f(p) =  6.245e-06  (not concave)
-Iteration 14:  f(p) =  5.513e-06  (not concave)
-Iteration 15:  f(p) =  3.248e-07  (not concave)
-Iteration 16:  f(p) =  3.015e-07  (not concave)
-Iteration 17:  f(p) =  2.755e-07  (not concave)
-Iteration 18:  f(p) =  1.198e-07  (not concave)
-Iteration 19:  f(p) =  9.067e-08  (not concave)
-Iteration 20:  f(p) =  7.308e-08  (not concave)
-Iteration 21:  f(p) =  5.794e-08  (not concave)
-Iteration 22:  f(p) =  5.529e-08  
-Iteration 23:  f(p) =  5.128e-08  
+Iteration 13:  f(p) =  6.831e-06  (not concave)
+Iteration 14:  f(p) =  5.276e-06  (not concave)
+Iteration 15:  f(p) =  3.205e-06  (not concave)
+Iteration 16:  f(p) =  1.200e-06  (not concave)
+Iteration 17:  f(p) =  1.542e-07  (not concave)
+Iteration 18:  f(p) =  1.120e-07  
+Iteration 19:  f(p) =  9.309e-08  (not concave)
+Iteration 20:  f(p) =  9.006e-08  (not concave)
+Iteration 21:  f(p) =  8.342e-08  
+Iteration 22:  f(p) =  7.002e-08  
+Iteration 23:  f(p) =  5.958e-08  
 (switching technique to bfgs)
-Iteration 24:  f(p) =  5.114e-08  
-Iteration 25:  f(p) =  5.114e-08  
-Iteration 26:  f(p) =  5.114e-08  
-Iteration 27:  f(p) =  5.114e-08  
+Iteration 24:  f(p) =  5.389e-08  
+Iteration 25:  f(p) =  5.205e-08  
+Iteration 26:  f(p) =  5.135e-08  
+Iteration 27:  f(p) =  5.121e-08  
+Iteration 28:  f(p) =  5.115e-08  
+Iteration 29:  f(p) =  5.114e-08  
+Iteration 30:  f(p) =  5.114e-08  
+Iteration 31:  f(p) =  5.114e-08  
+Iteration 32:  f(p) =  5.114e-08  
+Iteration 33:  f(p) =  5.114e-08  
+Iteration 34:  f(p) =  5.114e-08  
                   1              2              3              4              5              6              7              8              9             10
     +-------------------------------------------------------------------------------------------------------------------------------------------------------
-  1 |  -.7224139993   -.9764863457   -.3663536237   -.1681586848    .0290491594   -.1459133251    .0167638142    .0854737183   -.0882828063    .0659836391
+  1 |  -.7223993407   -.9764488983    -.366445527   -.1681781041     .029049571   -.1459138637    .0167632447    .0854724269   -.0882866296    .0659923266
     +-------------------------------------------------------------------------------------------------------------------------------------------------------
                  11             12             13             14
      -------------------------------------------------------------+
-  1     .0343202868   -.0658755344   -.0067121946   -.0849348977  |
+  1     .0343074574   -.0658921818    -.006704452   -.0849072976  |
      -------------------------------------------------------------+
 
 :   D.balanceresults("atet",1)
@@ -1906,43 +1744,47 @@ Iteration 27:  f(p) =  5.114e-08
                  1            2            3            4            5            6            7
      +--------------------------------------------------------------------------------------------+
    1 |    Variable     mean (T)     mean (C)       diff()    stddiff()       sd (T)   varratio()  |
-   2 |          x1     .4673913     .5906749    -.1232836    -.2457466     .5016695     1.038371  |
-   3 |        1.x2     .0108696     .0149903    -.0041207    -.0395247     .1042572     .7343374  |
-   4 |        1.x3     .0217391     .0280492      -.00631    -.0430339     .1466296     .7867073  |
-   5 |          x4     .4347826     .4668619    -.0320792    -.0643587     .4984448     .9957268  |
-   6 |          x5     25.46739     25.77278    -.3053873    -.0560969     5.443922     .6996664  |
-   7 |          x6     11.86957     12.34747     -.477904     -.297749     1.605057     .5220231  |
-   8 |          x7     6.858696     6.764909     .0937864     .0263689     3.556704     1.148402  |
-   9 |         x90     .0972024     .0379816     .0592208     .0620903     .9537854     .8843596  |
-  10 |         x91    -.0890157    -.0569166    -.0320991     -.034041     .9429542     .9113449  |
-  11 |         x92     .0453787      .011174     .0342047     .0325395     1.051175     1.115674  |
-  12 |         x93     .0865687     .0661146      .020454     .0218766     .9349714     .9136067  |
-  13 |         x94    -.1299173    -.0574346    -.0724827    -.0783758     .9248091     .8189413  |
-  14 |         x95    -.0807251    -.0931506     .0124255     .0135946      .914005     .8623481  |
+   2 |          x1     .4673913     .5906793     -.123288    -.2457554     .5016695     1.038375  |
+   3 |        1.x2     .0108696     .0149904    -.0041208    -.0395256     .1042572      .734333  |
+   4 |        1.x3     .0217391     .0280471     -.006308    -.0430197     .1466296     .7867638  |
+   5 |          x4     .4347826     .4668556     -.032073    -.0643461     .4984448     .9957285  |
+   6 |          x5     25.46739     25.77285    -.3054553    -.0561094     5.443922     .6996672  |
+   7 |          x6     11.86957     12.34748    -.4779169    -.2977571     1.605057     .5220235  |
+   8 |          x7     6.858696     6.764905     .0937905     .0263701     3.556704       1.1484  |
+   9 |         x90     .0972024     .0379772     .0592253      .062095     .9537854       .88436  |
+  10 |         x91    -.0890157     -.056921    -.0320946    -.0340363     .9429542     .9113454  |
+  11 |         x92     .0453787     .0111821     .0341965     .0325317     1.051175     1.115678  |
+  12 |         x93     .0865687      .066104     .0204647      .021888     .9349714     .9136039  |
+  13 |         x94    -.1299173    -.0574526    -.0724647    -.0783564     .9248091     .8189386  |
+  14 |         x95    -.0807251    -.0931441      .012419     .0135875      .914005     .8623481  |
      +--------------------------------------------------------------------------------------------+
   Mean standardized diff., squared
-  .0029197953
+  .0029196037
   Mean absolute standardized diff.
-  .0781074249
+  .0781060169
   Maximum absolute standardized diff.
-  .2977490236
+  .2977570504
   C.V. of matching weights:
-  .5321355921
+  .5321351322
   S.D. of matching weights:
-  .5321355921
+  .5321351322
   Skewness of matching weights:
-  .062927853
+  .0629289434
   Kurtosis of matching weights:
-  .0108020115
+  .010802625
+  Maximum matching weight:
+  3.275096518
   Difference in prognostic scores:
                        1                   2                   3                   4                   5
     +-----------------------------------------------------------------------------------------------------+
   1 |     Dependent var.   Mean of y_hat (T)   Mean of y_hat (C)    prognosticdiff()       Mean of y (C)  |
-  2 |                 y1             3428.47            3442.757           -14.28672            3442.757  |
-  3 |          y1_binary            .9474566            .9529479           -.0054914            .9529479  |
+  2 |                 y1             3428.47            3442.759           -14.28939            3442.759  |
+  3 |          y1_binary            .9474565            .9529482           -.0054917            .9529482  |
     +-----------------------------------------------------------------------------------------------------+
 
 : 
+:   st_local("mlopts", "difficult nonrtolerance")
+
 :   D.cbps("atet","mean_sd_sq", 1, 0, (1,.75,6))
   Step 1 (initial values from logit model):
 initial:       f(p) = -346.57359
@@ -2014,90 +1856,13 @@ Iteration 17:  f(p) =  3.286e-13  (not concave)
 numerical derivatives are approximate
 flat or discontinuous region encountered
 Iteration 18:  f(p) =  9.610e-14  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 19:  f(p) =  2.661e-14  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 20:  f(p) =  4.888e-15  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 21:  f(p) =  1.321e-15  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 22:  f(p) =  5.316e-16  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 23:  f(p) =  2.525e-16  (not concave)
-(switching technique to bfgs)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 24:  f(p) =  1.242e-16  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-BFGS stepping has contracted, resetting BFGS Hessian
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 25:  f(p) =  9.015e-17  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 26:  f(p) =  7.958e-17  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 27:  f(p) =  7.886e-17  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-BFGS stepping has contracted, resetting BFGS Hessian
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 28:  f(p) =  6.704e-17  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 29:  f(p) =  5.120e-17  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 30:  f(p) =  5.010e-17  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 31:  f(p) =  4.996e-17  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-BFGS stepping has contracted, resetting BFGS Hessian
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 32:  f(p) =  4.378e-17  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 33:  f(p) =  4.059e-17  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 34:  f(p) =  4.037e-17  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 35:  f(p) =  4.035e-17  
                   1              2              3              4              5              6              7              8              9             10
     +-------------------------------------------------------------------------------------------------------------------------------------------------------
-  1 |  -1.201676727   -1.648350684   -.6891126998   -.2535703993     .013437619   -.0743064685   -.0183205652    .0730708885   -.1318570593    .0667988243
+  1 |  -1.203523395   -1.648297853   -.6889611149   -.2537764489    .0119766096   -.0732705769   -.0164870289    .0761475505   -.1312031306    .0695374022
     +-------------------------------------------------------------------------------------------------------------------------------------------------------
                  11             12             13             14
      -------------------------------------------------------------+
-  1    -.0158103811   -.1189470446    -.025908628    1.404817741  |
+  1    -.0139101628   -.1188985362   -.0241542106    1.404817741  |
      -------------------------------------------------------------+
 
 :   D.balanceresults("atet",1)
@@ -2105,40 +1870,42 @@ Iteration 35:  f(p) =  4.035e-17
                  1            2            3            4            5            6            7
      +--------------------------------------------------------------------------------------------+
    1 |    Variable     mean (T)     mean (C)       diff()    stddiff()       sd (T)   varratio()  |
-   2 |          x1     .4673913     .4844105    -.0170192    -.0339251     .5016695     1.005199  |
-   3 |        1.x2     .0108696     .0086749     .0021947     .0210506     .1042572     1.260858  |
-   4 |        1.x3     .0217391     .0172585     .0044806     .0305572     .1466296     1.264544  |
-   5 |          x4     .4347826     .4902598    -.0554772    -.1113006     .4984448     .9917294  |
-   6 |          x5     25.46739     24.82696     .6404269     .1176407     5.443922     .7360093  |
-   7 |          x6     11.86957     12.34967    -.4801055    -.2991206     1.605057     .5291607  |
-   8 |          x7     6.858696     6.355497     .5031987     .1414789     3.556704      1.13066  |
-   9 |         x90     .0972024     .0662128     .0309897     .0324912     .9537854     .8440927  |
-  10 |         x91    -.0890157    -.0857377     -.003278    -.0034763     .9429542     .9409264  |
-  11 |         x92     .0453787     .0273471     .0180315     .0171537     1.051175     1.109174  |
-  12 |         x93     .0865687     .0236051     .0629636     .0673428     .9349714     .9223614  |
-  13 |         x94    -.1299173    -.1329455     .0030282     .0032744     .9248091     .8302999  |
-  14 |         x95    -.0807251    -.0961106     .0153856     .0168331      .914005     .8707006  |
+   2 |          x1     .4673913      .481706    -.0143146     -.028534     .5016695     1.005568  |
+   3 |        1.x2     .0108696     .0086891     .0021805     .0209144     .1042572     1.258816  |
+   4 |        1.x3     .0217391     .0172314     .0045077     .0307424     .1466296     1.266503  |
+   5 |          x4     .4347826     .4922655    -.0574829    -.1153245     .4984448     .9915903  |
+   6 |          x5     25.46739     24.77346     .6939284     .1274685     5.443922     .7384288  |
+   7 |          x6     11.86957     12.34392    -.4743546    -.2955376     1.605057     .5297315  |
+   8 |          x7     6.858696     6.372816     .4858801     .1366096     3.556704     1.131086  |
+   9 |         x90     .0972024     .0708831     .0263193     .0275946     .9537854     .8433151  |
+  10 |         x91    -.0890157    -.0850236    -.0039921    -.0042336     .9429542     .9406624  |
+  11 |         x92     .0453787     .0288604     .0165183     .0157141     1.051175     1.109397  |
+  12 |         x93     .0865687     .0246953     .0618733     .0661767     .9349714     .9231214  |
+  13 |         x94    -.1299173    -.1327696     .0028523     .0030843     .9248091     .8317584  |
+  14 |         x95    -.0807251    -.0947339     .0140089     .0153269      .914005     .8706165  |
      +--------------------------------------------------------------------------------------------+
   Mean standardized diff., squared
-  7.28684e-21
+  1.69728e-14
   Mean absolute standardized diff.
-  .0688957931
+  .068250865
   Maximum absolute standardized diff.
-  .2991206009
+  .2955376495
   C.V. of matching weights:
-  .7518519607
+  .7565522146
   S.D. of matching weights:
-  .7518519607
+  .7565522146
   Skewness of matching weights:
-  .0829073688
+  .0830111672
   Kurtosis of matching weights:
-  .0131976578
+  .0131708314
+  Maximum matching weight:
+  4.326992178
   Difference in prognostic scores:
                        1                   2                   3                   4                   5
     +-----------------------------------------------------------------------------------------------------+
   1 |     Dependent var.   Mean of y_hat (T)   Mean of y_hat (C)    prognosticdiff()       Mean of y (C)  |
-  2 |                 y1            3429.304            3448.057           -18.75253            3448.057  |
-  3 |          y1_binary             .947141            .9577309           -.0105898            .9577309  |
+  2 |                 y1            3429.127            3447.013           -17.88593            3447.013  |
+  3 |          y1_binary            .9470472            .9575087           -.0104616            .9575087  |
     +-----------------------------------------------------------------------------------------------------+
 
 : 
@@ -2258,112 +2025,14 @@ flat or discontinuous region encountered
 Iteration 32:  f(p) =  9.891e-08  
 numerical derivatives are approximate
 flat or discontinuous region encountered
-numerical derivatives are approximate
-flat or discontinuous region encountered
 Iteration 33:  f(p) =  9.891e-08  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 34:  f(p) =  9.890e-08  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 35:  f(p) =  9.885e-08  
-(switching technique to nr)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 36:  f(p) =  9.881e-08  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 37:  f(p) =  7.801e-08  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 38:  f(p) =  7.575e-08  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 39:  f(p) =  6.674e-08  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 40:  f(p) =  6.457e-08  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 41:  f(p) =  6.041e-08  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 42:  f(p) =  5.874e-08  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 43:  f(p) =  5.765e-08  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 44:  f(p) =  5.719e-08  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 45:  f(p) =  5.237e-08  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 46:  f(p) =  5.012e-08  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 47:  f(p) =  2.461e-08  (not concave)
-(switching technique to bfgs)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 48:  f(p) =  2.280e-08  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 49:  f(p) =  2.254e-08  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 50:  f(p) =  2.189e-08  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 51:  f(p) =  2.176e-08  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 52:  f(p) =  2.175e-08  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 53:  f(p) =  2.175e-08  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 54:  f(p) =  2.175e-08  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 55:  f(p) =  2.175e-08  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 56:  f(p) =  2.175e-08  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 57:  f(p) =  2.175e-08  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 58:  f(p) =  2.175e-08  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 59:  f(p) =  2.175e-08  
                   1              2              3              4              5              6              7              8              9             10
     +-------------------------------------------------------------------------------------------------------------------------------------------------------
-  1 |  -.7887844483   -2.395101698   -.6210363196   -.2725947385   -.0004799527   -.0335334567   -.0119068894   -.0990997379   -.1447482144   -.1146630236
+  1 |  -.8576315917   -2.278638484   -.4867771273   -.1207334981    .0125525175   -.0391369342   -.0253959559   -.0985808525   -.1684551732    -.108393946
     +-------------------------------------------------------------------------------------------------------------------------------------------------------
                  11             12             13             14
      -------------------------------------------------------------+
-  1    -.1030321896   -.0782802618   -.1519557751    3.357107052  |
+  1     -.106611846   -.0849796779   -.1678559178    3.357107197  |
      -------------------------------------------------------------+
 
 :   D.balanceresults("atet",1)
@@ -2371,41 +2040,139 @@ Iteration 59:  f(p) =  2.175e-08
                  1            2            3            4            5            6            7
      +--------------------------------------------------------------------------------------------+
    1 |    Variable     mean (T)     mean (C)       diff()    stddiff()       sd (T)   varratio()  |
-   2 |          x1     .4673913     .5940708    -.1266795    -.2525158     .5016695     1.041073  |
-   3 |        1.x2     .0108696     .0035822     .0072874     .0698982     .1042572     3.037792  |
-   4 |        1.x3     .0217391     .0173612      .004378     .0298573     .1466296     1.257201  |
-   5 |          x4     .4347826     .4813204    -.0465378     -.093366     .4984448     .9927386  |
-   6 |          x5     25.46739     25.49233    -.0249395    -.0045812     5.443922     .7683625  |
-   7 |          x6     11.86957     12.62643    -.7568611     -.471548     1.605057     .5051906  |
-   8 |          x7     6.858696     6.552401     .3062946     .0861175     3.556704     1.126873  |
-   9 |         x90     .0972024     -.113035     .2102375     .2204243     .9537854     .8801527  |
-  10 |         x91    -.0890157     -.110682     .0216663      .022977     .9429542     .9383917  |
-  11 |         x92     .0453787    -.1366855     .1820642     .1732006     1.051175      1.11749  |
-  12 |         x93     .0865687    -.0591155     .1456841     .1558167     .9349714     .8388811  |
-  13 |         x94    -.1299173    -.0825678    -.0473494    -.0511992     .9248091     .8328052  |
-  14 |         x95    -.0807251    -.1857156     .1049905     .1148686      .914005     .8641629  |
+   2 |          x1     .4673913     .5896186    -.1222273     -.243641     .5016695     1.037554  |
+   3 |        1.x2     .0108696     .0041996       .00667     .0639761     .1042572     2.592787  |
+   4 |        1.x3     .0217391     .0197748     .0019643     .0133964     .1466296     1.106468  |
+   5 |          x4     .4347826     .5050962    -.0703136    -.1410659     .4984448     .9914561  |
+   6 |          x5     25.46739     25.59679    -.1293958    -.0237689     5.443922     .7501985  |
+   7 |          x6     11.86957     12.63182    -.7622568    -.4749096     1.605057     .5006192  |
+   8 |          x7     6.858696     6.396986     .4617095     .1298139     3.556704     1.127903  |
+   9 |         x90     .0972024    -.1098519     .2070543     .2170869     .9537854     .8883868  |
+  10 |         x91    -.0890157    -.1310079     .0419922     .0445326     .9429542     .9453563  |
+  11 |         x92     .0453787    -.1269518     .1723304     .1639407     1.051175     1.100395  |
+  12 |         x93     .0865687    -.0629131     .1494818     .1598785     .9349714     .8438625  |
+  13 |         x94    -.1299173    -.0863392    -.0435781    -.0471212     .9248091     .8305237  |
+  14 |         x95    -.0807251    -.2065973     .1258722      .137715      .914005     .8638318  |
      +--------------------------------------------------------------------------------------------+
   Mean standardized diff., squared
-  1.47263e-11
+  1.64319e-10
   Mean absolute standardized diff.
-  .1343361875
+  .143142044
   Maximum absolute standardized diff.
-  .471547967
+  .4749096411
   C.V. of matching weights:
-  .5528294035
+  .56798552
   S.D. of matching weights:
-  .5528294035
+  .56798552
   Skewness of matching weights:
-  .0688225943
+  .0730789382
   Kurtosis of matching weights:
-  .013107526
+  .0138593555
+  Maximum matching weight:
+  3.431757019
   Difference in prognostic scores:
                        1                   2                   3                   4                   5
     +-----------------------------------------------------------------------------------------------------+
   1 |     Dependent var.   Mean of y_hat (T)   Mean of y_hat (C)    prognosticdiff()       Mean of y (C)  |
-  2 |                 y1            3436.518            3475.966            -39.4479            3475.966  |
-  3 |          y1_binary            .9475683            .9590717           -.0115034            .9590717  |
+  2 |                 y1            3437.544            3472.215           -34.67168            3472.215  |
+  3 |          y1_binary            .9474737             .960127           -.0126533             .960127  |
     +-----------------------------------------------------------------------------------------------------+
+
+: 
+: // furthermore, you can target skiwness, kurtosis, or max weight
+:   D.cbps("atet","cbps", 1, 0, (1,.50,6,1,0.7,2))
+  Step 1 (initial values from logit model):
+initial:       f(p) = -346.57359
+alternative:   f(p) = -283.03849
+rescale:       f(p) = -247.46401
+Iteration 0:   f(p) = -247.46401  
+Iteration 1:   f(p) = -223.85141  
+Iteration 2:   f(p) = -211.21673  
+Iteration 3:   f(p) = -211.17754  
+Iteration 4:   f(p) = -211.17753  
+  
+  Step 2 (CBPS) :
+numerical derivatives are approximate
+nearby values are missing
+(setting technique to bfgs)
+Iteration 0:   f(p) =  .34614522  
+Iteration 1:   f(p) =  .25779353  (backed up)
+Iteration 2:   f(p) =  .25219839  (backed up)
+Iteration 3:   f(p) =  .22043634  
+Iteration 4:   f(p) =  .20253402  
+Iteration 5:   f(p) =  .15892901  
+Iteration 6:   f(p) =  .10461031  
+Iteration 7:   f(p) =  .06759525  
+Iteration 8:   f(p) =  .05045631  
+Iteration 9:   f(p) =  .04848886  
+Iteration 10:  f(p) =  .04786872  
+Iteration 11:  f(p) =  .04733625  
+(switching technique to nr)
+Iteration 12:  f(p) =  .04690709  (not concave)
+Iteration 13:  f(p) =  .03961078  
+Iteration 14:  f(p) =  .03899762  
+Iteration 15:  f(p) =  .03891774  
+Iteration 16:  f(p) =  .03891651  
+numerical derivatives are approximate
+nearby values are missing
+Iteration 17:  f(p) =  .03891644  (not concave)
+Iteration 18:  f(p) =  .03891644  
+Iteration 19:  f(p) =  .03891644  
+Iteration 20:  f(p) =  .03891644  
+Iteration 21:  f(p) =  .03891644  (backed up)
+                  1              2              3              4              5              6              7              8              9             10
+    +-------------------------------------------------------------------------------------------------------------------------------------------------------
+  1 |   .0400900489   -.0449744823   -.0644035838    .1717826093    .0644460112   -.2137991556   -.0240812197     .093157585   -.1081187806    .1821330783
+    +-------------------------------------------------------------------------------------------------------------------------------------------------------
+                 11             12             13             14
+     -------------------------------------------------------------+
+  1     .1321345449     -.30577559    .0663444818   -.9583200169  |
+     -------------------------------------------------------------+
+
+:   D.balanceresults("atet",1)
+  Balance table:
+                 1            2            3            4            5            6            7
+     +--------------------------------------------------------------------------------------------+
+   1 |    Variable     mean (T)     mean (C)       diff()    stddiff()       sd (T)   varratio()  |
+   2 |          x1     .4673913     .7622098    -.2948185    -.5876748     .5016695     1.385164  |
+   3 |        1.x2     .0108696     .0263519    -.0154823    -.1485015     .1042572     .4226027  |
+   4 |        1.x3     .0217391     .0420962     -.020357     -.138833     .1466296     .5318794  |
+   5 |          x4     .4347826     .4437025    -.0089199    -.0178955     .4984448     1.004082  |
+   6 |          x5     25.46739     27.91242    -2.445032    -.4491306     5.443922     .6653275  |
+   7 |          x6     11.86957     12.43492     -.565356    -.3522343     1.605057     .4631149  |
+   8 |          x7     6.858696     6.306199     .5524967     .1553395     3.556704     1.158364  |
+   9 |         x90     .0972024    -.0158259     .1130283      .118505     .9537854     .9540569  |
+  10 |         x91    -.0890157    -.1059285     .0169128      .017936     .9429542     .9192153  |
+  11 |         x92     .0453787     .1467608    -.1013821    -.0964464     1.051175     1.135239  |
+  12 |         x93     .0865687     .1792813    -.0927126    -.0991609     .9349714     .9529712  |
+  13 |         x94    -.1299173    -.3260981     .1961809     .2121312     .9248091     .7297787  |
+  14 |         x95    -.0807251    -.0955472     .0148221     .0162166      .914005     .8693439  |
+     +--------------------------------------------------------------------------------------------+
+  Mean standardized diff., squared
+  .0111018424
+  Mean absolute standardized diff.
+  .1853850278
+  Maximum absolute standardized diff.
+  .5876748313
+  C.V. of matching weights:
+  .9715245687
+  S.D. of matching weights:
+  .9715245687
+  Skewness of matching weights:
+  .5328905716
+  Kurtosis of matching weights:
+  .412374184
+  Maximum matching weight:
+  16.67392699
+  Difference in prognostic scores:
+                       1                   2                   3                   4                   5
+    +-----------------------------------------------------------------------------------------------------+
+  1 |     Dependent var.   Mean of y_hat (T)   Mean of y_hat (C)    prognosticdiff()       Mean of y (C)  |
+  2 |                 y1             3432.78            3436.596           -3.816443            3436.596  |
+  3 |          y1_binary            .9492824            .9562957           -.0070133            .9562957  |
+    +-----------------------------------------------------------------------------------------------------+
+
+:   st_local("mlopts", "")
 
 : 
 : mata drop D
@@ -2546,26 +2313,31 @@ Iteration 10:  f(p) =  .00001599
 Iteration 11:  f(p) =  .00001599  
 (switching technique to nr)
 Iteration 12:  f(p) =  .00001598  (not concave)
-Iteration 13:  f(p) =  4.571e-06  (not concave)
-Iteration 14:  f(p) =  1.592e-06  (not concave)
-Iteration 15:  f(p) =  8.516e-07  (not concave)
-Iteration 16:  f(p) =  3.286e-07  (not concave)
-Iteration 17:  f(p) =  1.745e-07  (not concave)
-Iteration 18:  f(p) =  8.936e-08  (not concave)
-Iteration 19:  f(p) =  2.836e-08  (not concave)
-Iteration 20:  f(p) =  5.115e-09  
-Iteration 21:  f(p) =  1.153e-10  
-Iteration 22:  f(p) =  1.212e-14  
-Iteration 23:  f(p) =  2.740e-25  
+Iteration 13:  f(p) =  4.495e-06  (not concave)
+Iteration 14:  f(p) =  1.899e-06  (not concave)
+Iteration 15:  f(p) =  1.565e-06  (not concave)
+Iteration 16:  f(p) =  6.285e-07  (not concave)
+Iteration 17:  f(p) =  4.044e-07  (not concave)
+Iteration 18:  f(p) =  3.282e-07  (not concave)
+Iteration 19:  f(p) =  1.870e-07  (not concave)
+Iteration 20:  f(p) =  1.134e-07  (not concave)
+Iteration 21:  f(p) =  3.775e-08  (not concave)
+Iteration 22:  f(p) =  2.626e-08  
+Iteration 23:  f(p) =  1.027e-08  
 (switching technique to bfgs)
-Iteration 24:  f(p) =  2.405e-27  
+Iteration 24:  f(p) =  1.774e-09  
+Iteration 25:  f(p) =  6.086e-10  
+Iteration 26:  f(p) =  3.961e-12  
+Iteration 27:  f(p) =  2.019e-13  
+Iteration 28:  f(p) =  3.312e-15  
+Iteration 29:  f(p) =  9.950e-18  
                   1              2              3              4              5              6              7              8              9             10
     +-------------------------------------------------------------------------------------------------------------------------------------------------------
-  1 |  -1.502416045   -2.525398915   -.8191009475   -.3236397063    .0771198244   -.4884764405    .0722685739    .0234164978    .0257848717    .2152141202
+  1 |  -1.502416059   -2.525398662   -.8191009705   -.3236396209    .0771198343   -.4884764295    .0722685599    .0234165227    .0257848415     .215214108
     +-------------------------------------------------------------------------------------------------------------------------------------------------------
                  11             12             13             14
      -------------------------------------------------------------+
-  1    -.0285372179   -.3393876759   -.0407880729    3.075436854  |
+  1    -.0285372131   -.3393876822   -.0407879908    3.075436515  |
      -------------------------------------------------------------+
 
 :     DW.balanceresults("ate",2)
@@ -2573,40 +2345,42 @@ Iteration 24:  f(p) =  2.405e-27
                   1             2             3             4             5             6             7
      +---------------------------------------------------------------------------------------------------+
    1 |     Variable      mean (T)      mean (C)        diff()     stddiff()   sd (Pooled)    varratio()  |
-   2 |           x1      .6695182      .6695182      1.44e-15      3.07e-15      .4706262      1.004328  |
-   3 |         1.x2      .0220668      .0220668     -1.88e-14     -1.28e-13      .1469756      1.004328  |
-   4 |         1.x3      .0366911      .0366911     -2.61e-14     -1.39e-13       .188098      1.004328  |
-   5 |           x4       .485133       .485133      1.70e-13      3.39e-13      .5000334      1.004328  |
-   6 |           x5      26.17889      26.17889      6.18e-13      9.91e-14      6.237853      .6789026  |
-   7 |           x6      12.63449      12.63449     -1.58e-12     -6.76e-13      2.338005      .5740656  |
-   8 |           x7      6.755243      6.755243     -6.36e-13     -1.89e-13      3.370937      1.187219  |
-   9 |          x90     -.0520316     -.0520316      3.49e-14      3.34e-14      1.046128      1.163666  |
-  10 |          x91      .0164856      .0164856      7.94e-14      8.18e-14      .9705717      .9930954  |
-  11 |          x92     -.0021645     -.0021645     -2.62e-15     -2.58e-15      1.017927      1.359802  |
-  12 |          x93      .0456916      .0456916     -2.14e-13     -2.22e-13      .9636159       .883731  |
-  13 |          x94     -.0910006     -.0910006     -2.10e-13     -2.07e-13      1.014116      .7859289  |
-  14 |          x95     -.0894588     -.0894588      6.18e-13      6.32e-13       .978942      .8236876  |
+   2 |           x1      .6695182      .6695182     -1.20e-10     -2.56e-10      .4706262      1.004328  |
+   3 |         1.x2      .0220668      .0220668     -3.12e-09     -2.12e-08      .1469756      1.004328  |
+   4 |         1.x3      .0366911      .0366911     -1.49e-09     -7.93e-09       .188098      1.004328  |
+   5 |           x4       .485133       .485133     -3.91e-09     -7.82e-09      .5000334      1.004328  |
+   6 |           x5      26.17889      26.17889     -1.36e-07     -2.19e-08      6.237853      .6789026  |
+   7 |           x6      12.63449      12.63449     -4.71e-08     -2.01e-08      2.338005      .5740656  |
+   8 |           x7      6.755243      6.755243      1.06e-07      3.15e-08      3.370937      1.187219  |
+   9 |          x90     -.0520317     -.0520316     -1.93e-08     -1.84e-08      1.046128      1.163666  |
+  10 |          x91      .0164856      .0164856      1.99e-08      2.05e-08      .9705717      .9930953  |
+  11 |          x92     -.0021645     -.0021645      6.57e-09      6.46e-09      1.017927      1.359802  |
+  12 |          x93      .0456916      .0456916      1.77e-10      1.84e-10      .9636159       .883731  |
+  13 |          x94     -.0910006     -.0910006      1.06e-08      1.05e-08      1.014116      .7859289  |
+  14 |          x95     -.0894589     -.0894588     -6.23e-08     -6.37e-08      .9789419      .8236876  |
      +---------------------------------------------------------------------------------------------------+
   Mean standardized diff., squared
-  8.32408e-28
+  5.02625e-17
   Mean absolute standardized diff.
-  2.11649e-13
+  1.77273e-08
   Maximum absolute standardized diff.
-  6.76199e-13
+  6.36539e-08
   C.V. of matching weights:
-  .5270998694
+  .5270998614
   S.D. of matching weights:
-  .5284997369
+  .5284997286
   Skewness of matching weights:
-  .2026515012
+  .2026515323
   Kurtosis of matching weights:
-  .0762370775
+  .0762371002
+  Maximum matching weight:
+  6.642264279
   Difference in prognostic scores:
                        1                   2                   3                   4                   5
     +-----------------------------------------------------------------------------------------------------+
   1 |     Dependent var.   Mean of y_hat (T)   Mean of y_hat (C)    prognosticdiff()       Mean of y (C)  |
-  2 |                 y1            3445.465            3445.465           -5.18e-11            3445.465  |
-  3 |          y1_binary            .9569441            .9569441           -1.93e-14            .9569441  |
+  2 |                 y1            3445.465            3445.465           -1.80e-06            3445.465  |
+  3 |          y1_binary            .9569441            .9569441           -1.21e-09            .9569441  |
     +-----------------------------------------------------------------------------------------------------+
 
 : 
@@ -2687,6 +2461,8 @@ Iteration 15:  f(p) =  .01777184
   .1499732973
   Kurtosis of matching weights:
   .0569705853
+  Maximum matching weight:
+  4.343313244
   Difference in prognostic scores:
                        1                   2                   3                   4                   5
     +-----------------------------------------------------------------------------------------------------+
@@ -2728,19 +2504,19 @@ Iteration 10:  f(p) =  1.347e-06
 Iteration 11:  f(p) =  1.347e-06  
 (switching technique to nr)
 Iteration 12:  f(p) =  1.337e-06  (not concave)
-Iteration 13:  f(p) =  8.478e-08  
-Iteration 14:  f(p) =  1.602e-08  
-Iteration 15:  f(p) =  7.712e-10  
-Iteration 16:  f(p) =  5.651e-13  
-Iteration 17:  f(p) =  5.938e-20  
-Iteration 18:  f(p) =  8.653e-26  
+Iteration 13:  f(p) =  2.180e-07  
+Iteration 14:  f(p) =  4.037e-08  
+Iteration 15:  f(p) =  1.744e-08  
+Iteration 16:  f(p) =  6.094e-11  
+Iteration 17:  f(p) =  7.299e-15  
+Iteration 18:  f(p) =  1.559e-25  
                   1              2              3              4              5              6              7              8              9             10
     +-------------------------------------------------------------------------------------------------------------------------------------------------------
-  1 |   -1.44704714   -1.546890931    -.471062263   -.3822539288    .0635823768   -.2432270283    .0477026872    .1334992086   -.1336116528    .1522937138
+  1 |   -1.44704714   -1.546890931   -.4710622629   -.3822539288    .0635823768   -.2432270283    .0477026872    .1334992086   -.1336116528    .1522937138
     +-------------------------------------------------------------------------------------------------------------------------------------------------------
                  11             12             13             14
      -------------------------------------------------------------+
-  1     .0757732417   -.1016170888   -.0383391404    .6265763158  |
+  1     .0757732417   -.1016170888   -.0383391404    .6265763157  |
      -------------------------------------------------------------+
 
 :     DW.balanceresults("atet",2)
@@ -2748,26 +2524,26 @@ Iteration 18:  f(p) =  8.653e-26
                   1             2             3             4             5             6             7
      +---------------------------------------------------------------------------------------------------+
    1 |     Variable      mean (T)      mean (C)        diff()     stddiff()   sd (Pooled)    varratio()  |
-   2 |           x1      .4512231      .4512231      2.63e-12      5.28e-12      .4978686      1.004328  |
-   3 |         1.x2      .0114039      .0114039      2.63e-13      2.47e-12      .1062323      1.004328  |
-   4 |         1.x3      .0240637      .0240637      3.94e-13      2.57e-12      .1533251      1.004328  |
-   5 |           x4      .4218861      .4218861      7.43e-13      1.50e-12       .494112      1.004328  |
-   6 |           x5      25.44699      25.44699      1.28e-11      1.92e-12      6.665558      .6144662  |
-   7 |           x6      11.84757      11.84757      1.34e-11      6.54e-12      2.042375      .5982513  |
-   8 |           x7      7.015422      7.015422     -1.00e-11     -3.00e-12      3.345323      1.161761  |
-   9 |          x90      .0839738      .0839738     -1.05e-14     -1.02e-14        1.0258      .8505325  |
-  10 |          x91     -.0648837     -.0648837      3.35e-12      3.56e-12       .941106      .9922891  |
-  11 |          x92      .0575388      .0575388     -1.11e-12     -1.12e-12      .9892732      1.118263  |
-  12 |          x93      .1016523      .1016523     -1.98e-12     -2.11e-12      .9410813      1.012572  |
-  13 |          x94     -.1252265     -.1252265      1.63e-12      1.59e-12      1.026859      .7576623  |
-  14 |          x95     -.1044649     -.1044649      6.17e-13      6.40e-13      .9627688      .8646431  |
+   2 |           x1      .4512231      .4512231      9.30e-13      1.87e-12      .4978686      1.004328  |
+   3 |         1.x2      .0114039      .0114039     -6.32e-13     -5.95e-12      .1062323      1.004328  |
+   4 |         1.x3      .0240637      .0240637     -5.87e-13     -3.83e-12      .1533251      1.004328  |
+   5 |           x4      .4218861      .4218861      6.97e-13      1.41e-12       .494112      1.004328  |
+   6 |           x5      25.44699      25.44699     -2.09e-11     -3.14e-12      6.665558      .6144662  |
+   7 |           x6      11.84757      11.84757     -6.89e-12     -3.37e-12      2.042375      .5982513  |
+   8 |           x7      7.015422      7.015422     -9.29e-12     -2.78e-12      3.345323      1.161761  |
+   9 |          x90      .0839738      .0839738      3.32e-12      3.23e-12        1.0258      .8505325  |
+  10 |          x91     -.0648837     -.0648837      4.10e-12      4.35e-12       .941106      .9922891  |
+  11 |          x92      .0575388      .0575388     -3.05e-12     -3.08e-12      .9892732      1.118263  |
+  12 |          x93      .1016523      .1016523     -2.89e-12     -3.07e-12      .9410813      1.012572  |
+  13 |          x94     -.1252265     -.1252265      2.12e-13      2.06e-13      1.026859      .7576623  |
+  14 |          x95     -.1044649     -.1044649      3.15e-12      3.27e-12      .9627688      .8646431  |
      +---------------------------------------------------------------------------------------------------+
   Mean standardized diff., squared
-  2.32907e-24
+  7.00633e-25
   Mean absolute standardized diff.
-  2.48484e-12
+  3.04258e-12
   Maximum absolute standardized diff.
-  6.53792e-12
+  5.95172e-12
   C.V. of matching weights:
   1.031924564
   S.D. of matching weights:
@@ -2776,12 +2552,14 @@ Iteration 18:  f(p) =  8.653e-26
   .1135011509
   Kurtosis of matching weights:
   .0229206639
+  Maximum matching weight:
+  7.007741999
   Difference in prognostic scores:
                        1                   2                   3                   4                   5
     +-----------------------------------------------------------------------------------------------------+
   1 |     Dependent var.   Mean of y_hat (T)   Mean of y_hat (C)    prognosticdiff()       Mean of y (C)  |
-  2 |                 y1            3431.367            3431.367            5.17e-10            3431.367  |
-  3 |          y1_binary            .9509094            .9509094            1.84e-13            .9509094  |
+  2 |                 y1            3431.367            3431.367           -2.46e-10            3431.367  |
+  3 |          y1_binary            .9509094            .9509094           -4.33e-15            .9509094  |
     +-----------------------------------------------------------------------------------------------------+
 
 : 
@@ -2862,6 +2640,8 @@ Iteration 15:  f(p) =  .00017215
   .1128933006
   Kurtosis of matching weights:
   .0230686436
+  Maximum matching weight:
+  7.10958804
   Difference in prognostic scores:
                        1                   2                   3                   4                   5
     +-----------------------------------------------------------------------------------------------------+
@@ -2872,6 +2652,8 @@ Iteration 15:  f(p) =  .00017215
 
 : 
 : // Other objective functions
+:   st_local("mlopts", "difficult nonrtolerance")
+
 :   DW.cbps("atet","mean_sd_sq",1)
   Step 1 (initial values from logit model):
 initial:       f(p) = -681.05307
@@ -2900,45 +2682,10 @@ flat or discontinuous region encountered
 Iteration 3:   f(p) =  1.762e-13  
 numerical derivatives are approximate
 flat or discontinuous region encountered
-numerical derivatives are approximate
-flat or discontinuous region encountered
 Iteration 4:   f(p) =  1.968e-21  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 5:   f(p) =  4.929e-33  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 6:   f(p) =  4.437e-33  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 7:   f(p) =  4.120e-33  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 8:   f(p) =  3.603e-33  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 9:   f(p) =  1.521e-33  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 10:  f(p) =  8.788e-34  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 11:  f(p) =  8.574e-34  (backed up)
                   1              2              3              4              5              6              7              8              9             10
     +-------------------------------------------------------------------------------------------------------------------------------------------------------
-  1 |  -1.298300659   -1.629910465   -.4511737896   -.3553036347    .0715800496   -.2773324041    .0371348754    .1283825511   -.0952384668    .1409151853
+  1 |  -1.298300659   -1.629910465   -.4511737896   -.3553036347    .0715800496    -.277332404    .0371348754    .1283825511   -.0952384668    .1409151853
     +-------------------------------------------------------------------------------------------------------------------------------------------------------
                  11             12             13             14
      -------------------------------------------------------------+
@@ -2965,19 +2712,21 @@ Iteration 11:  f(p) =  8.574e-34  (backed up)
   14 |         x95    -.1044649     -.104167    -.0002979    -.0003285     .9069849     .8690485  |
      +--------------------------------------------------------------------------------------------+
   Mean standardized diff., squared
-  8.57424e-34
+  1.96769e-21
   Mean absolute standardized diff.
   .03264833
   Maximum absolute standardized diff.
-  .0906571704
+  .0906571707
   C.V. of matching weights:
   1.067016841
   S.D. of matching weights:
   1.064358817
   Skewness of matching weights:
-  .1583892395
+  .1583892396
   Kurtosis of matching weights:
   .0509012076
+  Maximum matching weight:
+  10.57744042
   Difference in prognostic scores:
                        1                   2                   3                   4                   5
     +-----------------------------------------------------------------------------------------------------+
@@ -3095,311 +2844,14 @@ flat or discontinuous region encountered
 Iteration 29:  f(p) =  5.179e-06  
 numerical derivatives are approximate
 flat or discontinuous region encountered
-numerical derivatives are approximate
-flat or discontinuous region encountered
 Iteration 30:  f(p) =  5.179e-06  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 31:  f(p) =  5.179e-06  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 32:  f(p) =  5.179e-06  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 33:  f(p) =  5.179e-06  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-BFGS stepping has contracted, resetting BFGS Hessian
-Iteration 34:  f(p) =  5.179e-06  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 35:  f(p) =  4.398e-06  
-(switching technique to nr)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 36:  f(p) =  4.273e-06  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 37:  f(p) =  4.184e-06  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 38:  f(p) =  3.832e-06  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 39:  f(p) =  3.682e-06  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 40:  f(p) =  3.499e-06  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 41:  f(p) =  3.318e-06  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 42:  f(p) =  3.153e-06  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 43:  f(p) =  3.041e-06  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 44:  f(p) =  2.857e-06  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 45:  f(p) =  2.695e-06  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 46:  f(p) =  2.269e-06  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 47:  f(p) =  2.002e-06  (not concave)
-(switching technique to bfgs)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 48:  f(p) =  1.416e-06  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 49:  f(p) =  2.825e-07  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 50:  f(p) =  2.063e-08  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 51:  f(p) =  6.982e-09  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 52:  f(p) =  2.797e-09  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 53:  f(p) =  5.554e-10  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 54:  f(p) =  7.404e-12  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-BFGS stepping has contracted, resetting BFGS Hessian
-Iteration 55:  f(p) =  7.404e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 56:  f(p) =  7.320e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 57:  f(p) =  6.368e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 58:  f(p) =  5.709e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 59:  f(p) =  5.695e-12  (backed up)
-(switching technique to nr)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 60:  f(p) =  4.944e-12  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 61:  f(p) =  4.944e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 62:  f(p) =  4.944e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 63:  f(p) =  4.944e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 64:  f(p) =  4.944e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 65:  f(p) =  4.944e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 66:  f(p) =  4.944e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 67:  f(p) =  4.944e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 68:  f(p) =  4.944e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 69:  f(p) =  4.944e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 70:  f(p) =  4.944e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 71:  f(p) =  4.944e-12  (backed up)
-(switching technique to bfgs)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-BFGS stepping has contracted, resetting BFGS Hessian
-Iteration 72:  f(p) =  4.944e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 73:  f(p) =  4.599e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 74:  f(p) =  4.505e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 75:  f(p) =  4.505e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-BFGS stepping has contracted, resetting BFGS Hessian
-Iteration 76:  f(p) =  4.505e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 77:  f(p) =  4.297e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 78:  f(p) =  4.126e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 79:  f(p) =  4.126e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-BFGS stepping has contracted, resetting BFGS Hessian
-Iteration 80:  f(p) =  4.126e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 81:  f(p) =  3.995e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 82:  f(p) =  3.899e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 83:  f(p) =  3.899e-12  (backed up)
-(switching technique to nr)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 84:  f(p) =  3.899e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 85:  f(p) =  3.899e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 86:  f(p) =  3.899e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 87:  f(p) =  3.899e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 88:  f(p) =  3.899e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 89:  f(p) =  3.899e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 90:  f(p) =  3.899e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 91:  f(p) =  3.899e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 92:  f(p) =  3.899e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 93:  f(p) =  3.899e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 94:  f(p) =  3.899e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 95:  f(p) =  3.899e-12  (backed up)
-(switching technique to bfgs)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-BFGS stepping has contracted, resetting BFGS Hessian
-Iteration 96:  f(p) =  3.899e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 97:  f(p) =  3.799e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 98:  f(p) =  3.795e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-BFGS stepping has contracted, resetting BFGS Hessian
-Iteration 99:  f(p) =  3.795e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 100: f(p) =  3.719e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 101: f(p) =  3.716e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 102: f(p) =  3.716e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 103: f(p) =  3.716e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-BFGS stepping has contracted, resetting BFGS Hessian
-Iteration 104: f(p) =  3.716e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 105: f(p) =  3.657e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 106: f(p) =  3.652e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-BFGS stepping has contracted, resetting BFGS Hessian
-Iteration 107: f(p) =  3.652e-12  (backed up)
-(switching technique to nr)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 108: f(p) =  3.605e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 109: f(p) =  3.605e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 110: f(p) =  3.605e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 111: f(p) =  3.605e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 112: f(p) =  3.605e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 113: f(p) =  3.605e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 114: f(p) =  3.605e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 115: f(p) =  3.605e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 116: f(p) =  3.605e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 117: f(p) =  3.605e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 118: f(p) =  3.605e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 119: f(p) =  3.605e-12  (backed up)
-(switching technique to bfgs)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-BFGS stepping has contracted, resetting BFGS Hessian
-Iteration 120: f(p) =  3.605e-12  (backed up)
-convergence not achieved
                   1              2              3              4              5              6              7              8              9             10
     +-------------------------------------------------------------------------------------------------------------------------------------------------------
-  1 |   -1.44704385   -1.546894326    -.471068058   -.3822577667    .0635820131   -.2432269578     .047702666    .1334985925   -.1336114176    .1522938422
+  1 |  -1.447109206   -1.571376071   -.4638657202   -.3821817865    .0635817527   -.2432686691    .0476896912    .1335782056   -.1335074586    .1521843909
     +-------------------------------------------------------------------------------------------------------------------------------------------------------
                  11             12             13             14
      -------------------------------------------------------------+
-  1     .0757727782   -.1016167639   -.0383397043    1.396245318  |
+  1     .0756625643   -.1016405778   -.0385684993    1.396111199  |
      -------------------------------------------------------------+
 
 :   DW.balanceresults("atet",1)
@@ -3407,53 +2859,57 @@ convergence not achieved
                  1            2            3            4            5            6            7
      +--------------------------------------------------------------------------------------------+
    1 |    Variable     mean (T)     mean (C)       diff()    stddiff()       sd (T)   varratio()  |
-   2 |          x1     .4512231     .4512235    -3.77e-07    -7.56e-07     .4990018     1.004328  |
-   3 |        1.x2     .0114039     .0114038     6.35e-08     5.96e-07     .1064741     1.004333  |
-   4 |        1.x3     .0240637     .0240636     1.33e-07     8.62e-07     .1536741     1.004333  |
-   5 |          x4     .4218861     .4218856     4.73e-07     9.55e-07     .4952368     1.004328  |
-   6 |          x5     25.44699     25.44698     3.04e-06     5.60e-07     5.422129     .6144666  |
-   7 |          x6     11.84757     11.84757    -4.02e-08    -2.45e-08     1.641931     .5982513  |
-   8 |          x7     7.015422     7.015421     5.44e-07     1.53e-07     3.555432     1.161761  |
-   9 |         x90     .0839738     .0839734     3.95e-07     4.12e-07     .9597153     .8505323  |
-  10 |         x91    -.0648837    -.0648837     2.53e-08     2.69e-08       .93861     .9922888  |
-  11 |         x92     .0575388      .057539    -2.88e-07    -2.78e-07      1.03554     1.118263  |
-  12 |         x93     .1016523     .1016521     2.41e-07     2.55e-07     .9463749     1.012572  |
-  13 |         x94    -.1252265    -.1252263    -2.06e-07    -2.25e-07     .9147554     .7576623  |
-  14 |         x95    -.1044649    -.1044655     5.14e-07     5.67e-07     .9069849     .8646432  |
+   2 |          x1     .4512231     .4512946    -.0000714    -.0001431     .4990018       1.0043  |
+   3 |        1.x2     .0114039     .0111656     .0002382     .0022373     .1064741     1.025508  |
+   4 |        1.x3     .0240637     .0241179    -.0000542    -.0003526     .1536741     1.002127  |
+   5 |          x4     .4218861     .4219384    -.0000523    -.0001055     .4952368     1.004294  |
+   6 |          x5     25.44699     25.44684     .0001492     .0000275     5.422129     .6144257  |
+   7 |          x6     11.84757     11.84744     .0001344     .0000819     1.641931     .5982897  |
+   8 |          x7     7.015422     7.015337     .0000843     .0000237     3.555432     1.161663  |
+   9 |         x90     .0839738     .0840113    -.0000375    -.0000391     .9597153     .8506137  |
+  10 |         x91    -.0648837     -.064865    -.0000187    -.0000199       .93861     .9921992  |
+  11 |         x92     .0575388     .0575174     .0000213     .0000206      1.03554     1.118052  |
+  12 |         x93     .1016523     .1015999     .0000524     .0000554     .9463749      1.01256  |
+  13 |         x94    -.1252265    -.1252283     1.84e-06     2.01e-06     .9147554     .7576427  |
+  14 |         x95    -.1044649    -.1045254     .0000604     .0000666     .9069849     .8645977  |
      +--------------------------------------------------------------------------------------------+
   Mean standardized diff., squared
-  5.69999e-14
+  2.03584e-08
   Mean absolute standardized diff.
-  4.36202e-07
+  .0002442464
   Maximum absolute standardized diff.
-  9.55101e-07
+  .0022373226
   C.V. of matching weights:
-  1.031923765
+  1.032220725
   S.D. of matching weights:
-  1.027107077
+  1.027397435
   Skewness of matching weights:
-  .1135010921
+  .1134733432
   Kurtosis of matching weights:
-  .0229206384
+  .0229091978
+  Maximum matching weight:
+  7.008575144
   Difference in prognostic scores:
                        1                   2                   3                   4                   5
     +-----------------------------------------------------------------------------------------------------+
   1 |     Dependent var.   Mean of y_hat (T)   Mean of y_hat (C)    prognosticdiff()       Mean of y (C)  |
-  2 |                 y1            3431.367            3431.367           -.0001196            3431.367  |
-  3 |          y1_binary            .9509094            .9509094           -1.87e-08            .9509094  |
+  2 |                 y1            3431.367            3431.347             .020385            3431.347  |
+  3 |          y1_binary            .9509095            .9509101           -6.53e-07            .9509101  |
     +-----------------------------------------------------------------------------------------------------+
+
+:   st_local("mlopts", "")
 
 : 
 :   DW.prognosticdiff()
                        1                   2                   3                   4                   5
     +-----------------------------------------------------------------------------------------------------+
   1 |     Dependent var.   Mean of y_hat (T)   Mean of y_hat (C)    prognosticdiff()       Mean of y (C)  |
-  2 |                 y1            3431.367            3431.367           -.0001196            3431.367  |
-  3 |          y1_binary            .9509094            .9509094           -1.87e-08            .9509094  |
+  2 |                 y1            3431.367            3431.347             .020385            3431.347  |
+  3 |          y1_binary            .9509095            .9509101           -6.53e-07            .9509101  |
     +-----------------------------------------------------------------------------------------------------+
                   1              2
     +-------------------------------+
-  1 |   -.000119554   -1.86839e-08  |
+  1 |   .0203850376   -6.53409e-07  |
     +-------------------------------+
 
 :   DW.reweight()
@@ -3806,19 +3262,19 @@ Iteration 10:  f(p) =  1.347e-06
 Iteration 11:  f(p) =  1.347e-06  
 (switching technique to nr)
 Iteration 12:  f(p) =  1.337e-06  (not concave)
-Iteration 13:  f(p) =  8.478e-08  
-Iteration 14:  f(p) =  1.602e-08  
-Iteration 15:  f(p) =  7.712e-10  
-Iteration 16:  f(p) =  5.651e-13  
-Iteration 17:  f(p) =  5.938e-20  
-Iteration 18:  f(p) =  8.653e-26  
+Iteration 13:  f(p) =  2.180e-07  
+Iteration 14:  f(p) =  4.037e-08  
+Iteration 15:  f(p) =  1.744e-08  
+Iteration 16:  f(p) =  6.094e-11  
+Iteration 17:  f(p) =  7.299e-15  
+Iteration 18:  f(p) =  1.559e-25  
                   1              2              3              4              5              6              7              8              9             10
     +-------------------------------------------------------------------------------------------------------------------------------------------------------
-  1 |   -1.44704714   -1.546890931    -.471062263   -.3822539288    .0635823768   -.2432270283    .0477026872    .1334992086   -.1336116528    .1522937138
+  1 |   -1.44704714   -1.546890931   -.4710622629   -.3822539288    .0635823768   -.2432270283    .0477026872    .1334992086   -.1336116528    .1522937138
     +-------------------------------------------------------------------------------------------------------------------------------------------------------
                  11             12             13             14
      -------------------------------------------------------------+
-  1     .0757732417   -.1016170888   -.0383391404    .6265763158  |
+  1     .0757732417   -.1016170888   -.0383391404    .6265763157  |
      -------------------------------------------------------------+
 
 :   DW.balanceresults("atet",1)
@@ -3826,26 +3282,26 @@ Iteration 18:  f(p) =  8.653e-26
                  1            2            3            4            5            6            7
      +--------------------------------------------------------------------------------------------+
    1 |    Variable     mean (T)     mean (C)       diff()    stddiff()       sd (T)   varratio()  |
-   2 |          x1     .4512231     .4512231     2.63e-12     5.26e-12     .4990018     1.004328  |
-   3 |        1.x2     .0114039     .0114039     2.63e-13     2.47e-12     .1064741     1.004328  |
-   4 |        1.x3     .0240637     .0240637     3.94e-13     2.57e-12     .1536741     1.004328  |
-   5 |          x4     .4218861     .4218861     7.43e-13     1.50e-12     .4952368     1.004328  |
-   6 |          x5     25.44699     25.44699     1.28e-11     2.36e-12     5.422129     .6144662  |
-   7 |          x6     11.84757     11.84757     1.34e-11     8.13e-12     1.641931     .5982513  |
-   8 |          x7     7.015422     7.015422    -1.00e-11    -2.82e-12     3.555432     1.161761  |
-   9 |         x90     .0839738     .0839738    -1.05e-14    -1.09e-14     .9597153     .8505325  |
-  10 |         x91    -.0648837    -.0648837     3.35e-12     3.57e-12       .93861     .9922891  |
-  11 |         x92     .0575388     .0575388    -1.11e-12    -1.07e-12      1.03554     1.118263  |
-  12 |         x93     .1016523     .1016523    -1.98e-12    -2.09e-12     .9463749     1.012572  |
-  13 |         x94    -.1252265    -.1252265     1.63e-12     1.78e-12     .9147554     .7576623  |
-  14 |         x95    -.1044649    -.1044649     6.17e-13     6.80e-13     .9069849     .8646431  |
+   2 |          x1     .4512231     .4512231     9.30e-13     1.86e-12     .4990018     1.004328  |
+   3 |        1.x2     .0114039     .0114039    -6.32e-13    -5.94e-12     .1064741     1.004328  |
+   4 |        1.x3     .0240637     .0240637    -5.87e-13    -3.82e-12     .1536741     1.004328  |
+   5 |          x4     .4218861     .4218861     6.97e-13     1.41e-12     .4952368     1.004328  |
+   6 |          x5     25.44699     25.44699    -2.09e-11    -3.86e-12     5.422129     .6144662  |
+   7 |          x6     11.84757     11.84757    -6.89e-12    -4.20e-12     1.641931     .5982513  |
+   8 |          x7     7.015422     7.015422    -9.29e-12    -2.61e-12     3.555432     1.161761  |
+   9 |         x90     .0839738     .0839738     3.32e-12     3.46e-12     .9597153     .8505325  |
+  10 |         x91    -.0648837    -.0648837     4.10e-12     4.36e-12       .93861     .9922891  |
+  11 |         x92     .0575388     .0575388    -3.05e-12    -2.94e-12      1.03554     1.118263  |
+  12 |         x93     .1016523     .1016523    -2.89e-12    -3.06e-12     .9463749     1.012572  |
+  13 |         x94    -.1252265    -.1252265     2.12e-13     2.32e-13     .9147554     .7576623  |
+  14 |         x95    -.1044649    -.1044649     3.15e-12     3.47e-12     .9069849     .8646431  |
      +--------------------------------------------------------------------------------------------+
   Mean standardized diff., squared
-  2.95033e-24
+  8.00335e-25
   Mean absolute standardized diff.
-  2.63972e-12
+  3.16985e-12
   Maximum absolute standardized diff.
-  8.13242e-12
+  5.93821e-12
   C.V. of matching weights:
   1.031924564
   S.D. of matching weights:
@@ -3854,17 +3310,21 @@ Iteration 18:  f(p) =  8.653e-26
   .1135011509
   Kurtosis of matching weights:
   .0229206639
+  Maximum matching weight:
+  7.007741999
   Difference in prognostic scores:
                        1                   2                   3                   4                   5
     +-----------------------------------------------------------------------------------------------------+
   1 |     Dependent var.   Mean of y_hat (T)   Mean of y_hat (C)    prognosticdiff()       Mean of y (C)  |
-  2 |                 y1            3431.367            3431.367            5.17e-10            3431.367  |
-  3 |          y1_binary            .9509094            .9509094            1.84e-13            .9509094  |
+  2 |                 y1            3431.367            3431.367           -2.46e-10            3431.367  |
+  3 |          y1_binary            .9509094            .9509094           -4.33e-15            .9509094  |
     +-----------------------------------------------------------------------------------------------------+
 
 : 
 :   DW.cbps("atet","cbps", 1, 0, (1,.75,6))
-Warning: cvopt does not appear to substantially affect the reults with fctn=cbps. Consider switching to fctn=sd_sq or mean_sd_sq
+
+Warning: cvopt does not appear to substantially affect the reults with fctn=cbps_port_r. Consider switching to fctn=sd_sq or mean_sd_sq
+
   Step 1 (initial values from logit model):
 initial:       f(p) = -681.05307
 alternative:   f(p) =  -555.8915
@@ -3937,6 +3397,8 @@ Iteration 16:  f(p) =  .17797852  (backed up)
   .1135002103
   Kurtosis of matching weights:
   .0229202661
+  Maximum matching weight:
+  7.007610302
   Difference in prognostic scores:
                        1                   2                   3                   4                   5
     +-----------------------------------------------------------------------------------------------------+
@@ -3947,7 +3409,9 @@ Iteration 16:  f(p) =  .17797852  (backed up)
 
 : 
 :   DW.cbps("atet","cbps", 1, 0, (1,.50,6))
-Warning: cvopt does not appear to substantially affect the reults with fctn=cbps. Consider switching to fctn=sd_sq or mean_sd_sq
+
+Warning: cvopt does not appear to substantially affect the reults with fctn=cbps_port_r. Consider switching to fctn=sd_sq or mean_sd_sq
+
   Step 1 (initial values from logit model):
 initial:       f(p) = -681.05307
 alternative:   f(p) =  -555.8915
@@ -4020,6 +3484,8 @@ Iteration 16:  f(p) =    .015625
   .1135011307
   Kurtosis of matching weights:
   .0229206584
+  Maximum matching weight:
+  7.007738018
   Difference in prognostic scores:
                        1                   2                   3                   4                   5
     +-----------------------------------------------------------------------------------------------------+
@@ -4029,6 +3495,8 @@ Iteration 16:  f(p) =    .015625
     +-----------------------------------------------------------------------------------------------------+
 
 : 
+:   st_local("mlopts", " nonrtolerance")
+
 :   DW.cbps("atet","mean_sd_sq", 1, 0, (1,.75,6))
   Step 1 (initial values from logit model):
 initial:       f(p) = -681.05307
@@ -4085,106 +3553,78 @@ flat or discontinuous region encountered
 Iteration 12:  f(p) =  6.398e-08  (not concave)
 numerical derivatives are approximate
 flat or discontinuous region encountered
-Iteration 13:  f(p) =  2.236e-09  (not concave)
+Iteration 13:  f(p) =  6.373e-08  (not concave)
 numerical derivatives are approximate
 flat or discontinuous region encountered
-Iteration 14:  f(p) =  1.796e-09  (not concave)
+Iteration 14:  f(p) =  2.630e-08  (not concave)
 numerical derivatives are approximate
 flat or discontinuous region encountered
-Iteration 15:  f(p) =  1.364e-09  (not concave)
+Iteration 15:  f(p) =  2.082e-08  (not concave)
 numerical derivatives are approximate
 flat or discontinuous region encountered
-Iteration 16:  f(p) =  1.276e-09  (not concave)
+Iteration 16:  f(p) =  2.040e-08  (not concave)
 numerical derivatives are approximate
 flat or discontinuous region encountered
-Iteration 17:  f(p) =  9.084e-10  (not concave)
+Iteration 17:  f(p) =  1.876e-08  (not concave)
 numerical derivatives are approximate
 flat or discontinuous region encountered
-Iteration 18:  f(p) =  5.549e-10  (not concave)
+Iteration 18:  f(p) =  1.808e-08  (not concave)
 numerical derivatives are approximate
 flat or discontinuous region encountered
-Iteration 19:  f(p) =  5.143e-10  (not concave)
+Iteration 19:  f(p) =  6.771e-09  (not concave)
 numerical derivatives are approximate
 flat or discontinuous region encountered
-Iteration 20:  f(p) =  3.836e-10  (not concave)
+Iteration 20:  f(p) =  6.228e-09  (not concave)
 numerical derivatives are approximate
 flat or discontinuous region encountered
-Iteration 21:  f(p) =  3.371e-10  (not concave)
+Iteration 21:  f(p) =  5.106e-09  (not concave)
 numerical derivatives are approximate
 flat or discontinuous region encountered
-Iteration 22:  f(p) =  7.528e-13  (not concave)
+Iteration 22:  f(p) =  4.055e-09  (not concave)
 numerical derivatives are approximate
 flat or discontinuous region encountered
-Iteration 23:  f(p) =  3.621e-14  (not concave)
+Iteration 23:  f(p) =  3.953e-09  (not concave)
 (switching technique to bfgs)
 numerical derivatives are approximate
 flat or discontinuous region encountered
+Iteration 24:  f(p) =  3.802e-09  
 numerical derivatives are approximate
 flat or discontinuous region encountered
-Iteration 24:  f(p) =  3.015e-16  
+Iteration 25:  f(p) =  1.991e-09  
 numerical derivatives are approximate
 flat or discontinuous region encountered
+Iteration 26:  f(p) =  1.442e-09  
 numerical derivatives are approximate
 flat or discontinuous region encountered
-Iteration 25:  f(p) =  2.545e-16  
+Iteration 27:  f(p) =  1.312e-09  
 numerical derivatives are approximate
 flat or discontinuous region encountered
-BFGS stepping has contracted, resetting BFGS Hessian
+Iteration 28:  f(p) =  1.289e-09  
 numerical derivatives are approximate
 flat or discontinuous region encountered
-Iteration 26:  f(p) =  1.952e-16  
+Iteration 29:  f(p) =  1.017e-09  
 numerical derivatives are approximate
 flat or discontinuous region encountered
+Iteration 30:  f(p) =  1.617e-10  
 numerical derivatives are approximate
 flat or discontinuous region encountered
-Iteration 27:  f(p) =  1.884e-16  
+Iteration 31:  f(p) =  3.928e-11  
 numerical derivatives are approximate
 flat or discontinuous region encountered
+Iteration 32:  f(p) =  1.874e-11  
 numerical derivatives are approximate
 flat or discontinuous region encountered
-Iteration 28:  f(p) =  1.877e-16  
+Iteration 33:  f(p) =  6.925e-12  
 numerical derivatives are approximate
 flat or discontinuous region encountered
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 29:  f(p) =  1.871e-16  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-BFGS stepping has contracted, resetting BFGS Hessian
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 30:  f(p) =  1.406e-16  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 31:  f(p) =  1.294e-16  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 32:  f(p) =  1.283e-16  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 33:  f(p) =  1.281e-16  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-BFGS stepping has contracted, resetting BFGS Hessian
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 34:  f(p) =  8.378e-17  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 35:  f(p) =  6.059e-17  
+Iteration 34:  f(p) =  1.598e-12  
                   1              2              3              4              5              6              7              8              9             10
     +-------------------------------------------------------------------------------------------------------------------------------------------------------
-  1 |  -1.249358569   -1.626167397   -.4803350337    -.262010737     .002723899   -.0355859293   -.0172989768    .0149658177   -.1033867042    .1073470982
+  1 |  -1.216986763   -1.571985713   -.4535952199   -.1198313562    .0055783829   -.0665758561   -.0181092495    .0324430257   -.1052272381    .0895221866
     +-------------------------------------------------------------------------------------------------------------------------------------------------------
                  11             12             13             14
      -------------------------------------------------------------+
-  1    -.0849274281   -.0978387647    -.032509563    1.256772415  |
+  1     .0238571903   -.0942796716   -.0284796811    1.256772393  |
      -------------------------------------------------------------+
 
 :   DW.balanceresults("atet",1)
@@ -4192,40 +3632,42 @@ Iteration 35:  f(p) =  6.059e-17
                  1            2            3            4            5            6            7
      +--------------------------------------------------------------------------------------------+
    1 |    Variable     mean (T)     mean (C)       diff()    stddiff()       sd (T)   varratio()  |
-   2 |          x1     .4512231     .4707037    -.0194806    -.0390391     .4990018     .9981969  |
-   3 |        1.x2     .0114039     .0096564     .0017475     .0164124     .1064741     1.183986  |
-   4 |        1.x3     .0240637     .0211209     .0029428     .0191497     .1536741     1.140823  |
-   5 |          x4     .4218861     .5009078    -.0790217    -.1595635     .4952368     .9798184  |
-   6 |          x5     25.44699     24.58965     .8573351     .1581178     5.422129     .7625045  |
-   7 |          x6     11.84757      12.4132    -.5656277    -.3444894     1.641931     .5476945  |
-   8 |          x7     7.015422     6.414085     .6013365     .1691318     3.555432     1.145332  |
-   9 |         x90     .0839738     .0118324     .0721414     .0751696     .9597153     .8427132  |
-  10 |         x91    -.0648837    -.0647897     -.000094    -.0001002       .93861     .9652767  |
-  11 |         x92     .0575388     .0752692    -.0177304    -.0171219      1.03554     1.085538  |
-  12 |         x93     .1016523    -.0430683     .1447206      .152921     .9463749     .9504488  |
-  13 |         x94    -.1252265    -.1245777    -.0006488    -.0007093     .9147554     .8186894  |
-  14 |         x95    -.1044649    -.0773651    -.0270998     -.029879     .9069849     .8544649  |
+   2 |          x1     .4512231     .4600029    -.0087797    -.0175946     .4990018     1.001177  |
+   3 |        1.x2     .0114039     .0099666     .0014373      .013499     .1064741     1.147496  |
+   4 |        1.x3     .0240637     .0210207      .003043     .0198015     .1536741     1.146141  |
+   5 |          x4     .4218861     .5324699    -.1105838    -.2232949     .4952368     .9839648  |
+   6 |          x5     25.44699     24.30524     1.141746     .2105716     5.422129     .7516516  |
+   7 |          x6     11.84757     12.28247    -.4348956    -.2648684     1.641931     .5461252  |
+   8 |          x7     7.015422     6.385598     .6298232     .1771439     3.555432     1.149439  |
+   9 |         x90     .0839738     .0447679      .039206     .0408516     .9597153     .8380189  |
+  10 |         x91    -.0648837    -.0653152     .0004315     .0004597       .93861     .9557679  |
+  11 |         x92     .0575388     .0441054     .0134334     .0129723      1.03554     1.072122  |
+  12 |         x93     .1016523     .0508218     .0508305     .0537108     .9463749     .9798565  |
+  13 |         x94    -.1252265    -.1143243    -.0109022    -.0119181     .9147554     .8172598  |
+  14 |         x95    -.1044649    -.0941881    -.0102769    -.0113308     .9069849     .8579994  |
      +--------------------------------------------------------------------------------------------+
   Mean standardized diff., squared
-  2.25813e-18
+  7.75265e-14
   Mean absolute standardized diff.
-  .0909080436
+  .0813859422
   Maximum absolute standardized diff.
-  .3444893777
+  .2648683875
   C.V. of matching weights:
-  .751969346
+  .7607234445
   S.D. of matching weights:
-  .7482253012
+  .7563162627
   Skewness of matching weights:
-  .0823111222
+  .075974501
   Kurtosis of matching weights:
-  .0124576756
+  .0104523964
+  Maximum matching weight:
+  3.764397393
   Difference in prognostic scores:
                        1                   2                   3                   4                   5
     +-----------------------------------------------------------------------------------------------------+
   1 |     Dependent var.   Mean of y_hat (T)   Mean of y_hat (C)    prognosticdiff()       Mean of y (C)  |
-  2 |                 y1            3435.752            3456.654           -20.90224            3456.654  |
-  3 |          y1_binary            .9503328            .9611166           -.0107838            .9611166  |
+  2 |                 y1            3436.571            3441.722            -5.15057            3441.722  |
+  3 |          y1_binary            .9508375            .9599627           -.0091252            .9599627  |
     +-----------------------------------------------------------------------------------------------------+
 
 : 
@@ -4285,169 +3727,156 @@ flat or discontinuous region encountered
 Iteration 12:  f(p) =  .00001175  (not concave)
 numerical derivatives are approximate
 flat or discontinuous region encountered
-Iteration 13:  f(p) =   .0000104  (not concave)
+Iteration 13:  f(p) =  9.697e-06  (not concave)
 numerical derivatives are approximate
 flat or discontinuous region encountered
-Iteration 14:  f(p) =  4.104e-06  (not concave)
+Iteration 14:  f(p) =  9.559e-06  (not concave)
 numerical derivatives are approximate
 flat or discontinuous region encountered
-Iteration 15:  f(p) =  2.518e-06  (not concave)
+Iteration 15:  f(p) =  8.433e-06  (not concave)
 numerical derivatives are approximate
 flat or discontinuous region encountered
-Iteration 16:  f(p) =  8.956e-07  (not concave)
+Iteration 16:  f(p) =  3.580e-06  (not concave)
 numerical derivatives are approximate
 flat or discontinuous region encountered
-Iteration 17:  f(p) =  6.250e-07  (not concave)
+Iteration 17:  f(p) =  2.863e-06  (not concave)
 numerical derivatives are approximate
 flat or discontinuous region encountered
-Iteration 18:  f(p) =  6.018e-07  (not concave)
+Iteration 18:  f(p) =  2.730e-06  (not concave)
 numerical derivatives are approximate
 flat or discontinuous region encountered
-Iteration 19:  f(p) =  5.226e-07  (not concave)
+Iteration 19:  f(p) =  2.705e-06  (not concave)
 numerical derivatives are approximate
 flat or discontinuous region encountered
-Iteration 20:  f(p) =  3.482e-07  (not concave)
+Iteration 20:  f(p) =  2.471e-06  (not concave)
 numerical derivatives are approximate
 flat or discontinuous region encountered
-Iteration 21:  f(p) =  3.352e-07  (not concave)
+Iteration 21:  f(p) =  2.347e-06  (not concave)
 numerical derivatives are approximate
 flat or discontinuous region encountered
-Iteration 22:  f(p) =  3.207e-07  (not concave)
+Iteration 22:  f(p) =  2.206e-06  (not concave)
 numerical derivatives are approximate
 flat or discontinuous region encountered
-Iteration 23:  f(p) =  2.038e-07  (not concave)
+Iteration 23:  f(p) =  2.165e-06  (not concave)
 (switching technique to bfgs)
 numerical derivatives are approximate
 flat or discontinuous region encountered
-Iteration 24:  f(p) =  1.920e-07  
+Iteration 24:  f(p) =  2.109e-06  
 numerical derivatives are approximate
 flat or discontinuous region encountered
-Iteration 25:  f(p) =  1.812e-07  
+Iteration 25:  f(p) =  1.995e-06  
 numerical derivatives are approximate
 flat or discontinuous region encountered
-Iteration 26:  f(p) =  1.778e-07  
+Iteration 26:  f(p) =  1.454e-06  
 numerical derivatives are approximate
 flat or discontinuous region encountered
-Iteration 27:  f(p) =  1.767e-07  
+Iteration 27:  f(p) =  9.125e-07  
 numerical derivatives are approximate
 flat or discontinuous region encountered
+Iteration 28:  f(p) =  7.114e-07  
 numerical derivatives are approximate
 flat or discontinuous region encountered
-Iteration 28:  f(p) =  1.767e-07  
+Iteration 29:  f(p) =  4.193e-07  
 numerical derivatives are approximate
 flat or discontinuous region encountered
-Iteration 29:  f(p) =  1.746e-07  
+Iteration 30:  f(p) =  2.479e-07  
 numerical derivatives are approximate
 flat or discontinuous region encountered
-Iteration 30:  f(p) =  1.639e-07  
+Iteration 31:  f(p) =  7.787e-08  
 numerical derivatives are approximate
 flat or discontinuous region encountered
-Iteration 31:  f(p) =  1.616e-07  
+Iteration 32:  f(p) =  4.079e-08  
 numerical derivatives are approximate
 flat or discontinuous region encountered
-Iteration 32:  f(p) =  1.615e-07  
+Iteration 33:  f(p) =  2.023e-08  
 numerical derivatives are approximate
 flat or discontinuous region encountered
+Iteration 34:  f(p) =  1.122e-08  
 numerical derivatives are approximate
 flat or discontinuous region encountered
-Iteration 33:  f(p) =  1.615e-07  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 34:  f(p) =  1.615e-07  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 35:  f(p) =  1.615e-07  
+Iteration 35:  f(p) =  8.392e-09  
 (switching technique to nr)
 numerical derivatives are approximate
 flat or discontinuous region encountered
-Iteration 36:  f(p) =  1.608e-07  (not concave)
+Iteration 36:  f(p) =  7.589e-09  (not concave)
 numerical derivatives are approximate
 flat or discontinuous region encountered
-Iteration 37:  f(p) =  9.150e-08  (not concave)
+Iteration 37:  f(p) =  7.538e-09  (not concave)
 numerical derivatives are approximate
 flat or discontinuous region encountered
-Iteration 38:  f(p) =  8.189e-08  (not concave)
+Iteration 38:  f(p) =  7.505e-09  (not concave)
 numerical derivatives are approximate
 flat or discontinuous region encountered
-Iteration 39:  f(p) =  8.037e-08  (not concave)
+Iteration 39:  f(p) =  7.477e-09  (not concave)
 numerical derivatives are approximate
 flat or discontinuous region encountered
-Iteration 40:  f(p) =  7.887e-08  (not concave)
+Iteration 40:  f(p) =  7.442e-09  (not concave)
 numerical derivatives are approximate
 flat or discontinuous region encountered
-Iteration 41:  f(p) =  5.407e-08  (not concave)
+Iteration 41:  f(p) =  7.405e-09  (not concave)
 numerical derivatives are approximate
 flat or discontinuous region encountered
-Iteration 42:  f(p) =  5.354e-08  (not concave)
+Iteration 42:  f(p) =  7.380e-09  (not concave)
 numerical derivatives are approximate
 flat or discontinuous region encountered
-Iteration 43:  f(p) =  5.169e-08  (not concave)
+Iteration 43:  f(p) =  7.355e-09  (not concave)
 numerical derivatives are approximate
 flat or discontinuous region encountered
-Iteration 44:  f(p) =  5.011e-08  (not concave)
+Iteration 44:  f(p) =  7.293e-09  (not concave)
 numerical derivatives are approximate
 flat or discontinuous region encountered
-Iteration 45:  f(p) =  4.109e-08  (not concave)
+Iteration 45:  f(p) =  7.219e-09  (not concave)
 numerical derivatives are approximate
 flat or discontinuous region encountered
-Iteration 46:  f(p) =  3.836e-08  (not concave)
+Iteration 46:  f(p) =  7.206e-09  (not concave)
 numerical derivatives are approximate
 flat or discontinuous region encountered
-Iteration 47:  f(p) =  3.530e-08  (not concave)
+Iteration 47:  f(p) =  7.195e-09  (not concave)
 (switching technique to bfgs)
 numerical derivatives are approximate
 flat or discontinuous region encountered
-Iteration 48:  f(p) =  3.373e-08  
+Iteration 48:  f(p) =  7.184e-09  
 numerical derivatives are approximate
 flat or discontinuous region encountered
-Iteration 49:  f(p) =  3.328e-08  
+Iteration 49:  f(p) =  7.116e-09  
 numerical derivatives are approximate
 flat or discontinuous region encountered
-Iteration 50:  f(p) =  3.314e-08  
+BFGS stepping has contracted, resetting BFGS Hessian
+Iteration 50:  f(p) =  3.442e-09  
 numerical derivatives are approximate
 flat or discontinuous region encountered
-Iteration 51:  f(p) =  3.305e-08  
+Iteration 51:  f(p) =  2.540e-09  
 numerical derivatives are approximate
 flat or discontinuous region encountered
+Iteration 52:  f(p) =  2.479e-09  
 numerical derivatives are approximate
 flat or discontinuous region encountered
-Iteration 52:  f(p) =  3.305e-08  
+Iteration 53:  f(p) =  2.431e-09  
 numerical derivatives are approximate
 flat or discontinuous region encountered
+Iteration 54:  f(p) =  1.874e-09  
 numerical derivatives are approximate
 flat or discontinuous region encountered
-Iteration 53:  f(p) =  3.305e-08  
+Iteration 55:  f(p) =  7.788e-10  
 numerical derivatives are approximate
 flat or discontinuous region encountered
-Iteration 54:  f(p) =  3.292e-08  
+Iteration 56:  f(p) =  5.802e-10  
 numerical derivatives are approximate
 flat or discontinuous region encountered
-Iteration 55:  f(p) =  3.267e-08  
+Iteration 57:  f(p) =  5.108e-10  
 numerical derivatives are approximate
 flat or discontinuous region encountered
-Iteration 56:  f(p) =  3.266e-08  
+Iteration 58:  f(p) =  4.887e-10  
 numerical derivatives are approximate
 flat or discontinuous region encountered
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 57:  f(p) =  3.266e-08  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 58:  f(p) =  3.266e-08  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 59:  f(p) =  3.266e-08  
+Iteration 59:  f(p) =  4.856e-10  
                   1              2              3              4              5              6              7              8              9             10
     +-------------------------------------------------------------------------------------------------------------------------------------------------------
-  1 |  -.8655474837   -2.012498434   -.5331544261   -.2009153444    .0074919838   -.0269136498   -.0241028813   -.1063025417   -.1486142581    -.117340159
+  1 |  -.6910577735   -2.985910945   -.7886790532   -.2490389181    .0002995071   -.0243529048   -.0121529296   -.1133510981   -.1568458695   -.1191312632
     +-------------------------------------------------------------------------------------------------------------------------------------------------------
                  11             12             13             14
      -------------------------------------------------------------+
-  1    -.0916431406   -.0834430489   -.1485137745    1.248261659  |
+  1    -.0996441735   -.0890135356   -.1982234858    3.186806296  |
      -------------------------------------------------------------+
 
 :   DW.balanceresults("atet",1)
@@ -4455,43 +3884,130 @@ Iteration 59:  f(p) =  3.266e-08
                  1            2            3            4            5            6            7
      +--------------------------------------------------------------------------------------------+
    1 |    Variable     mean (T)     mean (C)       diff()    stddiff()       sd (T)   varratio()  |
-   2 |          x1     .4512231     .5840585    -.1328353     -.266202     .4990018     1.023703  |
-   3 |        1.x2     .0114039     .0056038     .0058001      .054474     .1064741     2.031914  |
-   4 |        1.x3     .0240637     .0189987      .005065     .0329596     .1536741     1.265513  |
-   5 |          x4     .4218861     .4945447    -.0726586     -.146715     .4952368     .9799319  |
-   6 |          x5     25.44699     25.48452    -.0375313    -.0069219     5.422129     .7621934  |
-   7 |          x6     11.84757     12.64643    -.7988609    -.4865375     1.641931      .523746  |
-   8 |          x7     7.015422     6.453984     .5614375     .1579098     3.555432     1.122084  |
-   9 |         x90     .0839738    -.1127792      .196753     .2050119     .9597153      .874998  |
-  10 |         x91    -.0648837    -.1158463     .0509626     .0542958       .93861      .961266  |
-  11 |         x92     .0575388    -.1337106     .1912494     .1846856      1.03554     1.083012  |
-  12 |         x93     .1016523    -.0386913     .1403437     .1482961     .9463749     .8963407  |
-  13 |         x94    -.1252265      -.10533    -.0198964    -.0217506     .9147554     .8151421  |
-  14 |         x95    -.1044649    -.1864815     .0820166     .0904277     .9069849      .847116  |
+   2 |          x1     .4512231     .6202686    -.1690454    -.3387671     .4990018      1.05586  |
+   3 |        1.x2     .0114039     .0019043     .0094995     .0892192     .1064741     5.957079  |
+   4 |        1.x3     .0240637     .0145215     .0095422     .0620939     .1536741     1.648167  |
+   5 |          x4     .4218861     .4838209    -.0619348    -.1250609     .4952368     .9808422  |
+   6 |          x5     25.44699     25.62729    -.1803057    -.0332537     5.422129     .7777679  |
+   7 |          x6     11.84757     12.70652    -.8589463    -.5231319     1.641931     .5239996  |
+   8 |          x7     7.015422     6.591588     .4238338     .1192074     3.555432     1.117382  |
+   9 |         x90     .0839738    -.1175101     .2014839     .2099413     .9597153     .8841738  |
+  10 |         x91    -.0648837    -.1316177      .066734     .0710988       .93861     .9550872  |
+  11 |         x92     .0575388    -.1403701     .1979088     .1911165      1.03554     1.085314  |
+  12 |         x93     .1016523    -.0424053     .1440577     .1522205     .9463749     .8853322  |
+  13 |         x94    -.1252265    -.1076353    -.0175912    -.0192304     .9147554     .8219258  |
+  14 |         x95    -.1044649    -.2355655     .1311006     .1445455     .9069849     .8418122  |
      +--------------------------------------------------------------------------------------------+
   Mean standardized diff., squared
-  2.61339e-11
+  5.86941e-15
   Mean absolute standardized diff.
-  .1427836434
+  .1599143925
   Maximum absolute standardized diff.
-  .4865374905
+  .5231318853
   C.V. of matching weights:
-  .5565306635
+  .5280362216
   S.D. of matching weights:
-  .5556313865
+  .5269814036
   Skewness of matching weights:
-  .0742515871
+  .0599639617
   Kurtosis of matching weights:
-  .0140383956
+  .0129278301
+  Maximum matching weight:
+  3.356419081
   Difference in prognostic scores:
                        1                   2                   3                   4                   5
     +-----------------------------------------------------------------------------------------------------+
   1 |     Dependent var.   Mean of y_hat (T)   Mean of y_hat (C)    prognosticdiff()       Mean of y (C)  |
-  2 |                 y1            3443.819            3477.191           -33.37222            3477.191  |
-  3 |          y1_binary            .9510691            .9625367           -.0114677            .9625367  |
+  2 |                 y1            3445.009            3479.508           -34.49932            3479.508  |
+  3 |          y1_binary            .9510146            .9622108           -.0111961            .9622108  |
     +-----------------------------------------------------------------------------------------------------+
 
 : 
+:   DW.cbps("atet","mean_sd_sq", 1, 0)
+  Step 1 (initial values from logit model):
+initial:       f(p) = -681.05307
+alternative:   f(p) =  -555.8915
+rescale:       f(p) = -485.05844
+Iteration 0:   f(p) = -485.05844  
+Iteration 1:   f(p) = -436.32795  
+Iteration 2:   f(p) = -411.28929  
+Iteration 3:   f(p) = -411.19869  
+Iteration 4:   f(p) = -411.19865  
+Iteration 5:   f(p) = -411.19865  
+  
+  Step 2 (CBPS) :
+numerical derivatives are approximate
+flat or discontinuous region encountered
+(setting technique to bfgs)
+Iteration 0:   f(p) =  .00026309  
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 1:   f(p) =  .00001126  
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 2:   f(p) =  4.733e-09  
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 3:   f(p) =  1.762e-13  
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 4:   f(p) =  1.968e-21  
+                  1              2              3              4              5              6              7              8              9             10
+    +-------------------------------------------------------------------------------------------------------------------------------------------------------
+  1 |  -1.298300659   -1.629910465   -.4511737896   -.3553036347    .0715800496    -.277332404    .0371348754    .1283825511   -.0952384668    .1409151853
+    +-------------------------------------------------------------------------------------------------------------------------------------------------------
+                 11             12             13             14
+     -------------------------------------------------------------+
+  1     .0743038835   -.1419191916     -.02015005     1.24895601  |
+     -------------------------------------------------------------+
+
+:   DW.balanceresults("atet",1)
+  Balance table:
+                 1            2            3            4            5            6            7
+     +--------------------------------------------------------------------------------------------+
+   1 |    Variable     mean (T)     mean (C)       diff()    stddiff()       sd (T)   varratio()  |
+   2 |          x1     .4512231      .487981    -.0367579    -.0736628     .4990018     .9953452  |
+   3 |        1.x2     .0114039     .0101189     .0012849     .0120681     .1064741     1.130392  |
+   4 |        1.x3     .0240637     .0243904    -.0003267     -.002126     .1536741      .991207  |
+   5 |          x4     .4218861     .4077073     .0141788     .0286304     .4952368     1.014377  |
+   6 |          x5     25.44699     25.93854    -.4915548    -.0906572     5.422129     .5820455  |
+   7 |          x6     11.84757     11.77832     .0692519     .0421771     1.641931     .5870658  |
+   8 |          x7     7.015422     6.877177     .1382443     .0388826     3.555432     1.150412  |
+   9 |         x90     .0839738     .0558962     .0280776     .0292562     .9597153     .8505932  |
+  10 |         x91    -.0648837    -.0314162    -.0334675    -.0356565       .93861     .9896463  |
+  11 |         x92     .0575388     .0508005     .0067383      .006507      1.03554     1.132825  |
+  12 |         x93     .1016523     .1109109    -.0092586    -.0097833     .9463749     1.021042  |
+  13 |         x94    -.1252265    -.1752569     .0500305     .0546928     .9147554     .7291541  |
+  14 |         x95    -.1044649     -.104167    -.0002979    -.0003285     .9069849     .8690485  |
+     +--------------------------------------------------------------------------------------------+
+  Mean standardized diff., squared
+  1.96769e-21
+  Mean absolute standardized diff.
+  .03264833
+  Maximum absolute standardized diff.
+  .0906571707
+  C.V. of matching weights:
+  1.067016841
+  S.D. of matching weights:
+  1.064358817
+  Skewness of matching weights:
+  .1583892396
+  Kurtosis of matching weights:
+  .0509012076
+  Maximum matching weight:
+  10.57744042
+  Difference in prognostic scores:
+                       1                   2                   3                   4                   5
+    +-----------------------------------------------------------------------------------------------------+
+  1 |     Dependent var.   Mean of y_hat (T)   Mean of y_hat (C)    prognosticdiff()       Mean of y (C)  |
+  2 |                 y1            3431.445            3432.164           -.7196186            3432.164  |
+  3 |          y1_binary            .9507734            .9518109           -.0010374            .9518109  |
+    +-----------------------------------------------------------------------------------------------------+
+
+:   st_local("mlopts", "")
+
+: 
+:   // you can also target skiwness, kurtosis, or max weight, but it's finicky
 : 
 : end  // end of Mata block
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -4501,5 +4017,5 @@ Iteration 59:  f(p) =  3.266e-08
       name:  gmatch_example
        log:  C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\gmatch_example.log
   log type:  text
- closed on:  14 Feb 2018, 01:24:05
+ closed on:  14 Feb 2018, 16:49:35
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
