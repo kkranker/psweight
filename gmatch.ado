@@ -32,13 +32,12 @@ program Estimate, eclass sortpreserve
 
   // standard syntax parsing
   syntax varlist(min=2 numeric fv ts) [if] [in] [fw iw/], ///
-          [ depvars(varlist numeric)        /// outcome variables (if any)
-            ate atet ateu                   /// to fill in est
-            ipw cbps mean_sd sd mean_sd_sq sd_sq            /// to fill in fctn and oid
+          [ depvars(varlist numeric) /// outcome variables (if any)
+            ate atet ateu /// to fill in est
+            ipw cbps mean_sd sd mean_sd_sq sd_sq /// to fill in fctn and oid
             TREatvariance CONtrolvariance POOledvariance Averagevariance /// to fill in denominator
-            cvopt(numlist min=3 max=3)      ///
-            /// vce(passthru) optimize?
-            * ] //  display options are allowed
+            cvopt(numlist min=3 max=3) ///
+            * ] //  display and ml options are allowed
 
   marksample tousevar
   _get_diopts diopts options, `options'
@@ -46,7 +45,7 @@ program Estimate, eclass sortpreserve
   if ("`weight'"!="") {
     tempvar wgtvar
     qui gen double `wgtvar'=`exp'
-/* */ //    local wgtexp [`weight'=`exp']
+    local wgtexp [`weight'=`exp']
   }
 
   // check treatment variable
@@ -118,8 +117,9 @@ program Estimate, eclass sortpreserve
   }
   ereturn clear
   return  clear
-  mata: Estimate()
 
+  // switch over to Mata, run helper function with runs the main function
+  mata: Estimate()
 
   // print results to screen
   di as txt _n "Propensity score model coefficients" _c
@@ -151,15 +151,11 @@ program Estimate, eclass sortpreserve
 
 end
 
-// LOAD THE CLASS
-mata: mata mlib index
-
 // DEFINE MATA FUNCTIONS
 version 15.1
 mata:
 mata set matastrict on
 mata set matafavor speed
-
 
 // helper function to move Stata locals into Mata and call the main function
 void Estimate()
@@ -193,4 +189,3 @@ void Estimate()
 
 }
 end
-
