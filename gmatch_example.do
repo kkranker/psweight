@@ -307,7 +307,7 @@ summ `treatvar' `varlist' `tousevar' `wgtvar' `depvars'
 
 // Replicate CBPS
 cbps `treatvar' `varlist' if `tousevar' , ate logit optimization_technique("nr") evaluator_type("gf1")
-gmatch `treatvar' `varlist' if `tousevar' , ate cbps pooledvariance showtolerance
+gmatch `treatvar' `varlist' if `tousevar' , ate cbps pooledvariance
 gmatchcall balanceresults()
 
 cbps `treatvar' `varlist' if `tousevar' , ate over logit optimization_technique("nr") evaluator_type("gf1")
