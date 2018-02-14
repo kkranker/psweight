@@ -25,11 +25,11 @@ log using gmatch_example.log, name(gmatch_example) replace
 // permission of Mathematica Policy Research, Inc.
 //*****************************************************************************/
 
-do C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\gmatch_one_time_setup.do
-
 version 15.1
 set type double
 di as txt "Current user: `c(username)'" _n "Environment: `c(os)' `c(machine_type)' `: environment computername'" _n "Stata: `c(stata_version)'" cond(c(stata_version)==c(version),""," (set to version `c(version)')") _n "Date: " c(current_date) " " c(current_time)
+
+// do C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\gmatch_one_time_setup.do
 
 which gmatch
 which gmatchcall
