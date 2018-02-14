@@ -636,12 +636,21 @@ void gmatch_logit_eval(transmorphic S, real rowvector beta, real colvector lnf)
 //    denominator is passed to stddiff() and related functions
 //    oid=1 turns on the "over-identified" version of the CBPS model; oid=0 leaves it off
 //    cvopt adds the CV of the matching weights to the optimization objective function
-//         Let loss_0 be the ojbective function and CV be the coefficient of variation of the matching weights
+//         Let loss_0 be the ojbective function and wgt_cv() be the coefficient of variation of the matching weights
 //         Then, if cvopt=(a,b,c), then the loss function is modified as:
-//              loss = ( loss_0 \ a * abs((CV - b)^c) )
+//              loss = ( loss_0 \ a * abs((wgt_cv() - b)^c) )
 //         The default is a=0 (the loss function is unmodified)
 //                        b=0 (prefer no variation in weights)
 //                        c=2 (a quadratic)
+//         With 6 arguments, cvopt=(a,b,c,d,e,f), the loss function also targets skewness of the weights (wgt_skewness())
+//         Specifically, the loss function is modified as:
+//              loss = ( loss_0 \ a * abs((wgt_cv() - b)^c) \ e * abs((wgt_skewness() - e)^f) )
+//         With 9 arguments, cvopt=(a,b,c,d,e,f,g,h,i), the loss function also targets kurtosis of the weights (wgt_kurtosis())
+//         Specifically, the loss function is modified as:
+//              loss = ( loss_0 \ a * abs((wgt_cv() - b)^c) \ e * abs((wgt_skewness() - e)^f) \ g * abs((wgt_kurtosis() - h)^i))
+//         With 12 arguments, cvopt=(a,b,c,d,e,f,g,h,i,j,k,l), the loss function also targets the maximum weight (wgt_max())
+//         Specifically, the loss function is modified as:
+//              loss = ( loss_0 \ a * abs((wgt_cv() - b)^c) \ e * abs((wgt_skewness() - e)^f) \ g * abs((wgt_kurtosis() - h)^i)  \ j * abs((wgt_max() - k)^l))
 real rowvector gmatch::cbps(| string scalar est,
                               string scalar fctn,
                               real scalar denominator,
@@ -656,11 +665,11 @@ real rowvector gmatch::cbps(| string scalar est,
   if (args()<2) fctn="sd_sq"
   if (args()<3) denominator=1
   if (args()<4) oid=0
-  if (args()<5) cvopt=(0,0,0)
+  if (args()<5) cvopt=J(1,0,.)
   this.reweight()
 
   // If the user is asking for the IPW result, just call my ipw() function
-  if (fctn=="ipw" & cvopt[1,1]==0) {
+  if (fctn=="ipw" & !length(cvopt)) {
     return(this.ipw(est))
   }
 
@@ -676,7 +685,7 @@ real rowvector gmatch::cbps(| string scalar est,
   // In addition, the program looks at Stata local mlopts with instructions for controlling maximization
   else if (fctn=="cbps" & all(this.W_orig:==1)) fctn="cbps_port_stata"
   else if (fctn=="cbps") fctn="cbps_port_r"
-  if (fctn=="cbps_port_r" & cvopt[1]) errprintf("{p}\nWarning: cvopt does not appear to substantially affect the reults with fctn=cbps. Consider switching to fctn=sd_sq or mean_sd_sq{p_end}\n")
+  if (fctn=="cbps_port_r" & any(this.W_orig!=1) & length(cvopt)) errprintf("\n{p}\nWarning: cvopt does not appear to substantially affect the reults with fctn=cbps and sample weights. Consider switching to fctn=sd_sq or mean_sd_sq{p_end}\n\n")
 
   transmorphic S
   S=optimize_init()
@@ -688,7 +697,6 @@ real rowvector gmatch::cbps(| string scalar est,
   optimize_init_argument(S, 4, denominator)
   optimize_init_argument(S, 5, oid)
   optimize_init_argument(S, 6, cvopt)
-  optimize_init_singularHmethod(S,"hybrid")  // equivalent to ml's "difficult" option
   optimize_init_conv_maxiter(S, 120)         // probably want to make this setable
   optimize_init_technique(S, "bfgs 12 nr 12")
   optimize_init_tracelevel(S, "value" )  // "none", "value", "params"
@@ -718,8 +726,9 @@ real rowvector gmatch::cbps(| string scalar est,
   else _error(fctn + " is invalid with gmatch::cbps()")
   if (st_local("mlopts")!="") optimize_init_mlopts(S, st_local("mlopts"))
 
-  // cvopt adds 1 element to loss function
-  if (cvopt[1,1]!=0 & optimize_init_evaluatortype(S)!="gf0") optimize_init_evaluatortype(S,"gf0")
+  // cvopt adds 1 or more elements to the loss function
+  // I don't have gradient functions
+  if (length(cvopt) & optimize_init_evaluatortype(S)!="gf0") optimize_init_evaluatortype(S,"gf0")
 
   // for certain methods,
   // -- normalize Xs to mean 0, sd 1
@@ -746,13 +755,6 @@ real rowvector gmatch::cbps(| string scalar est,
   if (fctn=="cbps_port_r") beta_logit = this.logitbeta(this.T, this.Xstd, this.W, 0)
   else                     beta_logit = this.logitbeta(this.T, this.X, this.W, 1)
   optimize_init_params(S, beta_logit)
-  // /* */ "  optimize_init_params(S)";   optimize_init_params(S)
-  // /* */ "optimize_result_value0(S)"; optimize_result_value0(S)
-
-//  /* */ if (cvopt[1,1]!=0 & (fctn=="cbps_port_stata" | fctn=="cbps_port_r")) {
-//  /* */ beta    = optimize_init_params(S, J(1,cols(beta_logit),1))
-//  /* */ }
-
 
   // This is an extra matrix the can be passed to optimiztion engine. I use it for different purposes.
   // It is only calculated once -- not once every time the ojective function is called.
@@ -782,7 +784,6 @@ real rowvector gmatch::cbps(| string scalar est,
 // /* */  "lnf__"; lnf__
 // /* */  "g__ "; g__
 // /* */  "H__"; H__
-
 
  // if (fctn=="cbps_port_r")  _error("X")
 
@@ -862,17 +863,26 @@ void gmatch::cbpseval( real   scalar    todo,
     else                              _error(fctn + " is invalid with gmatch::cbpseval()")
   }
 
-  // if cvopt=(a,b,c), then loss = ( loss_0 \ a * abs((CV - b)^c) )
-  if (cvopt[1,1]!=0) {
-    if (todo>0) _error("cvopt[1,1]!=0 is not compatable with todo>0 in gmatch::cbpseval()")
-    if (fctn=="cbps_port_stata" | fctn=="cbps_port_r") {
-      pscore = this.logitpredict(this.X, beta)
-      pscore = this.trim(pscore)
-      cbpswgt = this.logitweights(pscore, est)
-      this.reweight(cbpswgt)
-    }
-    lnf = (lnf \ (cvopt[1,1]:*abs((this.wgt_cv(est):-cvopt[1,2]):^cvopt[1,3])))
+  // cvopt, a row vector, modifies the loss function as documented above
+  if (!length(cvopt)) return
+  else if (mod(length(cvopt),3)!=0 | length(cvopt)<3 | length(cvopt)>12) _error("cvopt() should have 0, 3, 6, 9, or 12 elements")
+  else if (todo>0) _error("cvopt[1,1]!=0 is not compatable with todo>0 in gmatch::cbpseval()") 
+  if (fctn=="cbps_port_stata" | fctn=="cbps_port_r") {
+    pscore = this.logitpredict(this.X, beta)
+    pscore = this.trim(pscore)
+    cbpswgt = this.logitweights(pscore, est)
+    this.reweight(cbpswgt)
   }
+  if (cvopt[1,1]) lnf = (lnf \ (cvopt[1,1]:*abs((this.wgt_cv(est):-cvopt[1,2]):^cvopt[1,3])))
+  
+  if (length(cvopt)<6) return
+  if (cvopt[1,4]) lnf = (lnf \ (cvopt[1,4]:*abs((this.wgt_skewness(est):-cvopt[1,5]):^cvopt[1,6])))
+  
+  if (length(cvopt)<9) return
+  if (cvopt[1,7]) lnf = (lnf \ (cvopt[1,7]:*abs((this.wgt_kurtosis(est):-cvopt[1,8]):^cvopt[1,9])))
+  
+  if (length(cvopt)<12) return
+  if (cvopt[1,10]) lnf = (lnf \ (cvopt[1,10]:*abs((this.wgt_max(est):-cvopt[1,11]):^cvopt[1,12])))
 }
 
 // Port of the objective function from the Stata verion of CBPS
