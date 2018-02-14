@@ -591,6 +591,7 @@ real rowvector gmatch::logitbeta(real colvector Ymat, real matrix Xmat, | real c
   if (args()>=3 & any(Wmat:!=1)) moptimize_init_weight(S, Wmat)
   moptimize_init_eq_colnames(S, 1, (J(1,cols(Xmat),"x") + strofreal((1..cols(Xmat)))))
   moptimize_init_vcetype(S, "robust")
+  if (st_local("mlopts")!="") moptimize_init_mlopts(S, st_local("mlopts"))
 
   moptimize(S)
   // /* */ "Logit model coefficients and robust standard errors:"; moptimize_result_display(S)
@@ -707,19 +708,15 @@ real rowvector gmatch::cbps(| string scalar est,
   else if (fctn=="mean_sd_sq" | fctn=="sd_sq") {
     if (fctn=="sd_sq") optimize_init_evaluatortype(S,"gf0")
     else               optimize_init_evaluatortype(S,"d0")
-/* */	// optimize_init_conv_ignorenrtol(S, "off")
-/* */	// optimize_init_conv_ptol(S,  1e-10)
-/* */	// optimize_init_conv_vtol(S,  1e-11)
-/* */	// optimize_init_conv_nrtol(S, 1e-9)
-/* */ // optimize_init_singularHmethod(S,"m-marquardt")  // "hybrid" is equivalent to ml's "difficult" option
-/* */ optimize_init_singularHmethod(S,"hybrid")  // "hybrid" is equivalent to ml's "difficult" option
-/* */ optimize_init_conv_ignorenrtol(S, "on")
-/* */ // optimize_init_conv_ignorenrtol(S, "off")
-/* */	optimize_init_conv_ptol(S, 1e-7)
-/* */	optimize_init_conv_vtol(S, 1e-8)
-/* */	optimize_init_conv_nrtol(S, 1e-6)
+    optimize_init_conv_ignorenrtol(S, "off")
+    optimize_init_conv_ptol(S,  1e-10)
+    optimize_init_conv_vtol(S,  1e-11)
+    optimize_init_conv_nrtol(S, 1e-9)
+    optimize_init_singularHmethod(S,"hybrid")  // "m-marquardt" or "hybrid"; "hybrid" is equivalent to ml's "difficult" option
+    optimize_init_conv_ignorenrtol(S, "off")
   }
   else _error(fctn + " is invalid with gmatch::cbps()")
+  if (st_local("mlopts")!="") moptimize_init_mlopts(S, st_local("mlopts"))
 
   // cvopt adds 1 element to loss function
   if (cvopt[1,1]!=0 & optimize_init_evaluatortype(S)!="gf0") optimize_init_evaluatortype(S,"gf0")
@@ -790,20 +787,19 @@ real rowvector gmatch::cbps(| string scalar est,
  // if (fctn=="cbps_port_r")  _error("X")
 
   "Step 2 (CBPS) :"
-  /* */ // This temp code keeps optimize() from producing an error
-  /* */ // Once it's working switch back to
-  /* */ // (void) optimize(S)
-  /* */ (void) _optimize(S)
-  /* */               if (optimize_result_returncode(S)!=0) {
-  /* */                       errprintf("{p}\n")
-  /* */                       errprintf("%s\n", optimize_result_errortext(S))
-  /* */                       errprintf("\nExiting the function early.\n")
-  /* */                       errprintf("{p_end}\n")
-  /* */                       "current beta"; optimize_result_params(S)
-  /* */                       // exit(optimize_result_returncode(S))
-  /* */                       return(J(this.N,1,.))
-  /* */               }
-  /* */ // "optimize_result_iterations(S)"; optimize_result_iterations(S)
+  (void) optimize(S)
+  // /* */ // This temp code keeps optimize() from producing an error
+  // /* */ (void) _optimize(S)
+  // /* */               if (optimize_result_returncode(S)!=0) {
+  // /* */                       errprintf("{p}\n")
+  // /* */                       errprintf("%s\n", optimize_result_errortext(S))
+  // /* */                       errprintf("\nExiting the function early.\n")
+  // /* */                       errprintf("{p_end}\n")
+  // /* */                       "current beta"; optimize_result_params(S)
+  // /* */                       // exit(optimize_result_returncode(S))
+  // /* */                       return(J(this.N,1,.))
+  // /* */               }
+  // /* */ // "optimize_result_iterations(S)"; optimize_result_iterations(S)
   beta    = optimize_result_params(S)
 
   // undoing the normalization and SVD
