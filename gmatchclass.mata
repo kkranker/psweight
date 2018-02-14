@@ -391,6 +391,14 @@ real scalar gmatch::wgt_kurtosis(string scalar est)
 {
   return((this.wgt_moments(4,est)[1]) * (this.wgt_moments(2,est)[1])^(-2))
 }
+real scalar gmatch::wgt_max(string scalar est)
+{
+  if      (strlower(est)=="ate" ) return(max(this.W_mtch           ))
+  else if (strlower(est)=="atet") return(max(this.W_mtch[this.sel0]))
+  else if (strlower(est)=="ateu") return(max(this.W_mtch[this.sel1]))
+  else _error(est + " is an invalid argument for gmatch::wgt_moments()")
+}
+
 
 
 
@@ -669,8 +677,9 @@ real rowvector gmatch::cbps(| string scalar est,
   this.reweight()
 
   // If the user is asking for the IPW result, just call my ipw() function
-  if (fctn=="ipw" & !length(cvopt)) {
-    return(this.ipw(est))
+  if (fctn=="ipw") {
+    if (!length(cvopt)) return(this.ipw(est))
+    else _error("IPW does not work with modified loss function")
   }
 
   // I have two implimentations of the CBPS function.  Here I pick the one I need.
@@ -685,7 +694,7 @@ real rowvector gmatch::cbps(| string scalar est,
   // In addition, the program looks at Stata local mlopts with instructions for controlling maximization
   else if (fctn=="cbps" & all(this.W_orig:==1)) fctn="cbps_port_stata"
   else if (fctn=="cbps") fctn="cbps_port_r"
-  if (fctn=="cbps_port_r" & any(this.W_orig!=1) & length(cvopt)) errprintf("\n{p}\nWarning: cvopt does not appear to substantially affect the reults with fctn=cbps and sample weights. Consider switching to fctn=sd_sq or mean_sd_sq{p_end}\n\n")
+  if (fctn=="cbps_port_r" & length(cvopt)) errprintf("\n{p}\nWarning: cvopt does not appear to substantially affect the reults with fctn=cbps_port_r. Consider switching to fctn=sd_sq or mean_sd_sq{p_end}\n\n")
 
   transmorphic S
   S=optimize_init()
@@ -866,7 +875,7 @@ void gmatch::cbpseval( real   scalar    todo,
   // cvopt, a row vector, modifies the loss function as documented above
   if (!length(cvopt)) return
   else if (mod(length(cvopt),3)!=0 | length(cvopt)<3 | length(cvopt)>12) _error("cvopt() should have 0, 3, 6, 9, or 12 elements")
-  else if (todo>0) _error("cvopt[1,1]!=0 is not compatable with todo>0 in gmatch::cbpseval()") 
+  else if (todo>0) _error("cvopt is not compatable with todo>0 in gmatch::cbpseval()") 
   if (fctn=="cbps_port_stata" | fctn=="cbps_port_r") {
     pscore = this.logitpredict(this.X, beta)
     pscore = this.trim(pscore)
