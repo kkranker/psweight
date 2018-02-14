@@ -7,6 +7,7 @@
 //****************************************************************************/
 *! $Id$
 *! Generalization of IPW and CBPS estimators
+*! Compile gmatch() class definition
 //
 *! By Keith Kranker
 // Last updated $Date$
