@@ -2,28 +2,15 @@
       name:  gmatch_example_ado
        log:  C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\gmatch_example_ado.log
   log type:  text
- opened on:  14 Feb 2018, 01:24:05
+ opened on:  14 Feb 2018, 16:49:35
 
-. 
-. //****************************************************************************/
-. *! $Id: gmatch_example.do,v e38398bcb0ac 2018/02/14 08:16:27 kkranker $
-. *! Generalization of IPW and CBPS estimators
-. *! Example files
-. //
-. *! By Keith Kranker
-. // Last updated $Date: 2018/02/14 08:16:27 $
-. //
-. // Copyright (C) Mathematica Policy Research, Inc.
-. // This code cannot be copied, distributed or used without the express written
-. // permission of Mathematica Policy Research, Inc.
-. //*****************************************************************************/
 . 
 . di as txt "Current user: `c(username)'" _n "Environment: `c(os)' `c(machine_type)' `: environment computername'" _n "Stata: `c(stata_version)'" cond(c(stata_v
 > ersion)==c(version),""," (set to version `c(version)')") _n "Date: " c(current_date) " " c(current_time)
 Current user: KKranker
 Environment: Windows PC (64-bit x86-64) KKRANKER
 Stata: 15.1
-Date: 14 Feb 2018 01:24:05
+Date: 14 Feb 2018 16:49:35
 
 . desc, short
 
@@ -94,6 +81,7 @@ treat        |
 ------------------------------------------------------------------------------
 
 . gmatch `treatvar' `varlist' if `tousevar' , ate cbps pooledvariance
+
   408 control obs
   92 treatment obs
   (Data are unweighted.)
@@ -177,8 +165,8 @@ _treated |         N      mean        sd       min        p1       p10       p25
      +---------------------------------------------------------------------------------------------------+
    1 |     Variable      mean (T)      mean (C)        diff()     stddiff()   sd (Pooled)    varratio()  |
    2 |           x1      .6750468      .6750468      1.72e-11      3.66e-11      .4688264      1.008511  |
-   3 |        i1.x2      .0219357      .0219357      1.15e-11      7.84e-11      .1466203      1.008511  |
-   4 |        i1.x3      .0370067      .0370067      2.40e-10      1.27e-09      .1889672      1.008511  |
+   3 |         1.x2      .0219357      .0219357      1.15e-11      7.84e-11      .1466203      1.008511  |
+   4 |         1.x3      .0370067      .0370067      2.40e-10      1.27e-09      .1889672      1.008511  |
    5 |           x4      .4861037      .4861037      5.20e-11      1.04e-10      .5003074      1.008511  |
    6 |           x5      26.25386      26.25386      2.87e-11      4.57e-12      6.268993      .6747771  |
    7 |           x6      12.63471      12.63471      4.25e-10      1.81e-10      2.343236      .5637225  |
@@ -204,6 +192,8 @@ _treated |         N      mean        sd       min        p1       p10       p25
   .2158747756
   Kurtosis of matching weights:
   .0860729366
+  Maximum matching weight:
+  6.906400443
 
 . 
 . cbps `treatvar' `varlist' if `tousevar' , ate over logit optimization_technique("nr") evaluator_type("gf1")
@@ -236,6 +226,7 @@ treat        |
 J test for overidentifying restrictions: P(chisq>7.142, 14) = 0.929
 
 . gmatch `treatvar' `varlist' if `tousevar' , ate cbps ipw pooledvariance
+
   408 control obs
   92 treatment obs
   (Data are unweighted.)
@@ -317,8 +308,8 @@ _treated |         N      mean        sd       min        p1       p10       p25
      +---------------------------------------------------------------------------------------------------+
    1 |     Variable      mean (T)      mean (C)        diff()     stddiff()   sd (Pooled)    varratio()  |
    2 |           x1      .6406563      .7027893      -.062133     -.1343718      .4623962      1.111543  |
-   3 |        i1.x2      .0157701      .0233767     -.0076067     -.0518322      .1467555      .6856459  |
-   4 |        i1.x3       .024807      .0398362     -.0150293     -.0794675      .1891246      .6378543  |
+   3 |         1.x2      .0157701      .0233767     -.0076067     -.0518322      .1467555      .6856459  |
+   4 |         1.x3       .024807      .0398362     -.0150293     -.0794675      .1891246      .6378543  |
    5 |           x4      .4886894      .4862356      .0024538      .0049044      .5003233      1.008759  |
    6 |           x5      25.82556      26.34781     -.5222463      -.087499      5.968599        .75999  |
    7 |           x6      12.33004       12.9064     -.5763641     -.2576164      2.237296      .5881093  |
@@ -344,6 +335,8 @@ _treated |         N      mean        sd       min        p1       p10       p25
   .1574497662
   Kurtosis of matching weights:
   .0654318582
+  Maximum matching weight:
+  4.204588915
 
 . 
 . cbps `treatvar' `varlist' if `tousevar' , att logit optimization_technique("nr") evaluator_type("gf1")
@@ -373,6 +366,7 @@ treat        |
 ------------------------------------------------------------------------------
 
 . gmatch `treatvar' `varlist' if `tousevar' , atet cbps pooledvariance
+
   408 control obs
   92 treatment obs
   (Data are unweighted.)
@@ -454,8 +448,8 @@ _treated |         N      mean        sd       min        p1       p10       p25
      +---------------------------------------------------------------------------------------------------+
    1 |     Variable      mean (T)      mean (C)        diff()     stddiff()   sd (Pooled)    varratio()  |
    2 |           x1      .4673913      .4673913     -1.38e-10     -2.77e-10      .4994352      1.008511  |
-   3 |        i1.x2      .0108696      .0108696     -7.66e-11     -7.38e-10      .1037929      1.008511  |
-   4 |        i1.x3      .0217391      .0217391     -8.17e-11     -5.60e-10      .1459766      1.008511  |
+   3 |         1.x2      .0108696      .0108696     -7.66e-11     -7.38e-10      .1037929      1.008511  |
+   4 |         1.x3      .0217391      .0217391     -8.17e-11     -5.60e-10      .1459766      1.008511  |
    5 |           x4      .4347826      .4347826     -4.03e-10     -8.12e-10      .4962249      1.008511  |
    6 |           x5      25.46739      25.46739     -1.76e-09     -2.65e-10      6.664728      .6195799  |
    7 |           x6      11.86957      11.86957     -1.98e-09     -9.69e-10      2.043536      .5669465  |
@@ -481,6 +475,8 @@ _treated |         N      mean        sd       min        p1       p10       p25
   .1100078305
   Kurtosis of matching weights:
   .0225364399
+  Maximum matching weight:
+  7.032260601
 
 . 
 . cbps `treatvar' `varlist' if `tousevar' , att over logit optimization_technique("nr") evaluator_type("gf1")
@@ -512,6 +508,7 @@ treat        |
 J test for overidentifying restrictions: P(chisq>15.137, 14) = 0.369
 
 . gmatch `treatvar' `varlist' if `tousevar' , atet cbps ipw pooledvariance
+
   408 control obs
   92 treatment obs
   (Data are unweighted.)
@@ -593,8 +590,8 @@ _treated |         N      mean        sd       min        p1       p10       p25
      +---------------------------------------------------------------------------------------------------+
    1 |     Variable      mean (T)      mean (C)        diff()     stddiff()   sd (Pooled)    varratio()  |
    2 |           x1      .4673913      .4923283     -.0249369      -.049839      .5003503      1.004458  |
-   3 |        i1.x2      .0108696      .0074884      .0033811      .0376593      .0897825      1.458884  |
-   4 |        i1.x3      .0217391       .023711     -.0019719     -.0130452       .151158      .9265074  |
+   3 |         1.x2      .0108696      .0074884      .0033811      .0376593      .0897825      1.458884  |
+   4 |         1.x3      .0217391       .023711     -.0019719     -.0130452       .151158      .9265074  |
    5 |           x4      .4347826      .4386729     -.0038903     -.0078334      .4966326      1.006495  |
    6 |           x5      25.46739      25.45801      .0093781      .0014148      6.628535      .6273162  |
    7 |           x6      11.86957      11.89491     -.0253428     -.0123239        2.0564       .559006  |
@@ -620,6 +617,8 @@ _treated |         N      mean        sd       min        p1       p10       p25
   .1040781457
   Kurtosis of matching weights:
   .0213437013
+  Maximum matching weight:
+  6.683351127
 
 . 
 . // After calling gmatch, the data is stored in a class instance named gmatch_ado_most_recent
@@ -639,8 +638,8 @@ _treated |         N      mean        sd       min        p1       p10       p25
      +--------------------------------------------------------------------------------------------+
    1 |    Variable     mean (T)     mean (C)       diff()    stddiff()       sd (T)   varratio()  |
    2 |          x1     .4673913     .4923283    -.0249369    -.0497079     .5016695     1.004458  |
-   3 |       i1.x2     .0108696     .0074884     .0033811     .0324308     .1042572     1.458884  |
-   4 |       i1.x3     .0217391      .023711    -.0019719    -.0134481     .1466296     .9265074  |
+   3 |        1.x2     .0108696     .0074884     .0033811     .0324308     .1042572     1.458884  |
+   4 |        1.x3     .0217391      .023711    -.0019719    -.0134481     .1466296     .9265074  |
    5 |          x4     .4347826     .4386729    -.0038903    -.0078049     .4984448     1.006495  |
    6 |          x5     25.46739     25.45801     .0093781     .0017227     5.443922     .6273162  |
    7 |          x6     11.86957     11.89491    -.0253428    -.0157893     1.605057      .559006  |
@@ -671,7 +670,8 @@ _treated |         N      mean        sd       min        p1       p10       p25
 
 . 
 . // Other objective functions
-. gmatch `treatvar' `varlist' if `tousevar' , atet mean_sd_sq treatvariance
+. gmatch `treatvar' `varlist' if `tousevar' , atet mean_sd_sq treatvariance difficult nonrtolerance
+
   408 control obs
   92 treatment obs
   (Data are unweighted.)
@@ -702,189 +702,6 @@ Iteration 3:   f(p) =  1.466e-13
 numerical derivatives are approximate
 flat or discontinuous region encountered
 Iteration 4:   f(p) =  1.466e-13  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 5:   f(p) =  1.466e-13  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-BFGS stepping has contracted, resetting BFGS Hessian
-Iteration 6:   f(p) =  1.466e-13  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 7:   f(p) =  2.506e-15  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 8:   f(p) =  5.073e-17  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 9:   f(p) =  7.201e-18  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 10:  f(p) =  6.086e-19  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 11:  f(p) =  5.095e-19  
-(switching technique to nr)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 12:  f(p) =  2.126e-20  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 13:  f(p) =  2.126e-20  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 14:  f(p) =  2.126e-20  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 15:  f(p) =  2.126e-20  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 16:  f(p) =  2.126e-20  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 17:  f(p) =  2.126e-20  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 18:  f(p) =  2.126e-20  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 19:  f(p) =  2.126e-20  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 20:  f(p) =  2.126e-20  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 21:  f(p) =  2.126e-20  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 22:  f(p) =  2.126e-20  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 23:  f(p) =  2.126e-20  (not concave)
-(switching technique to bfgs)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-BFGS stepping has contracted, resetting BFGS Hessian
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 24:  f(p) =  2.126e-20  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 25:  f(p) =  3.635e-22  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 26:  f(p) =  2.172e-23  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 27:  f(p) =  9.035e-24  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 28:  f(p) =  1.164e-24  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 29:  f(p) =  9.941e-25  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 30:  f(p) =  3.682e-25  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 31:  f(p) =  1.470e-25  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 32:  f(p) =  4.609e-26  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 33:  f(p) =  1.885e-26  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 34:  f(p) =  3.515e-27  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 35:  f(p) =  2.855e-27  (backed up)
-(switching technique to nr)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 36:  f(p) =  2.128e-27  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 37:  f(p) =  2.126e-27  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 38:  f(p) =  2.124e-27  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 39:  f(p) =  2.124e-27  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 40:  f(p) =  2.124e-27  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 41:  f(p) =  2.124e-27  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 42:  f(p) =  2.124e-27  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 43:  f(p) =  2.124e-27  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 44:  f(p) =  2.124e-27  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 45:  f(p) =  2.124e-27  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 46:  f(p) =  2.124e-27  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 47:  f(p) =  2.124e-27  (not concave)
-(switching technique to bfgs)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-BFGS stepping has contracted, resetting BFGS Hessian
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 48:  f(p) =  2.124e-27  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 49:  f(p) =  4.726e-29  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 50:  f(p) =  5.379e-31  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 51:  f(p) =  1.548e-31  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 52:  f(p) =  3.080e-32  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 53:  f(p) =  5.743e-33  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 54:  f(p) =  2.086e-33  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 55:  f(p) =  4.922e-34  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 56:  f(p) =  7.046e-35  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-BFGS stepping has contracted, resetting BFGS Hessian
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 57:  f(p) =  2.047e-35  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-BFGS stepping has contracted, resetting BFGS Hessian
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 58:  f(p) =  7.313e-36  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-BFGS stepping has contracted, resetting BFGS Hessian
-Iteration 59:  f(p) =  4.408e-36  (backed up)
 
 Propensity score model coefficients                Number of obs  =        500
 Generalization of IPW/CPBS-type reweigting
@@ -896,16 +713,16 @@ Loss = mean(stddiff())^2
         1.x2 |  -1.628676
         1.x3 |  -.5803099
           x4 |  -.2832337
-          x5 |   .0694163
-          x6 |  -.2787869
-          x7 |   .0283209
+          x5 |    .069416
+          x6 |   -.278787
+          x7 |   .0283208
          x90 |   .1446874
          x91 |  -.1322013
          x92 |   .1288213
-         x93 |     .06336
-         x94 |  -.1645468
-         x95 |   .0190735
-       _cons |   1.412503
+         x93 |   .0633599
+         x94 |  -.1645469
+         x95 |   .0190734
+       _cons |    1.37953
 ------------------------------------------------------------------------------
 
 New variables (unweighted summary statistics)
@@ -917,15 +734,15 @@ _treated |         N      mean        sd       min        p1       p10       p25
 ---------+------------------------------------------------------------------------------------------------------------------------
        0 |       408         1      1.04     .0503      .106      .224      .365      .657      1.23      2.34      4.29      11.1
          |       408         1      1.04     .0503      .106      .224      .365      .657      1.23      2.34      4.29      11.1
-         |       408      .238      .148     .0189     .0388     .0789      .123      .201       .32      .473      .621      .809
+         |       408      .232      .146     .0183     .0376     .0766      .119      .196      .313      .465      .614      .804
 ---------+------------------------------------------------------------------------------------------------------------------------
        1 |        92         1         0         1         1         1         1         1         1         1         1         1
          |        92         1         0         1         1         1         1         1         1         1         1         1
-         |        92      .371      .164     .0729     .0729      .181      .221      .355        .5      .566      .803      .803
+         |        92      .364      .163     .0707     .0707      .176      .215      .347      .492      .558      .798      .798
 ---------+------------------------------------------------------------------------------------------------------------------------
    Total |       500         1       .94     .0503      .115       .25      .426      .845      1.07      1.96      4.24      11.1
          |       500         1       .94     .0503      .115       .25      .426      .845      1.07      1.96      4.24      11.1
-         |       500      .262       .16     .0189     .0422     .0864      .139      .222      .357      .505      .694      .809
+         |       500      .257      .158     .0183     .0409     .0838      .136      .216       .35      .497      .687      .804
 ----------------------------------------------------------------------------------------------------------------------------------
 
 . gmatchcall balanceresults()
@@ -933,37 +750,40 @@ _treated |         N      mean        sd       min        p1       p10       p25
                   1             2             3             4             5             6             7
      +---------------------------------------------------------------------------------------------------+
    1 |     Variable      mean (T)      mean (C)        diff()     stddiff()   sd (Pooled)    varratio()  |
-   2 |           x1      .4673913      .5065707     -.0391794     -.0782804      .5005003      1.004395  |
-   3 |        i1.x2      .0108696      .0094032      .0014663      .0149667      .0979728      1.164051  |
-   4 |        i1.x3      .0217391      .0217076      .0000315      .0002159      .1458921      1.009942  |
-   5 |           x4      .4347826      .4181832      .0165994      .0335848       .494252      1.018628  |
-   6 |           x5      25.46739      26.05541       -.58802     -.0858633      6.848324       .583267  |
-   7 |           x6      11.86957      11.79935      .0702179      .0339771      2.066626      .5528994  |
-   8 |           x7      6.858696      6.775281      .0834144        .02476      3.368912      1.141156  |
-   9 |          x90      .0972024      .0569964       .040206      .0394192       1.01996      .8487821  |
+   2 |           x1      .4673913      .5065699     -.0391786     -.0782789      .5005003      1.004395  |
+   3 |         1.x2      .0108696      .0094032      .0014663      .0149666      .0979729       1.16405  |
+   4 |         1.x3      .0217391      .0217076      .0000315       .000216      .1458921      1.009943  |
+   5 |           x4      .4347826      .4181838      .0165988      .0335836      .4942521      1.018627  |
+   6 |           x5      25.46739      26.05539     -.5880032     -.0858609      6.848323      .5832672  |
+   7 |           x6      11.86957      11.79935      .0702201      .0339782      2.066626      .5528997  |
+   8 |           x7      6.858696       6.77528      .0834157      .0247604      3.368912      1.141156  |
+   9 |          x90      .0972024       .056997      .0402054      .0394186       1.01996      .8487816  |
   10 |          x91     -.0890157      -.062197     -.0268186     -.0280778      .9551534      .9668971  |
-  11 |          x92      .0453787      .0391246      .0062541      .0063049      .9919318      1.151879  |
-  12 |          x93      .0865687      .1044403     -.0178716      -.018834      .9489024      .9622808  |
-  13 |          x94     -.1299173     -.1873487      .0574315       .054986      1.044474      .7465145  |
-  14 |          x95     -.0807251     -.0886593      .0079342       .008292      .9568576       .892775  |
+  11 |          x92      .0453787      .0391245      .0062542       .006305      .9919318      1.151879  |
+  12 |          x93      .0865687        .10444     -.0178714     -.0188337      .9489023      .9622811  |
+  13 |          x94     -.1299173     -.1873487      .0574314       .054986      1.044474      .7465149  |
+  14 |          x95     -.0807251     -.0886595      .0079344      .0082921      .9568576      .8927751  |
      +---------------------------------------------------------------------------------------------------+
   Mean standardized diff., squared
-  1.75827e-07
+  1.76089e-07
   Mean absolute standardized diff.
-  .0328894004
+  .0328890789
   Maximum absolute standardized diff.
-  .0858633379
+  .0858609075
   C.V. of matching weights:
-  .9404775328
+  .9404771682
   S.D. of matching weights:
-  .9404775328
+  .9404771682
   Skewness of matching weights:
-  .1710882156
+  .1710872074
   Kurtosis of matching weights:
-  .0624918361
+  .0624911056
+  Maximum matching weight:
+  11.09495523
 
 . 
-. gmatch `treatvar' `varlist' if `tousevar' , atet sd_sq treatvariance difficult
+. gmatch `treatvar' `varlist' if `tousevar' , atet sd_sq treatvariance difficult nonrtolerance
+
   408 control obs
   92 treatment obs
   (Data are unweighted.)
@@ -1082,8 +902,6 @@ flat or discontinuous region encountered
 Iteration 32:  f(p) =  1.942e-13  
 numerical derivatives are approximate
 flat or discontinuous region encountered
-numerical derivatives are approximate
-flat or discontinuous region encountered
 Iteration 33:  f(p) =  3.595e-17  
 
 Propensity score model coefficients                Number of obs  =        500
@@ -1134,8 +952,8 @@ _treated |         N      mean        sd       min        p1       p10       p25
      +---------------------------------------------------------------------------------------------------+
    1 |     Variable      mean (T)      mean (C)        diff()     stddiff()   sd (Pooled)    varratio()  |
    2 |           x1      .4673913      .4673913      1.10e-10      2.19e-10      .4994352      1.008511  |
-   3 |        i1.x2      .0108696      .0108696     -8.24e-11     -7.94e-10      .1037929      1.008511  |
-   4 |        i1.x3      .0217391      .0217391      1.88e-11      1.29e-10      .1459766      1.008511  |
+   3 |         1.x2      .0108696      .0108696     -8.24e-11     -7.94e-10      .1037929      1.008511  |
+   4 |         1.x3      .0217391      .0217391      1.88e-11      1.29e-10      .1459766      1.008511  |
    5 |           x4      .4347826      .4347826      1.39e-09      2.81e-09      .4962249      1.008511  |
    6 |           x5      25.46739      25.46739      6.86e-10      1.03e-10      6.664728      .6195799  |
    7 |           x6      11.86957      11.86957      9.76e-10      4.77e-10      2.043536      .5669465  |
@@ -1161,6 +979,8 @@ _treated |         N      mean        sd       min        p1       p10       p25
   .1100078314
   Kurtosis of matching weights:
   .0225364402
+  Maximum matching weight:
+  7.032260633
 
 . 
 . // IPW
@@ -1278,6 +1098,7 @@ TME1                    |
   -----------------------------------------------------------------
 
 . gmatch `treatvar' `varlist' if `tousevar' , atet ipw treatvariance
+
   408 control obs
   92 treatment obs
   (Data are unweighted.)
@@ -1338,8 +1159,8 @@ _treated |         N      mean        sd       min        p1       p10       p25
      +---------------------------------------------------------------------------------------------------+
    1 |     Variable      mean (T)      mean (C)        diff()     stddiff()   sd (Pooled)    varratio()  |
    2 |           x1      .4673913      .4719209     -.0045296     -.0090652      .4996633      1.007399  |
-   3 |        i1.x2      .0108696      .0098847      .0009849      .0098566      .0999227      1.107894  |
-   4 |        i1.x3      .0217391      .0214054      .0003337      .0023004      .1450795      1.023886  |
+   3 |         1.x2      .0108696      .0098847      .0009849      .0098566      .0999227      1.107894  |
+   4 |         1.x3      .0217391      .0214054      .0003337      .0023004      .1450795      1.023886  |
    5 |           x4      .4347826       .445852     -.0110694     -.0222576      .4973308      1.003118  |
    6 |           x5      25.46739      25.27307      .1943233      .0286772      6.776222       .596745  |
    7 |           x6      11.86957      11.68981      .1797533      .0877664      2.048089      .5648484  |
@@ -1365,9 +1186,12 @@ _treated |         N      mean        sd       min        p1       p10       p25
   .1334759569
   Kurtosis of matching weights:
   .0358990805
+  Maximum matching weight:
+  9.288959219
 
 . 
 . gmatch `treatvar' `varlist' if `tousevar' , atet ipw averagevariance
+
   408 control obs
   92 treatment obs
   (Data are unweighted.)
@@ -1428,8 +1252,8 @@ _treated |         N      mean        sd       min        p1       p10       p25
      +---------------------------------------------------------------------------------------------------+
    1 |     Variable      mean (T)      mean (C)        diff()     stddiff()   sd (Pooled)    varratio()  |
    2 |           x1      .4673913      .4719209     -.0045296     -.0090652      .4996633      1.007399  |
-   3 |        i1.x2      .0108696      .0098847      .0009849      .0098566      .0999227      1.107894  |
-   4 |        i1.x3      .0217391      .0214054      .0003337      .0023004      .1450795      1.023886  |
+   3 |         1.x2      .0108696      .0098847      .0009849      .0098566      .0999227      1.107894  |
+   4 |         1.x3      .0217391      .0214054      .0003337      .0023004      .1450795      1.023886  |
    5 |           x4      .4347826       .445852     -.0110694     -.0222576      .4973308      1.003118  |
    6 |           x5      25.46739      25.27307      .1943233      .0286772      6.776222       .596745  |
    7 |           x6      11.86957      11.68981      .1797533      .0877664      2.048089      .5648484  |
@@ -1455,6 +1279,8 @@ _treated |         N      mean        sd       min        p1       p10       p25
   .1334759569
   Kurtosis of matching weights:
   .0358990805
+  Maximum matching weight:
+  9.288959219
 
 . 
 . teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' , ate aequations
@@ -1500,6 +1326,7 @@ TME1                    |
 -----------------------------------------------------------------------------------------
 
 . gmatch `treatvar' `varlist' if `tousevar' , ate ipw treatvariance
+
   408 control obs
   92 treatment obs
   (Data are unweighted.)
@@ -1560,8 +1387,8 @@ _treated |         N      mean        sd       min        p1       p10       p25
      +---------------------------------------------------------------------------------------------------+
    1 |     Variable      mean (T)      mean (C)        diff()     stddiff()   sd (Pooled)    varratio()  |
    2 |           x1      .6643106      .6980937     -.0337831     -.0730952      .4621798      1.067096  |
-   3 |        i1.x2      .0126474      .0237734      -.011126     -.0762399       .145934      .5426396  |
-   4 |        i1.x3      .0252967      .0398782     -.0145815     -.0769757      .1894293      .6494649  |
+   3 |         1.x2      .0126474      .0237734      -.011126     -.0762399       .145934      .5426396  |
+   4 |         1.x3      .0252967      .0398782     -.0145815     -.0769757      .1894293      .6494649  |
    5 |           x4      .5035684      .4859058      .0176626      .0352982       .500383      1.009262  |
    6 |           x5      25.88638       26.3268     -.4404207     -.0736253       5.98192      .7436049  |
    7 |           x6      12.40345      12.88502     -.4815643      -.214612      2.243884      .5994444  |
@@ -1587,6 +1414,8 @@ _treated |         N      mean        sd       min        p1       p10       p25
   .1843123883
   Kurtosis of matching weights:
   .0838509706
+  Maximum matching weight:
+  4.89816874
 
 . 
 . teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' , atet aequations tlevel(0) control(1)
@@ -1632,6 +1461,7 @@ TME0                    |
 -----------------------------------------------------------------------------------------
 
 . gmatch `treatvar' `varlist' if `tousevar' , ateu ipw treatvariance
+
   408 control obs
   92 treatment obs
   (Data are unweighted.)
@@ -1692,8 +1522,8 @@ _treated |         N      mean        sd       min        p1       p10       p25
      +---------------------------------------------------------------------------------------------------+
    1 |     Variable      mean (T)      mean (C)        diff()     stddiff()   sd (Pooled)    varratio()  |
    2 |           x1      .7133644           .75     -.0366356     -.0837821      .4372727      1.099818  |
-   3 |        i1.x2      .0130902      .0269608     -.0138706     -.0897954      .1544686      .4966403  |
-   4 |        i1.x3      .0261829      .0441176     -.0179347     -.0905493      .1980657       .609761  |
+   3 |         1.x2      .0130902      .0269608     -.0138706     -.0897954      .1544686      .4966403  |
+   4 |         1.x3      .0261829      .0441176     -.0179347     -.0905493      .1980657       .609761  |
    5 |           x4      .5207033       .495098      .0256053      .0511594      .5005007      1.006879  |
    6 |           x5      25.99075      26.56863      -.577878     -.1002906      5.762036      .7963305  |
    7 |           x6      12.53645      13.15931     -.6228673     -.2813566        2.2138      .6382822  |
@@ -1719,10 +1549,13 @@ _treated |         N      mean        sd       min        p1       p10       p25
   .2680619555
   Kurtosis of matching weights:
   .1550433574
+  Maximum matching weight:
+  5.869225798
 
 . 
 . // tradeoff between CBPS-like balance and variance in weights
 . gmatch `treatvar' `varlist' if `tousevar' , atet cbps treatvariance
+
   408 control obs
   92 treatment obs
   (Data are unweighted.)
@@ -1804,8 +1637,8 @@ _treated |         N      mean        sd       min        p1       p10       p25
      +---------------------------------------------------------------------------------------------------+
    1 |     Variable      mean (T)      mean (C)        diff()     stddiff()   sd (Pooled)    varratio()  |
    2 |           x1      .4673913      .4673913     -1.38e-10     -2.77e-10      .4994352      1.008511  |
-   3 |        i1.x2      .0108696      .0108696     -7.66e-11     -7.38e-10      .1037929      1.008511  |
-   4 |        i1.x3      .0217391      .0217391     -8.17e-11     -5.60e-10      .1459766      1.008511  |
+   3 |         1.x2      .0108696      .0108696     -7.66e-11     -7.38e-10      .1037929      1.008511  |
+   4 |         1.x3      .0217391      .0217391     -8.17e-11     -5.60e-10      .1459766      1.008511  |
    5 |           x4      .4347826      .4347826     -4.03e-10     -8.12e-10      .4962249      1.008511  |
    6 |           x5      25.46739      25.46739     -1.76e-09     -2.65e-10      6.664728      .6195799  |
    7 |           x6      11.86957      11.86957     -1.98e-09     -9.69e-10      2.043536      .5669465  |
@@ -1831,9 +1664,13 @@ _treated |         N      mean        sd       min        p1       p10       p25
   .1100078305
   Kurtosis of matching weights:
   .0225364399
+  Maximum matching weight:
+  7.032260601
 
 . 
-. gmatch `treatvar' `varlist' if `tousevar' , atet cbps treatvariance cvopt(1 .75 6)
+. gmatch `treatvar' `varlist' if `tousevar' , atet cbps treatvariance cvtarget(1 .75 6)
+
+_cvopt:         1 .75 6
   408 control obs
   92 treatment obs
   (Data are unweighted.)
@@ -1867,34 +1704,33 @@ Iteration 13:  f(p) =  7.516e-08
 Iteration 14:  f(p) =  6.789e-08  
 Iteration 15:  f(p) =  4.227e-08  
 Iteration 16:  f(p) =  2.563e-08  (not concave)
-Iteration 17:  f(p) =  1.868e-08  (not concave)
-Iteration 18:  f(p) =  1.309e-08  (not concave)
-Iteration 19:  f(p) =  1.230e-08  
-Iteration 20:  f(p) =  1.163e-08  
-Iteration 21:  f(p) =  1.144e-08  
+Iteration 17:  f(p) =  1.606e-08  
+Iteration 18:  f(p) =  1.235e-08  
+Iteration 19:  f(p) =  1.146e-08  
+Iteration 20:  f(p) =  1.143e-08  
+Iteration 21:  f(p) =  1.143e-08  
 Iteration 22:  f(p) =  1.143e-08  
-Iteration 23:  f(p) =  1.143e-08  
 
 Propensity score model coefficients                Number of obs  =        500
 Generalization of IPW/CPBS-type reweigting
-Loss = CBPS + 1*abs(CV-.75)^ 6)
+Loss = CBPS + 1*abs(CV-.75)^6)
 ------------------------------------------------------------------------------
              |      Coef.
 -------------+----------------------------------------------------------------
           x1 |  -1.069921
         1.x2 |  -1.301676
-        1.x3 |  -.4865723
-          x4 |  -.2463173
+        1.x3 |  -.4865721
+          x4 |  -.2463172
           x5 |   .0447741
-          x6 |  -.1995636
+          x6 |  -.1995635
           x7 |   .0257331
-         x90 |   .1236241
+         x90 |   .1236242
          x91 |  -.1270511
          x92 |   .1015911
          x93 |   .0470551
-         x94 |  -.0948948
+         x94 |  -.0948947
          x95 |   .0008498
-       _cons |   .4556068
+       _cons |   .4556058
 ------------------------------------------------------------------------------
 
 New variables (unweighted summary statistics)
@@ -1922,37 +1758,41 @@ _treated |         N      mean        sd       min        p1       p10       p25
                   1             2             3             4             5             6             7
      +---------------------------------------------------------------------------------------------------+
    1 |     Variable      mean (T)      mean (C)        diff()     stddiff()   sd (Pooled)    varratio()  |
-   2 |           x1      .4673913      .5182506     -.0508593      -.101633      .5004216      1.005561  |
-   3 |        i1.x2      .0108696       .012455     -.0015855     -.0144495      .1097243      .8815459  |
-   4 |        i1.x3      .0217391      .0242826     -.0025435     -.0166652       .152624      .9052272  |
-   5 |           x4      .4347826      .4521395     -.0173569     -.0348613      .4978848       1.00052  |
-   6 |           x5      25.46739      25.54157     -.0741742     -.0113793      6.518363      .6518318  |
-   7 |           x6      11.86957      12.06656     -.1969952     -.0946411      2.081497      .5447873  |
-   8 |           x7      6.858696      6.811629       .047067      .0139939      3.363384      1.145782  |
-   9 |          x90      .0972024      .0715905      .0256119      .0252582      1.014003      .8605673  |
+   2 |           x1      .4673913      .5182506     -.0508593     -.1016329      .5004216      1.005561  |
+   3 |         1.x2      .0108696       .012455     -.0015855     -.0144495      .1097244      .8815459  |
+   4 |         1.x3      .0217391      .0242826     -.0025435     -.0166652       .152624      .9052271  |
+   5 |           x4      .4347826      .4521396     -.0173569     -.0348614      .4978848       1.00052  |
+   6 |           x5      25.46739      25.54157     -.0741744     -.0113793      6.518363      .6518318  |
+   7 |           x6      11.86957      12.06656     -.1969954     -.0946412      2.081497      .5447873  |
+   8 |           x7      6.858696      6.811629       .047067       .013994      3.363384      1.145782  |
+   9 |          x90      .0972024      .0715906      .0256118      .0252581      1.014003      .8605673  |
   10 |          x91     -.0890157     -.0737238     -.0152918     -.0158205      .9665824      .9393008  |
   11 |          x92      .0453787      .0269169      .0184618        .01845      1.000638      1.126957  |
-  12 |          x93      .0865687      .0765419      .0100267      .0104435      .9600932      .9352735  |
-  13 |          x94     -.1299173     -.0967909     -.0331264     -.0326327      1.015129       .797834  |
-  14 |          x95     -.0807251     -.0889146      .0081896      .0084926      .9643199      .8763149  |
+  12 |          x93      .0865687       .076542      .0100267      .0104435      .9600932      .9352735  |
+  13 |          x94     -.1299173     -.0967908     -.0331264     -.0326327      1.015129       .797834  |
+  14 |          x95     -.0807251     -.0889147      .0081896      .0084926      .9643199      .8763149  |
      +---------------------------------------------------------------------------------------------------+
   Mean standardized diff., squared
-  .0003564671
+  .0003564678
   Mean absolute standardized diff.
-  .030670832
+  .0306708412
   Maximum absolute standardized diff.
-  .1016329885
+  .101632926
   C.V. of matching weights:
-  .70269505
+  .702695044
   S.D. of matching weights:
-  .70269505
+  .702695044
   Skewness of matching weights:
-  .086726395
+  .0867263832
   Kurtosis of matching weights:
-  .015619736
+  .0156197301
+  Maximum matching weight:
+  4.997305895
 
 . 
-. gmatch `treatvar' `varlist' if `tousevar' , atet cbps treatvariance cvopt(1 .50 6)
+. gmatch `treatvar' `varlist' if `tousevar' , atet cbps treatvariance cvtarget(1 .50 6)
+
+_cvopt:         1 .5 6
   408 control obs
   92 treatment obs
   (Data are unweighted.)
@@ -1982,43 +1822,50 @@ Iteration 10:  f(p) =  9.753e-06
 Iteration 11:  f(p) =  9.539e-06  
 (switching technique to nr)
 Iteration 12:  f(p) =  9.503e-06  (not concave)
-Iteration 13:  f(p) =  6.245e-06  (not concave)
-Iteration 14:  f(p) =  5.513e-06  (not concave)
-Iteration 15:  f(p) =  3.248e-07  (not concave)
-Iteration 16:  f(p) =  3.015e-07  (not concave)
-Iteration 17:  f(p) =  2.755e-07  (not concave)
-Iteration 18:  f(p) =  1.198e-07  (not concave)
-Iteration 19:  f(p) =  9.067e-08  (not concave)
-Iteration 20:  f(p) =  7.308e-08  (not concave)
-Iteration 21:  f(p) =  5.794e-08  (not concave)
-Iteration 22:  f(p) =  5.529e-08  
-Iteration 23:  f(p) =  5.128e-08  
+Iteration 13:  f(p) =  6.831e-06  (not concave)
+Iteration 14:  f(p) =  5.276e-06  (not concave)
+Iteration 15:  f(p) =  3.205e-06  (not concave)
+Iteration 16:  f(p) =  1.200e-06  (not concave)
+Iteration 17:  f(p) =  1.542e-07  (not concave)
+Iteration 18:  f(p) =  1.120e-07  
+Iteration 19:  f(p) =  9.309e-08  (not concave)
+Iteration 20:  f(p) =  9.006e-08  (not concave)
+Iteration 21:  f(p) =  8.342e-08  
+Iteration 22:  f(p) =  7.002e-08  
+Iteration 23:  f(p) =  5.958e-08  
 (switching technique to bfgs)
-Iteration 24:  f(p) =  5.114e-08  
-Iteration 25:  f(p) =  5.114e-08  
-Iteration 26:  f(p) =  5.114e-08  
-Iteration 27:  f(p) =  5.114e-08  
+Iteration 24:  f(p) =  5.389e-08  
+Iteration 25:  f(p) =  5.205e-08  
+Iteration 26:  f(p) =  5.135e-08  
+Iteration 27:  f(p) =  5.121e-08  
+Iteration 28:  f(p) =  5.115e-08  
+Iteration 29:  f(p) =  5.114e-08  
+Iteration 30:  f(p) =  5.114e-08  
+Iteration 31:  f(p) =  5.114e-08  
+Iteration 32:  f(p) =  5.114e-08  
+Iteration 33:  f(p) =  5.114e-08  
+Iteration 34:  f(p) =  5.114e-08  
 
 Propensity score model coefficients                Number of obs  =        500
 Generalization of IPW/CPBS-type reweigting
-Loss = CBPS + 1*abs(CV-.5)^ 6)
+Loss = CBPS + 1*abs(CV-.5)^6)
 ------------------------------------------------------------------------------
              |      Coef.
 -------------+----------------------------------------------------------------
-          x1 |   -.722414
-        1.x2 |  -.9764863
-        1.x3 |  -.3663536
-          x4 |  -.1681587
-          x5 |   .0290492
-          x6 |  -.1459133
-          x7 |   .0167638
-         x90 |   .0854737
-         x91 |  -.0882828
-         x92 |   .0659836
-         x93 |   .0343203
-         x94 |  -.0658755
-         x95 |  -.0067122
-       _cons |  -.0849349
+          x1 |  -.7223993
+        1.x2 |  -.9764489
+        1.x3 |  -.3664455
+          x4 |  -.1681781
+          x5 |   .0290496
+          x6 |  -.1459139
+          x7 |   .0167632
+         x90 |   .0854724
+         x91 |  -.0882866
+         x92 |   .0659923
+         x93 |   .0343075
+         x94 |  -.0658922
+         x95 |  -.0067045
+       _cons |  -.0849073
 ------------------------------------------------------------------------------
 
 New variables (unweighted summary statistics)
@@ -2028,16 +1875,16 @@ Summary for variables: _weight _weight_mtch _pscore
 
 _treated |         N      mean        sd       min        p1       p10       p25       p50       p75       p90       p99       max
 ---------+------------------------------------------------------------------------------------------------------------------------
-       0 |       408         1      .532      .195      .322      .466      .622      .841      1.25      1.82      2.59      3.27
-         |       408         1      .532      .195      .322      .466      .622      .841      1.25      1.82      2.59      3.27
+       0 |       408         1      .532      .195      .322      .466      .622      .841      1.25      1.82      2.59      3.28
+         |       408         1      .532      .195      .322      .466      .622      .841      1.25      1.82      2.59      3.28
          |       408      .153     .0657     .0355     .0574     .0809      .105      .137      .191      .256      .329      .382
 ---------+------------------------------------------------------------------------------------------------------------------------
        1 |        92         1         0         1         1         1         1         1         1         1         1         1
          |        92         1         0         1         1         1         1         1         1         1         1         1
          |        92      .213     .0737     .0763     .0763      .132      .149      .213      .269      .301      .429      .429
 ---------+------------------------------------------------------------------------------------------------------------------------
-   Total |       500         1      .481      .195      .328      .492      .675      .991      1.11      1.68      2.57      3.27
-         |       500         1      .481      .195      .328      .492      .675      .991      1.11      1.68      2.57      3.27
+   Total |       500         1      .481      .195      .328      .492      .675      .991      1.11      1.68      2.57      3.28
+         |       500         1      .481      .195      .328      .492      .675      .991      1.11      1.68      2.57      3.28
          |       500      .164     .0711     .0355     .0584     .0847      .112      .148      .205      .274      .369      .429
 ----------------------------------------------------------------------------------------------------------------------------------
 
@@ -2046,37 +1893,41 @@ _treated |         N      mean        sd       min        p1       p10       p25
                   1             2             3             4             5             6             7
      +---------------------------------------------------------------------------------------------------+
    1 |     Variable      mean (T)      mean (C)        diff()     stddiff()   sd (Pooled)    varratio()  |
-   2 |           x1      .4673913      .5906749     -.1232836     -.2486299      .4958518      1.038371  |
-   3 |        i1.x2      .0108696      .0149903     -.0041207     -.0347551      .1185649      .7343374  |
-   4 |        i1.x3      .0217391      .0280492       -.00631     -.0389705      .1619185      .7867073  |
-   5 |           x4      .4347826      .4668619     -.0320792     -.0642906      .4989727      .9957268  |
-   6 |           x5      25.46739      25.77278     -.3053873     -.0483059      6.321941      .6996664  |
-   7 |           x6      11.86957      12.34747      -.477904     -.2245551      2.128226      .5220231  |
-   8 |           x7      6.858696      6.764909      .0937864      .0279087      3.360476      1.148402  |
-   9 |          x90      .0972024      .0379816      .0592208      .0590605      1.002713      .8843596  |
-  10 |          x91     -.0890157     -.0569166     -.0320991     -.0327937      .9788185      .9113449  |
-  11 |          x92      .0453787       .011174      .0342047      .0340436      1.004733      1.115674  |
-  12 |          x93      .0865687      .0661146       .020454      .0210978      .9694876      .9136067  |
-  13 |          x94     -.1299173     -.0574346     -.0724827     -.0721738      1.004279      .8189413  |
-  14 |          x95     -.0807251     -.0931506      .0124255      .0127988      .9708344      .8623481  |
+   2 |           x1      .4673913      .5906793      -.123288      -.248639      .4958513      1.038375  |
+   3 |         1.x2      .0108696      .0149904     -.0041208     -.0347557      .1185653       .734333  |
+   4 |         1.x3      .0217391      .0280471      -.006308     -.0389589      .1619135      .7867638  |
+   5 |           x4      .4347826      .4668556      -.032073     -.0642781      .4989723      .9957285  |
+   6 |           x5      25.46739      25.77285     -.3054553     -.0483167      6.321939      .6996672  |
+   7 |           x6      11.86957      12.34748     -.4779169     -.2245612      2.128225      .5220235  |
+   8 |           x7      6.858696      6.764905      .0937905      .0279099      3.360478        1.1484  |
+   9 |          x90      .0972024      .0379772      .0592253       .059065      1.002713        .88436  |
+  10 |          x91     -.0890157      -.056921     -.0320946     -.0327892      .9788183      .9113454  |
+  11 |          x92      .0453787      .0111821      .0341965      .0340355      1.004732      1.115678  |
+  12 |          x93      .0865687       .066104      .0204647      .0211088      .9694889      .9136039  |
+  13 |          x94     -.1299173     -.0574526     -.0724647     -.0721558       1.00428      .8189386  |
+  14 |          x95     -.0807251     -.0931441       .012419      .0127921      .9708345      .8623481  |
      +---------------------------------------------------------------------------------------------------+
   Mean standardized diff., squared
-  .0021986377
+  .0021984804
   Mean absolute standardized diff.
-  .0707218446
+  .070720454
   Maximum absolute standardized diff.
-  .2486298678
+  .2486390074
   C.V. of matching weights:
-  .4805839245
+  .4805835093
   S.D. of matching weights:
-  .4805839245
+  .4805835093
   Skewness of matching weights:
-  .062927853
+  .0629289434
   Kurtosis of matching weights:
-  .0108020115
+  .010802625
+  Maximum matching weight:
+  3.275096518
 
 . 
-. gmatch `treatvar' `varlist' if `tousevar' , atet mean_sd_sq treatvariance cvopt(1 .75 6) difficult
+. gmatch `treatvar' `varlist' if `tousevar' , atet mean_sd_sq treatvariance cvtarget(1 .75 6) difficult nonrtolerance
+
+_cvopt:         1 .75 6
   408 control obs
   92 treatment obs
   (Data are unweighted.)
@@ -2150,103 +2001,26 @@ Iteration 17:  f(p) =  3.286e-13  (not concave)
 numerical derivatives are approximate
 flat or discontinuous region encountered
 Iteration 18:  f(p) =  9.610e-14  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 19:  f(p) =  2.661e-14  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 20:  f(p) =  4.888e-15  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 21:  f(p) =  1.321e-15  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 22:  f(p) =  5.316e-16  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 23:  f(p) =  2.525e-16  (not concave)
-(switching technique to bfgs)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 24:  f(p) =  1.242e-16  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-BFGS stepping has contracted, resetting BFGS Hessian
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 25:  f(p) =  9.015e-17  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 26:  f(p) =  7.958e-17  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 27:  f(p) =  7.886e-17  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-BFGS stepping has contracted, resetting BFGS Hessian
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 28:  f(p) =  6.704e-17  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 29:  f(p) =  5.120e-17  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 30:  f(p) =  5.010e-17  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 31:  f(p) =  4.996e-17  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-BFGS stepping has contracted, resetting BFGS Hessian
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 32:  f(p) =  4.378e-17  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 33:  f(p) =  4.059e-17  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 34:  f(p) =  4.037e-17  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 35:  f(p) =  4.035e-17  
 
 Propensity score model coefficients                Number of obs  =        500
 Generalization of IPW/CPBS-type reweigting
-Loss = mean(stddiff())^2 + 1*abs(CV-.75)^ 6)
+Loss = mean(stddiff())^2 + 1*abs(CV-.75)^6)
 ------------------------------------------------------------------------------
              |      Coef.
 -------------+----------------------------------------------------------------
-          x1 |  -1.201677
-        1.x2 |  -1.648351
-        1.x3 |  -.6891127
-          x4 |  -.2535704
-          x5 |   .0134376
-          x6 |  -.0743065
-          x7 |  -.0183206
-         x90 |   .0730709
-         x91 |  -.1318571
-         x92 |   .0667988
-         x93 |  -.0158104
-         x94 |   -.118947
-         x95 |  -.0259086
+          x1 |  -1.203523
+        1.x2 |  -1.648298
+        1.x3 |  -.6889611
+          x4 |  -.2537764
+          x5 |   .0119766
+          x6 |  -.0732706
+          x7 |   -.016487
+         x90 |   .0761476
+         x91 |  -.1312031
+         x92 |   .0695374
+         x93 |  -.0139102
+         x94 |  -.1188985
+         x95 |  -.0241542
        _cons |   1.404818
 ------------------------------------------------------------------------------
 
@@ -2257,17 +2031,17 @@ Summary for variables: _weight _weight_mtch _pscore
 
 _treated |         N      mean        sd       min        p1       p10       p25       p50       p75       p90       p99       max
 ---------+------------------------------------------------------------------------------------------------------------------------
-       0 |       408         1      .752      .109      .214      .414       .52      .692      1.11      2.23      3.53      4.26
-         |       408         1      .752      .109      .214      .414       .52      .692      1.11      2.23      3.53      4.26
-         |       408      .398      .146     .0803      .146      .248      .294      .356      .471      .641      .738      .773
+       0 |       408         1      .757       .11      .216      .413      .521      .686      1.11      2.24      3.47      4.33
+         |       408         1      .757       .11      .216      .413      .521      .686      1.11      2.24      3.47      4.33
+         |       408      .395      .146       .08      .146      .246      .291      .351      .467      .638      .733      .774
 ---------+------------------------------------------------------------------------------------------------------------------------
        1 |        92         1         0         1         1         1         1         1         1         1         1         1
          |        92         1         0         1         1         1         1         1         1         1         1         1
-         |        92      .516      .152      .229      .229      .334      .366      .517      .658      .707      .758      .758
+         |        92      .514      .153      .226      .226      .331      .365      .511      .657      .704      .756      .756
 ---------+------------------------------------------------------------------------------------------------------------------------
-   Total |       500         1      .679      .109       .22      .431      .563      .819         1      2.12      3.35      4.26
-         |       500         1      .679      .109       .22      .431      .563      .819         1      2.12      3.35      4.26
-         |       500       .42      .154     .0803       .15      .253      .307      .376      .557       .66      .755      .773
+   Total |       500         1      .683       .11      .222      .428      .562      .809         1      2.14      3.31      4.33
+         |       500         1      .683       .11      .222      .428      .562      .809         1      2.14      3.31      4.33
+         |       500      .416      .154       .08      .149      .252      .304      .372      .557      .658      .752      .774
 ----------------------------------------------------------------------------------------------------------------------------------
 
 . gmatchcall balanceresults()
@@ -2275,37 +2049,41 @@ _treated |         N      mean        sd       min        p1       p10       p25
                   1             2             3             4             5             6             7
      +---------------------------------------------------------------------------------------------------+
    1 |     Variable      mean (T)      mean (C)        diff()     stddiff()   sd (Pooled)    varratio()  |
-   2 |           x1      .4673913      .4844105     -.0170192     -.0340282      .5001498      1.005199  |
-   3 |        i1.x2      .0108696      .0086749      .0021947      .0231155      .0949438      1.260858  |
-   4 |        i1.x3      .0217391      .0172585      .0044806      .0335914       .133385      1.264544  |
-   5 |           x4      .4347826      .4902598     -.0554772     -.1109318      .5001023      .9917294  |
-   6 |           x5      25.46739      24.82696      .6404269      .1034716        6.1894      .7360093  |
-   7 |           x6      11.86957      12.34967     -.4801055     -.2269458      2.115507      .5291607  |
-   8 |           x7      6.858696      6.355497      .5031987      .1485756      3.386819       1.13066  |
-   9 |          x90      .0972024      .0662128      .0309897       .030314      1.022289      .8440927  |
-  10 |          x91     -.0890157     -.0857377      -.003278     -.0033938      .9658748      .9409264  |
-  11 |          x92      .0453787      .0273471      .0180315      .0179058      1.007023      1.109174  |
-  12 |          x93      .0865687      .0236051      .0629636       .065184      .9659359      .9223614  |
-  13 |          x94     -.1299173     -.1329455      .0030282      .0030341      .9980655      .8302999  |
-  14 |          x95     -.0807251     -.0961106      .0153856      .0159118      .9669293      .8707006  |
+   2 |           x1      .4673913       .481706     -.0143146     -.0286257      .5000621      1.005568  |
+   3 |         1.x2      .0108696      .0086891      .0021805      .0229515      .0950038      1.258816  |
+   4 |         1.x3      .0217391      .0172314      .0045077      .0338154      .1333047      1.266503  |
+   5 |           x4      .4347826      .4922655     -.0574829     -.1149279       .500165      .9915903  |
+   6 |           x5      25.46739      24.77346      .6939284      .1122576       6.18157      .7384288  |
+   7 |           x6      11.86957      12.34392     -.4743546     -.2243554        2.1143      .5297315  |
+   8 |           x7      6.858696      6.372816      .4858801      .1434997      3.385931      1.131086  |
+   9 |          x90      .0972024      .0708831      .0263193       .025736      1.022666      .8433151  |
+  10 |          x91     -.0890157     -.0850236     -.0039921     -.0041326      .9659871      .9406624  |
+  11 |          x92      .0453787      .0288604      .0165183      .0164045      1.006938      1.109397  |
+  12 |          x93      .0865687      .0246953      .0618733      .0640779      .9655958      .9231214  |
+  13 |          x94     -.1299173     -.1327696      .0028523        .00286      .9973271      .8317584  |
+  14 |          x95     -.0807251     -.0947339      .0140089      .0144874      .9669652      .8706165  |
      +---------------------------------------------------------------------------------------------------+
   Mean standardized diff., squared
-  .0000256223
+  .0000242732
   Mean absolute standardized diff.
-  .0628002522
+  .062163969
   Maximum absolute standardized diff.
-  .2269458468
+  .2243554233
   C.V. of matching weights:
-  .6790148438
+  .6832597515
   S.D. of matching weights:
-  .6790148438
+  .6832597515
   Skewness of matching weights:
-  .0829073688
+  .0830111672
   Kurtosis of matching weights:
-  .0131976578
+  .0131708314
+  Maximum matching weight:
+  4.326992178
 
 . 
-. gmatch `treatvar' `varlist' if `tousevar' , atet mean_sd_sq treatvariance cvopt(1 .50 6) difficult
+. gmatch `treatvar' `varlist' if `tousevar' , atet mean_sd_sq treatvariance cvtarget(1 .50 6) difficult nonrtolerance
+
+_cvopt:         1 .5 6
   408 control obs
   92 treatment obs
   (Data are unweighted.)
@@ -2424,125 +2202,27 @@ flat or discontinuous region encountered
 Iteration 32:  f(p) =  9.891e-08  
 numerical derivatives are approximate
 flat or discontinuous region encountered
-numerical derivatives are approximate
-flat or discontinuous region encountered
 Iteration 33:  f(p) =  9.891e-08  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 34:  f(p) =  9.890e-08  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 35:  f(p) =  9.885e-08  
-(switching technique to nr)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 36:  f(p) =  9.881e-08  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 37:  f(p) =  7.801e-08  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 38:  f(p) =  7.575e-08  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 39:  f(p) =  6.674e-08  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 40:  f(p) =  6.457e-08  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 41:  f(p) =  6.041e-08  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 42:  f(p) =  5.874e-08  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 43:  f(p) =  5.765e-08  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 44:  f(p) =  5.719e-08  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 45:  f(p) =  5.237e-08  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 46:  f(p) =  5.012e-08  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 47:  f(p) =  2.461e-08  (not concave)
-(switching technique to bfgs)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 48:  f(p) =  2.280e-08  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 49:  f(p) =  2.254e-08  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 50:  f(p) =  2.189e-08  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 51:  f(p) =  2.176e-08  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 52:  f(p) =  2.175e-08  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 53:  f(p) =  2.175e-08  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 54:  f(p) =  2.175e-08  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 55:  f(p) =  2.175e-08  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 56:  f(p) =  2.175e-08  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 57:  f(p) =  2.175e-08  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 58:  f(p) =  2.175e-08  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 59:  f(p) =  2.175e-08  
 
 Propensity score model coefficients                Number of obs  =        500
 Generalization of IPW/CPBS-type reweigting
-Loss = mean(stddiff())^2 + 1*abs(CV-.5)^ 6)
+Loss = mean(stddiff())^2 + 1*abs(CV-.5)^6)
 ------------------------------------------------------------------------------
              |      Coef.
 -------------+----------------------------------------------------------------
-          x1 |  -.7887844
-        1.x2 |  -2.395102
-        1.x3 |  -.6210363
-          x4 |  -.2725947
-          x5 |    -.00048
-          x6 |  -.0335335
-          x7 |  -.0119069
-         x90 |  -.0990997
-         x91 |  -.1447482
-         x92 |   -.114663
-         x93 |  -.1030322
-         x94 |  -.0782803
-         x95 |  -.1519558
+          x1 |  -.8576316
+        1.x2 |  -2.278638
+        1.x3 |  -.4867771
+          x4 |  -.1207335
+          x5 |   .0125525
+          x6 |  -.0391369
+          x7 |   -.025396
+         x90 |  -.0985809
+         x91 |  -.1684552
+         x92 |  -.1083939
+         x93 |  -.1066118
+         x94 |  -.0849797
+         x95 |  -.1678559
        _cons |   3.357107
 ------------------------------------------------------------------------------
 
@@ -2553,17 +2233,17 @@ Summary for variables: _weight _weight_mtch _pscore
 
 _treated |         N      mean        sd       min        p1       p10       p25       p50       p75       p90       p99       max
 ---------+------------------------------------------------------------------------------------------------------------------------
-       0 |       408         1      .553     .0505     .0991      .459      .636      .883      1.23      1.74      2.89      3.32
-         |       408         1      .553     .0505     .0991      .459      .636      .883      1.23      1.74      2.89      3.32
-         |       408       .87     .0797      .307      .464      .801      .848      .885      .915      .938      .962      .967
+       0 |       408         1      .568     .0556      .133      .465      .622      .842      1.24      1.78      2.97      3.43
+         |       408         1      .568     .0556      .133      .465      .622      .842      1.24      1.78      2.97      3.43
+         |       408      .891     .0681      .377      .591      .835      .871      .902      .931      .951       .97      .974
 ---------+------------------------------------------------------------------------------------------------------------------------
        1 |        92         1         0         1         1         1         1         1         1         1         1         1
          |        92         1         0         1         1         1         1         1         1         1         1         1
-         |        92      .903     .0538       .58       .58      .851       .88      .908      .944      .954       .97       .97
+         |        92      .919     .0469      .637      .637       .87        .9      .925      .952      .961      .979      .979
 ---------+------------------------------------------------------------------------------------------------------------------------
-   Total |       500         1      .499     .0505      .128      .513      .678      .995      1.14      1.64      2.88      3.32
-         |       500         1      .499     .0505      .128      .513      .678      .995      1.14      1.64      2.88      3.32
-         |       500      .876     .0766      .307      .521      .815      .852      .889      .919      .945      .963       .97
+   Total |       500         1      .513     .0556      .141      .496       .68      .989      1.12      1.63      2.94      3.43
+         |       500         1      .513     .0556      .141      .496       .68      .989      1.12      1.63      2.94      3.43
+         |       500      .896     .0656      .377      .604      .843      .876      .906      .935      .954      .973      .979
 ----------------------------------------------------------------------------------------------------------------------------------
 
 . gmatchcall balanceresults()
@@ -2571,37 +2251,41 @@ _treated |         N      mean        sd       min        p1       p10       p25
                   1             2             3             4             5             6             7
      +---------------------------------------------------------------------------------------------------+
    1 |     Variable      mean (T)      mean (C)        diff()     stddiff()   sd (Pooled)    varratio()  |
-   2 |           x1      .4673913      .5940708     -.1266795     -.2556789      .4954632      1.041073  |
-   3 |        i1.x2      .0108696      .0035822      .0072874      .1040139      .0700617      3.037792  |
-   4 |        i1.x3      .0217391      .0173612       .004378      .0327477      .1336878      1.257201  |
-   5 |           x4      .4347826      .4813204     -.0465378     -.0931208      .4997573      .9927386  |
-   6 |           x5      25.46739      25.49233     -.0249395     -.0041076      6.071588      .7683625  |
-   7 |           x6      11.86957      12.62643     -.7568611     -.3485479       2.17147      .5051906  |
-   8 |           x7      6.858696      6.552401      .3062946      .0904109      3.387807      1.126873  |
-   9 |          x90      .0972024      -.113035      .2102375        .20862      1.007753      .8801527  |
-  10 |          x91     -.0890157      -.110682      .0216663       .022406      .9669876      .9383917  |
-  11 |          x92      .0453787     -.1366855      .1820642      .1808933      1.006473       1.11749  |
-  12 |          x93      .0865687     -.0591155      .1456841      .1447781      1.006258      .8388811  |
-  13 |          x94     -.1299173     -.0825678     -.0473494     -.0474935       .996967      .8328052  |
-  14 |          x95     -.0807251     -.1857156      .1049905       .108146       .970822      .8641629  |
+   2 |           x1      .4673913      .5896186     -.1222273     -.2464411      .4959695      1.037554  |
+   3 |         1.x2      .0108696      .0041996        .00667      .0906977      .0735407      2.592787  |
+   4 |         1.x3      .0217391      .0197748      .0019643      .0139702       .140607      1.106468  |
+   5 |           x4      .4347826      .5050962     -.0703136     -.1405037      .5004392      .9914561  |
+   6 |           x5      25.46739      25.59679     -.1293958     -.0210942      6.134192      .7501985  |
+   7 |           x6      11.86957      12.63182     -.7622568     -.3495821       2.18048      .5006192  |
+   8 |           x7      6.858696      6.396986      .4617095      .1362287      3.389223      1.127903  |
+   9 |          x90      .0972024     -.1098519      .2070543      .2062767      1.003769      .8883868  |
+  10 |          x91     -.0890157     -.1310079      .0419922       .043554        .96414      .9453563  |
+  11 |          x92      .0453787     -.1269518      .1723304      .1702161      1.012422      1.100395  |
+  12 |          x93      .0865687     -.0629131      .1494818      .1489091      1.003846      .8438625  |
+  13 |          x94     -.1299173     -.0863392     -.0435781     -.0436613      .9980945      .8305237  |
+  14 |          x95     -.0807251     -.2065973      .1258722      .1295847       .971351      .8638318  |
      +---------------------------------------------------------------------------------------------------+
   Mean standardized diff., squared
-  .0001211138
+  .0001129394
   Mean absolute standardized diff.
-  .126228047
+  .1339015077
   Maximum absolute standardized diff.
-  .3485478844
+  .3495820888
   C.V. of matching weights:
-  .4992729829
+  .5129608212
   S.D. of matching weights:
-  .4992729829
+  .5129608212
   Skewness of matching weights:
-  .0688225943
+  .0730789382
   Kurtosis of matching weights:
-  .013107526
+  .0138593555
+  Maximum matching weight:
+  3.431757019
 
 . 
-. gmatch `treatvar' `varlist' if `tousevar' , atet cbps ipw treatvariance cvopt(1 .75 6)
+. gmatch `treatvar' `varlist' if `tousevar' , atet cbps ipw treatvariance cvtarget(1 .75 6)
+
+_cvopt:         1 .75 6
   408 control obs
   92 treatment obs
   (Data are unweighted.)
@@ -2631,46 +2315,58 @@ Iteration 10:  f(p) =  4.603e-06
 Iteration 11:  f(p) =  4.428e-06  
 (switching technique to nr)
 Iteration 12:  f(p) =  4.385e-06  (not concave)
-Iteration 13:  f(p) =  3.593e-06  (not concave)
-Iteration 14:  f(p) =  1.412e-06  (not concave)
-Iteration 15:  f(p) =  1.330e-06  (not concave)
-Iteration 16:  f(p) =  8.185e-07  (not concave)
-Iteration 17:  f(p) =  6.356e-07  (not concave)
-Iteration 18:  f(p) =  3.442e-07  
-Iteration 19:  f(p) =  3.113e-07  (not concave)
-Iteration 20:  f(p) =  2.274e-07  (not concave)
-Iteration 21:  f(p) =  2.138e-07  (not concave)
-Iteration 22:  f(p) =  1.993e-07  (not concave)
-Iteration 23:  f(p) =  1.741e-07  (not concave)
+Iteration 13:  f(p) =  3.515e-06  (not concave)
+Iteration 14:  f(p) =  2.335e-06  (not concave)
+Iteration 15:  f(p) =  1.556e-06  (not concave)
+Iteration 16:  f(p) =  1.106e-06  (not concave)
+Iteration 17:  f(p) =  9.822e-07  (not concave)
+Iteration 18:  f(p) =  7.934e-07  (not concave)
+Iteration 19:  f(p) =  4.382e-07  (not concave)
+Iteration 20:  f(p) =  3.658e-07  (not concave)
+Iteration 21:  f(p) =  3.500e-07  (not concave)
+Iteration 22:  f(p) =  3.205e-07  (not concave)
+Iteration 23:  f(p) =  2.830e-07  (not concave)
 (switching technique to bfgs)
-Iteration 24:  f(p) =  1.719e-07  
-Iteration 25:  f(p) =  1.716e-07  
-Iteration 26:  f(p) =  1.716e-07  
-Iteration 27:  f(p) =  1.716e-07  
-Iteration 28:  f(p) =  1.716e-07  
-Iteration 29:  f(p) =  1.716e-07  
-Iteration 30:  f(p) =  1.716e-07  
+Iteration 24:  f(p) =  2.685e-07  
+Iteration 25:  f(p) =  2.622e-07  
+Iteration 26:  f(p) =  2.463e-07  
+Iteration 27:  f(p) =  2.378e-07  
+Iteration 28:  f(p) =  2.268e-07  
+Iteration 29:  f(p) =  2.244e-07  
+Iteration 30:  f(p) =  2.187e-07  
+Iteration 31:  f(p) =  2.131e-07  
+Iteration 32:  f(p) =  2.122e-07  
+Iteration 33:  f(p) =  2.051e-07  
+Iteration 34:  f(p) =  1.972e-07  
+Iteration 35:  f(p) =  1.949e-07  
+(switching technique to nr)
+Iteration 36:  f(p) =  1.891e-07  
+Iteration 37:  f(p) =  1.768e-07  
+Iteration 38:  f(p) =  1.719e-07  
+Iteration 39:  f(p) =  1.716e-07  
+Iteration 40:  f(p) =  1.716e-07  
+Iteration 41:  f(p) =  1.716e-07  
 
 Propensity score model coefficients                Number of obs  =        500
 Generalization of IPW/CPBS-type reweigting
-Loss = CBPS + 1*abs(CV-.75)^ 6)
+Loss = CBPS + 1*abs(CV-.75)^6)
 ------------------------------------------------------------------------------
              |      Coef.
 -------------+----------------------------------------------------------------
           x1 |  -1.059191
-        1.x2 |  -1.392658
-        1.x3 |  -.3877013
-          x4 |   -.259761
+        1.x2 |   -1.39265
+        1.x3 |  -.3876982
+          x4 |  -.2597607
           x5 |   .0455692
           x6 |  -.2089932
-          x7 |   .0230332
-         x90 |    .127256
-         x91 |  -.1212318
+          x7 |   .0230333
+         x90 |   .1272559
+         x91 |  -.1212326
          x92 |   .0972184
-         x93 |   .0481437
-         x94 |  -.1060476
+         x93 |    .048144
+         x94 |  -.1060477
          x95 |   .0105288
-       _cons |   .6347736
+       _cons |   .6347725
 ------------------------------------------------------------------------------
 
 New variables (unweighted summary statistics)
@@ -2698,41 +2394,507 @@ _treated |         N      mean        sd       min        p1       p10       p25
                   1             2             3             4             5             6             7
      +---------------------------------------------------------------------------------------------------+
    1 |     Variable      mean (T)      mean (C)        diff()     stddiff()   sd (Pooled)    varratio()  |
-   2 |           x1      .4673913      .5187628     -.0513715     -.1026581       .500414      1.005638  |
-   3 |        i1.x2      .0108696      .0118443     -.0009748     -.0090693      .1074803      .9264252  |
-   4 |        i1.x3      .0217391      .0264241     -.0046849     -.0296547      .1579827       .833697  |
+   2 |           x1      .4673913      .5187629     -.0513716     -.1026581       .500414      1.005638  |
+   3 |         1.x2      .0108696      .0118444     -.0009749     -.0090703      .1074807      .9264168  |
+   4 |         1.x3      .0217391      .0264242      -.004685     -.0296554       .157983      .8336934  |
    5 |           x4      .4347826      .4476614     -.0128788     -.0258872      .4974957      1.002336  |
-   6 |           x5      25.46739      25.56132     -.0939329     -.0143613      6.540702      .6467528  |
-   7 |           x6      11.86957      12.03336     -.1637986     -.0787938      2.078827      .5461046  |
-   8 |           x7      6.858696      6.780636      .0780596      .0231965       3.36514      1.144354  |
+   6 |           x5      25.46739      25.56132     -.0939325     -.0143612      6.540702      .6467529  |
+   7 |           x6      11.86957      12.03336     -.1637988     -.0787938      2.078827      .5461046  |
+   8 |           x7      6.858696      6.780637      .0780586      .0231963      3.365139      1.144355  |
    9 |          x90      .0972024      .0722594       .024943      .0245696      1.015196      .8581527  |
-  10 |          x91     -.0890157     -.0683611     -.0206546     -.0213649      .9667549      .9389306  |
-  11 |          x92      .0453787      .0233094      .0220693      .0220814      .9994496      1.130348  |
-  12 |          x93      .0865687      .0787137       .007855      .0082006      .9578498      .9405747  |
-  13 |          x94     -.1299173      -.108698     -.0212192     -.0208471      1.017851      .7927287  |
-  14 |          x95     -.0807251     -.0823446      .0016195      .0016799      .9640659      .8768564  |
+  10 |          x91     -.0890157     -.0683618     -.0206539     -.0213641      .9667548      .9389306  |
+  11 |          x92      .0453787      .0233094      .0220692      .0220814      .9994496      1.130348  |
+  12 |          x93      .0865687      .0787138      .0078548      .0082005      .9578498      .9405748  |
+  13 |          x94     -.1299173     -.1086981     -.0212191      -.020847      1.017851      .7927288  |
+  14 |          x95     -.0807251     -.0823446      .0016195      .0016799      .9640659      .8768563  |
      +---------------------------------------------------------------------------------------------------+
   Mean standardized diff., squared
-  .0002940123
+  .0002940157
   Mean absolute standardized diff.
-  .0294126496
+  .0294126804
   Maximum absolute standardized diff.
-  .1026580891
+  .1026581439
   C.V. of matching weights:
-  .7165198319
+  .7165196502
   S.D. of matching weights:
-  .7165198319
+  .7165196502
   Skewness of matching weights:
-  .09065572
+  .0906557423
   Kurtosis of matching weights:
-  .017132426
+  .0171324352
+  Maximum matching weight:
+  5.44200661
 
 . 
+. // furthermore, you can target skiwness, kurtosis, or max weight
+. gmatch `treatvar' `varlist' if `tousevar', atet cbps treatvariance cvtarget(1 .5 6) skewtarget(1 0.07 2) 
+
+_cvopt:         1 .5 6 1 .07 2
+  408 control obs
+  92 treatment obs
+  (Data are unweighted.)
+  Step 1 (initial values from logit model):
+initial:       f(p) = -346.57359
+alternative:   f(p) = -283.03849
+rescale:       f(p) = -247.46401
+Iteration 0:   f(p) = -247.46401  
+Iteration 1:   f(p) = -223.85141  
+Iteration 2:   f(p) = -211.21673  
+Iteration 3:   f(p) = -211.17754  
+Iteration 4:   f(p) = -211.17753  
+  
+  Step 2 (CBPS) :
+(setting technique to bfgs)
+Iteration 0:   f(p) =  .02922492  
+Iteration 1:   f(p) =  .00522908  
+Iteration 2:   f(p) =  .00462687  
+Iteration 3:   f(p) =  .00015808  
+Iteration 4:   f(p) =  .00007042  
+Iteration 5:   f(p) =  .00005102  
+Iteration 6:   f(p) =  .00004883  
+Iteration 7:   f(p) =  .00004294  
+Iteration 8:   f(p) =   .0000423  
+Iteration 9:   f(p) =  .00003874  
+Iteration 10:  f(p) =  .00003119  
+Iteration 11:  f(p) =  .00001574  
+(switching technique to nr)
+Iteration 12:  f(p) =  .00001238  (not concave)
+Iteration 13:  f(p) =  3.174e-06  (not concave)
+Iteration 14:  f(p) =  9.061e-07  (not concave)
+Iteration 15:  f(p) =  7.404e-07  (not concave)
+Iteration 16:  f(p) =  6.567e-07  (not concave)
+Iteration 17:  f(p) =  3.547e-07  (not concave)
+Iteration 18:  f(p) =  2.813e-07  (not concave)
+Iteration 19:  f(p) =  2.381e-07  (not concave)
+Iteration 20:  f(p) =  2.217e-07  (not concave)
+Iteration 21:  f(p) =  1.730e-07  (not concave)
+Iteration 22:  f(p) =  1.666e-07  (not concave)
+Iteration 23:  f(p) =  1.522e-07  (not concave)
+(switching technique to bfgs)
+Iteration 24:  f(p) =  1.440e-07  
+Iteration 25:  f(p) =  1.387e-07  
+Iteration 26:  f(p) =  1.252e-07  
+Iteration 27:  f(p) =  1.179e-07  
+Iteration 28:  f(p) =  1.137e-07  
+Iteration 29:  f(p) =  1.095e-07  
+Iteration 30:  f(p) =  1.088e-07  
+Iteration 31:  f(p) =  1.088e-07  
+Iteration 32:  f(p) =  1.088e-07  
+Iteration 33:  f(p) =  1.087e-07  
+Iteration 34:  f(p) =  1.085e-07  
+Iteration 35:  f(p) =  1.070e-07  
+(switching technique to nr)
+Iteration 36:  f(p) =  1.069e-07  (not concave)
+Iteration 37:  f(p) =  1.053e-07  (not concave)
+Iteration 38:  f(p) =  1.050e-07  (not concave)
+Iteration 39:  f(p) =  1.049e-07  (not concave)
+Iteration 40:  f(p) =  1.036e-07  (not concave)
+Iteration 41:  f(p) =  1.034e-07  (not concave)
+Iteration 42:  f(p) =  1.022e-07  (not concave)
+Iteration 43:  f(p) =  1.016e-07  (not concave)
+Iteration 44:  f(p) =  1.013e-07  (not concave)
+Iteration 45:  f(p) =  1.011e-07  (not concave)
+Iteration 46:  f(p) =  1.010e-07  (not concave)
+Iteration 47:  f(p) =  1.008e-07  (not concave)
+(switching technique to bfgs)
+Iteration 48:  f(p) =  1.007e-07  
+Iteration 49:  f(p) =  1.005e-07  
+Iteration 50:  f(p) =  9.850e-08  
+Iteration 51:  f(p) =  9.648e-08  
+Iteration 52:  f(p) =  9.399e-08  
+Iteration 53:  f(p) =  9.331e-08  
+Iteration 54:  f(p) =  9.117e-08  
+Iteration 55:  f(p) =  9.013e-08  
+Iteration 56:  f(p) =  8.897e-08  
+Iteration 57:  f(p) =  8.782e-08  
+Iteration 58:  f(p) =  8.646e-08  
+Iteration 59:  f(p) =  8.397e-08  
+(switching technique to nr)
+Iteration 60:  f(p) =  8.393e-08  (not concave)
+Iteration 61:  f(p) =  8.315e-08  (not concave)
+Iteration 62:  f(p) =  8.309e-08  (not concave)
+Iteration 63:  f(p) =  8.303e-08  
+Iteration 64:  f(p) =  8.208e-08  (not concave)
+Iteration 65:  f(p) =  8.147e-08  (not concave)
+Iteration 66:  f(p) =  8.140e-08  (not concave)
+Iteration 67:  f(p) =  8.127e-08  (not concave)
+Iteration 68:  f(p) =  8.117e-08  (not concave)
+Iteration 69:  f(p) =  8.106e-08  (not concave)
+Iteration 70:  f(p) =  8.087e-08  (not concave)
+Iteration 71:  f(p) =  7.787e-08  (not concave)
+(switching technique to bfgs)
+Iteration 72:  f(p) =  7.757e-08  
+Iteration 73:  f(p) =  7.753e-08  
+Iteration 74:  f(p) =  7.741e-08  
+Iteration 75:  f(p) =  7.734e-08  
+Iteration 76:  f(p) =  7.707e-08  
+Iteration 77:  f(p) =  7.682e-08  
+Iteration 78:  f(p) =  7.651e-08  
+Iteration 79:  f(p) =  7.640e-08  
+Iteration 80:  f(p) =  7.597e-08  
+Iteration 81:  f(p) =  7.582e-08  
+Iteration 82:  f(p) =  7.511e-08  
+Iteration 83:  f(p) =  7.502e-08  
+(switching technique to nr)
+Iteration 84:  f(p) =  7.497e-08  (not concave)
+Iteration 85:  f(p) =  7.487e-08  (not concave)
+Iteration 86:  f(p) =  7.481e-08  (not concave)
+Iteration 87:  f(p) =  7.478e-08  (not concave)
+Iteration 88:  f(p) =  7.474e-08  (not concave)
+Iteration 89:  f(p) =  7.469e-08  (not concave)
+Iteration 90:  f(p) =  7.467e-08  (not concave)
+Iteration 91:  f(p) =  7.465e-08  (not concave)
+Iteration 92:  f(p) =  7.463e-08  (not concave)
+Iteration 93:  f(p) =  7.459e-08  (not concave)
+Iteration 94:  f(p) =  7.432e-08  (not concave)
+Iteration 95:  f(p) =  7.403e-08  (not concave)
+(switching technique to bfgs)
+Iteration 96:  f(p) =  7.399e-08  
+Iteration 97:  f(p) =  7.397e-08  
+Iteration 98:  f(p) =  7.377e-08  
+Iteration 99:  f(p) =  7.345e-08  
+Iteration 100: f(p) =  7.345e-08  
+Iteration 101: f(p) =  7.329e-08  
+Iteration 102: f(p) =  7.325e-08  
+Iteration 103: f(p) =  7.314e-08  
+Iteration 104: f(p) =  7.296e-08  
+Iteration 105: f(p) =  7.287e-08  
+Iteration 106: f(p) =  7.253e-08  
+Iteration 107: f(p) =  6.986e-08  
+(switching technique to nr)
+Iteration 108: f(p) =  6.805e-08  (not concave)
+Iteration 109: f(p) =  6.797e-08  (not concave)
+Iteration 110: f(p) =  6.793e-08  (not concave)
+Iteration 111: f(p) =  6.790e-08  (not concave)
+Iteration 112: f(p) =  6.787e-08  (not concave)
+Iteration 113: f(p) =  6.782e-08  (not concave)
+Iteration 114: f(p) =  6.780e-08  (not concave)
+Iteration 115: f(p) =  6.778e-08  (not concave)
+Iteration 116: f(p) =  6.776e-08  (not concave)
+Iteration 117: f(p) =  6.773e-08  (not concave)
+Iteration 118: f(p) =  6.772e-08  (not concave)
+Iteration 119: f(p) =  6.769e-08  (not concave)
+(switching technique to bfgs)
+Iteration 120: f(p) =  6.767e-08  
+convergence not achieved
+
+Propensity score model coefficients                Number of obs  =        500
+Generalization of IPW/CPBS-type reweigting
+Loss = CBPS + 1*abs(CV-.5)^6)
+------------------------------------------------------------------------------
+             |      Coef.
+-------------+----------------------------------------------------------------
+          x1 |   -.896892
+        1.x2 |   -1.17166
+        1.x3 |  -.2434965
+          x4 |  -.2822814
+          x5 |   .0296602
+          x6 |  -.0988635
+          x7 |  -.0155226
+         x90 |   .0211781
+         x91 |  -.0635786
+         x92 |   .0130214
+         x93 |   .0101829
+         x94 |  -.0496173
+         x95 |    -.04044
+       _cons |  -.3598387
+------------------------------------------------------------------------------
+
+New variables (unweighted summary statistics)
+
+Summary for variables: _weight _weight_mtch _pscore
+     by categories of: _treated 
+
+_treated |         N      mean        sd       min        p1       p10       p25       p50       p75       p90       p99       max
+---------+------------------------------------------------------------------------------------------------------------------------
+       0 |       408         1      .533      .148      .353      .514      .622      .828      1.23      1.78      2.65      3.14
+         |       408         1      .533      .148      .353      .514      .622      .828      1.23      1.78      2.65      3.14
+         |       408      .148     .0634     .0262     .0601     .0851      .101       .13      .182      .244      .325      .363
+---------+------------------------------------------------------------------------------------------------------------------------
+       1 |        92         1         0         1         1         1         1         1         1         1         1         1
+         |        92         1         0         1         1         1         1         1         1         1         1         1
+         |        92      .204     .0756     .0806     .0806      .112      .142      .187      .275      .306      .388      .388
+---------+------------------------------------------------------------------------------------------------------------------------
+   Total |       500         1      .482      .148      .357      .527      .667      .943      1.07       1.7      2.63      3.14
+         |       500         1      .482      .148      .357      .527      .667      .943      1.07       1.7      2.63      3.14
+         |       500      .159     .0692     .0262     .0608     .0869      .105      .139        .2       .27      .344      .388
+----------------------------------------------------------------------------------------------------------------------------------
+
+. gmatchcall balanceresults()
+  Balance table:
+                  1             2             3             4             5             6             7
+     +---------------------------------------------------------------------------------------------------+
+   1 |     Variable      mean (T)      mean (C)        diff()     stddiff()   sd (Pooled)    varratio()  |
+   2 |           x1      .4673913      .5799962     -.1126049     -.2265824       .496971      1.030602  |
+   3 |         1.x2      .0108696      .0134646      -.002595     -.0228976      .1133319      .8162827  |
+   4 |         1.x3      .0217391      .0298002     -.0080611     -.0485483       .166043      .7418166  |
+   5 |           x4      .4347826      .4432475     -.0084649     -.0170291      .4970856      1.004292  |
+   6 |           x5      25.46739      25.98506     -.5176697     -.0824484      6.278707      .7114258  |
+   7 |           x6      11.86957      12.48572     -.6161517     -.2867463       2.14877      .5137132  |
+   8 |           x7      6.858696      6.452799      .4058965      .1202648      3.375024      1.138954  |
+   9 |          x90      .0972024     -.0198819      .1170843      .1162558      1.007126       .876696  |
+  10 |          x91     -.0890157     -.0347233     -.0542924     -.0555225      .9778445      .9138647  |
+  11 |          x92      .0453787     -.0155798      .0609585      .0606974      1.004301      1.117405  |
+  12 |          x93      .0865687      .0516382      .0349305      .0358845      .9734151      .9048988  |
+  13 |          x94     -.1299173     -.0478311     -.0820862     -.0814259      1.008109      .8118093  |
+  14 |          x95     -.0807251     -.1045611       .023836      .0245714      .9700719      .8640346  |
+     +---------------------------------------------------------------------------------------------------+
+  Mean standardized diff., squared
+  .001271343
+  Mean absolute standardized diff.
+  .0906826404
+  Maximum absolute standardized diff.
+  .2867462522
+  C.V. of matching weights:
+  .4815882971
+  S.D. of matching weights:
+  .4815882971
+  Skewness of matching weights:
+  .0699975309
+  Kurtosis of matching weights:
+  .0117243612
+  Maximum matching weight:
+  3.144443541
+
+. 
+. capture nois {
+. gmatch `treatvar' `varlist' if `tousevar', atet cbps treatvariance maxtarget(1 10 2) difficult nonrtolerance
+
+_cvopt:         0 0 2 0 0 2 0 0 2 1 10 2
+  408 control obs
+  92 treatment obs
+  (Data are unweighted.)
+  Step 1 (initial values from logit model):
+initial:       f(p) = -346.57359
+alternative:   f(p) = -283.03849
+rescale:       f(p) = -247.46401
+Iteration 0:   f(p) = -247.46401  
+Iteration 1:   f(p) = -223.85141  
+Iteration 2:   f(p) = -211.21673  
+Iteration 3:   f(p) = -211.17754  
+Iteration 4:   f(p) = -211.17753  
+  
+  Step 2 (CBPS) :
+(setting technique to bfgs)
+Iteration 0:   f(p) =    .505579  
+Iteration 1:   f(p) =  .06009401  (backed up)
+Iteration 2:   f(p) =  .00002045  
+Iteration 3:   f(p) =  2.925e-06  (backed up)
+Iteration 4:   f(p) =  2.883e-06  
+Iteration 5:   f(p) =  2.834e-06  
+Iteration 6:   f(p) =  2.802e-06  
+Iteration 7:   f(p) =  2.553e-06  
+Iteration 8:   f(p) =  2.495e-06  
+Iteration 9:   f(p) =  2.391e-06  
+Iteration 10:  f(p) =  2.361e-06  
+Iteration 11:  f(p) =  2.178e-06  
+(switching technique to nr)
+Iteration 12:  f(p) =  2.141e-06  (not concave)
+Iteration 13:  f(p) =  1.920e-06  (not concave)
+Iteration 14:  f(p) =  1.557e-06  (not concave)
+Iteration 15:  f(p) =  1.333e-06  (not concave)
+Iteration 16:  f(p) =  1.238e-06  (not concave)
+Iteration 17:  f(p) =  1.230e-06  (not concave)
+Iteration 18:  f(p) =  1.230e-06  (not concave)
+Iteration 19:  f(p) =  1.110e-06  (not concave)
+Iteration 20:  f(p) =  1.085e-06  (not concave)
+Iteration 21:  f(p) =  9.754e-07  (not concave)
+Iteration 22:  f(p) =  9.288e-07  (not concave)
+Iteration 23:  f(p) =  8.634e-07  (not concave)
+(switching technique to bfgs)
+Iteration 24:  f(p) =  8.263e-07  
+Iteration 25:  f(p) =  8.263e-07  
+Iteration 26:  f(p) =  8.262e-07  
+Iteration 27:  f(p) =  8.259e-07  
+Iteration 28:  f(p) =  7.582e-07  
+Iteration 29:  f(p) =  7.138e-07  
+Iteration 30:  f(p) =  6.919e-07  
+Iteration 31:  f(p) =  6.904e-07  
+Iteration 32:  f(p) =  6.669e-07  
+Iteration 33:  f(p) =  6.344e-07  
+Iteration 34:  f(p) =  5.887e-07  
+Iteration 35:  f(p) =  5.774e-07  
+(switching technique to nr)
+Iteration 36:  f(p) =  5.551e-07  (not concave)
+Iteration 37:  f(p) =  5.527e-07  (not concave)
+Iteration 38:  f(p) =  5.510e-07  (not concave)
+Iteration 39:  f(p) =  5.190e-07  (not concave)
+Iteration 40:  f(p) =  5.045e-07  (not concave)
+Iteration 41:  f(p) =  4.656e-07  (not concave)
+Iteration 42:  f(p) =  4.470e-07  (not concave)
+Iteration 43:  f(p) =  4.461e-07  (not concave)
+Iteration 44:  f(p) =  4.200e-07  (not concave)
+Iteration 45:  f(p) =  3.973e-07  (not concave)
+Iteration 46:  f(p) =  3.951e-07  (not concave)
+Iteration 47:  f(p) =  3.935e-07  (not concave)
+(switching technique to bfgs)
+Iteration 48:  f(p) =  3.933e-07  
+Iteration 49:  f(p) =  3.925e-07  
+BFGS stepping has contracted, resetting BFGS Hessian
+Iteration 50:  f(p) =  3.915e-07  
+Iteration 51:  f(p) =  3.900e-07  (backed up)
+Iteration 52:  f(p) =  3.860e-07  
+Iteration 53:  f(p) =  3.560e-07  
+Iteration 54:  f(p) =  3.559e-07  
+Iteration 55:  f(p) =  3.416e-07  
+Iteration 56:  f(p) =  3.106e-07  
+Iteration 57:  f(p) =  2.957e-07  
+Iteration 58:  f(p) =  2.110e-07  
+Iteration 59:  f(p) =  2.103e-07  
+(switching technique to nr)
+Iteration 60:  f(p) =  1.886e-07  (not concave)
+Iteration 61:  f(p) =  1.825e-07  (not concave)
+Iteration 62:  f(p) =  1.820e-07  (not concave)
+Iteration 63:  f(p) =  1.776e-07  (not concave)
+Iteration 64:  f(p) =  1.759e-07  (not concave)
+Iteration 65:  f(p) =  1.659e-07  (not concave)
+Iteration 66:  f(p) =  1.592e-07  (not concave)
+Iteration 67:  f(p) =  1.566e-07  (not concave)
+Iteration 68:  f(p) =  1.563e-07  (not concave)
+Iteration 69:  f(p) =  1.562e-07  (not concave)
+Iteration 70:  f(p) =  1.562e-07  (not concave)
+Iteration 71:  f(p) =  1.561e-07  (not concave)
+(switching technique to bfgs)
+Iteration 72:  f(p) =  1.560e-07  
+Iteration 73:  f(p) =  1.560e-07  
+Iteration 74:  f(p) =  1.560e-07  
+BFGS stepping has contracted, resetting BFGS Hessian
+Iteration 75:  f(p) =  1.479e-07  
+Iteration 76:  f(p) =  1.478e-07  (backed up)
+Iteration 77:  f(p) =  1.453e-07  
+Iteration 78:  f(p) =  1.232e-07  
+Iteration 79:  f(p) =  1.051e-07  
+Iteration 80:  f(p) =  9.878e-08  
+Iteration 81:  f(p) =  8.959e-08  
+Iteration 82:  f(p) =  8.927e-08  
+Iteration 83:  f(p) =  8.219e-08  
+(switching technique to nr)
+Iteration 84:  f(p) =  7.467e-08  (not concave)
+Iteration 85:  f(p) =  7.313e-08  (not concave)
+Iteration 86:  f(p) =  7.302e-08  (not concave)
+Iteration 87:  f(p) =  6.286e-08  (not concave)
+Iteration 88:  f(p) =  6.268e-08  (not concave)
+Iteration 89:  f(p) =  6.267e-08  (not concave)
+Iteration 90:  f(p) =  6.267e-08  (not concave)
+Iteration 91:  f(p) =  5.789e-08  (not concave)
+Iteration 92:  f(p) =  5.558e-08  (not concave)
+Iteration 93:  f(p) =  5.376e-08  (not concave)
+Iteration 94:  f(p) =  5.324e-08  (not concave)
+Iteration 95:  f(p) =  5.216e-08  (not concave)
+(switching technique to bfgs)
+Iteration 96:  f(p) =  4.807e-08  
+Iteration 97:  f(p) =  4.804e-08  (backed up)
+Iteration 98:  f(p) =  4.789e-08  
+Iteration 99:  f(p) =  4.550e-08  
+Iteration 100: f(p) =  4.452e-08  
+Iteration 101: f(p) =  4.425e-08  
+Iteration 102: f(p) =  4.047e-08  
+Iteration 103: f(p) =  3.971e-08  
+Iteration 104: f(p) =  3.851e-08  
+Iteration 105: f(p) =  3.649e-08  
+Iteration 106: f(p) =  3.324e-08  
+Iteration 107: f(p) =  3.199e-08  
+(switching technique to nr)
+Iteration 108: f(p) =  2.853e-08  (not concave)
+Iteration 109: f(p) =  2.847e-08  (not concave)
+Iteration 110: f(p) =  2.629e-08  (not concave)
+Iteration 111: f(p) =  2.545e-08  (not concave)
+Iteration 112: f(p) =  2.454e-08  (not concave)
+Iteration 113: f(p) =  2.413e-08  (not concave)
+Iteration 114: f(p) =  2.407e-08  (not concave)
+Iteration 115: f(p) =  2.203e-08  (not concave)
+Iteration 116: f(p) =  2.102e-08  (not concave)
+Iteration 117: f(p) =  2.102e-08  (not concave)
+Iteration 118: f(p) =  1.937e-08  (not concave)
+Iteration 119: f(p) =  1.918e-08  (not concave)
+(switching technique to bfgs)
+Iteration 120: f(p) =  1.903e-08  
+convergence not achieved
+
+Propensity score model coefficients                Number of obs  =        500
+Generalization of IPW/CPBS-type reweigting
+Loss = CBPS + 0*abs(CV-0)^2)
+------------------------------------------------------------------------------
+             |      Coef.
+-------------+----------------------------------------------------------------
+          x1 |  -1.201459
+        1.x2 |  -1.633223
+        1.x3 |  -.5773298
+          x4 |  -.3030191
+          x5 |   .0639027
+          x6 |  -.2995716
+          x7 |   .0334024
+         x90 |   .1358075
+         x91 |   -.133452
+         x92 |   .1096526
+         x93 |    .023246
+         x94 |  -.1441088
+         x95 |   .0281319
+       _cons |   1.366463
+------------------------------------------------------------------------------
+
+New variables (unweighted summary statistics)
+
+Summary for variables: _weight _weight_mtch _pscore
+     by categories of: _treated 
+
+_treated |         N      mean        sd       min        p1       p10       p25       p50       p75       p90       p99       max
+---------+------------------------------------------------------------------------------------------------------------------------
+       0 |       408         1      1.05      .047     .0974      .213      .331       .64      1.22      2.34      4.46        10
+         |       408         1      1.05      .047     .0974      .213      .331       .64      1.22      2.34      4.46        10
+         |       408      .176      .127     .0118     .0241     .0513     .0775       .14      .237      .373      .531      .717
+---------+------------------------------------------------------------------------------------------------------------------------
+       1 |        92         1         0         1         1         1         1         1         1         1         1         1
+         |        92         1         0         1         1         1         1         1         1         1         1         1
+         |        92       .29      .149     .0461     .0461      .125      .161      .271      .399      .459      .764      .764
+---------+------------------------------------------------------------------------------------------------------------------------
+   Total |       500         1      .951      .047      .106      .227      .409      .848      1.06      2.05      4.45        10
+         |       500         1      .951      .047      .106      .227      .409      .848      1.06      2.05      4.45        10
+         |       500      .197      .138     .0118     .0262     .0541     .0933       .16      .274      .408      .606      .764
+----------------------------------------------------------------------------------------------------------------------------------
+. gmatchcall balanceresults()
+  Balance table:
+                  1             2             3             4             5             6             7
+     +---------------------------------------------------------------------------------------------------+
+   1 |     Variable      mean (T)      mean (C)        diff()     stddiff()   sd (Pooled)    varratio()  |
+   2 |           x1      .4673913      .4875666     -.0201753     -.0403312      .5002397      1.004843  |
+   3 |         1.x2      .0108696      .0098049      .0010647      .0106895      .0996022      1.116822  |
+   4 |         1.x3      .0217391      .0221163     -.0003772     -.0025663      .1469832      .9916928  |
+   5 |           x4      .4347826      .4288653      .0059173      .0119405      .4955651      1.011833  |
+   6 |           x5      25.46739      25.69586     -.2284713     -.0333419      6.852368      .5818691  |
+   7 |           x6      11.86957      11.68846      .1811021      .0885639      2.044875      .5668641  |
+   8 |           x7      6.858696      6.841041      .0176551      .0052519       3.36167      1.147213  |
+   9 |          x90      .0972024      .0525899      .0446125      .0434765       1.02613       .836752  |
+  10 |          x91     -.0890157     -.0587132     -.0303025     -.0317813      .9534672      .9711027  |
+  11 |          x92      .0453787      .0138085      .0315702      .0318772      .9903697       1.15667  |
+  12 |          x93      .0865687      .0635128      .0230558      .0241517      .9546251      .9483789  |
+  13 |          x94     -.1299173      -.161137      .0312198      .0299948      1.040841      .7523316  |
+  14 |          x95     -.0807251     -.0800286     -.0006965     -.0007295      .9546596       .897706  |
+     +---------------------------------------------------------------------------------------------------+
+  Mean standardized diff., squared
+  .0001113764
+  Mean absolute standardized diff.
+  .0272843301
+  Maximum absolute standardized diff.
+  .0885639076
+  C.V. of matching weights:
+  .9510022604
+  S.D. of matching weights:
+  .9510022604
+  Skewness of matching weights:
+  .1449799238
+  Kurtosis of matching weights:
+  .0432058914
+  Maximum matching weight:
+  9.999994785
+. }
+
 . 
 . // * WEIGHTED DATA EXAMPLES *
 . 
 . // Replicate CBPS
 . gmatch `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], ate cbps pooledvariance
+
   408 control obs (sum of weights = 802.3793)
   92 treatment obs (sum of weights = 180.1725)
   Step 1 (initial values from logit model):
@@ -2761,19 +2923,24 @@ Iteration 10:  f(p) =  .00001599
 Iteration 11:  f(p) =  .00001599  
 (switching technique to nr)
 Iteration 12:  f(p) =  .00001598  (not concave)
-Iteration 13:  f(p) =  4.571e-06  (not concave)
-Iteration 14:  f(p) =  1.592e-06  (not concave)
-Iteration 15:  f(p) =  8.516e-07  (not concave)
-Iteration 16:  f(p) =  3.286e-07  (not concave)
-Iteration 17:  f(p) =  1.745e-07  (not concave)
-Iteration 18:  f(p) =  8.936e-08  (not concave)
-Iteration 19:  f(p) =  2.836e-08  (not concave)
-Iteration 20:  f(p) =  5.115e-09  
-Iteration 21:  f(p) =  1.153e-10  
-Iteration 22:  f(p) =  1.212e-14  
-Iteration 23:  f(p) =  2.740e-25  
+Iteration 13:  f(p) =  4.495e-06  (not concave)
+Iteration 14:  f(p) =  1.899e-06  (not concave)
+Iteration 15:  f(p) =  1.565e-06  (not concave)
+Iteration 16:  f(p) =  6.285e-07  (not concave)
+Iteration 17:  f(p) =  4.044e-07  (not concave)
+Iteration 18:  f(p) =  3.282e-07  (not concave)
+Iteration 19:  f(p) =  1.870e-07  (not concave)
+Iteration 20:  f(p) =  1.134e-07  (not concave)
+Iteration 21:  f(p) =  3.775e-08  (not concave)
+Iteration 22:  f(p) =  2.626e-08  
+Iteration 23:  f(p) =  1.027e-08  
 (switching technique to bfgs)
-Iteration 24:  f(p) =  2.405e-27  
+Iteration 24:  f(p) =  1.774e-09  
+Iteration 25:  f(p) =  6.086e-10  
+Iteration 26:  f(p) =  3.961e-12  
+Iteration 27:  f(p) =  2.019e-13  
+Iteration 28:  f(p) =  3.312e-15  
+Iteration 29:  f(p) =  9.950e-18  
 
 Propensity score model coefficients                Number of obs  =        983
 Generalization of IPW/CPBS-type reweigting
@@ -2783,17 +2950,17 @@ Loss = CBPS
 -------------+----------------------------------------------------------------
           x1 |  -1.502416
         1.x2 |  -2.525399
-        1.x3 |  -.8191009
-          x4 |  -.3236397
+        1.x3 |   -.819101
+          x4 |  -.3236396
           x5 |   .0771198
           x6 |  -.4884764
           x7 |   .0722686
          x90 |   .0234165
-         x91 |   .0257849
+         x91 |   .0257848
          x92 |   .2152141
          x93 |  -.0285372
          x94 |  -.3393877
-         x95 |  -.0407881
+         x95 |   -.040788
        _cons |   3.075437
 ------------------------------------------------------------------------------
 
@@ -2822,37 +2989,40 @@ _treated |         N      mean        sd       min        p1       p10       p25
                   1             2             3             4             5             6             7
      +---------------------------------------------------------------------------------------------------+
    1 |     Variable      mean (T)      mean (C)        diff()     stddiff()   sd (Pooled)    varratio()  |
-   2 |           x1      .6695182      .6695182      1.44e-15      3.07e-15      .4706262      1.004328  |
-   3 |        i1.x2      .0220668      .0220668     -1.88e-14     -1.28e-13      .1469756      1.004328  |
-   4 |        i1.x3      .0366911      .0366911     -2.61e-14     -1.39e-13       .188098      1.004328  |
-   5 |           x4       .485133       .485133      1.70e-13      3.39e-13      .5000334      1.004328  |
-   6 |           x5      26.17889      26.17889      6.18e-13      9.91e-14      6.237853      .6789026  |
-   7 |           x6      12.63449      12.63449     -1.58e-12     -6.76e-13      2.338005      .5740656  |
-   8 |           x7      6.755243      6.755243     -6.36e-13     -1.89e-13      3.370937      1.187219  |
-   9 |          x90     -.0520316     -.0520316      3.49e-14      3.34e-14      1.046128      1.163666  |
-  10 |          x91      .0164856      .0164856      7.94e-14      8.18e-14      .9705717      .9930954  |
-  11 |          x92     -.0021645     -.0021645     -2.62e-15     -2.58e-15      1.017927      1.359802  |
-  12 |          x93      .0456916      .0456916     -2.14e-13     -2.22e-13      .9636159       .883731  |
-  13 |          x94     -.0910006     -.0910006     -2.10e-13     -2.07e-13      1.014116      .7859289  |
-  14 |          x95     -.0894588     -.0894588      6.18e-13      6.32e-13       .978942      .8236876  |
+   2 |           x1      .6695182      .6695182     -1.20e-10     -2.56e-10      .4706262      1.004328  |
+   3 |         1.x2      .0220668      .0220668     -3.12e-09     -2.12e-08      .1469756      1.004328  |
+   4 |         1.x3      .0366911      .0366911     -1.49e-09     -7.93e-09       .188098      1.004328  |
+   5 |           x4       .485133       .485133     -3.91e-09     -7.82e-09      .5000334      1.004328  |
+   6 |           x5      26.17889      26.17889     -1.36e-07     -2.19e-08      6.237853      .6789026  |
+   7 |           x6      12.63449      12.63449     -4.71e-08     -2.01e-08      2.338005      .5740656  |
+   8 |           x7      6.755243      6.755243      1.06e-07      3.15e-08      3.370937      1.187219  |
+   9 |          x90     -.0520317     -.0520316     -1.93e-08     -1.84e-08      1.046128      1.163666  |
+  10 |          x91      .0164856      .0164856      1.99e-08      2.05e-08      .9705717      .9930953  |
+  11 |          x92     -.0021645     -.0021645      6.57e-09      6.46e-09      1.017927      1.359802  |
+  12 |          x93      .0456916      .0456916      1.77e-10      1.84e-10      .9636159       .883731  |
+  13 |          x94     -.0910006     -.0910006      1.06e-08      1.05e-08      1.014116      .7859289  |
+  14 |          x95     -.0894589     -.0894588     -6.23e-08     -6.37e-08      .9789419      .8236876  |
      +---------------------------------------------------------------------------------------------------+
   Mean standardized diff., squared
-  8.32408e-28
+  5.02625e-17
   Mean absolute standardized diff.
-  2.11649e-13
+  1.77273e-08
   Maximum absolute standardized diff.
-  6.76199e-13
+  6.36539e-08
   C.V. of matching weights:
-  .5270998694
+  .5270998614
   S.D. of matching weights:
-  .5284997369
+  .5284997286
   Skewness of matching weights:
-  .2026515012
+  .2026515323
   Kurtosis of matching weights:
-  .0762370775
+  .0762371002
+  Maximum matching weight:
+  6.642264279
 
 . 
 . gmatch `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], ate cbps ipw pooledvariance
+
   408 control obs (sum of weights = 802.3793)
   92 treatment obs (sum of weights = 180.1725)
   Step 1 (initial values from logit model):
@@ -2933,8 +3103,8 @@ _treated |         N      mean        sd       min        p1       p10       p25
      +---------------------------------------------------------------------------------------------------+
    1 |     Variable      mean (T)      mean (C)        diff()     stddiff()   sd (Pooled)    varratio()  |
    2 |           x1      .6415953      .6970127     -.0554173     -.1194311      .4640107      1.093567  |
-   3 |        i1.x2      .0142909      .0234703     -.0091794     -.0628462      .1460619      .6172753  |
-   4 |        i1.x3      .0334441      .0380925     -.0046484     -.0245369      .1894462      .8860314  |
+   3 |         1.x2      .0142909      .0234703     -.0091794     -.0628462      .1460619      .6172753  |
+   4 |         1.x3      .0334441      .0380925     -.0046484     -.0245369      .1894462      .8860314  |
    5 |           x4      .4881571      .4821182      .0060389      .0120785       .499973       1.00505  |
    6 |           x5      25.72258      26.31855     -.5959644     -.1000426      5.957105      .7659019  |
    7 |           x6      12.33189       12.8994     -.5675068     -.2533225      2.240254      .6135511  |
@@ -2960,9 +3130,12 @@ _treated |         N      mean        sd       min        p1       p10       p25
   .1499732973
   Kurtosis of matching weights:
   .0569705853
+  Maximum matching weight:
+  4.343313244
 
 . 
 . gmatch `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet cbps pooledvariance
+
   408 control obs (sum of weights = 802.3793)
   92 treatment obs (sum of weights = 180.1725)
   Step 1 (initial values from logit model):
@@ -2991,12 +3164,12 @@ Iteration 10:  f(p) =  1.347e-06
 Iteration 11:  f(p) =  1.347e-06  
 (switching technique to nr)
 Iteration 12:  f(p) =  1.337e-06  (not concave)
-Iteration 13:  f(p) =  8.478e-08  
-Iteration 14:  f(p) =  1.602e-08  
-Iteration 15:  f(p) =  7.712e-10  
-Iteration 16:  f(p) =  5.651e-13  
-Iteration 17:  f(p) =  5.938e-20  
-Iteration 18:  f(p) =  8.653e-26  
+Iteration 13:  f(p) =  2.180e-07  
+Iteration 14:  f(p) =  4.037e-08  
+Iteration 15:  f(p) =  1.744e-08  
+Iteration 16:  f(p) =  6.094e-11  
+Iteration 17:  f(p) =  7.299e-15  
+Iteration 18:  f(p) =  1.559e-25  
 
 Propensity score model coefficients                Number of obs  =        983
 Generalization of IPW/CPBS-type reweigting
@@ -3045,26 +3218,26 @@ _treated |         N      mean        sd       min        p1       p10       p25
                   1             2             3             4             5             6             7
      +---------------------------------------------------------------------------------------------------+
    1 |     Variable      mean (T)      mean (C)        diff()     stddiff()   sd (Pooled)    varratio()  |
-   2 |           x1      .4512231      .4512231      2.63e-12      5.28e-12      .4978686      1.004328  |
-   3 |        i1.x2      .0114039      .0114039      2.63e-13      2.47e-12      .1062323      1.004328  |
-   4 |        i1.x3      .0240637      .0240637      3.94e-13      2.57e-12      .1533251      1.004328  |
-   5 |           x4      .4218861      .4218861      7.43e-13      1.50e-12       .494112      1.004328  |
-   6 |           x5      25.44699      25.44699      1.28e-11      1.92e-12      6.665558      .6144662  |
-   7 |           x6      11.84757      11.84757      1.34e-11      6.54e-12      2.042375      .5982513  |
-   8 |           x7      7.015422      7.015422     -1.00e-11     -3.00e-12      3.345323      1.161761  |
-   9 |          x90      .0839738      .0839738     -1.05e-14     -1.02e-14        1.0258      .8505325  |
-  10 |          x91     -.0648837     -.0648837      3.35e-12      3.56e-12       .941106      .9922891  |
-  11 |          x92      .0575388      .0575388     -1.11e-12     -1.12e-12      .9892732      1.118263  |
-  12 |          x93      .1016523      .1016523     -1.98e-12     -2.11e-12      .9410813      1.012572  |
-  13 |          x94     -.1252265     -.1252265      1.63e-12      1.59e-12      1.026859      .7576623  |
-  14 |          x95     -.1044649     -.1044649      6.17e-13      6.40e-13      .9627688      .8646431  |
+   2 |           x1      .4512231      .4512231      9.30e-13      1.87e-12      .4978686      1.004328  |
+   3 |         1.x2      .0114039      .0114039     -6.32e-13     -5.95e-12      .1062323      1.004328  |
+   4 |         1.x3      .0240637      .0240637     -5.87e-13     -3.83e-12      .1533251      1.004328  |
+   5 |           x4      .4218861      .4218861      6.97e-13      1.41e-12       .494112      1.004328  |
+   6 |           x5      25.44699      25.44699     -2.09e-11     -3.14e-12      6.665558      .6144662  |
+   7 |           x6      11.84757      11.84757     -6.89e-12     -3.37e-12      2.042375      .5982513  |
+   8 |           x7      7.015422      7.015422     -9.29e-12     -2.78e-12      3.345323      1.161761  |
+   9 |          x90      .0839738      .0839738      3.32e-12      3.23e-12        1.0258      .8505325  |
+  10 |          x91     -.0648837     -.0648837      4.10e-12      4.35e-12       .941106      .9922891  |
+  11 |          x92      .0575388      .0575388     -3.05e-12     -3.08e-12      .9892732      1.118263  |
+  12 |          x93      .1016523      .1016523     -2.89e-12     -3.07e-12      .9410813      1.012572  |
+  13 |          x94     -.1252265     -.1252265      2.12e-13      2.06e-13      1.026859      .7576623  |
+  14 |          x95     -.1044649     -.1044649      3.15e-12      3.27e-12      .9627688      .8646431  |
      +---------------------------------------------------------------------------------------------------+
   Mean standardized diff., squared
-  2.32907e-24
+  7.00633e-25
   Mean absolute standardized diff.
-  2.48484e-12
+  3.04258e-12
   Maximum absolute standardized diff.
-  6.53792e-12
+  5.95172e-12
   C.V. of matching weights:
   .9311531747
   S.D. of matching weights:
@@ -3073,9 +3246,12 @@ _treated |         N      mean        sd       min        p1       p10       p25
   .1133761595
   Kurtosis of matching weights:
   .0229016822
+  Maximum matching weight:
+  7.007741999
 
 . 
 . gmatch `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet cbps ipw pooledvariance
+
   408 control obs (sum of weights = 802.3793)
   92 treatment obs (sum of weights = 180.1725)
   Step 1 (initial values from logit model):
@@ -3156,8 +3332,8 @@ _treated |         N      mean        sd       min        p1       p10       p25
      +---------------------------------------------------------------------------------------------------+
    1 |     Variable      mean (T)      mean (C)        diff()     stddiff()   sd (Pooled)    varratio()  |
    2 |           x1      .4512231      .4553292      -.004106      -.008242       .498186      1.002774  |
-   3 |        i1.x2      .0114039      .0111962      .0002076      .0019689      .1054487      1.022737  |
-   4 |        i1.x3      .0240637      .0242798     -.0002161     -.0014043      .1538723      .9956099  |
+   3 |         1.x2      .0114039      .0111962      .0002076      .0019689      .1054487      1.022737  |
+   4 |         1.x3      .0240637      .0242798     -.0002161     -.0014043      .1538723      .9956099  |
    5 |           x4      .4218861      .4235251      -.001639     -.0033156       .494322      1.003286  |
    6 |           x5      25.44699      25.39436      .0526224      .0078927      6.667188      .6141311  |
    7 |           x6      11.84757      11.82507      .0224988      .0110125      2.043017      .5978372  |
@@ -3183,10 +3359,13 @@ _treated |         N      mean        sd       min        p1       p10       p25
   .1127627417
   Kurtosis of matching weights:
   .0230489168
+  Maximum matching weight:
+  7.10958804
 
 . 
 . // Other objective functions
-. gmatch `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet mean_sd_sq treatvariance difficult
+. gmatch `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet mean_sd_sq treatvariance difficult nonrtolerance
+
   408 control obs (sum of weights = 802.3793)
   92 treatment obs (sum of weights = 180.1725)
   Step 1 (initial values from logit model):
@@ -3216,42 +3395,7 @@ flat or discontinuous region encountered
 Iteration 3:   f(p) =  1.762e-13  
 numerical derivatives are approximate
 flat or discontinuous region encountered
-numerical derivatives are approximate
-flat or discontinuous region encountered
 Iteration 4:   f(p) =  1.968e-21  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 5:   f(p) =  4.929e-33  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 6:   f(p) =  4.437e-33  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 7:   f(p) =  4.120e-33  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 8:   f(p) =  3.603e-33  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 9:   f(p) =  1.521e-33  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 10:  f(p) =  8.788e-34  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 11:  f(p) =  8.574e-34  (backed up)
 
 Propensity score model coefficients                Number of obs  =        983
 Generalization of IPW/CPBS-type reweigting
@@ -3301,8 +3445,8 @@ _treated |         N      mean        sd       min        p1       p10       p25
      +---------------------------------------------------------------------------------------------------+
    1 |     Variable      mean (T)      mean (C)        diff()     stddiff()   sd (Pooled)    varratio()  |
    2 |           x1      .4512231       .487981     -.0367579     -.0735301      .4999024      .9953452  |
-   3 |        i1.x2      .0114039      .0101189      .0012849      .0126869      .1012806      1.130392  |
-   4 |        i1.x3      .0240637      .0243904     -.0003267     -.0021194      .1541516       .991207  |
+   3 |         1.x2      .0114039      .0101189      .0012849      .0126869      .1012806      1.130392  |
+   4 |         1.x3      .0240637      .0243904     -.0003267     -.0021194      .1541516       .991207  |
    5 |           x4      .4218861      .4077073      .0141788      .0288106      .4921399      1.014377  |
    6 |           x5      25.44699      25.93854     -.4915548     -.0719755      6.829476      .5820455  |
    7 |           x6      11.84757      11.77832      .0692519      .0336233      2.059639      .5870658  |
@@ -3317,20 +3461,23 @@ _treated |         N      mean        sd       min        p1       p10       p25
   Mean standardized diff., squared
   1.53257e-07
   Mean absolute standardized diff.
-  .0301340146
+  .0301340147
   Maximum absolute standardized diff.
-  .0735301422
+  .0735301424
   C.V. of matching weights:
   .963205406
   S.D. of matching weights:
-  .961247478
+  .9612474781
   Skewness of matching weights:
-  .1583249611
+  .1583249612
   Kurtosis of matching weights:
-  .0508875834
+  .0508875835
+  Maximum matching weight:
+  10.57744042
 
 . 
-. gmatch `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet sd_sq treatvariance difficult
+. gmatch `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet sd_sq treatvariance difficult nonrtolerance
+
   408 control obs (sum of weights = 802.3793)
   92 treatment obs (sum of weights = 180.1725)
   Step 1 (initial values from logit model):
@@ -3440,304 +3587,7 @@ flat or discontinuous region encountered
 Iteration 29:  f(p) =  5.179e-06  
 numerical derivatives are approximate
 flat or discontinuous region encountered
-numerical derivatives are approximate
-flat or discontinuous region encountered
 Iteration 30:  f(p) =  5.179e-06  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 31:  f(p) =  5.179e-06  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 32:  f(p) =  5.179e-06  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 33:  f(p) =  5.179e-06  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-BFGS stepping has contracted, resetting BFGS Hessian
-Iteration 34:  f(p) =  5.179e-06  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 35:  f(p) =  4.398e-06  
-(switching technique to nr)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 36:  f(p) =  4.273e-06  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 37:  f(p) =  4.184e-06  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 38:  f(p) =  3.832e-06  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 39:  f(p) =  3.682e-06  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 40:  f(p) =  3.499e-06  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 41:  f(p) =  3.318e-06  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 42:  f(p) =  3.153e-06  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 43:  f(p) =  3.041e-06  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 44:  f(p) =  2.857e-06  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 45:  f(p) =  2.695e-06  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 46:  f(p) =  2.269e-06  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 47:  f(p) =  2.002e-06  (not concave)
-(switching technique to bfgs)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 48:  f(p) =  1.416e-06  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 49:  f(p) =  2.825e-07  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 50:  f(p) =  2.063e-08  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 51:  f(p) =  6.982e-09  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 52:  f(p) =  2.797e-09  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 53:  f(p) =  5.554e-10  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 54:  f(p) =  7.404e-12  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-BFGS stepping has contracted, resetting BFGS Hessian
-Iteration 55:  f(p) =  7.404e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 56:  f(p) =  7.320e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 57:  f(p) =  6.368e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 58:  f(p) =  5.709e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 59:  f(p) =  5.695e-12  (backed up)
-(switching technique to nr)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 60:  f(p) =  4.944e-12  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 61:  f(p) =  4.944e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 62:  f(p) =  4.944e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 63:  f(p) =  4.944e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 64:  f(p) =  4.944e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 65:  f(p) =  4.944e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 66:  f(p) =  4.944e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 67:  f(p) =  4.944e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 68:  f(p) =  4.944e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 69:  f(p) =  4.944e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 70:  f(p) =  4.944e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 71:  f(p) =  4.944e-12  (backed up)
-(switching technique to bfgs)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-BFGS stepping has contracted, resetting BFGS Hessian
-Iteration 72:  f(p) =  4.944e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 73:  f(p) =  4.599e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 74:  f(p) =  4.505e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 75:  f(p) =  4.505e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-BFGS stepping has contracted, resetting BFGS Hessian
-Iteration 76:  f(p) =  4.505e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 77:  f(p) =  4.297e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 78:  f(p) =  4.126e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 79:  f(p) =  4.126e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-BFGS stepping has contracted, resetting BFGS Hessian
-Iteration 80:  f(p) =  4.126e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 81:  f(p) =  3.995e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 82:  f(p) =  3.899e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 83:  f(p) =  3.899e-12  (backed up)
-(switching technique to nr)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 84:  f(p) =  3.899e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 85:  f(p) =  3.899e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 86:  f(p) =  3.899e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 87:  f(p) =  3.899e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 88:  f(p) =  3.899e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 89:  f(p) =  3.899e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 90:  f(p) =  3.899e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 91:  f(p) =  3.899e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 92:  f(p) =  3.899e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 93:  f(p) =  3.899e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 94:  f(p) =  3.899e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 95:  f(p) =  3.899e-12  (backed up)
-(switching technique to bfgs)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-BFGS stepping has contracted, resetting BFGS Hessian
-Iteration 96:  f(p) =  3.899e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 97:  f(p) =  3.799e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 98:  f(p) =  3.795e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-BFGS stepping has contracted, resetting BFGS Hessian
-Iteration 99:  f(p) =  3.795e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 100: f(p) =  3.719e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 101: f(p) =  3.716e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 102: f(p) =  3.716e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 103: f(p) =  3.716e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-BFGS stepping has contracted, resetting BFGS Hessian
-Iteration 104: f(p) =  3.716e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 105: f(p) =  3.657e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 106: f(p) =  3.652e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-BFGS stepping has contracted, resetting BFGS Hessian
-Iteration 107: f(p) =  3.652e-12  (backed up)
-(switching technique to nr)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 108: f(p) =  3.605e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 109: f(p) =  3.605e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 110: f(p) =  3.605e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 111: f(p) =  3.605e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 112: f(p) =  3.605e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 113: f(p) =  3.605e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 114: f(p) =  3.605e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 115: f(p) =  3.605e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 116: f(p) =  3.605e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 117: f(p) =  3.605e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 118: f(p) =  3.605e-12  (backed up)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 119: f(p) =  3.605e-12  (backed up)
-(switching technique to bfgs)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-BFGS stepping has contracted, resetting BFGS Hessian
-Iteration 120: f(p) =  3.605e-12  (backed up)
-convergence not achieved
 
 Propensity score model coefficients                Number of obs  =        983
 Generalization of IPW/CPBS-type reweigting
@@ -3745,20 +3595,20 @@ Loss = stddiff():^2
 ------------------------------------------------------------------------------
              |      Coef.
 -------------+----------------------------------------------------------------
-          x1 |  -1.447044
-        1.x2 |  -1.546894
-        1.x3 |  -.4710681
-          x4 |  -.3822578
-          x5 |    .063582
-          x6 |   -.243227
-          x7 |   .0477027
-         x90 |   .1334986
-         x91 |  -.1336114
-         x92 |   .1522938
-         x93 |   .0757728
-         x94 |  -.1016168
-         x95 |  -.0383397
-       _cons |   1.396245
+          x1 |  -1.447109
+        1.x2 |  -1.571376
+        1.x3 |  -.4638657
+          x4 |  -.3821818
+          x5 |   .0635818
+          x6 |  -.2432687
+          x7 |   .0476897
+         x90 |   .1335782
+         x91 |  -.1335075
+         x92 |   .1521844
+         x93 |   .0756626
+         x94 |  -.1016406
+         x95 |  -.0385685
+       _cons |   1.396111
 ------------------------------------------------------------------------------
 
 New variables (unweighted summary statistics)
@@ -3768,17 +3618,17 @@ Summary for variables: _weight _weight_mtch _pscore
 
 _treated |         N      mean        sd       min        p1       p10       p25       p50       p75       p90       p99       max
 ---------+------------------------------------------------------------------------------------------------------------------------
-       0 |       408      1.97      2.14     .0807      .208      .375      .695      1.17      2.44      4.62      9.71      16.8
-         |       408      .995      1.03      .043      .118      .207       .36       .61      1.22       2.3      4.75      7.01
-         |       408      .273      .165     .0204     .0539     .0911      .149      .228      .371      .527      .697      .773
+       0 |       408      1.97      2.14     .0787      .208      .374      .695      1.17      2.44      4.63      9.71      16.8
+         |       408      .995      1.03      .042      .118      .207       .36       .61      1.21       2.3      4.74      7.01
+         |       408      .273      .165     .0199     .0539     .0911      .149      .228       .37      .527      .697      .772
 ---------+------------------------------------------------------------------------------------------------------------------------
        1 |        92      1.96      .391      .877      .877      1.39      1.72         2      2.25      2.45      2.67      2.67
          |        92         1         0         1         1         1         1         1         1         1         1         1
-         |        92      .423      .188     .0951     .0951      .188       .24      .409      .569      .665      .829      .829
+         |        92      .423      .188      .095      .095      .188       .24      .409      .569      .665      .829      .829
 ---------+------------------------------------------------------------------------------------------------------------------------
-   Total |       500      1.97      1.94     .0807      .209      .419      .781      1.46      2.33      4.12      9.63      16.8
-         |       500      .996      .928      .043      .119      .228      .398      .809      1.04      2.05      4.72      7.01
-         |       500      .301      .179     .0204     .0547     .0992      .161      .251      .415      .582      .762      .829
+   Total |       500      1.97      1.94     .0787      .209      .419      .781      1.46      2.33      4.12      9.63      16.8
+         |       500      .996      .928      .042      .119      .228      .398      .809      1.04      2.05      4.72      7.01
+         |       500      .301      .179     .0199     .0547     .0992      .161      .251      .415      .582      .761      .829
 ----------------------------------------------------------------------------------------------------------------------------------
 
 . gmatchcall balanceresults()
@@ -3786,34 +3636,36 @@ _treated |         N      mean        sd       min        p1       p10       p25
                   1             2             3             4             5             6             7
      +---------------------------------------------------------------------------------------------------+
    1 |     Variable      mean (T)      mean (C)        diff()     stddiff()   sd (Pooled)    varratio()  |
-   2 |           x1      .4512231      .4512235     -3.77e-07     -7.57e-07      .4978686      1.004328  |
-   3 |        i1.x2      .0114039      .0114038      6.35e-08      5.98e-07      .1062321      1.004333  |
-   4 |        i1.x3      .0240637      .0240636      1.33e-07      8.64e-07      .1533247      1.004333  |
-   5 |           x4      .4218861      .4218856      4.73e-07      9.57e-07       .494112      1.004328  |
-   6 |           x5      25.44699      25.44698      3.04e-06      4.56e-07      6.665556      .6144666  |
-   7 |           x6      11.84757      11.84757     -4.02e-08     -1.97e-08      2.042375      .5982513  |
-   8 |           x7      7.015422      7.015421      5.44e-07      1.63e-07      3.345323      1.161761  |
-   9 |          x90      .0839738      .0839734      3.95e-07      3.85e-07        1.0258      .8505323  |
-  10 |          x91     -.0648837     -.0648837      2.53e-08      2.69e-08      .9411061      .9922888  |
-  11 |          x92      .0575388       .057539     -2.88e-07     -2.91e-07       .989273      1.118263  |
-  12 |          x93      .1016523      .1016521      2.41e-07      2.57e-07      .9410814      1.012572  |
-  13 |          x94     -.1252265     -.1252263     -2.06e-07     -2.00e-07      1.026859      .7576623  |
-  14 |          x95     -.1044649     -.1044655      5.14e-07      5.34e-07      .9627687      .8646432  |
+   2 |           x1      .4512231      .4512946     -.0000714     -.0001434      .4978743        1.0043  |
+   3 |         1.x2      .0114039      .0111656      .0002382      .0022616      .1053327      1.025508  |
+   4 |         1.x3      .0240637      .0241179     -.0000542      -.000353      .1534625      1.002127  |
+   5 |           x4      .4218861      .4219384     -.0000523     -.0001058      .4941188      1.004294  |
+   6 |           x5      25.44699      25.44684      .0001492      .0000224      6.665751      .6144257  |
+   7 |           x6      11.84757      11.84744      .0001344      .0000658      2.042317      .5982897  |
+   8 |           x7      7.015422      7.015337      .0000843      .0000252      3.345434      1.161663  |
+   9 |          x90      .0839738      .0840113     -.0000375     -.0000366      1.025758      .8506137  |
+  10 |          x91     -.0648837      -.064865     -.0000187     -.0000199      .9411409      .9921992  |
+  11 |          x92      .0575388      .0575174      .0000213      .0000216      .9893477      1.118052  |
+  12 |          x93      .1016523      .1015999      .0000524      .0000557      .9410858       1.01256  |
+  13 |          x94     -.1252265     -.1252283      1.84e-06      1.79e-06       1.02687      .7576427  |
+  14 |          x95     -.1044649     -.1045254      .0000604      .0000628        .96279      .8645977  |
      +---------------------------------------------------------------------------------------------------+
   Mean standardized diff., squared
-  5.22277e-14
+  2.04301e-08
   Mean absolute standardized diff.
-  4.23741e-07
+  .0002442634
   Maximum absolute standardized diff.
-  9.57275e-07
+  .0022615675
   C.V. of matching weights:
-  .9311524509
+  .931419541
   S.D. of matching weights:
-  .9276058539
+  .9278680864
   Skewness of matching weights:
-  .1133761002
+  .113348251
   Kurtosis of matching weights:
-  .0229016566
+  .0228902054
+  Maximum matching weight:
+  7.008575144
 
 . 
 . // IPW
@@ -3932,6 +3784,7 @@ TME1                    |
 
 . 
 . gmatch `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet ipw treatvariance
+
   408 control obs (sum of weights = 802.3793)
   92 treatment obs (sum of weights = 180.1725)
 initial:       f(p) = -681.05307
@@ -3992,8 +3845,8 @@ _treated |         N      mean        sd       min        p1       p10       p25
      +---------------------------------------------------------------------------------------------------+
    1 |     Variable      mean (T)      mean (C)        diff()     stddiff()   sd (Pooled)    varratio()  |
    2 |           x1      .4512231      .4574808     -.0062577     -.0125569      .4983432      1.002016  |
-   3 |        i1.x2      .0114039      .0104612      .0009427      .0091856       .102624      1.093786  |
-   4 |        i1.x3      .0240637      .0241722     -.0001085     -.0007062         .1536      .9999323  |
+   3 |         1.x2      .0114039      .0104612      .0009427      .0091856       .102624      1.093786  |
+   4 |         1.x3      .0240637      .0241722     -.0001085     -.0007062         .1536      .9999323  |
    5 |           x4      .4218861      .4314162     -.0095301     -.0192417      .4952809      .9986039  |
    6 |           x5      25.44699      25.25275      .1942356      .0287189      6.763337      .5945665  |
    7 |           x6      11.84757      11.67955      .1680205      .0822363      2.043144      .5984287  |
@@ -4019,17 +3872,20 @@ _treated |         N      mean        sd       min        p1       p10       p25
   .1299791235
   Kurtosis of matching weights:
   .0329058944
+  Maximum matching weight:
+  9.036805568
 
 . gmatchcall reweight()
 
 . gmatchcall balanceresults()
+  Unmatched data
   Balance table:
                   1             2             3             4             5             6             7
      +---------------------------------------------------------------------------------------------------+
    1 |     Variable      mean (T)      mean (C)        diff()     stddiff()   sd (Pooled)    varratio()  |
    2 |           x1      .4673913      .4653368      .0020545      .0041146      .4993249      1.009059  |
-   3 |        i1.x2      .0108696      .0107485      .0001211      .0011718      .1033261      1.019734  |
-   4 |        i1.x3      .0217391      .0242844     -.0025453     -.0166769      .1526231      .9051513  |
+   3 |         1.x2      .0108696      .0107485      .0001211      .0011718      .1033261      1.019734  |
+   4 |         1.x3      .0217391      .0242844     -.0025453     -.0166769      .1526231      .9051513  |
    5 |           x4      .4347826      .4280333      .0067493      .0136219      .4954712      1.012313  |
    6 |           x5      25.46739      25.44732      .0200675      .0029485      6.806091      .5905162  |
    7 |           x6      11.86957      11.69122      .1783475      .0873876       2.04088      .5691173  |
@@ -4055,9 +3911,12 @@ _treated |         N      mean        sd       min        p1       p10       p25
   .
   Kurtosis of matching weights:
   .
+  Maximum matching weight:
+  1
 
 . 
 . gmatch `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet ipw averagevariance
+
   408 control obs (sum of weights = 802.3793)
   92 treatment obs (sum of weights = 180.1725)
 initial:       f(p) = -681.05307
@@ -4118,8 +3977,8 @@ _treated |         N      mean        sd       min        p1       p10       p25
      +---------------------------------------------------------------------------------------------------+
    1 |     Variable      mean (T)      mean (C)        diff()     stddiff()   sd (Pooled)    varratio()  |
    2 |           x1      .4512231      .4574808     -.0062577     -.0125569      .4983432      1.002016  |
-   3 |        i1.x2      .0114039      .0104612      .0009427      .0091856       .102624      1.093786  |
-   4 |        i1.x3      .0240637      .0241722     -.0001085     -.0007062         .1536      .9999323  |
+   3 |         1.x2      .0114039      .0104612      .0009427      .0091856       .102624      1.093786  |
+   4 |         1.x3      .0240637      .0241722     -.0001085     -.0007062         .1536      .9999323  |
    5 |           x4      .4218861      .4314162     -.0095301     -.0192417      .4952809      .9986039  |
    6 |           x5      25.44699      25.25275      .1942356      .0287189      6.763337      .5945665  |
    7 |           x6      11.84757      11.67955      .1680205      .0822363      2.043144      .5984287  |
@@ -4145,6 +4004,8 @@ _treated |         N      mean        sd       min        p1       p10       p25
   .1299791235
   Kurtosis of matching weights:
   .0329058944
+  Maximum matching weight:
+  9.036805568
 
 . 
 . teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' [iw=`wgtvar'], ate aequations
@@ -4190,6 +4051,7 @@ TME1                    |
 -----------------------------------------------------------------------------------------
 
 . gmatch `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], ate ipw treatvariance
+
   408 control obs (sum of weights = 802.3793)
   92 treatment obs (sum of weights = 180.1725)
 initial:       f(p) = -681.05307
@@ -4250,8 +4112,8 @@ _treated |         N      mean        sd       min        p1       p10       p25
      +---------------------------------------------------------------------------------------------------+
    1 |     Variable      mean (T)      mean (C)        diff()     stddiff()   sd (Pooled)    varratio()  |
    2 |           x1      .6613089      .6933653     -.0320564     -.0691239      .4637537      1.058036  |
-   3 |        i1.x2      .0128589      .0239773     -.0111184     -.0758638      .1465574      .5447519  |
-   4 |        i1.x3      .0265737      .0393435     -.0127698     -.0676144      .1888625      .6873677  |
+   3 |         1.x2      .0128589      .0239773     -.0111184     -.0758638      .1465574      .5447519  |
+   4 |         1.x3      .0265737      .0393435     -.0127698     -.0676144      .1888625      .6873677  |
    5 |           x4      .4958234      .4853442      .0104792      .0209545      .5000924      1.005121  |
    6 |           x5      25.79221      26.26742     -.4752185     -.0797142      5.961531      .7434191  |
    7 |           x6      12.37135      12.88246     -.5111083     -.2278712       2.24297      .6063944  |
@@ -4277,6 +4139,8 @@ _treated |         N      mean        sd       min        p1       p10       p25
   .1624622214
   Kurtosis of matching weights:
   .0662787313
+  Maximum matching weight:
+  4.725180198
 
 . 
 . teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' [iw=`wgtvar'], atet aequations tlevel(0) control(1)
@@ -4322,6 +4186,7 @@ TME0                    |
 -----------------------------------------------------------------------------------------
 
 . gmatch `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], ateu ipw treatvariance
+
   408 control obs (sum of weights = 802.3793)
   92 treatment obs (sum of weights = 180.1725)
 initial:       f(p) = -681.05307
@@ -4379,6 +4244,7 @@ _treated |         N      mean        sd       min        p1       p10       p25
 . 
 . // tradeoff between CBPS-like balance and variance in weights
 . gmatch `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet cbps treatvariance
+
   408 control obs (sum of weights = 802.3793)
   92 treatment obs (sum of weights = 180.1725)
   Step 1 (initial values from logit model):
@@ -4407,12 +4273,12 @@ Iteration 10:  f(p) =  1.347e-06
 Iteration 11:  f(p) =  1.347e-06  
 (switching technique to nr)
 Iteration 12:  f(p) =  1.337e-06  (not concave)
-Iteration 13:  f(p) =  8.478e-08  
-Iteration 14:  f(p) =  1.602e-08  
-Iteration 15:  f(p) =  7.712e-10  
-Iteration 16:  f(p) =  5.651e-13  
-Iteration 17:  f(p) =  5.938e-20  
-Iteration 18:  f(p) =  8.653e-26  
+Iteration 13:  f(p) =  2.180e-07  
+Iteration 14:  f(p) =  4.037e-08  
+Iteration 15:  f(p) =  1.744e-08  
+Iteration 16:  f(p) =  6.094e-11  
+Iteration 17:  f(p) =  7.299e-15  
+Iteration 18:  f(p) =  1.559e-25  
 
 Propensity score model coefficients                Number of obs  =        983
 Generalization of IPW/CPBS-type reweigting
@@ -4461,26 +4327,26 @@ _treated |         N      mean        sd       min        p1       p10       p25
                   1             2             3             4             5             6             7
      +---------------------------------------------------------------------------------------------------+
    1 |     Variable      mean (T)      mean (C)        diff()     stddiff()   sd (Pooled)    varratio()  |
-   2 |           x1      .4512231      .4512231      2.63e-12      5.28e-12      .4978686      1.004328  |
-   3 |        i1.x2      .0114039      .0114039      2.63e-13      2.47e-12      .1062323      1.004328  |
-   4 |        i1.x3      .0240637      .0240637      3.94e-13      2.57e-12      .1533251      1.004328  |
-   5 |           x4      .4218861      .4218861      7.43e-13      1.50e-12       .494112      1.004328  |
-   6 |           x5      25.44699      25.44699      1.28e-11      1.92e-12      6.665558      .6144662  |
-   7 |           x6      11.84757      11.84757      1.34e-11      6.54e-12      2.042375      .5982513  |
-   8 |           x7      7.015422      7.015422     -1.00e-11     -3.00e-12      3.345323      1.161761  |
-   9 |          x90      .0839738      .0839738     -1.05e-14     -1.02e-14        1.0258      .8505325  |
-  10 |          x91     -.0648837     -.0648837      3.35e-12      3.56e-12       .941106      .9922891  |
-  11 |          x92      .0575388      .0575388     -1.11e-12     -1.12e-12      .9892732      1.118263  |
-  12 |          x93      .1016523      .1016523     -1.98e-12     -2.11e-12      .9410813      1.012572  |
-  13 |          x94     -.1252265     -.1252265      1.63e-12      1.59e-12      1.026859      .7576623  |
-  14 |          x95     -.1044649     -.1044649      6.17e-13      6.40e-13      .9627688      .8646431  |
+   2 |           x1      .4512231      .4512231      9.30e-13      1.87e-12      .4978686      1.004328  |
+   3 |         1.x2      .0114039      .0114039     -6.32e-13     -5.95e-12      .1062323      1.004328  |
+   4 |         1.x3      .0240637      .0240637     -5.87e-13     -3.83e-12      .1533251      1.004328  |
+   5 |           x4      .4218861      .4218861      6.97e-13      1.41e-12       .494112      1.004328  |
+   6 |           x5      25.44699      25.44699     -2.09e-11     -3.14e-12      6.665558      .6144662  |
+   7 |           x6      11.84757      11.84757     -6.89e-12     -3.37e-12      2.042375      .5982513  |
+   8 |           x7      7.015422      7.015422     -9.29e-12     -2.78e-12      3.345323      1.161761  |
+   9 |          x90      .0839738      .0839738      3.32e-12      3.23e-12        1.0258      .8505325  |
+  10 |          x91     -.0648837     -.0648837      4.10e-12      4.35e-12       .941106      .9922891  |
+  11 |          x92      .0575388      .0575388     -3.05e-12     -3.08e-12      .9892732      1.118263  |
+  12 |          x93      .1016523      .1016523     -2.89e-12     -3.07e-12      .9410813      1.012572  |
+  13 |          x94     -.1252265     -.1252265      2.12e-13      2.06e-13      1.026859      .7576623  |
+  14 |          x95     -.1044649     -.1044649      3.15e-12      3.27e-12      .9627688      .8646431  |
      +---------------------------------------------------------------------------------------------------+
   Mean standardized diff., squared
-  2.32907e-24
+  7.00633e-25
   Mean absolute standardized diff.
-  2.48484e-12
+  3.04258e-12
   Maximum absolute standardized diff.
-  6.53792e-12
+  5.95172e-12
   C.V. of matching weights:
   .9311531747
   S.D. of matching weights:
@@ -4489,12 +4355,18 @@ _treated |         N      mean        sd       min        p1       p10       p25
   .1133761595
   Kurtosis of matching weights:
   .0229016822
+  Maximum matching weight:
+  7.007741999
 
 . 
-. gmatch `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet cbps treatvariance cvopt(1 .75 6)
+. gmatch `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet cbps treatvariance cvtarget(1 .75 6)
+
+_cvopt:         1 .75 6
   408 control obs (sum of weights = 802.3793)
   92 treatment obs (sum of weights = 180.1725)
-Warning: cvopt does not appear to substantially affect the reults with fctn=cbps. Consider switching to fctn=sd_sq or mean_sd_sq
+
+Warning: cvopt does not appear to substantially affect the reults with fctn=cbps_port_r. Consider switching to fctn=sd_sq or mean_sd_sq
+
   Step 1 (initial values from logit model):
 initial:       f(p) = -681.05307
 alternative:   f(p) =  -555.8915
@@ -4528,7 +4400,7 @@ Iteration 16:  f(p) =  .17797852  (backed up)
 
 Propensity score model coefficients                Number of obs  =        983
 Generalization of IPW/CPBS-type reweigting
-Loss = CBPS + 1*abs(CV-.75)^ 6)
+Loss = CBPS + 1*abs(CV-.75)^6)
 ------------------------------------------------------------------------------
              |      Coef.
 -------------+----------------------------------------------------------------
@@ -4574,8 +4446,8 @@ _treated |         N      mean        sd       min        p1       p10       p25
      +---------------------------------------------------------------------------------------------------+
    1 |     Variable      mean (T)      mean (C)        diff()     stddiff()   sd (Pooled)    varratio()  |
    2 |           x1      .4512231      .4512254     -2.28e-06     -4.58e-06      .4978687      1.004327  |
-   3 |        i1.x2      .0114039      .0114028      1.10e-06      .0000103      .1062282      1.004424  |
-   4 |        i1.x3      .0240637      .0240619      1.83e-06      .0000119      .1533204      1.004402  |
+   3 |         1.x2      .0114039      .0114028      1.10e-06      .0000103      .1062282      1.004424  |
+   4 |         1.x3      .0240637      .0240619      1.83e-06      .0000119      .1533204      1.004402  |
    5 |           x4      .4218861      .4218858      3.47e-07      7.02e-07       .494112      1.004328  |
    6 |           x5      25.44699      25.44699     -7.28e-08     -1.09e-08      6.665551      .6144678  |
    7 |           x6      11.84757      11.84758     -7.96e-06     -3.90e-06      2.042376      .5982507  |
@@ -4601,12 +4473,18 @@ _treated |         N      mean        sd       min        p1       p10       p25
   .1133752165
   Kurtosis of matching weights:
   .0229012841
+  Maximum matching weight:
+  7.007610302
 
 . 
-. gmatch `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet cbps treatvariance cvopt(1 .50 6)
+. gmatch `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet cbps treatvariance cvtarget(1 .50 6)
+
+_cvopt:         1 .5 6
   408 control obs (sum of weights = 802.3793)
   92 treatment obs (sum of weights = 180.1725)
-Warning: cvopt does not appear to substantially affect the reults with fctn=cbps. Consider switching to fctn=sd_sq or mean_sd_sq
+
+Warning: cvopt does not appear to substantially affect the reults with fctn=cbps_port_r. Consider switching to fctn=sd_sq or mean_sd_sq
+
   Step 1 (initial values from logit model):
 initial:       f(p) = -681.05307
 alternative:   f(p) =  -555.8915
@@ -4640,7 +4518,7 @@ Iteration 16:  f(p) =    .015625
 
 Propensity score model coefficients                Number of obs  =        983
 Generalization of IPW/CPBS-type reweigting
-Loss = CBPS + 1*abs(CV-.5)^ 6)
+Loss = CBPS + 1*abs(CV-.5)^6)
 ------------------------------------------------------------------------------
              |      Coef.
 -------------+----------------------------------------------------------------
@@ -4686,8 +4564,8 @@ _treated |         N      mean        sd       min        p1       p10       p25
      +---------------------------------------------------------------------------------------------------+
    1 |     Variable      mean (T)      mean (C)        diff()     stddiff()   sd (Pooled)    varratio()  |
    2 |           x1      .4512231      .4512233     -1.29e-07     -2.59e-07      .4978686      1.004328  |
-   3 |        i1.x2      .0114039      .0114038      5.58e-08      5.26e-07      .1062321      1.004333  |
-   4 |        i1.x3      .0240637      .0240636      8.93e-08      5.82e-07      .1533248      1.004332  |
+   3 |         1.x2      .0114039      .0114038      5.58e-08      5.26e-07      .1062321      1.004333  |
+   4 |         1.x3      .0240637      .0240636      8.93e-08      5.82e-07      .1533248      1.004332  |
    5 |           x4      .4218861      .4218861      2.19e-08      4.44e-08       .494112      1.004328  |
    6 |           x5      25.44699      25.44698      1.14e-06      1.71e-07      6.665558      .6144663  |
    7 |           x6      11.84757      11.84757      1.01e-07      4.93e-08      2.042375      .5982513  |
@@ -4713,9 +4591,13 @@ _treated |         N      mean        sd       min        p1       p10       p25
   .113376139
   Kurtosis of matching weights:
   .0229016766
+  Maximum matching weight:
+  7.007738018
 
 . 
-. gmatch `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet mean_sd_sq treatvariance cvopt(1 .75 6)
+. gmatch `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet mean_sd_sq treatvariance cvtarget(1 .75 6) difficult nonrtolerance
+
+_cvopt:         1 .75 6
   408 control obs (sum of weights = 802.3793)
   92 treatment obs (sum of weights = 180.1725)
   Step 1 (initial values from logit model):
@@ -4804,88 +4686,26 @@ Iteration 22:  f(p) =  7.528e-13  (not concave)
 numerical derivatives are approximate
 flat or discontinuous region encountered
 Iteration 23:  f(p) =  3.621e-14  (not concave)
-(switching technique to bfgs)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 24:  f(p) =  3.015e-16  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 25:  f(p) =  2.545e-16  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-BFGS stepping has contracted, resetting BFGS Hessian
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 26:  f(p) =  1.952e-16  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 27:  f(p) =  1.884e-16  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 28:  f(p) =  1.877e-16  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 29:  f(p) =  1.871e-16  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-BFGS stepping has contracted, resetting BFGS Hessian
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 30:  f(p) =  1.406e-16  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 31:  f(p) =  1.294e-16  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 32:  f(p) =  1.283e-16  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 33:  f(p) =  1.281e-16  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-BFGS stepping has contracted, resetting BFGS Hessian
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 34:  f(p) =  8.378e-17  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 35:  f(p) =  6.059e-17  
 
 Propensity score model coefficients                Number of obs  =        983
 Generalization of IPW/CPBS-type reweigting
-Loss = mean(stddiff())^2 + 1*abs(CV-.75)^ 6)
+Loss = mean(stddiff())^2 + 1*abs(CV-.75)^6)
 ------------------------------------------------------------------------------
              |      Coef.
 -------------+----------------------------------------------------------------
-          x1 |  -1.249359
-        1.x2 |  -1.626167
-        1.x3 |   -.480335
-          x4 |  -.2620107
-          x5 |   .0027239
-          x6 |  -.0355859
-          x7 |   -.017299
-         x90 |   .0149658
-         x91 |  -.1033867
-         x92 |   .1073471
-         x93 |  -.0849274
-         x94 |  -.0978388
-         x95 |  -.0325096
+          x1 |  -1.250887
+        1.x2 |  -1.626125
+        1.x3 |  -.4801982
+          x4 |  -.2620611
+          x5 |    .001825
+          x6 |  -.0353994
+          x7 |  -.0159779
+         x90 |   .0167523
+         x91 |  -.1024366
+         x92 |   .1101285
+         x93 |   -.084209
+         x94 |  -.0973872
+         x95 |  -.0309724
        _cons |   1.256772
 ------------------------------------------------------------------------------
 
@@ -4896,17 +4716,17 @@ Summary for variables: _weight _weight_mtch _pscore
 
 _treated |         N      mean        sd       min        p1       p10       p25       p50       p75       p90       p99       max
 ---------+------------------------------------------------------------------------------------------------------------------------
-       0 |       408      1.97       1.6      .203      .464       .81      .993      1.32      2.15      4.51      7.27      11.5
-         |       408      .995      .748      .106      .281      .439      .534      .665      1.01      2.27      3.43      4.13
-         |       408      .409      .144     .0821      .191       .27       .31      .359       .46      .657      .743      .777
+       0 |       408      1.97       1.6      .203      .463      .804      .989      1.32      2.14      4.57      7.32      11.6
+         |       408      .995      .752      .107       .28      .438      .529      .665      1.01      2.28      3.45      4.18
+         |       408      .406      .144     .0816      .189      .267      .306      .356      .456      .655      .742      .777
 ---------+------------------------------------------------------------------------------------------------------------------------
        1 |        92      1.96      .391      .877      .877      1.39      1.72         2      2.25      2.45      2.67      2.67
          |        92         1         0         1         1         1         1         1         1         1         1         1
-         |        92      .518      .155      .235      .235      .329      .369      .544      .661      .727      .761      .761
+         |        92      .516      .155      .234      .234      .326      .363      .542      .659      .726      .758      .758
 ---------+------------------------------------------------------------------------------------------------------------------------
-   Total |       500      1.97      1.45      .203       .48      .855      1.05       1.5      2.23      3.93      7.26      11.5
-         |       500      .996      .676      .106      .285      .461      .557      .771         1      2.16      3.41      4.13
-         |       500      .429      .152     .0821      .193      .278      .318      .373      .576      .669      .754      .777
+   Total |       500      1.97      1.46      .203      .477      .857      1.04      1.48      2.23      3.95      7.28      11.6
+         |       500      .996      .679      .107      .284       .46      .557      .768         1      2.16      3.42      4.18
+         |       500      .426      .152     .0816      .191      .275      .313       .37      .574      .666      .751      .777
 ----------------------------------------------------------------------------------------------------------------------------------
 
 . gmatchcall balanceresults()
@@ -4914,37 +4734,41 @@ _treated |         N      mean        sd       min        p1       p10       p25
                   1             2             3             4             5             6             7
      +---------------------------------------------------------------------------------------------------+
    1 |     Variable      mean (T)      mean (C)        diff()     stddiff()   sd (Pooled)    varratio()  |
-   2 |           x1      .4512231      .4707037     -.0194806     -.0390257      .4991726      .9981969  |
-   3 |        i1.x2      .0114039      .0096564      .0017475      .0175742      .0994351      1.183986  |
-   4 |        i1.x3      .0240637      .0211209      .0029428      .0202051      .1456466      1.140823  |
-   5 |           x4      .4218861      .5009078     -.0790217     -.1580213        .50007      .9798184  |
-   6 |           x5      25.44699      24.58965      .8573351      .1410292      6.079132      .7625045  |
-   7 |           x6      11.84757       12.4132     -.5656277     -.2649122      2.135152      .5476945  |
-   8 |           x7      7.015422      6.414085      .6013365      .1783132       3.37236      1.145332  |
-   9 |          x90      .0839738      .0118324      .0721414      .0700287      1.030169      .8427132  |
-  10 |          x91     -.0648837     -.0647897      -.000094     -.0000988       .951822      .9652767  |
-  11 |          x92      .0575388      .0752692     -.0177304       -.01771      1.001155      1.085538  |
-  12 |          x93      .1016523     -.0430683      .1447206      .1495886      .9674578      .9504488  |
-  13 |          x94     -.1252265     -.1245777     -.0006488      -.000653      .9935919      .8186894  |
-  14 |          x95     -.1044649     -.0773651     -.0270998     -.0280067       .967619      .8544649  |
+   2 |           x1      .4512231      .4687289     -.0175058     -.0350772      .4990637      .9986764  |
+   3 |         1.x2      .0114039      .0096578       .001746      .0175585       .099441      1.183809  |
+   4 |         1.x3      .0240637      .0211063      .0029574      .0203109      .1456074      1.141595  |
+   5 |           x4      .4218861      .5022246     -.0803385     -.1606454      .5000981      .9798346  |
+   6 |           x5      25.44699      24.55462      .8923685      .1468865      6.075225      .7638797  |
+   7 |           x6      11.84757      12.40719     -.5596197     -.2622338      2.134049      .5481983  |
+   8 |           x7      7.015422        6.4268      .5886214      .1746098      3.371067      1.146153  |
+   9 |          x90      .0839738      .0144905      .0694833      .0674373      1.030339      .8423287  |
+  10 |          x91     -.0648837     -.0638269     -.0010568     -.0011102      .9518936      .9651005  |
+  11 |          x92      .0575388      .0771211     -.0195823     -.0195593      1.001176      1.085495  |
+  12 |          x93      .1016523     -.0429273      .1445797      .1494642        .96732      .9507708  |
+  13 |          x94     -.1252265     -.1238912     -.0013353     -.0013443      .9932829      .8192923  |
+  14 |          x95     -.1044649     -.0760594     -.0284055     -.0293563      .9676111      .8544931  |
      +---------------------------------------------------------------------------------------------------+
   Mean standardized diff., squared
-  .0000276121
+  .000026515
   Mean absolute standardized diff.
-  .0834743602
+  .08350721
   Maximum absolute standardized diff.
-  .2649121871
+  .2622337606
   C.V. of matching weights:
-  .6784989247
+  .681672797
   S.D. of matching weights:
-  .6757422836
+  .6788132595
   Skewness of matching weights:
-  .0821280427
+  .0819061038
   Kurtosis of matching weights:
-  .0124375121
+  .0123408686
+  Maximum matching weight:
+  4.175475731
 
 . 
-. gmatch `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet mean_sd_sq treatvariance cvopt(1 .50 6)
+. gmatch `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet mean_sd_sq treatvariance cvtarget(1 .50 6) difficult nonrtolerance
+
+_cvopt:         1 .5 6
   408 control obs (sum of weights = 802.3793)
   92 treatment obs (sum of weights = 180.1725)
   Step 1 (initial values from logit model):
@@ -5048,136 +4872,27 @@ flat or discontinuous region encountered
 Iteration 27:  f(p) =  1.767e-07  
 numerical derivatives are approximate
 flat or discontinuous region encountered
-numerical derivatives are approximate
-flat or discontinuous region encountered
 Iteration 28:  f(p) =  1.767e-07  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 29:  f(p) =  1.746e-07  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 30:  f(p) =  1.639e-07  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 31:  f(p) =  1.616e-07  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 32:  f(p) =  1.615e-07  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 33:  f(p) =  1.615e-07  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 34:  f(p) =  1.615e-07  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 35:  f(p) =  1.615e-07  
-(switching technique to nr)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 36:  f(p) =  1.608e-07  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 37:  f(p) =  9.150e-08  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 38:  f(p) =  8.189e-08  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 39:  f(p) =  8.037e-08  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 40:  f(p) =  7.887e-08  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 41:  f(p) =  5.407e-08  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 42:  f(p) =  5.354e-08  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 43:  f(p) =  5.169e-08  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 44:  f(p) =  5.011e-08  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 45:  f(p) =  4.109e-08  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 46:  f(p) =  3.836e-08  (not concave)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 47:  f(p) =  3.530e-08  (not concave)
-(switching technique to bfgs)
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 48:  f(p) =  3.373e-08  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 49:  f(p) =  3.328e-08  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 50:  f(p) =  3.314e-08  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 51:  f(p) =  3.305e-08  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 52:  f(p) =  3.305e-08  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 53:  f(p) =  3.305e-08  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 54:  f(p) =  3.292e-08  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 55:  f(p) =  3.267e-08  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 56:  f(p) =  3.266e-08  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 57:  f(p) =  3.266e-08  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 58:  f(p) =  3.266e-08  
-numerical derivatives are approximate
-flat or discontinuous region encountered
-Iteration 59:  f(p) =  3.266e-08  
 
 Propensity score model coefficients                Number of obs  =        983
 Generalization of IPW/CPBS-type reweigting
-Loss = mean(stddiff())^2 + 1*abs(CV-.5)^ 6)
+Loss = mean(stddiff())^2 + 1*abs(CV-.5)^6)
 ------------------------------------------------------------------------------
              |      Coef.
 -------------+----------------------------------------------------------------
-          x1 |  -.8655475
-        1.x2 |  -2.012498
-        1.x3 |  -.5331544
-          x4 |  -.2009153
-          x5 |    .007492
-          x6 |  -.0269136
-          x7 |  -.0241029
-         x90 |  -.1063025
-         x91 |  -.1486143
-         x92 |  -.1173402
-         x93 |  -.0916431
-         x94 |   -.083443
-         x95 |  -.1485138
+          x1 |  -.9279058
+        1.x2 |  -2.022835
+        1.x3 |  -.5459885
+          x4 |  -.2018929
+          x5 |   .0110196
+          x6 |   -.026346
+          x7 |  -.0220848
+         x90 |  -.0596402
+         x91 |  -.1240135
+         x92 |  -.1052485
+         x93 |  -.0886826
+         x94 |  -.1176456
+         x95 |  -.1554268
        _cons |   1.248262
 ------------------------------------------------------------------------------
 
@@ -5188,17 +4903,17 @@ Summary for variables: _weight _weight_mtch _pscore
 
 _treated |         N      mean        sd       min        p1       p10       p25       p50       p75       p90       p99       max
 ---------+------------------------------------------------------------------------------------------------------------------------
-       0 |       408      1.97       1.2      .139      .294      .805      1.19      1.69      2.35      3.53       6.2       9.1
-         |       408      .998      .556     .0739      .158      .463      .631      .861      1.23      1.75      2.94      3.47
-         |       408      .529      .125     .0878       .17      .376      .451      .529      .615      .695      .793      .819
+       0 |       408      1.97      1.24      .142      .315       .82      1.16      1.65      2.34      3.63      6.43       8.6
+         |       408      .998      .573     .0757      .169       .46      .611      .847      1.22       1.8      2.86      3.76
+         |       408      .543      .127     .0957      .191      .391       .46      .542       .63      .715        .8       .84
 ---------+------------------------------------------------------------------------------------------------------------------------
        1 |        92      1.96      .391      .877      .877      1.39      1.72         2      2.25      2.45      2.67      2.67
          |        92         1         0         1         1         1         1         1         1         1         1         1
-         |        92      .602      .124      .218      .218       .45      .517      .599       .71      .743      .832      .832
+         |        92      .621      .125      .259      .259      .471      .533      .608      .732      .773      .859      .859
 ---------+------------------------------------------------------------------------------------------------------------------------
-   Total |       500      1.97       1.1      .139      .322      .882      1.25      1.78      2.32      3.26      6.11       9.1
-         |       500      .999      .502     .0739       .18       .51      .683       .98       1.1      1.62      2.91      3.47
-         |       500      .542      .128     .0878      .189      .393      .464      .536      .632      .716      .806      .832
+   Total |       500      1.97      1.13      .142      .334      .872      1.22      1.77      2.31      3.45      6.42       8.6
+         |       500      .998      .518     .0757      .186      .498      .672      .946       1.1      1.68      2.84      3.76
+         |       500      .558       .13     .0957      .206      .401      .475      .551       .65      .741       .82      .859
 ----------------------------------------------------------------------------------------------------------------------------------
 
 . gmatchcall balanceresults()
@@ -5206,39 +4921,184 @@ _treated |         N      mean        sd       min        p1       p10       p25
                   1             2             3             4             5             6             7
      +---------------------------------------------------------------------------------------------------+
    1 |     Variable      mean (T)      mean (C)        diff()     stddiff()   sd (Pooled)    varratio()  |
-   2 |           x1      .4512231      .5840585     -.1328353     -.2674487      .4966759      1.023703  |
-   3 |        i1.x2      .0114039      .0056038      .0058001      .0712341      .0814227      2.031914  |
-   4 |        i1.x3      .0240637      .0189987       .005065      .0362248      .1398222      1.265513  |
-   5 |           x4      .4218861      .4945447     -.0726586     -.1453459      .4999017      .9799319  |
-   6 |           x5      25.44699      25.48452     -.0375313     -.0061819      6.071139      .7621934  |
-   7 |           x6      11.84757      12.64643     -.7988609      -.364996      2.188684       .523746  |
-   8 |           x7      7.015422      6.453984      .5614375      .1651818      3.398906      1.122084  |
-   9 |          x90      .0839738     -.1127792       .196753      .1935523      1.016537       .874998  |
-  10 |          x91     -.0648837     -.1158463      .0509626      .0534391      .9536579       .961266  |
-  11 |          x92      .0575388     -.1337106      .1912494      .1903354      1.004802      1.083012  |
-  12 |          x93      .1016523     -.0386913      .1403437      .1416075       .991075      .8963407  |
-  13 |          x94     -.1252265       -.10533     -.0198964     -.0199874      .9954474      .8151421  |
-  14 |          x95     -.1044649     -.1864815      .0820166      .0844141      .9715984       .847116  |
+   2 |           x1      .4512231      .5725056     -.1212824     -.2436759      .4977203      1.016138  |
+   3 |         1.x2      .0114039      .0057765      .0056274      .0683984      .0822735      1.971509  |
+   4 |         1.x3      .0240637      .0181921      .0058716      .0426906      .1375382      1.320535  |
+   5 |           x4      .4218861      .4938066     -.0719205      -.143876      .4998787      .9799656  |
+   6 |           x5      25.44699      25.47069     -.0237034     -.0038777      6.112738      .7501178  |
+   7 |           x6      11.84757       12.6362     -.7886248     -.3608243       2.18562      .5251165  |
+   8 |           x7      7.015422      6.461128      .5542937      .1628873      3.402928      1.118612  |
+   9 |          x90      .0839738     -.0655233      .1494971      .1468554      1.017989      .8695271  |
+  10 |          x91     -.0648837     -.0950948      .0302111      .0317312      .9520949      .9647812  |
+  11 |          x92      .0575388     -.1252753       .182814      .1817862      1.005654      1.080092  |
+  12 |          x93      .1016523     -.0340662      .1357185      .1375851      .9864333      .9063256  |
+  13 |          x94     -.1252265     -.1411385      .0159121      .0159806      .9957118      .8146098  |
+  14 |          x95     -.1044649     -.1955261      .0910612       .093305       .975952      .8383981  |
      +---------------------------------------------------------------------------------------------------+
   Mean standardized diff., squared
-  .0001031463
+  .0000984155
   Mean absolute standardized diff.
-  .1338422282
+  .125651829
   Maximum absolute standardized diff.
-  .3649959793
+  .3608243097
   C.V. of matching weights:
-  .5024664337
+  .5189538034
   S.D. of matching weights:
-  .5018039097
+  .5179396558
   Skewness of matching weights:
-  .0741718418
+  .0763844765
   Kurtosis of matching weights:
-  .0140304783
+  .0142419673
+  Maximum matching weight:
+  3.764088498
+
+. 
+. // you can also target skiwness, kurtosis, or max weight, but it's finicky
+. 
+. capture nois {
+. gmatch `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet mean_sd_sq treatvariance maxtarget(1 10 2) difficult nonrtolerance
+
+_cvopt:         0 0 2 0 0 2 0 0 2 1 10 2
+  408 control obs (sum of weights = 802.3793)
+  92 treatment obs (sum of weights = 180.1725)
+  Step 1 (initial values from logit model):
+initial:       f(p) = -681.05307
+alternative:   f(p) =  -555.8915
+rescale:       f(p) = -485.05844
+Iteration 0:   f(p) = -485.05844  
+Iteration 1:   f(p) = -436.32795  
+Iteration 2:   f(p) = -411.28929  
+Iteration 3:   f(p) = -411.19869  
+Iteration 4:   f(p) = -411.19865  
+Iteration 5:   f(p) = -411.19865  
+  
+  Step 2 (CBPS) :
+numerical derivatives are approximate
+flat or discontinuous region encountered
+(setting technique to bfgs)
+Iteration 0:   f(p) =   .9280066  
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 1:   f(p) =  .08139982  (backed up)
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 2:   f(p) =  .01131328  
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 3:   f(p) =  .00131793  (backed up)
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 4:   f(p) =  .00061114  
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 5:   f(p) =  .00059138  
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 6:   f(p) =   .0002708  
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 7:   f(p) =  .00023009  
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 8:   f(p) =  .00007024  
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 9:   f(p) =  .00003343  
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 10:  f(p) =  6.729e-06  
+Iteration 11:  f(p) =  2.710e-08  
+(switching technique to nr)
+Iteration 12:  f(p) =  2.158e-09  (not concave)
+Iteration 13:  f(p) =  6.919e-11  (not concave)
+Iteration 14:  f(p) =  4.758e-11  (not concave)
+Iteration 15:  f(p) =  2.360e-11  (not concave)
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 16:  f(p) =  1.414e-11  (not concave)
+
+Propensity score model coefficients                Number of obs  =        983
+Generalization of IPW/CPBS-type reweigting
+Loss = mean(stddiff())^2 + 0*abs(CV-0)^2)
+------------------------------------------------------------------------------
+             |      Coef.
+-------------+----------------------------------------------------------------
+          x1 |  -1.318242
+        1.x2 |  -1.638631
+        1.x3 |  -.4671188
+          x4 |  -.3829299
+          x5 |   .0796813
+          x6 |  -.2472382
+          x7 |   .0533055
+         x90 |    .064786
+         x91 |  -.1421824
+         x92 |   .0748236
+         x93 |   .0108831
+         x94 |  -.1743697
+         x95 |  -.0598686
+       _cons |   1.249574
+------------------------------------------------------------------------------
+
+New variables (unweighted summary statistics)
+
+Summary for variables: _weight _weight_mtch _pscore
+     by categories of: _treated 
+
+_treated |         N      mean        sd       min        p1       p10       p25       p50       p75       p90       p99       max
+---------+------------------------------------------------------------------------------------------------------------------------
+       0 |       408      1.97       2.1     .0713      .237      .426      .707      1.23      2.45      4.29      10.3      19.6
+         |       408         1      1.04      .038      .123      .229      .364      .649      1.26      2.02       4.7        10
+         |       408      .338      .174      .025     .0766      .134      .197      .305      .459      .577       .76      .871
+---------+------------------------------------------------------------------------------------------------------------------------
+       1 |        92      1.96      .391      .877      .877      1.39      1.72         2      2.25      2.45      2.67      2.67
+         |        92         1         0         1         1         1         1         1         1         1         1         1
+         |        92      .488      .184      .176      .176      .254      .324      .451      .656      .723      .878      .878
+---------+------------------------------------------------------------------------------------------------------------------------
+   Total |       500      1.97      1.91     .0713      .239      .457      .837      1.51      2.33       3.8      10.3      19.6
+         |       500         1      .942      .038      .123      .246      .426      .878      1.06      1.83      4.66        10
+         |       500      .366      .185      .025     .0768      .142      .221       .33      .488      .656      .788      .878
+----------------------------------------------------------------------------------------------------------------------------------
+. gmatchcall balanceresults()
+  Balance table:
+                  1             2             3             4             5             6             7
+     +---------------------------------------------------------------------------------------------------+
+   1 |     Variable      mean (T)      mean (C)        diff()     stddiff()   sd (Pooled)    varratio()  |
+   2 |           x1      .4512231      .5158916     -.0646685     -.1292753      .5002384       .995776  |
+   3 |         1.x2      .0114039      .0096025      .0018014      .0181558      .0992178      1.190566  |
+   4 |         1.x3      .0240637      .0230889      .0009748      .0064627      .1508292      1.045684  |
+   5 |           x4      .4218861      .3874426      .0344435      .0704609      .4888312       1.03212  |
+   6 |           x5      25.44699      26.55348     -1.106499     -.1634966      6.767717      .5963185  |
+   7 |           x6      11.84757      11.95541      -.107837     -.0520785      2.070662       .580179  |
+   8 |           x7      7.015422      7.109388     -.0939666     -.0279465      3.362369      1.147167  |
+   9 |          x90      .0839738     -.0185541       .102528      .1007758      1.017387      .8689754  |
+  10 |          x91     -.0648837     -.0749367       .010053      .0107216      .9376439      1.001295  |
+  11 |          x92      .0575388     -.0089721      .0665109      .0676598      .9830188      1.137143  |
+  12 |          x93      .1016523      .0554875      .0461648      .0483227      .9553446      .9764302  |
+  13 |          x94     -.1252265     -.2080072      .0827807      .0792217      1.044925      .7282627  |
+  14 |          x95     -.1044649     -.1152361      .0107712       .011132      .9675898      .8544254  |
+     +---------------------------------------------------------------------------------------------------+
+  Mean standardized diff., squared
+  9.52249e-06
+  Mean absolute standardized diff.
+  .060439231
+  Maximum absolute standardized diff.
+  .16349664
+  C.V. of matching weights:
+  .9421025348
+  S.D. of matching weights:
+  .9417264627
+  Skewness of matching weights:
+  .1565328046
+  Kurtosis of matching weights:
+  .04710133
+  Maximum matching weight:
+  9.9999978
+. }
 
 . 
 . log close gmatch_example_ado
       name:  gmatch_example_ado
        log:  C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\gmatch_example_ado.log
   log type:  text
- closed on:  14 Feb 2018, 01:26:58
+ closed on:  14 Feb 2018, 16:50:46
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
