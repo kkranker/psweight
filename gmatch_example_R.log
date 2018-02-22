@@ -2,7 +2,7 @@
       name:  gmatch_example_R
        log:  C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\gmatch_example_R.log
   log type:  text
- opened on:  14 Feb 2018, 16:50:46
+ opened on:  22 Feb 2018, 13:01:19
 
 . 
 . fvrevar `varlist'
@@ -43,5 +43,5 @@ End of R output
       name:  gmatch_example_R
        log:  C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\gmatch_example_R.log
   log type:  text
- closed on:  14 Feb 2018, 16:50:47
+ closed on:  22 Feb 2018, 13:01:19
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------

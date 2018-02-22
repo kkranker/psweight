@@ -15,6 +15,9 @@
 // permission of Mathematica Policy Research, Inc.
 //*****************************************************************************/
 
+// todo: could I use tabdisp or something like that to make the output prettier?
+// may involve making the Mata code export matrices to r() or something like that.
+
 program define gmatchcall
   mata: gmatch_ado_most_recent.`0'
 end
