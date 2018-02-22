@@ -31,7 +31,8 @@ program Estimate, eclass sortpreserve
   version 15.1
 
   // standard syntax parsing
-  syntax varlist(min=2 numeric fv ts) [if] [in] [fw iw/], ///
+  local cmdline : copy local 0
+  syntax varlist(min=2 numeric fv) [if] [in] [fw iw/], ///
           [ depvars(varlist numeric) /// outcome variables (if any)
             ate atet ateu /// to fill in est
             ipw cbps mean_sd sd mean_sd_sq sd_sq /// to fill in fctn and oid
@@ -63,21 +64,11 @@ program Estimate, eclass sortpreserve
     error 125
   }
 
-  // remove collinear variables   
+  // mark collinear variables  
   _rmcoll `treatvar' `varlist' if `tousevar' `wgtexp', expand logit touse(`tousevar')
   local varlist `r(varlist)'
-  
-  // Just in case there's some oddball situation where Mata would read in the blank columns for omitted variables
-  fvexpand `varlist' if `tousevar'
-  local varlist `r(varlist)'
   gettoken trash varlist : varlist
-  forvalues j=1/`: list sizeof varlist' {
-    local v : word `j' of `varlist'
-    _ms_parse_parts `v'
-    if !r(omit) local varlist1 `"`varlist1' `v'"'
-  }
-  local varlist : copy local varlist1
-
+  
   // check type of dependent variables (if any)
   foreach v of local depvars {
     markout `tousevar' `v'
@@ -153,17 +144,22 @@ program Estimate, eclass sortpreserve
   else if ("`fctn'"=="cbps"      ) di as txt "Loss = CBPS" _c
   else if ("`fctn'"=="ipwcbps"   ) di as txt "Loss = CBPS + IPW (overidentified)" _c
   else if ("`fctn'"=="mean_sd_sq") di as txt "Loss = mean(stddiff())^2" _c
-  else if ("`fctn'"=="sd_sq"     ) di as txt "Loss = stddiff():^2" _c
-  if ("`cvopt'"!="") {
-     gettoken a b : cvopt
-     gettoken b c : b
-     gettoken c d : c
-     di as txt   " + `a'*abs(CV-`b')^`c')"
-  }
-  else di ""
+  else if ("`fctn'"=="sd_sq"     ) di as txt "Loss = sum(stddiff()^2)" _c
+  tokenize `cvopt'
+  if ("`1'"!="")  di as txt   " + `1'*abs(wgt_cv()-`2')^`3')" _c
+  if ("`4'"!="")  di as txt   " + `4'*abs(wgt_skewness()-`5')^`6')" _c
+  if ("`7'"!="")  di as txt   " + `7'*abs(wgt_kurtosis()-`8')^`9')" _c
+  if ("`10'"!="") di as txt   " + `10'*abs(wgt_max()-`11')^`12')" _c
+  if ("`1'"!="")  di ""
   ereturn post `gmatch_beta_out' `wgtexp', obs(`gmatch_N_out') buildfvinfo esample(`tousevar')
   ereturn local est          = "`est'"
   ereturn local fctn         = "`fctn'"
+  ereturn local depvar       = "`treatvar'"
+  ereturn local varlist      = "`varlist'"
+  ereturn local cmd          = "gmatch"
+  ereturn local cmdline      = "gmatch `cmdline'"
+  if ("`weight'"!="") ereturn local wtype = "`weight'"
+  if ("`wexp'"!="")   ereturn local wexp  = "`wexp'"
   ereturn scalar denominator = `denominator'
   ereturn scalar oid         = `oid'
   ereturn local cvopt        = "`cvopt'"
