@@ -69,16 +69,11 @@ local estimate = "atet"
 if "`wgtvar'"!="" local wgtexp "[iw=`wgtvar']"
 mark    `tousevar' `if' `in' `wgtexp'
 markout `tousevar' `depvars' `treatvar' `varlist'
-_rmdcoll `treatvar' `varlist' if `tousevar' `wgtexp', expand
-// _rmcoll `treatvar' `varlist' if `tousevar' `wgtexp', expand logit touse(`tousevar')
-// fvexpand `varlist' if `tousevar'
+local varlist_orig : copy local varlist
+
+_rmcoll `treatvar' `varlist' if `tousevar' `wgtexp', expand logit touse(`tousevar')
 local varlist `r(varlist)'
-forvalues j=1/`: list sizeof varlist' {
-  local v : word `j' of `varlist'
-  _ms_parse_parts `v'
-  if !r(omit) local varlist1 `"`varlist1' `v'"'
-}
-local varlist : copy local varlist1
+gettoken trash varlist : varlist
 
 
 // *******************************
@@ -295,6 +290,7 @@ log using gmatch_example_ado.log, name(gmatch_example_ado) replace
 
 di as txt "Current user: `c(username)'" _n "Environment: `c(os)' `c(machine_type)' `: environment computername'" _n "Stata: `c(stata_version)'" cond(c(stata_version)==c(version),""," (set to version `c(version)')") _n "Date: " c(current_date) " " c(current_time)
 desc, short
+local varlist : copy local varlist_orig
 summ `treatvar' `varlist' `tousevar' `wgtvar' `depvars'
 
 
