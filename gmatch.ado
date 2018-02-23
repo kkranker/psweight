@@ -103,7 +103,6 @@ program Estimate, eclass sortpreserve
     di as error `"cvopt() requires 3, 6, 9, 12 elements"'
     error 198
   }
-  if (trim("`cvopt'")!="") mac list _cvopt
 
   // parse the "denominator" options
   local denominator "`treatvariance'`controlvariance'`pooledvariance'`averagevariance'"
