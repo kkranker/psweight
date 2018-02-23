@@ -826,7 +826,7 @@ real rowvector gmatch::gmatch(| string scalar est,
   optimize_init_argument(S, 5, oid)
   optimize_init_argument(S, 6, cvopt)
   optimize_init_conv_maxiter(S, 120)         // probably want to make this setable
-  optimize_init_technique(S, "bfgs 12 nr 12")
+  optimize_init_technique(S, "bfgs")
   optimize_init_tracelevel(S, "value" )  // "none", "value", "params"
 
   // the remaining optimization options depend on the method
