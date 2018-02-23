@@ -29,15 +29,15 @@ class gmatch
     void             clone(), calcmeans(), calcvariances(), calcN(), calccovariances(), cbps_port_stata(), cbps_port_r(), postbeta()
     real scalar      K, N1, N0, N, N1_raw, N0_raw, N_raw
     real scalar      mean_sd_sq(),  entropydistance()
-    real rowvector   olsbeta(), diagvariance(), logitbeta(), sd_sq(), asd()
+    real rowvector   olsbeta(), diagvariance(), logitbeta(), sd_sq(), asd(), wgt_moments()
     real colvector   olspredict(), logitpredict(), logitweights(), cbps_port_stata_moments(), trim()
     real matrix      cbps_port_stata_wgt_matrix(), cbps_port_stata_gradient(), Ct()
 
   public:
     void             new(), set(), set_Y(), reweight(), get_scores()
     void             cbpseval(), balanceresults()
-    real rowvector   ipw(), cbps()
-    real rowvector   diff(), stddiff(), varratio(), prognosticdiff(), pomean(), wgt_moments()
+    real rowvector   gmatch(), ipw(), cbps(), cbpsoid()
+    real rowvector   diff(), stddiff(), varratio(), progdiff(), stdprogdiff(), pomean()
     real scalar      mean_asd(), max_asd(), wgt_cv(), wgt_sd(), wgt_skewness(), wgt_kurtosis(), wgt_max()
     real matrix      balancetable()
 }
@@ -47,7 +47,7 @@ class gmatch
 // set_W() needs to be called after set_T()
 void gmatch::new()
 {
-  // /* */ "New instance of gmatch() created"
+  // /* */ "New instance of gmatch class created"
   // /* */ "gmatch::new() doesn't do anything"
   // /* */ "T is " + strofreal(rows(this.T)) + " by " + strofreal(cols(this.T))
   this.depvars = ""
@@ -196,9 +196,11 @@ void gmatch::get_scores(string rowvector newvarnames, string scalar tousevar)
 
 // This function makes a balance table and prints it to the screen
 // The argument is the same as their definition in stddiff() and varratio()
+// results are also saved in stata in r(bal)
 real matrix gmatch::balancetable(| real scalar denominator)
 {
   real matrix table
+  string rowvector colstripe, tmp
   if (args()<1) denominator=1
 
   if (!length(this.means1))     this.calcmeans()
@@ -211,15 +213,20 @@ real matrix gmatch::balancetable(| real scalar denominator)
           \ (denominator==0 ? sqrt(this.variances0) : (denominator==1 ? sqrt(this.variances1) : (denominator==2 ? sqrt(this.variancesP) : (denominator==3 ? sqrt(this.variancesA) : _error("denominator argument invalid")))))
           \ this.varratio())'
 
-  // print to screen with labels
-  (("Variable" \ varlist'),
-  (( "mean (T)",
-     "mean (C)",
-     "diff()",
-     "stddiff()",
-     (denominator==0 ? "sd (C)" : (denominator==1 ? "sd (T)" : (denominator==2 ? "sd (Pooled)" : (denominator==3 ? "sd (Avg)" : "")))),
-     "varratio()")
-     \ strofreal(table) ))
+  colstripe = ("mean_T",
+               "mean_C",
+               "diff",
+               "std_diff",
+               (denominator==0 ? "sd_C" : (denominator==1 ? "sd_T" : (denominator==2 ? "sd_pool" : (denominator==3 ? "sd_avg" : "")))),
+               "var_ratio")
+
+  st_matrix("r(bal)", table)
+  st_matrixcolstripe("r(bal)", (J(length(colstripe),1,""), colstripe'))
+  st_matrixrowstripe("r(bal)", (J(length(varlist)  ,1,""), varlist'  ))
+
+  tmp=st_tempname()
+  stata("matrix "+tmp+"=r(bal)")
+  stata("_matrix_table "+tmp+","+st_local("diopts")); ""
 
   return(table)
 }
@@ -232,7 +239,8 @@ void gmatch::balanceresults(| string scalar est, real scalar denominator)
   if (args()<2) denominator=2
   transmorphic temp
   if (all(this.W_mtch:==1)) "Unmatched data"
-  "Balance table:";                      temp = this.balancetable(denominator)
+  st_rclear()
+  "Balance:";                            temp = this.balancetable(denominator)
   "Mean standardized diff., squared";    this.mean_sd_sq(denominator)
   "Mean absolute standardized diff.";    this.mean_asd(denominator)
   "Maximum absolute standardized diff."; this.max_asd(denominator)
@@ -242,7 +250,7 @@ void gmatch::balanceresults(| string scalar est, real scalar denominator)
   "Kurtosis of matching weights:";       this.wgt_kurtosis(est)
   "Maximum matching weight:";            this.wgt_max(est)
   if (this.depvars!="") {
-    "Difference in prognostic scores:";  temp = this.prognosticdiff()
+    "Prognostic scores:";                temp = this.progdiff()
   }
 }
 
@@ -379,27 +387,42 @@ real rowvector gmatch::wgt_moments(real scalar r, string scalar est)
 real scalar gmatch::wgt_cv(string scalar est)
 {
   real rowvector vm
+  real scalar cv
   vm = this.wgt_moments(0,est)
-  return(vm[1]/vm[2])
+  cv = vm[1]/vm[2]
+  st_numscalar("r(wgt_cv)",cv)
+  return(cv)
 }
 real scalar gmatch::wgt_sd(string scalar est)
 {
-  return(this.wgt_moments(0,est)[1])
+  real scalar sd
+  sd = this.wgt_moments(0,est)[1]
+  st_numscalar("r(wgt_sd)",sd)
+  return(sd)
 }
 real scalar gmatch::wgt_skewness(string scalar est)
 {
-  return((this.wgt_moments(3,est)[1]) * (this.wgt_moments(2,est)[1])^(-3/2))
+  real scalar skew
+  skew = (this.wgt_moments(3,est)[1]) * (this.wgt_moments(2,est)[1])^(-3/2)
+  st_numscalar("r(wgt_skewness)",skew)
+  return(skew)
 }
 real scalar gmatch::wgt_kurtosis(string scalar est)
 {
-  return((this.wgt_moments(4,est)[1]) * (this.wgt_moments(2,est)[1])^(-2))
+  real scalar kurt
+  kurt = (this.wgt_moments(4,est)[1]) * (this.wgt_moments(2,est)[1])^(-2)
+  st_numscalar("r(wgt_kurtosis)",kurt)
+  return(kurt)
 }
 real scalar gmatch::wgt_max(string scalar est)
 {
-  if      (strlower(est)=="ate" ) return(max(this.W_mtch           ))
-  else if (strlower(est)=="atet") return(max(this.W_mtch[this.sel0]))
-  else if (strlower(est)=="ateu") return(max(this.W_mtch[this.sel1]))
+  real scalar mx
+  if      (strlower(est)=="ate" ) mx = max(this.W_mtch)
+  else if (strlower(est)=="atet") mx = max(this.W_mtch[this.sel0])
+  else if (strlower(est)=="ateu") mx = max(this.W_mtch[this.sel1])
   else _error(est + " is an invalid argument for gmatch::wgt_moments()")
+  st_numscalar("r(wgt_max)",mx)
+  return(mx)
 }
 
 
@@ -418,18 +441,27 @@ real rowvector gmatch::sd_sq(| real scalar denominator)
 }
 real scalar gmatch::mean_asd(| real scalar denominator)
 {
+  real scalar out
   if (args()<1) denominator=1
-  return(mean(this.asd(denominator)'))
+  out = mean(this.asd(denominator)')
+  st_numscalar("r(mean_asd)",out)
+  return(out)
 }
 real scalar gmatch::max_asd(| real scalar denominator)
 {
+  real scalar out
   if (args()<1) denominator=1
-  return(max(this.asd(denominator)))
+  out = max(this.asd(denominator))
+  st_numscalar("r(max_asd)", out)
+  return(out)
 }
 real scalar gmatch::mean_sd_sq(| real scalar denominator)
 {
+  real scalar out
   if (args()<1) denominator=1
-  return(mean(this.stddiff(denominator)')^2)
+  out = mean(this.stddiff(denominator)')^2
+  st_numscalar("r(mean_sd_sq)", out)
+  return(out)
 }
 
 
@@ -443,12 +475,16 @@ real rowvector gmatch::varratio()
 
 // function that returns difference in y_hat, where y_hat is generated using a
 // OLS regression of y on X using the control group data
-real rowvector gmatch::prognosticdiff()
+// Denominator is defined the same as in stddiff(), and is passed to stdprogdiff()
+real rowvector gmatch::progdiff(| real scalar denominator)
 {
-  real rowvector beta, progdiff, yhat_bar_0, yhat_bar_1, y_bar_0
+  real rowvector beta, progdiff, yhat_bar_0, yhat_bar_1, y_bar_0, stdprogdiff
   real colvector yhat
   real scalar c
+  real matrix table
+  string rowvector colstripe,tmp
   if (!length(this.depvars)) _error("Dependent variable is undefined.  Use gmatch::set_Y().")
+  if (args()<1) denominator=1
 
   yhat = J(rows(this.X), cols(this.Y0), .)
   for (c=1; c<=cols(this.Y0); c++) {
@@ -456,19 +492,64 @@ real rowvector gmatch::prognosticdiff()
     yhat[.,c] = this.olspredict(this.X, beta)
   }
 
-  yhat_bar_0 = mean(yhat[this.sel0,.], this.W[this.sel0])
-  yhat_bar_1 = mean(yhat[this.sel1,.], this.W[this.sel1])
-  progdiff = yhat_bar_1 :- yhat_bar_0
-  y_bar_0    = mean(this.Y0, this.W[this.sel0])
+  yhat_bar_0  = mean(yhat[this.sel0,.], this.W[this.sel0])
+  yhat_bar_1  = mean(yhat[this.sel1,.], this.W[this.sel1])
+  progdiff    = yhat_bar_1 :- yhat_bar_0
+  stdprogdiff = stdprogdiff(denominator, yhat, progdiff)
+  y_bar_0     = mean(this.Y0, this.W[this.sel0])
 
-  // print to screen with labels
-  (("Dependent var." \ depvars'),
-  (( "Mean of y_hat (T)", "Mean of y_hat (C)","prognosticdiff()","Mean of y (C)")
-    \ strofreal((yhat_bar_1 \ yhat_bar_0 \ progdiff \ y_bar_0)')))
+  table = (yhat_bar_1 \ yhat_bar_0 \ progdiff \ stdprogdiff \ y_bar_0)'
+
+  colstripe = ("mean_yhat_T",
+               "mean_yhat_C",
+               "diff",
+               "std_diff",
+               "mean_y_C")
+
+  st_matrix("r(prog)", table)
+  st_matrixcolstripe("r(prog)", (J(length(colstripe),1,""), colstripe'))
+  st_matrixrowstripe("r(prog)", (J(length(depvars)  ,1,""), depvars'  ))
+
+  tmp=st_tempname()
+  stata("matrix "+tmp+"=r(prog)")
+  stata("_matrix_table "+tmp+","+st_local("diopts"))
+  "Note: The std_diff column does not account for the standard error of the linear predictions."
 
   return(progdiff)
 }
 
+// This function calculates standardized differences in prognositc scores
+// Variances do not account for the OLS modeling; they are just the variance of the y_hat variable
+// Denominator is defined the same as in stddiff()
+// Note: when this is used in the optimization program, the OLS model is re-estimated
+// each iteration.  The reason is that it allows the progostic scores to be estiamted
+// with a reweighted comparison group that "looks like" the treatment group.
+real rowvector gmatch::stdprogdiff(| real scalar denominator, real matrix yhat, real rowvector progdiff)
+{
+  real rowvector beta, yhat_bar_0, yhat_bar_1, stddiff
+  real scalar c
+  if (args()<1) denominator=1
+  if (args()<2) {
+    if (!length(this.depvars)) _error("Dependent variable is undefined.  Use gmatch::set_Y().")
+    yhat = J(rows(this.X), cols(this.Y0), .)
+    for (c=1; c<=cols(this.Y0); c++) {
+      beta = this.olsbeta(this.Y0[.,c], this.X[this.sel0,.], this.W[this.sel0])
+      yhat[.,c] = this.olspredict(this.X, beta)
+    }
+  }
+  if (args()<3) {
+    yhat_bar_0 = mean(yhat[this.sel0,.], this.W[this.sel0])
+    yhat_bar_1 = mean(yhat[this.sel1,.], this.W[this.sel1])
+    progdiff = yhat_bar_1 :- yhat_bar_0
+  }
+  if (!length(this.variances1)) this.calcvariances()
+  if      (denominator==0) stddiff = (progdiff :/ sqrt(this.diagvariance(yhat[this.sel0, .], this.W[this.sel0])))
+  else if (denominator==1) stddiff = (progdiff :/ sqrt(this.diagvariance(yhat[this.sel1, .], this.W[this.sel1])))
+  else if (denominator==2) stddiff = (progdiff :/ sqrt(this.diagvariance(yhat, this.W)))
+  else if (denominator==3) stddiff = (progdiff :/ sqrt((this.diagvariance(yhat[this.sel0, .], this.W[this.sel0]) :+ this.diagvariance(yhat[this.sel1, .], this.W[this.sel1])) :/ 2))
+  else _error(strofreal(denominator)+ " is an invalid argument for gmatch::stddiff()")
+  return(stddiff)
+}
 
 // Define function to calculate coefficients for an OLS regression model
 // A contant term is included in the regression.
@@ -596,7 +677,7 @@ real rowvector gmatch::logitbeta(real colvector Ymat, real matrix Xmat, | real c
 {
   transmorphic S
   if (args()<4) addconst=1
-  
+
   S=moptimize_init()
   moptimize_init_evaluator(S, &gmatch_logit_eval())
   moptimize_init_evaluatortype(S,"lf")
@@ -666,7 +747,7 @@ void gmatch_logit_eval(transmorphic S, real rowvector beta, real colvector lnf)
   lnf  = ln(lj)
 }
 
-// function that computes CBPS weights (and returns them in this.W_mtch)
+// function that computes a variety of matching weights schemes, including CBPS weights (and returns them in this.W_mtch)
 //    est corresponds to the options in gmatch::logitweights()
 //        "ate"  computes weights for average treatment effect (the default)
 //        "atet" computes weights for average treatment effect on the treated
@@ -691,22 +772,21 @@ void gmatch_logit_eval(transmorphic S, real rowvector beta, real colvector lnf)
 //         With 12 arguments, cvopt=(a,b,c,d,e,f,g,h,i,j,k,l), the loss function also targets the maximum weight (wgt_max())
 //         Specifically, the loss function is modified as:
 //              loss = ( loss_0 \ a * abs((wgt_cv() - b)^c) \ e * abs((wgt_skewness() - e)^f) \ g * abs((wgt_kurtosis() - h)^i)  \ j * abs((wgt_max() - k)^l))
-real rowvector gmatch::cbps(| string scalar est,
-                              string scalar fctn,
-                              real scalar denominator,
-                              real scalar oid,
-                              real rowvector cvopt)
+real rowvector gmatch::gmatch(| string scalar est,
+                                string scalar fctn,
+                                real scalar denominator,
+                                real rowvector cvopt)
 {
   real rowvector beta
   real colvector pscore, cbpswgt
   real matrix ww, Ct
-  real scalar unnorm
+  real scalar oid, unnorm
   if (args()<1) est="ate"
   if (args()<2) fctn="sd_sq"
   if (args()<3) denominator=1
-  if (args()<4) oid=0
-  if (args()<5) cvopt=J(1,0,.)
+  if (args()<4) cvopt=J(1,0,.)
   this.reweight()
+  oid = 0
 
   // If the user is asking for the IPW result, just call my ipw() function
   if (fctn=="ipw") {
@@ -724,8 +804,16 @@ real rowvector gmatch::cbps(| string scalar est,
   //                      (2) converges more slowly
   //                 - was based on the R implimentation of CBPS on CRAN by Imai et al.
   // In addition, the program looks at Stata local mlopts with instructions for controlling maximization
-  else if (fctn=="cbps" & all(this.W_orig:==1)) fctn="cbps_port_stata"
-  else if (fctn=="cbps") fctn="cbps_port_r"
+  else if (fctn=="ipwcbps") {
+    fctn="cbps"
+    oid=1
+  }
+  if (fctn=="cbps" & all(this.W_orig:==1)) {
+    fctn="cbps_port_stata"
+  }
+  else if (fctn=="cbps") {
+    fctn="cbps_port_r"
+  }
 
   transmorphic S
   S=optimize_init()
@@ -755,14 +843,14 @@ real rowvector gmatch::cbps(| string scalar est,
     if (oid)  optimize_init_evaluatortype(S,"gf1")  // for overidentified version
     else      optimize_init_evaluatortype(S,"d1")   // d1 if I'm running plain vanilla. otherwise just use "do" (numerical gradient)
   }
-  else if (fctn=="mean_sd_sq" | fctn=="sd_sq") {
+  else if (fctn=="mean_sd_sq" | fctn=="sd_sq" | fctn=="stdprogdiff") {
     optimize_init_evaluatortype(S,"d0")
     optimize_init_conv_ignorenrtol(S, "off")
     optimize_init_conv_ptol(S,  1e-10)
     optimize_init_conv_vtol(S,  1e-11)
     optimize_init_conv_nrtol(S, 1e-9)
   }
-  else _error(fctn + " is invalid with gmatch::cbps()")
+  else _error(fctn + " is invalid with gmatch::gmatch()")
   if (st_local("mlopts")!="") optimize_init_mlopts(S, st_local("mlopts"))
 
   // cvopt adds 1 or more elements to the loss function
@@ -779,7 +867,7 @@ real rowvector gmatch::cbps(| string scalar est,
     meansP_orig = mean(this.X, this.W)
     sdP_orig = sqrt(this.diagvariance(this.X, this.W))
     sel = selectindex(sdP_orig')' // if we have a factor variable, for example, giving us a column of zeros, then the SD is 0 and Xstd would be ".".  Therefore, take that column out of the X matrix.
-    this.Xstd = ((this.X[.,sel] :- meansP_orig[.,sel]) :/ sdP_orig[.,sel], J(this.N_raw,1,1))  
+    this.Xstd = ((this.X[.,sel] :- meansP_orig[.,sel]) :/ sdP_orig[.,sel], J(this.N_raw,1,1))
     pragma unset svd_v
     pragma unset svd_s
     _svd(this.Xstd, svd_s, svd_v)
@@ -853,7 +941,7 @@ real rowvector gmatch::cbps(| string scalar est,
     svd_s_inv = svd_s:^-1
     svd_s_inv = svd_s_inv :* (svd_s :> 1e-5)
     beta = (svd_v' * diag(svd_s_inv) * beta')'
-    if (length(beta)<this.K) { // deal with the columns I took out above 
+    if (length(beta)<this.K) { // deal with the columns I took out above
       tmp = J(1,this.K+1,0)
       tmp[(sel, this.K+1)] = beta
       beta = tmp
@@ -898,13 +986,14 @@ void gmatch::cbpseval( real   scalar    todo,
   real colvector  pscore, cbpswgt
   if      (fctn=="cbps_port_stata")  this.cbps_port_stata(todo,beta,est,oid,ww,lnf,g,H)
   else if (fctn=="cbps_port_r")      this.cbps_port_r(todo,beta,est,oid,ww,lnf,g,H)
-  else if (fctn=="mean_sd_sq" | fctn=="sd_sq") {
+  else if (fctn=="mean_sd_sq" | fctn=="sd_sq"  | fctn=="stdprogdiff") {
     pscore = this.logitpredict(this.X, beta)
     pscore = this.trim(pscore)
     cbpswgt = this.logitweights(pscore, est)
     this.reweight(cbpswgt)
     if      (fctn=="mean_sd_sq")      lnf = this.mean_sd_sq(denominator)
     else if (fctn=="sd_sq")           lnf = quadsum(this.sd_sq(denominator))
+    else if (fctn=="stdprogdiff")     lnf = quadsum(this.stdprogdiff(denominator):^2)
     else                              _error(fctn + " is invalid with gmatch::cbpseval()")
   }
 
@@ -929,6 +1018,24 @@ void gmatch::cbpseval( real   scalar    todo,
 
   if (length(cvopt)<12) return
   if (cvopt[1,10]) lnf = (lnf \ (cvopt[1,10]:*abs((this.wgt_max(est):-cvopt[1,11]):^cvopt[1,12])))
+}
+
+// Calls CBPS model (not over-identified)
+// This just calls gmatch() -- described above.
+real rowvector gmatch::cbps(| string scalar est, real scalar denominator)
+{
+  if (args()<1) est="ate"
+  if (args()<2) denominator=1
+  return(gmatch(est, "cbps", denominator))
+}
+
+// Calls over-identified CBPS model
+// This just calls gmatch() -- described above.
+real rowvector gmatch::cbpsoid(| string scalar est, real scalar denominator)
+{
+  if (args()<1) est="ate"
+  if (args()<2) denominator=1
+  return(gmatch(est, "ipwcbps", denominator))
 }
 
 // Port of the objective function from the Stata verion of CBPS
