@@ -691,7 +691,6 @@ real rowvector gmatch::logitbeta(real colvector Ymat, real matrix Xmat, | real c
   if (st_local("mlopts")!="") moptimize_init_mlopts(S, st_local("mlopts"))
 
   moptimize(S)
-  if (!moptimize_result_converged(S)) "Warning: convergence not achieved."
   // /* */ "Logit model coefficients and robust standard errors:"; moptimize_result_display(S)
   return(moptimize_result_coefs(S))
 }
@@ -931,7 +930,6 @@ real rowvector gmatch::gmatch(| string scalar est,
 
   "Step 2 (CBPS) :"
   (void) optimize(S)
-  if (!optimize_result_converged(S)) "Warning: convergence not achieved."
   beta    = optimize_result_params(S)
   // /* */ "beta:" ; beta
 
