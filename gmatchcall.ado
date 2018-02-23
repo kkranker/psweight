@@ -15,7 +15,8 @@
 // permission of Mathematica Policy Research, Inc.
 //*****************************************************************************/
 
-program define gmatchcall, sclass
+program define gmatchcall, rclass
   mata: gmatch_ado_most_recent.`0'
+  return add
 end
 
