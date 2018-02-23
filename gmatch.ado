@@ -35,7 +35,7 @@ program Estimate, eclass sortpreserve
   syntax varlist(min=2 numeric fv) [if] [in] [fw iw/], ///
           [ depvars(varlist numeric) /// outcome variables (if any)
             ate atet ateu /// to fill in est
-            ipw cbps mean_sd sd mean_sd_sq sd_sq /// to fill in fctn and oid
+            ipw cbps mean_sd sd mean_sd_sq sd_sq STDProgdiff /// to fill in fctn and oid
             TREatvariance CONtrolvariance POOledvariance Averagevariance /// to fill in denominator
             cvtarget(numlist min=3 max=3) skewtarget(numlist min=3 max=3) kurttarget(numlist min=3 max=3) maxtarget(numlist min=3 max=3) ///
             * ] //  display and ml options are allowed
@@ -64,11 +64,11 @@ program Estimate, eclass sortpreserve
     error 125
   }
 
-  // mark collinear variables  
+  // mark collinear variables
   _rmcoll `treatvar' `varlist' if `tousevar' `wgtexp', expand logit touse(`tousevar')
   local varlist `r(varlist)'
   gettoken trash varlist : varlist
-  
+
   // check type of dependent variables (if any)
   foreach v of local depvars {
     markout `tousevar' `v'
@@ -84,20 +84,13 @@ program Estimate, eclass sortpreserve
   }
 
   // parse the "fctn" and "oid" options
-  if ("`fctn'"=="mean_sd") local mean_sd_sq mean_sd_sq
-  else if ("`fctn'"=="sd") local sd_sq sd_sq
-  local fctn "`ipw'`cbps'`mean_sd_sq'`sd_sq'"
-  if ("`fctn'"=="") local fctn sd_sq
-  else if (!inlist("`fctn'", "ipw", "cbps", "ipwcbps", "mean_sd_sq", "sd_sq")) {
-    di as err `"Specify a valid combination of options: ipw, cbps, mean_sd, sd."'
+  if ("`mean_sd'"=="mean_sd") local mean_sd_sq mean_sd_sq
+  if ("`sd'"=="sd")           local sd_sq sd_sq
+  local fctn "`ipw'`cbps'`mean_sd_sq'`sd_sq'`stdprogdiff'"
+  if ("`fctn'"=="") local fctn cbps
+  else if (!inlist("`fctn'", "ipw", "cbps", "ipwcbps", "mean_sd_sq", "sd_sq","stdprogdiff")) {
+    di as err `"Specify a valid combination of options: ipw, cbps, mean_sd, sd, or stdprogdiff."'
     error 198
-  }
-  if ("`fctn'"=="ipwcbps") {
-    local fctn cbps
-    local oid = 1
-  }
-  else {
-    local oid = 0
   }
 
   // parse the "cvopt" option
@@ -108,7 +101,7 @@ program Estimate, eclass sortpreserve
   local cvopt : list clean cvopt
   if (!inlist(`: list sizeof cvopt',0,3,6,9,12)) {
     di as error `"cvopt() requires 3, 6, 9, 12 elements"'
-    error 198    
+    error 198
   }
   if (trim("`cvopt'")!="") mac list _cvopt
 
@@ -140,11 +133,12 @@ program Estimate, eclass sortpreserve
   di as txt _n "Propensity score model coefficients" _c
   di as txt _col(52) "Number of obs" _col(67) "=" _col(69) as res %10.0fc `gmatch_N_out'
   di as txt "Generalization of IPW/CPBS-type reweigting"
-  if      ("`fctn'"=="ipw"       ) di as txt "Loss = IPW" _c
-  else if ("`fctn'"=="cbps"      ) di as txt "Loss = CBPS" _c
-  else if ("`fctn'"=="ipwcbps"   ) di as txt "Loss = CBPS + IPW (overidentified)" _c
-  else if ("`fctn'"=="mean_sd_sq") di as txt "Loss = mean(stddiff())^2" _c
-  else if ("`fctn'"=="sd_sq"     ) di as txt "Loss = sum(stddiff()^2)" _c
+  if      ("`fctn'"=="ipw"        ) di as txt "Loss = IPW" _c
+  else if ("`fctn'"=="cbps"       ) di as txt "Loss = CBPS" _c
+  else if ("`fctn'"=="ipwcbps"    ) di as txt "Loss = CBPS + IPW (overidentified)" _c
+  else if ("`fctn'"=="mean_sd_sq" ) di as txt "Loss = mean(stddiff())^2" _c
+  else if ("`fctn'"=="sd_sq"      ) di as txt "Loss = sum(stddiff()^2)" _c
+  else if ("`fctn'"=="stdprogdiff") di as txt "Loss = sum(stdprogdiff()^2)" _c
   tokenize `cvopt'
   if ("`1'"!="")  di as txt   " + `1'*abs(wgt_cv()-`2')^`3')" _c
   if ("`4'"!="")  di as txt   " + `4'*abs(wgt_skewness()-`5')^`6')" _c
@@ -152,17 +146,16 @@ program Estimate, eclass sortpreserve
   if ("`10'"!="") di as txt   " + `10'*abs(wgt_max()-`11')^`12')" _c
   if ("`1'"!="")  di ""
   ereturn post `gmatch_beta_out' `wgtexp', obs(`gmatch_N_out') buildfvinfo esample(`tousevar')
-  ereturn local est          = "`est'"
-  ereturn local fctn         = "`fctn'"
-  ereturn local depvar       = "`treatvar'"
-  ereturn local varlist      = "`varlist'"
-  ereturn local cmd          = "gmatch"
-  ereturn local cmdline      = "gmatch `cmdline'"
+  ereturn local est                       = "`est'"
+  ereturn local fctn                      = "`fctn'"
+  ereturn local depvar                    = "`treatvar'"
+  ereturn local varlist                   = "`varlist'"
+  ereturn local cmd                       = "gmatch"
+  ereturn local cmdline                   = "gmatch `cmdline'"
   if ("`weight'"!="") ereturn local wtype = "`weight'"
   if ("`wexp'"!="")   ereturn local wexp  = "`wexp'"
-  ereturn scalar denominator = `denominator'
-  ereturn scalar oid         = `oid'
-  ereturn local cvopt        = "`cvopt'"
+  ereturn scalar denominator              = `denominator'
+  if ("`cvopt'"!="")  ereturn local cvopt = "`cvopt'"
   _coef_table, `diopts'
 
   // print distribution of weights to screen
@@ -197,8 +190,7 @@ void Estimate()
   est         = st_local("est")
   fctn        = st_local("fctn")
   denominator = strtoreal(st_local("denominator"))
-  oid         = strtoreal(st_local("oid"))
-  if  (st_local("cvopt")!="") {  
+  if  (st_local("cvopt")!="") {
     cvopt       = strtoreal(tokens(st_local("cvopt")))
   }
   else cvopt = J(1,0,.)
@@ -208,7 +200,7 @@ void Estimate()
   else             gmatch_ado_most_recent.set(treatvar, varlist, tousevar)
   if (depvars!="") gmatch_ado_most_recent.set_Y(depvars,tousevar)
 
-  temp = gmatch_ado_most_recent.cbps(est, fctn, denominator, oid, cvopt)
+  temp = gmatch_ado_most_recent.gmatch(est, fctn, denominator, cvopt)
   gmatch_ado_most_recent.get_scores("_weight _weight_mtch _pscore _treated", tousevar)
 
 }
