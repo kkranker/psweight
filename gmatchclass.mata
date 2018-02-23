@@ -1201,54 +1201,28 @@ void optimize_init_mlopts(transmorphic scalar M, string scalar mlopts)
         t1 = tokeninit("()")
 
         while (strlen(arg)) {
-                arg1 = ""
-                if (strmatch(arg,"trace")) {
-                        optimize_init_tracelevel(M, "value")
-                }
-                else if (strmatch(arg,"gradient")) {
-                        optimize_init_tracelevel(M, "gradient")
-                }
-                else if (strmatch(arg,"hessian")) {
-                        optimize_init_tracelevel(M, "hessian")
-                }
-                else if (strmatch(arg,"showstep")) {
-                        optimize_init_tracelevel(M, "step")
-                }
-                else if (strmatch(arg,"nonrtolerance")) {
-                         optimize_init_conv_ignorenrtol(M, "on")
-                }
-                else if (strmatch(arg,"showtolerance")) {
-                        optimize_init_tracelevel(M, "tolerance")
-                }
-                else if (strmatch(arg,"difficult")) {
-                        optimize_init_singularHmethod(M, "hybrid")
-                }
-                else {
-                        arg1 = tokenget(t)
-                        tokenset(t1,arg1)
-                        tok = tokenget(t1)
-                        if (strmatch(arg,"technique")) {
-                                optimize_init_technique(M, tok)
-                        }
-                        else if (strmatch(arg,"iterate")) {
-                                optimize_init_conv_maxiter(M, strtoreal(tok))
-                        }
-                        else if (strmatch(arg,"tolerance")) {
-                                optimize_init_conv_ptol(M, strtoreal(tok))
-                        }
-                        else if (strmatch(arg,"ltolerance")) {
-                                optimize_init_conv_vtol(M, strtoreal(tok))
-                        }
-                        else if (strmatch(arg,"nrtolerance")) {
-                                optimize_init_conv_nrtol(M, strtoreal(tok))
-                        }
-                        else {
-                                arg = arg1
-                        }
-                }
-                if (!strmatch(arg,arg1)) {
-                        arg = tokenget(t)
-                }
+          arg1 = ""
+          if (strmatch(arg,"trace"))               optimize_init_tracelevel(M, "value")
+          else if (strmatch(arg,"gradient"))       optimize_init_tracelevel(M, "gradient")
+          else if (strmatch(arg,"hessian"))        optimize_init_tracelevel(M, "hessian")
+          else if (strmatch(arg,"showstep"))       optimize_init_tracelevel(M, "step")
+          else if (strmatch(arg,"nonrtolerance"))  optimize_init_conv_ignorenrtol(M, "on")
+          else if (strmatch(arg,"showtolerance"))  optimize_init_tracelevel(M, "tolerance")
+          else if (strmatch(arg,"difficult"))      optimize_init_singularHmethod(M, "hybrid")
+          else {
+            arg1 = tokenget(t)
+            tokenset(t1,arg1)
+            tok = tokenget(t1)
+            if (strmatch(arg,"technique"))         optimize_init_technique(M, tok)
+            else if (strmatch(arg,"iterate"))      optimize_init_conv_maxiter(M, strtoreal(tok))
+            else if (strmatch(arg,"tolerance"))    optimize_init_conv_ptol(M, strtoreal(tok))
+            else if (strmatch(arg,"ltolerance"))   optimize_init_conv_vtol(M, strtoreal(tok))
+            else if (strmatch(arg,"nrtolerance"))  optimize_init_conv_nrtol(M, strtoreal(tok))
+            else arg = arg1
+          }
+          if (!strmatch(arg,arg1)) {
+            arg = tokenget(t)
+          }
         }
 }
 
