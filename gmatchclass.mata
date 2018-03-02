@@ -378,7 +378,7 @@ real rowvector gmatch::wgt_moments(real scalar r, string scalar est)
   else if (strlower(est)=="ateu") W_sel=this.W_mtch[this.sel1]
   else _error(est + " is an invalid argument for gmatch::wgt_moments()")
   m = mean(W_sel)
-  if (r==0) { // the only exception is that r==0 gives the variance
+  if (r==0) { // the only exception is that r==0 gives the sd
     v = sqrt(quadcolsum((W_sel:-m):^2) / (rows(W_sel)-1))
   }
   else v = quadcolsum((W_sel:-m):^r)
@@ -953,7 +953,6 @@ real rowvector gmatch::gmatch(| string scalar est,
   pscore = this.trim(pscore)
   cbpswgt = this.logitweights(pscore, est)
 
-  // no need to set weights back to what they were, since I've been messing with this. instead of this.
   this.postbeta(beta)
   this.reweight(cbpswgt, pscore)
   return(beta)

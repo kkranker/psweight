@@ -143,7 +143,7 @@ program Estimate, eclass sortpreserve
   if ("`4'"!="")  di as txt   " + `4'*abs(wgt_skewness()-`5')^`6')" _c
   if ("`7'"!="")  di as txt   " + `7'*abs(wgt_kurtosis()-`8')^`9')" _c
   if ("`10'"!="") di as txt   " + `10'*abs(wgt_max()-`11')^`12')" _c
-  if ("`1'"!="")  di ""
+  di ""
   ereturn post `gmatch_beta_out' `wgtexp', obs(`gmatch_N_out') buildfvinfo esample(`tousevar')
   ereturn local est                       = "`est'"
   ereturn local fctn                      = "`fctn'"
