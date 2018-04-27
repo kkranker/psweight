@@ -8,9 +8,10 @@ cap log close gmatch_example
 cap log close gmatch_example_ado
 cap log close gmatch_example_R
 local makegraphs = 01
-cd "C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\"
 
-do C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\gmatch_one_time_setup.do
+cd "C:/Users/kkranker/Downloads/Ado-clone/Devel/gmatch"
+
+do gmatch_one_time_setup.do
 
 log using gmatch_example.log, name(gmatch_example) replace
 
@@ -467,43 +468,66 @@ log close gmatch_example_ado
 log using gmatch_example_R.log, name(gmatch_example_R) replace
 
 fvrevar `varlist'
-export delimited `treatvar' `r(varlist)' `wgtvar' using "C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\testfile.csv" if `tousevar', replace nolabel
+local rvarlist = r(varlist)
+local rvarlist: list clean rvarlist
+export delimited `treatvar' `rvarlist' `wgtvar' using "testfile.csv" if `tousevar', replace nolabel
 
-rsource, terminator(END_OF_R)
-  mydata <- read.csv("C:\\Users\\kkranker\\Documents\\Stata\\Ado\\Devel\\gmatch\\testfile.csv", stringsAsFactors = F);
+local rvarlist: subinstr local rvarlist "__" "X__", all
+local rvarlist: subinstr local rvarlist " " " + ", all
+mac list _rvarlist
+
+rsource, terminator(END_OF_R) lsource  roptions(`" --vanilla --args "`treatvar' ~ `rvarlist'" "')
+
+  trailargs<-commandArgs(trailingOnly=TRUE);
+  trailargs[1];
+  getwd()
+  .libPaths('c:/Users/kkranker/documents/R/myRlib');
+  .libPaths();
   library(CBPS);
-  fit_ATE       <- CBPS(treat ~ x1 + x1 + X__000000 + X__000001 +x4 + x5 + x6 +x7 +x90 +x91+ x92 +x93 +x94+ x95, data = mydata, ATT = 0, method='exact', standardize=stdall);
+
+  mydata <- read.csv('testfile.csv', stringsAsFactors = F);
+  print(summary(mydata));
+
+  fit_ATE       <- CBPS(as.formula(trailargs[1]), data = mydata, ATT = 0, method='exact', standardize=FALSE);
   summary(fit_ATE);
   print(  fit_ATE$weights[1:10]);
   balance(fit_ATE);
-  fit_ATE_over  <- CBPS(treat ~ x1 + x1 + X__000000 + X__000001 +x4 + x5 + x6 +x7 +x90 +x91+ x92 +x93 +x94+ x95, data = mydata, ATT = 0, method="over", standardize=stdall);
+  
+  fit_ATE_over  <- CBPS(as.formula(trailargs[1]), data = mydata, ATT = 0, method='over', standardize=FALSE);
   summary(fit_ATE_over);
   print(  fit_ATE_over$weights[1:10]);
   balance(fit_ATE_over);
-  fit_ATET      <- CBPS(treat ~ x1 + x1 + X__000000 + X__000001 +x4 + x5 + x6 +x7 +x90 +x91+ x92 +x93 +x94+ x95, data = mydata, ATT = 1, method="exact", standardize=stdall);
+  
+  fit_ATET      <- CBPS(as.formula(trailargs[1]), data = mydata, ATT = 1, method='exact', standardize=FALSE);
   summary(fit_ATET);
   print(  fit_ATET$weights[1:10]);
   balance(fit_ATET);
-  fit_ATET_over <- CBPS(treat ~ x1 + x1 + X__000000 + X__000001 +x4 + x5 + x6 +x7 +x90 +x91+ x92 +x93 +x94+ x95, data = mydata, ATT = 1, method="over", standardize=stdall);
+  
+  fit_ATET_over <- CBPS(as.formula(trailargs[1]), data = mydata, ATT = 1, method='over', standardize=FALSE);
   summary(fit_ATET_over);
   print(  fit_ATET_over$weights[1:10]);
   balance(fit_ATET_over);
-  W_fit_ATE       <- CBPS(treat ~ x1 + x1 + X__000000 + X__000001 +x4 + x5 + x6 +x7 +x90 +x91+ x92 +x93 +x94+ x95, data = mydata, ATT = 0, method='exact', standardize=stdall, sample.weights=mydata$wgt);
+  
+  W_fit_ATE       <- CBPS(as.formula(trailargs[1]), data = mydata, ATT = 0, method='exact', standardize=FALSE, sample.weights=mydata$wgt);
   summary(W_fit_ATE);
   print(  W_fit_ATE$weights[1:10]);
   balance(W_fit_ATE);
-  W_fit_ATE_over  <- CBPS(treat ~ x1 + x1 + X__000000 + X__000001 +x4 + x5 + x6 +x7 +x90 +x91+ x92 +x93 +x94+ x95, data = mydata, ATT = 0, method="over", standardize=stdall, sample.weights=mydata$wgt);
+  
+  W_fit_ATE_over  <- CBPS(as.formula(trailargs[1]), data = mydata, ATT = 0, method='over', standardize=FALSE, sample.weights=mydata$wgt);
   summary(W_fit_ATE_over);
   print(  W_fit_ATE_over$weights[1:10]);
   balance(W_fit_ATE_over);
-  W_fit_ATET      <- CBPS(treat ~ x1 + x1 + X__000000 + X__000001 +x4 + x5 + x6 +x7 +x90 +x91+ x92 +x93 +x94+ x95, data = mydata, ATT = 1, method="exact", standardize=stdall, sample.weights=mydata$wgt);
+  
+  W_fit_ATET      <- CBPS(as.formula(trailargs[1]), data = mydata, ATT = 1, method='exact', standardize=FALSE, sample.weights=mydata$wgt);
   summary(W_fit_ATET);
   print(  W_fit_ATET$weights[1:10]);
   balance(W_fit_ATET);
-  W_fit_ATET_over <- CBPS(treat ~ x1 + x1 + X__000000 + X__000001 +x4 + x5 + x6 +x7 +x90 +x91+ x92 +x93 +x94+ x95, data = mydata, ATT = 1, method="over", standardize=stdall, sample.weights=mydata$wgt);
+  
+  W_fit_ATET_over <- CBPS(as.formula(trailargs[1]), data = mydata, ATT = 1, method='over', standardize=FALSE, sample.weights=mydata$wgt);
   summary(W_fit_ATET_over);
   print(  W_fit_ATET_over$weights[1:10]);
   balance(W_fit_ATET_over);
+  
   q();
 END_OF_R
 
@@ -511,3 +535,5 @@ END_OF_R
 log close gmatch_example_R
 
 cap nois beep
+
+
