@@ -96,6 +96,8 @@ D.set(treatvar, varlist, tousevar)
 if (depvars!="") D.set_Y(depvars,tousevar)
 
 // Misc balance measures
+  D.means0()
+  D.means1()
   D.diff()
   D.stddiff()
   D.mean_asd()
@@ -157,6 +159,9 @@ if (depvars!="") D.set_Y(depvars,tousevar)
   D.balanceresults("atet")
   table = D.balancetable(3)
   D.reweight()
+  D.means0()
+  D.means1()
+  D.diff()
   table = D.balancetable(3)
 
   stata("teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' , ate aequations")
@@ -312,6 +317,7 @@ summ `treatvar' `varlist' `tousevar' `wgtvar' `depvars'
 cbps `treatvar' `varlist' if `tousevar' , ate logit optimization_technique("nr") evaluator_type("gf1")
 gmatch `treatvar' `varlist' if `tousevar' , ate cbps pooledvariance
 gmatchcall balanceresults()
+gmatchcall means0()
 return list
 
 cbps `treatvar' `varlist' if `tousevar' , ate over logit optimization_technique("nr") evaluator_type("gf1")

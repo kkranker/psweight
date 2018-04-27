@@ -26,7 +26,7 @@ class gmatch
     string rowvector varlist
     real rowvector   means1, means0, meansP, variances0, variances1, variancesP, variancesA
     real matrix      covariances0, covariances1, covariancesP, covariancesA
-    void             calcmeans(), calcvariances(), calcN(), calccovariances(), cbps_port_stata(), cbps_port_r(), postbeta()
+    void             calcN(), cbps_port_stata(), cbps_port_r(), postbeta()
     real scalar      K, N1, N0, N, N1_raw, N0_raw, N_raw
     real scalar      mean_sd_sq(), entropydistance()
     real rowvector   olsbeta(), diagvariance(), logitbeta(), sd_sq(), asd(), wgt_moments()
@@ -38,6 +38,8 @@ class gmatch
     void             cbpseval(), balanceresults()
     real rowvector   gmatch(), ipw(), cbps(), cbpsoid()
     real rowvector   diff(), stddiff(), varratio(), progdiff(), stdprogdiff(), pomean()
+    real rowvector   means1(), means0(), meansP(), variances0(), variances1(), variancesP(), variancesA()
+    real matrix      covariances0(), covariances1(), covariancesP(), covariancesA()
     real scalar      mean_asd(), max_asd(), wgt_cv(), wgt_sd(), wgt_skewness(), wgt_kurtosis(), wgt_max()
     real matrix      balancetable()
 }
@@ -101,20 +103,12 @@ void gmatch::set(string scalar treatvar, string scalar varlist, string scalar to
 }
 
 // flags observations with weights!=0
-// calculates unweighted/wegihted sample sizes for treatment and control group
+// calculates wegihted sample sizes for treatment and control groupss
 void gmatch::calcN() {
-
-  // Save weighted number of observations
   this.N0 = quadcolsum(this.W[this.sel0])
   this.N1 = quadcolsum(this.W[this.sel1])
   this.N = this.N0 + this.N1
   if (min((this.N0,this.N1)==0)) _error("Sum of weights is 0 in the treatment or control group.")
-
-  // these means/variances are saved internally in the class (to avoid computing them over and over).
-  // They need to be reset because we just reweighted the sample.
-  // If I'm re-calculating sample sizes, this is probably the case.  Set to missing here just to be safe.
-  this.means0 = this.means1 = this.meansP = this.variances0 = this.variances1 = this.variancesP = this.variancesA = J(1,0,.)
-  this.covariances0 = this.covariances1 = this.covariancesP = this.covariancesA = J(0,0,.)
 }
 
 // Note: this function doesn't allow the class to touch the treatment group's outcome data
@@ -186,14 +180,11 @@ real matrix gmatch::balancetable(| real scalar denominator)
   string rowvector colstripe, tmp
   if (args()<1) denominator=1
 
-  if (!length(this.means1))     this.calcmeans()
-  if (!length(this.variances1)) this.calcvariances()
-
-  table = ( this.means1
-          \ this.means0
+  table = ( this.means1()
+          \ this.means0()
           \ this.diff()
           \ this.stddiff(denominator)
-          \ (denominator==0 ? sqrt(this.variances0) : (denominator==1 ? sqrt(this.variances1) : (denominator==2 ? sqrt(this.variancesP) : (denominator==3 ? sqrt(this.variancesA) : _error("denominator argument invalid")))))
+          \ (denominator==0 ? sqrt(this.variances0()) : (denominator==1 ? sqrt(this.variances1()) : (denominator==2 ? sqrt(this.variancesP()) : (denominator==3 ? sqrt(this.variancesA()) : _error("denominator argument invalid")))))
           \ this.varratio())'
 
   colstripe = ("mean_T",
@@ -237,25 +228,32 @@ void gmatch::balanceresults(| string scalar est, real scalar denominator)
   }
 }
 
-// This function calculates the means for the T and C groups
-// These means are saved internally in the class (to avoid computing them over and over)
-void gmatch::calcmeans()
+// These functions calculate the (weighted) means for the C group, the T group, and the pooled sample
+// These means are saved internally in the class (to avoid computing them over and over).
+// If means have previously been calculated, they are simply returned.
+real rowvector gmatch::means0()
 {
-  this.means0 = mean(this.X[this.sel0, .], this.W[this.sel0])
-  this.means1 = mean(this.X[this.sel1, .], this.W[this.sel1])
-  this.meansP = mean(this.X, this.W)
-  // /* */ "Control group means:"  ; this.means0
-  // /* */ "Treatment group means:"; this.means1
+  if (!length(this.means0)) this.means0 = mean(this.X[this.sel0, .], this.W[this.sel0])
+  return(this.means0)
+}
+real rowvector gmatch::means1()
+{
+  if (!length(this.means1)) this.means1 = mean(this.X[this.sel1, .], this.W[this.sel1])
+  return(this.means1)
+}
+real rowvector gmatch::meansP()
+{
+  if (!length(this.meansP)) this.meansP = mean(this.X, this.W)
+  return(this.meansP)
 }
 
 // This function calculates the difference in means between the T and C groups
 real rowvector gmatch::diff()
 {
-  if (!length(this.means1)) this.calcmeans()
-  return(this.means1 :- this.means0)
+  return(this.means1() :- this.means0())
 }
 
-
+// This function calculates entropy for a vector x
 real scalar gmatch::entropydistance(real colvector x, | real colvector w) {
   real colvector e
   real scalar sumw
@@ -288,46 +286,67 @@ real rowvector gmatch::diagvariance(real matrix x, | real colvector w, real rowv
   return(v)
 }
 
-// This function calculates the variances for the T and C group,
-// These variances are saved internally in the class (to avoid computing them over and over)
-// Call this function whenever sample or weights change
-void gmatch::calcvariances()
+// These functions calculate the (weighted) variances for the C group, the T group, and the pooled sample, and the average of the T and C group variabnces
+// These variances are saved internally in the class (to avoid computing them over and over).
+// If variances have previously been calculated, they are simply returned.
+real rowvector gmatch::variances0()
 {
-  if (!length(this.means1)) this.calcmeans()
-  this.variances0 = this.diagvariance(this.X[this.sel0, .], this.W[this.sel0], this.means0)
-  this.variances1 = this.diagvariance(this.X[this.sel1, .], this.W[this.sel1], this.means1)
-  this.variancesP = this.diagvariance(this.X, this.W)
-  this.variancesA = (this.variances0 :+ this.variances1) :/ 2
-  // /* */ "Control group variances:"; this.variances0
-  // /* */ "Treatment group variances:"; this.variances1
-  // /* */ "Pooled variances:"; this.variancesP
-  // /* */ "Average of variances from treatment and control groups"; this.variancesA
+  if (!length(this.variances0)) this.variances0 = this.diagvariance(this.X[this.sel0, .], this.W[this.sel0], this.means0())
+  return(this.variances0)
+}
+real rowvector gmatch::variances1()
+{
+  if (!length(this.variances1)) this.variances1 = this.diagvariance(this.X[this.sel1, .], this.W[this.sel1], this.means1())
+  return(this.variances1)
+}
+real rowvector gmatch::variancesP()
+{
+  if (!length(this.variancesP)) this.variancesP = this.variancesP = this.diagvariance(this.X, this.W)
+  return(this.variancesP)
+}
+real rowvector gmatch::variancesA()
+{
+  if (!length(this.variancesA)) this.variancesA = (this.variances0() :+ this.variances1()) :/ 2
+  return(this.variancesA)
 }
 
-// This function calculates the variances for the T and C group,
-// and saves the results in private variables
-void gmatch::calccovariances()
+// These functions calculate the (weighted) covariance matrices for the C group, the T group, and the pooled sample, and the average of the T and C group variabnces
+// These covariance matrices are saved internally in the class (to avoid computing them over and over).
+// If covariance matrices have previously been calculated, they are simply returned.
+real matrix gmatch::covariances0()
 {
-  if (all(this.W:==1)) {
-    this.covariances0 = quadvariance(this.X[this.sel0, .])
-    this.covariances1 = quadvariance(this.X[this.sel1, .])
-    this.covariancesP = quadvariance(this.X)
+  if (!length(this.covariances0)) {
+    if (allof(this.W,1)) this.covariances0 = quadvariance(this.X[this.sel0, .])
+    else                 this.covariances0 = quadvariance(this.X[this.sel0, .], this.W[this.sel0])
+    this.variances0 = diagonal(this.covariances0)'
   }
-  else {
-    this.covariances0 = quadvariance(this.X[this.sel0, .], this.W[this.sel0])
-    this.covariances1 = quadvariance(this.X[this.sel1, .], this.W[this.sel1])
-    this.covariancesP = quadvariance(this.X, this.W)
+  return(this.covariances0)
+}
+real matrix gmatch::covariances1()
+{
+  if (!length(this.covariances1)) {
+    if (allof(this.W,1)) this.covariances1 = quadvariance(this.X[this.sel1, .])
+    else                 this.covariances1 = quadvariance(this.X[this.sel1, .], this.W[this.sel1])
+    this.variances1 = diagonal(this.covariances1)'
   }
-  this.covariancesA = (this.covariances0 :+ this.covariances1) :/ 2
-  // /* */ "Control group covariances:"; this.covariances0
-  // /* */ "Treatment group covariances:"; this.covariances1
-  // /* */ "Pooled covariances:"; this.covariancesP
-  // /* */ "Average of covariances from treatment and control groups"; this.covariancesA
-  this.variances0 = diagonal(this.covariances0)'
-  this.variances1 = diagonal(this.covariances1)'
-  this.variancesP = diagonal(this.covariancesP)'
-  this.variancesA = diagonal(this.covariancesA)'
-  // /* */ "Average of variances from treatment and control groups"; this.variancesA
+  return(this.covariances1)
+}
+real matrix gmatch::covariancesP()
+{
+  if (!length(this.covariancesP)) {
+    if (allof(this.W,1)) this.covariancesP = quadvariance(this.X)
+    else                 this.covariancesP = quadvariance(this.X, this.W)
+    this.variancesP = diagonal(this.covariancesP)'
+  }
+  return(this.covariancesP)
+}
+real matrix gmatch::covariancesA()
+{
+  if (!length(this.covariancesA)) {
+    this.covariancesA = (this.covariances0() :+ this.covariances1()) :/ 2
+    this.variancesA = diagonal(this.covariancesA)'
+  }
+  return(this.covariancesA)
 }
 
 // This function calculates standardized differences in means between the T and C groups
@@ -340,11 +359,10 @@ real rowvector gmatch::stddiff(| real scalar denominator)
 {
   if (args()<1) denominator=1
   real rowvector stddiff
-  if (!length(this.variances1)) this.calcvariances()
-  if      (denominator==0) stddiff = (this.diff() :/ sqrt(this.variances0))
-  else if (denominator==1) stddiff = (this.diff() :/ sqrt(this.variances1))
-  else if (denominator==2) stddiff = (this.diff() :/ sqrt(this.variancesP))
-  else if (denominator==3) stddiff = (this.diff() :/ sqrt(this.variancesA))
+  if      (denominator==0) stddiff = (this.diff() :/ sqrt(this.variances0()))
+  else if (denominator==1) stddiff = (this.diff() :/ sqrt(this.variances1()))
+  else if (denominator==2) stddiff = (this.diff() :/ sqrt(this.variancesP()))
+  else if (denominator==3) stddiff = (this.diff() :/ sqrt(this.variancesA()))
   else _error(strofreal(denominator)+ " is an invalid argument for gmatch::stddiff()")
   return(stddiff)
 }
@@ -450,8 +468,7 @@ real scalar gmatch::mean_sd_sq(| real scalar denominator)
 // This function calculates ratio of variances between the T and C groups
 real rowvector gmatch::varratio()
 {
-  if  (!length(this.variances1)) this.calcvariances()
-  return((this.variances1 :/ this.variances0))
+  return((this.variances1() :/ this.variances0()))
 }
 
 
@@ -524,7 +541,6 @@ real rowvector gmatch::stdprogdiff(| real scalar denominator, real matrix yhat, 
     yhat_bar_1 = mean(yhat[this.sel1,.], this.W[this.sel1])
     progdiff = yhat_bar_1 :- yhat_bar_0
   }
-  if (!length(this.variances1)) this.calcvariances()
   if      (denominator==0) stddiff = (progdiff :/ sqrt(this.diagvariance(yhat[this.sel0, .], this.W[this.sel0])))
   else if (denominator==1) stddiff = (progdiff :/ sqrt(this.diagvariance(yhat[this.sel1, .], this.W[this.sel1])))
   else if (denominator==2) stddiff = (progdiff :/ sqrt(this.diagvariance(yhat, this.W)))
@@ -721,7 +737,7 @@ void gmatch_logit_eval(transmorphic S, real rowvector beta, real colvector lnf)
   xb = moptimize_util_xb(S, beta, 1)
   pm = 2*(Y :!= 0) :- 1
   lj = invlogit(pm:*xb)
-  if (any(lj :== 0)) {
+  if (anyof(lj, 0)) {
     lnf = .
     return
   }
@@ -848,10 +864,9 @@ real rowvector gmatch::gmatch(| string scalar est,
   if (fctn=="cbps_port_r") {
     real matrix sel, meansP_orig, sdP_orig, svd_s, svd_v, svd_s_inv, tmp
     unnorm = 1
-    if (!length(this.variances1)) this.calcvariances()
     meansP_orig = mean(this.X, this.W)
     sdP_orig = sqrt(this.diagvariance(this.X, this.W))
-    sel = selectindex(sdP_orig')' // if we have a factor variable, for example, giving us a column of zeros, then the SD is 0 and Xstd would be ".".  Therefore, take that column out of the X matrix.
+    sel = selectindex(sdP_orig')' // if X has column of zeros (e.g,. the omited category for a factor variable), then the SD is 0 and Xstd would be ".".  Therefore, take that column out of the X matrix.
     this.Xstd = ((this.X[.,sel] :- meansP_orig[.,sel]) :/ sdP_orig[.,sel], J(this.N_raw,1,1))
     pragma unset svd_v
     pragma unset svd_s
@@ -881,7 +896,6 @@ real rowvector gmatch::gmatch(| string scalar est,
   // This is an extra matrix the can be passed to the optimization engine. I use it for different purposes.
   // It is only calculated once -- not once each time the objective function is called.
   if (fctn=="cbps_port_stata") {
-    // is this just this.covariancesP ?
     ww = this.cbps_port_stata_wgt_matrix(beta_logit, oid, est)
     ww = invsym(ww)
   }

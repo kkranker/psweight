@@ -11,13 +11,6 @@
 // permission of Mathematica Policy Research, Inc.
 //*****************************************************************************/
 
-/*
-  Other to-do:
-     can set_Y() be rolled into the main program?
-     make the means and variaances functions that simply return the stored value if it exists
-*/
-
-
 program define gmatch, eclass byable(onecall)
   version 15.1
   if replay() {
@@ -42,7 +35,7 @@ program Estimate, eclass sortpreserve
   syntax varlist(min=2 numeric fv) [if] [in] [fw iw/], ///
           [ depvars(varlist numeric) /// outcome variables (if any)
             ate atet ateu /// to fill in est
-            ipw cbps mean_sd sd mean_sd_sq sd_sq STDProgdiff /// to fill in fctn and oid
+            ipw cbps mean_sd sd mean_sd_sq sd_sq STDProgdiff /// to fill in fctn
             TREatvariance CONtrolvariance POOledvariance Averagevariance /// to fill in denominator
             cvtarget(numlist min=3 max=3) skewtarget(numlist min=3 max=3) kurttarget(numlist min=3 max=3) ///
             * ] //  display and ml options are allowed
@@ -188,7 +181,7 @@ void Estimate()
   external class gmatch scalar gmatch_ado_most_recent
   string scalar    treatvar, varlist, tousevar, wgtvar, depvars
   string scalar    est, fctn
-  real   scalar    denominator, oid
+  real   scalar    denominator
   real   rowvector cvopt
   transmorphic temp
 
