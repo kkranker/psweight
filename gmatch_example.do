@@ -384,10 +384,6 @@ gmatchcall balanceresults()
 gmatch `treatvar' `varlist' if `tousevar', atet cbps treatvariance cvtarget(1 .5 6) skewtarget(1 0.07 2)
 gmatchcall balanceresults()
 
-capture nois {
-gmatch `treatvar' `varlist' if `tousevar', atet cbps treatvariance maxtarget(1 10 2) difficult nonrtolerance
-gmatchcall balanceresults()
-}
 
 // * WEIGHTED DATA EXAMPLES *
 
@@ -451,13 +447,6 @@ gmatchcall balanceresults()
 gmatch `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet mean_sd_sq treatvariance cvtarget(1 .50 6) difficult nonrtolerance
 gmatchcall balanceresults()
 
-// you can also target skiwness, kurtosis, or max weight, but it's finicky
-
-capture nois {
-gmatch `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet mean_sd_sq treatvariance maxtarget(1 10 2) difficult nonrtolerance
-gmatchcall balanceresults()
-}
-
 log close gmatch_example_ado
 
 
@@ -492,42 +481,42 @@ rsource, terminator(END_OF_R) lsource  roptions(`" --vanilla --args "`treatvar' 
   summary(fit_ATE);
   print(  fit_ATE$weights[1:10]);
   balance(fit_ATE);
-  
+
   fit_ATE_over  <- CBPS(as.formula(trailargs[1]), data = mydata, ATT = 0, method='over', standardize=FALSE);
   summary(fit_ATE_over);
   print(  fit_ATE_over$weights[1:10]);
   balance(fit_ATE_over);
-  
+
   fit_ATET      <- CBPS(as.formula(trailargs[1]), data = mydata, ATT = 1, method='exact', standardize=FALSE);
   summary(fit_ATET);
   print(  fit_ATET$weights[1:10]);
   balance(fit_ATET);
-  
+
   fit_ATET_over <- CBPS(as.formula(trailargs[1]), data = mydata, ATT = 1, method='over', standardize=FALSE);
   summary(fit_ATET_over);
   print(  fit_ATET_over$weights[1:10]);
   balance(fit_ATET_over);
-  
+
   W_fit_ATE       <- CBPS(as.formula(trailargs[1]), data = mydata, ATT = 0, method='exact', standardize=FALSE, sample.weights=mydata$wgt);
   summary(W_fit_ATE);
   print(  W_fit_ATE$weights[1:10]);
   balance(W_fit_ATE);
-  
+
   W_fit_ATE_over  <- CBPS(as.formula(trailargs[1]), data = mydata, ATT = 0, method='over', standardize=FALSE, sample.weights=mydata$wgt);
   summary(W_fit_ATE_over);
   print(  W_fit_ATE_over$weights[1:10]);
   balance(W_fit_ATE_over);
-  
+
   W_fit_ATET      <- CBPS(as.formula(trailargs[1]), data = mydata, ATT = 1, method='exact', standardize=FALSE, sample.weights=mydata$wgt);
   summary(W_fit_ATET);
   print(  W_fit_ATET$weights[1:10]);
   balance(W_fit_ATET);
-  
+
   W_fit_ATET_over <- CBPS(as.formula(trailargs[1]), data = mydata, ATT = 1, method='over', standardize=FALSE, sample.weights=mydata$wgt);
   summary(W_fit_ATET_over);
   print(  W_fit_ATET_over$weights[1:10]);
   balance(W_fit_ATET_over);
-  
+
   q();
 END_OF_R
 

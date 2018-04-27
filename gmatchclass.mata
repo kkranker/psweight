@@ -749,9 +749,6 @@ void gmatch_logit_eval(transmorphic S, real rowvector beta, real colvector lnf)
 //         With >=9 arguments, cvopt=(a,b,c,d,e,f,g,h,i), the loss function also targets kurtosis of the weights (wgt_kurtosis())
 //         Specifically, the loss function is modified as:
 //              loss = ( loss_0 \ a * abs((wgt_cv() - b)^c) \ e * abs((wgt_skewness() - e)^f) \ g * abs((wgt_kurtosis() - h)^i))
-//         With >=12 arguments, cvopt=(a,b,c,d,e,f,g,h,i,j,k,l), the loss function also targets the maximum weight (wgt_max())
-//         Specifically, the loss function is modified as:
-//              loss = ( loss_0 \ a * abs((wgt_cv() - b)^c) \ e * abs((wgt_skewness() - e)^f) \ g * abs((wgt_kurtosis() - h)^i)  \ j * abs((wgt_max() - k)^l))
 //    Other remarks: I'm using optimize() instead of _optimize(); because of this, errors that occuure
 //                   during optimization will cause gmatch() to abort with error.
 //                   In the case that convergance is not achieved, a warning will be printed to screen
@@ -965,7 +962,7 @@ void gmatch::cbpseval( real   scalar    todo,
 
   // cvopt, a row vector, modifies the loss function as documented above
   if (!length(cvopt)) return
-  else if (mod(length(cvopt),3)!=0 | length(cvopt)<3 | length(cvopt)>12) _error("cvopt() should have 0, 3, 6, 9, or 12 elements")
+  else if (mod(length(cvopt),3)!=0 | length(cvopt)<3 | length(cvopt)>9) _error("cvopt() should have 0, 3, 6, or 9 elements")
   else if (todo>0) _error("cvopt is not compatable with todo>0 in gmatch::cbpseval()")
   if (fctn=="cbps_port_stata" | fctn=="cbps_port_r") {
     if (fctn=="cbps_port_r") pscore = this.logitpredict(this.Xstd, beta)
@@ -981,9 +978,6 @@ void gmatch::cbpseval( real   scalar    todo,
 
   if (length(cvopt)<9) return
   if (cvopt[1,7]) lnf = (lnf \ (cvopt[1,7]:*abs((this.wgt_kurtosis(est):-cvopt[1,8]):^cvopt[1,9])))
-
-  if (length(cvopt)<12) return
-  if (cvopt[1,10]) lnf = (lnf \ (cvopt[1,10]:*abs((this.wgt_max(est):-cvopt[1,11]):^cvopt[1,12])))
 }
 
 // Calls CBPS model (not over-identified)

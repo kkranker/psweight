@@ -13,7 +13,6 @@
 
 /*
   Other to-do:
-     remove maxtarget()?
      can set_Y() be rolled into the main program?
      make the means and variaances functions that simply return the stored value if it exists
 */
@@ -45,7 +44,7 @@ program Estimate, eclass sortpreserve
             ate atet ateu /// to fill in est
             ipw cbps mean_sd sd mean_sd_sq sd_sq STDProgdiff /// to fill in fctn and oid
             TREatvariance CONtrolvariance POOledvariance Averagevariance /// to fill in denominator
-            cvtarget(numlist min=3 max=3) skewtarget(numlist min=3 max=3) kurttarget(numlist min=3 max=3) maxtarget(numlist min=3 max=3) ///
+            cvtarget(numlist min=3 max=3) skewtarget(numlist min=3 max=3) kurttarget(numlist min=3 max=3) ///
             * ] //  display and ml options are allowed
 
   marksample tousevar
@@ -102,21 +101,19 @@ program Estimate, eclass sortpreserve
   }
 
   // parse the "cvopt" option
-  // Instead of having lots of options, I just pass the mata functions one big vector of up to 12 elements.
+  // Instead of having lots of options, I just pass the mata functions one big vector of up to 9 elements.
   // It has 0 elements if none of these options are provided,
   //        3 elements if you're just using cvtarget(),
-  //        6 elements if you're using skewtarget(),
-  //        9 elements if you're using kurttarget(), and
-  //        12 elements if you're using maxtarget().
+  //        6 elements if you're using skewtarget(), and
+  //        9 elements if you're using kurttarget().
   //        If you are using skewtarget() without cvtarget(), then defaults keep cvtarget() from having any effect.
   //        If you are using kurttarget() without skewtarget() or cvtarget(), then defaults keep cvtarget() adn skewtarget() from having any effect.
-  if (!mi("`maxtarget'")  & mi("`kurttarget'")) local kurttarget "0 0 2"
   if (!mi("`kurttarget'") & mi("`skewtarget'")) local skewtarget "0 0 2"
   if (!mi("`skewtarget'") & mi("`cvtarget'"))   local cvtarget   "0 0 2"
-  local cvopt "`cvtarget' `skewtarget' `kurttarget' `maxtarget'"
+  local cvopt "`cvtarget' `skewtarget' `kurttarget'"
   local cvopt : list clean cvopt
-  if (!inlist(`: list sizeof cvopt',0,3,6,9,12)) {
-    di as error `"cvopt() requires 3, 6, 9, or 12 elements"'
+  if (!inlist(`: list sizeof cvopt',0,3,6,9)) {
+    di as error `"cvopt() requires 3, 6, or 9 elements"'
     error 198
   }
 
@@ -158,7 +155,6 @@ program Estimate, eclass sortpreserve
   if ("`1'"!="")  di as txt   " + `1'*abs(wgt_cv()-`2')^`3')" _c
   if ("`4'"!="")  di as txt   " + `4'*abs(wgt_skewness()-`5')^`6')" _c
   if ("`7'"!="")  di as txt   " + `7'*abs(wgt_kurtosis()-`8')^`9')" _c
-  if ("`10'"!="") di as txt   " + `10'*abs(wgt_max()-`11')^`12')" _c
   di ""
   ereturn post `gmatch_beta_out' `wgtexp', obs(`gmatch_N_out') buildfvinfo esample(`tousevar')
   ereturn local est                       = "`est'"
