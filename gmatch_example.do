@@ -10,6 +10,7 @@ cap log close gmatch_example_R
 local makegraphs = 01
 
 cd "C:/Users/kkranker/Downloads/Ado-clone/Devel/gmatch"
+sysdir set PERSONAL "C:/Users/kkranker/Downloads/Ado-clone/PERSONAL"
 
 do gmatch_one_time_setup.do
 
@@ -34,6 +35,7 @@ di as txt "Current user: `c(username)'" _n "Environment: `c(os)' `c(machine_type
 
 which gmatch
 which gmatchcall
+findfile lgmatch.mlib
 mata: mata describe using lgmatch
 
 ************************************************************************************
