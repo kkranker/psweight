@@ -133,6 +133,7 @@ program Estimate, eclass sortpreserve
 
   // switch over to Mata, run helper function with runs the main function
   mata: Estimate()
+  local converged = r(converged)
 
   // print results to screen
   di as txt _n "Propensity score model coefficients" _c
@@ -150,17 +151,18 @@ program Estimate, eclass sortpreserve
   if ("`7'"!="")  di as txt   " + `7'*abs(wgt_kurtosis()-`8')^`9')" _c
   di ""
   ereturn post `gmatch_beta_out' `wgtexp', obs(`gmatch_N_out') buildfvinfo esample(`tousevar')
+  _coef_table, `diopts'
   ereturn local est                       = "`est'"
-  ereturn local fctn                      = "`fctn'"
-  ereturn local depvar                    = "`treatvar'"
-  ereturn local varlist                   = "`varlist'"
+  ereturn local fctn                      = "`: list clean fctn'"
+  ereturn local depvar                    = "`: list clean treatvar'"
+  ereturn local varlist                   = "`: list clean varlist'"
   ereturn local cmd                       = "gmatch"
   ereturn local cmdline                   = "gmatch `cmdline'"
   if ("`weight'"!="") ereturn local wtype = "`weight'"
   if ("`wexp'"!="")   ereturn local wexp  = "`wexp'"
   ereturn scalar denominator              = `denominator'
-  if ("`cvopt'"!="")  ereturn local cvopt = "`cvopt'"
-  _coef_table, `diopts'
+  ereturn local cvopt                     = "`cvopt'"
+  ereturn scalar converged                = `converged'
 
   // print distribution of weights to screen
   di as txt _n "New variables (unweighted summary statistics)"

@@ -909,6 +909,7 @@ real rowvector gmatch::gmatch(| string scalar est,
   "Step 2 (CBPS) :"
   (void) optimize(S)
   beta    = optimize_result_params(S)
+  st_numscalar("r(converged)", optimize_result_converged(S))
   // /* */ "beta:" ; beta
 
   // undoing the normalization and SVD
