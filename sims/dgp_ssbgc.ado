@@ -27,7 +27,7 @@
 
 program define dgp_ssbgc
   version 15.1
-  syntax anything(name=scenario id="scenario") [, n(int 200)]
+  syntax anything(name=scenario id="scenario"), n(int)
 
   // ---------
   // Draw W_i
