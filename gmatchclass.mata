@@ -1,10 +1,10 @@
 //****************************************************************************/
-*! $Id: gmatch.ado,v dbef04cb535b 2018/02/14 06:08:14 kkranker $
+*! $Id$
 *! Generalization of IPW and CBPS estimators
 *! Class defintion: gmatch()
 //
 *! By Keith Kranker
-// Last updated $Date: 2018/02/14 06:08:14 $
+// Last updated $Date$
 //
 // Copyright (C) Mathematica Policy Research, Inc.
 // This code cannot be copied, distributed or used without the express written
@@ -689,7 +689,10 @@ real rowvector gmatch::logitbeta(real colvector Ymat, real matrix Xmat, | real c
   moptimize_init_vcetype(S, "robust")
   if (args()>=5) moptimize_init_constraints(S, Ct)
   if (st_local("mlopts")!="") moptimize_init_mlopts(S, st_local("mlopts"))
-
+  if (st_local("from")!="") {
+    "(Initial parameter values were provided)"
+    optimize_init_params(S, st_matrix(st_local("from")))
+  }
   moptimize(S)
   // /* */ "Logit model coefficients and robust standard errors:"; moptimize_result_display(S)
   return(moptimize_result_coefs(S))
@@ -877,19 +880,27 @@ real rowvector gmatch::gmatch(| string scalar est,
   }
   else unnorm=0
 
-  "Step 1 (initial values from logit model):"
+  // constraint matrix
+  if (fctn=="cbps_port_r") Ct = this.Ct((this.varlist[sel],"_cons"))
+  else                     Ct = this.Ct((this.varlist,"_cons"))
+  optimize_init_constraints(S, Ct)
+
+  // initial values
   real rowvector beta_logit
-  if (fctn=="cbps_port_r") {
+  if (st_local("from")!="") {
+    "Step 1 skipped (initial values provided by user):"
+    beta_logit = st_matrix(st_local("from"))
+  }
+  else if (fctn=="cbps_port_r") {
+    "Step 1 (initial values from logit model):"
     // constant term was alrady added to Xstd. don't include dropped columns
-    Ct = this.Ct((this.varlist[sel],"_cons"))
     beta_logit = this.logitbeta(this.T, this.Xstd, this.W, 0, Ct)
   }
   else {
+    "Step 1 (initial values from logit model):"
     // constant term will be added to X in last column
-    Ct = this.Ct((this.varlist,"_cons"))
     beta_logit = this.logitbeta(this.T, this.X, this.W, 1, Ct)
   }
-  optimize_init_constraints(S, Ct)
   optimize_init_params(S, beta_logit)
 
   // This is an extra matrix the can be passed to optimiztion engine. I use it for different purposes.
