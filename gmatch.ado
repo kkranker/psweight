@@ -38,6 +38,7 @@ program Estimate, eclass sortpreserve
             ipw cbps mean_sd sd mean_sd_sq sd_sq STDProgdiff /// to fill in fctn and oid
             TREatvariance CONtrolvariance POOledvariance Averagevariance /// to fill in denominator
             cvtarget(numlist min=3 max=3) skewtarget(numlist min=3 max=3) kurttarget(numlist min=3 max=3) maxtarget(numlist min=3 max=3) ///
+            from(name) /// starting values for maximization
             * ] //  display and ml options are allowed
 
   marksample tousevar
