@@ -1,0 +1,601 @@
+------------------------------------------------------------------------------------------------------------------------------------------------------
+      name:  sim1
+       log:  C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\sims/sim1/logfile.log
+  log type:  text
+ opened on:  26 Oct 2018, 16:25:13
+
+. 
+. *! $Id$
+. *! Simulation setup #1
+. // Here I'm trying to find combinations of N/impact that are "marginally" powered
+. //
+. *! By Keith Kranker
+. // Last updated $Date$
+. //
+. // Copyright (C) Mathematica Policy Research, Inc.
+. // This code cannot be copied, distributed or used without the express written
+. // permission of Mathematica Policy Research, Inc.
+. 
+. // DGP is saved in a separate .ado file
+.   adopath ++ "./sims"
+  [1]              "./sims"
+  [2]  (BASE)      "C:\Program Files (x86)\Stata15\ado\base/"
+  [3]  (SITE)      "C:\Program Files (x86)\Stata15\ado\site/"
+  [4]              "."
+  [5]  (PERSONAL)  "C:\Users\kkranker\Documents\Stata\Ado\personal/"
+  [6]  (PLUS)      "C:\Users\kkranker\Documents\Stata\Ado\plus/"
+  [7]  (OLDPLACE)  "C:\Users\kkranker\Documents\Stata\Ado/"
+  [8]              "C:\Users\kkranker\Documents\Stata\Stata-Common-Code"
+
+.   which dgp_ssbgc
+./sims\dgp_ssbgc.ado
+*! $Id: dgp_ssbgc.ado,v 27da5bdb985d 2018/10/26 21:49:02 kkranker $
+*! Data generating processe (DGP) senarios A through G from Setoguchi et al. (2008)
+*! By Keith Kranker
+
+.   which onerep
+./sims\onerep.ado
+*! $Id: onerep.ado,v c48028eb1766 2018/10/26 22:24:25 kkranker $
+*! One replication of the Simulations
+*! By Keith Kranker
+
+.   which sim_reshape
+./sims\sim_reshape.ado
+*! $Id: sim_reshape.ado,v c48028eb1766 2018/10/26 22:24:25 kkranker $
+*! Reshapes the outpute from simmulate: from wide to tall
+*! By Keith Kranker
+
+. 
+. // options
+.   parallel setclusters `c(processors_mach)'
+N Clusters: 6
+Stata dir:  C:\Program Files (x86)\Stata15/StataMP-64.exe
+
+.   set cformat %9.3fc
+
+.   set pformat %5.3f
+
+.   set sformat %7.3f
+
+.   set type float
+
+.   set tracedepth 1
+
+.   set maxiter 50
+
+. 
+. // control simulations
+. set seed 1  //  1 for simulation 1, 2 for simulation 2, etc.
+
+. local reps 500
+
+. 
+. // ------------------------------------------------------------------------
+. // 1-A Variouis sample sizes with impact = .10
+. // ------------------------------------------------------------------------
+. 
+. parallel sim, expr(_b) reps(`reps') processors(1): ///
+>   onerep A, impact(-.10) estimators(ipw) n(8000 500 4000 2000 1750 1500 1250 1000 800 600 400 200 100)
+Warning: No data loaded.
+--------------------------------------------------------------------------------
+Parallel Computing with Stata
+Clusters   : 6
+pll_id     : 8y38hxqlb1
+Running at : C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch
+Randtype   : datetime
+Waiting for the clusters to finish...
+cluster 0003 has exited without error...
+cluster 0001 has exited without error...
+cluster 0004 has exited without error...
+cluster 0002 has exited without error...
+cluster 0005 has exited without error...
+cluster 0006 has exited without error...
+--------------------------------------------------------------------------------
+Enter -parallel printlog #- to checkout logfiles.
+--------------------------------------------------------------------------------
+
+. 
+. sim_reshape
+
+Contains data from C:\Users\kkranker\AppData\Local\Temp/__pll8y38hxqlb1_sim_outdta.dta
+  obs:           500                          simulate: onerep
+ vars:           234                          26 Oct 2018 16:28
+ size:       468,000                          
+Sorted by: 
+There are 13 prefixes
+_prefixes:      A_1 A_2 A_3 A_4 A_5 A_6 A_7 A_8 A_9 A_10 A_11 A_12 A_13
+There are 1 ests
+_ests:          ipw
+A_1/ipw:
+   from: A_1_b_N A_1_b_Nt A_1_b_true A_1_ipw_b_impact_est A_1_ipw_b_sd_error A_1_ipw_b_bias A_1_ipw_b_error_sqr A_1_ipw_b_p_0 A_1_ipw_b_reject_0 A_1_i
+> pw_b_p_g1 A_1_ipw_b_reject_g1 A_1_ipw_b_bal_max_asd A_1_ipw_b_bal_mean_asd A_1_ipw_b_wgt_sd A_1_ipw_b_wgt_cv A_1_ipw_b_wgt_skewness A_1_ipw_b_wgt_ku
+> rtosis A_1_ipw_b_wgt_max rep
+     to: N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt
+> _max rep dgp_txt c est_txt
+A_2/ipw:
+   from: A_2_b_N A_2_b_Nt A_2_b_true A_2_ipw_b_impact_est A_2_ipw_b_sd_error A_2_ipw_b_bias A_2_ipw_b_error_sqr A_2_ipw_b_p_0 A_2_ipw_b_reject_0 A_2_i
+> pw_b_p_g1 A_2_ipw_b_reject_g1 A_2_ipw_b_bal_max_asd A_2_ipw_b_bal_mean_asd A_2_ipw_b_wgt_sd A_2_ipw_b_wgt_cv A_2_ipw_b_wgt_skewness A_2_ipw_b_wgt_ku
+> rtosis A_2_ipw_b_wgt_max rep
+     to: N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt
+> _max rep dgp_txt c est_txt
+A_3/ipw:
+   from: A_3_b_N A_3_b_Nt A_3_b_true A_3_ipw_b_impact_est A_3_ipw_b_sd_error A_3_ipw_b_bias A_3_ipw_b_error_sqr A_3_ipw_b_p_0 A_3_ipw_b_reject_0 A_3_i
+> pw_b_p_g1 A_3_ipw_b_reject_g1 A_3_ipw_b_bal_max_asd A_3_ipw_b_bal_mean_asd A_3_ipw_b_wgt_sd A_3_ipw_b_wgt_cv A_3_ipw_b_wgt_skewness A_3_ipw_b_wgt_ku
+> rtosis A_3_ipw_b_wgt_max rep
+     to: N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt
+> _max rep dgp_txt c est_txt
+A_4/ipw:
+   from: A_4_b_N A_4_b_Nt A_4_b_true A_4_ipw_b_impact_est A_4_ipw_b_sd_error A_4_ipw_b_bias A_4_ipw_b_error_sqr A_4_ipw_b_p_0 A_4_ipw_b_reject_0 A_4_i
+> pw_b_p_g1 A_4_ipw_b_reject_g1 A_4_ipw_b_bal_max_asd A_4_ipw_b_bal_mean_asd A_4_ipw_b_wgt_sd A_4_ipw_b_wgt_cv A_4_ipw_b_wgt_skewness A_4_ipw_b_wgt_ku
+> rtosis A_4_ipw_b_wgt_max rep
+     to: N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt
+> _max rep dgp_txt c est_txt
+A_5/ipw:
+   from: A_5_b_N A_5_b_Nt A_5_b_true A_5_ipw_b_impact_est A_5_ipw_b_sd_error A_5_ipw_b_bias A_5_ipw_b_error_sqr A_5_ipw_b_p_0 A_5_ipw_b_reject_0 A_5_i
+> pw_b_p_g1 A_5_ipw_b_reject_g1 A_5_ipw_b_bal_max_asd A_5_ipw_b_bal_mean_asd A_5_ipw_b_wgt_sd A_5_ipw_b_wgt_cv A_5_ipw_b_wgt_skewness A_5_ipw_b_wgt_ku
+> rtosis A_5_ipw_b_wgt_max rep
+     to: N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt
+> _max rep dgp_txt c est_txt
+A_6/ipw:
+   from: A_6_b_N A_6_b_Nt A_6_b_true A_6_ipw_b_impact_est A_6_ipw_b_sd_error A_6_ipw_b_bias A_6_ipw_b_error_sqr A_6_ipw_b_p_0 A_6_ipw_b_reject_0 A_6_i
+> pw_b_p_g1 A_6_ipw_b_reject_g1 A_6_ipw_b_bal_max_asd A_6_ipw_b_bal_mean_asd A_6_ipw_b_wgt_sd A_6_ipw_b_wgt_cv A_6_ipw_b_wgt_skewness A_6_ipw_b_wgt_ku
+> rtosis A_6_ipw_b_wgt_max rep
+     to: N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt
+> _max rep dgp_txt c est_txt
+A_7/ipw:
+   from: A_7_b_N A_7_b_Nt A_7_b_true A_7_ipw_b_impact_est A_7_ipw_b_sd_error A_7_ipw_b_bias A_7_ipw_b_error_sqr A_7_ipw_b_p_0 A_7_ipw_b_reject_0 A_7_i
+> pw_b_p_g1 A_7_ipw_b_reject_g1 A_7_ipw_b_bal_max_asd A_7_ipw_b_bal_mean_asd A_7_ipw_b_wgt_sd A_7_ipw_b_wgt_cv A_7_ipw_b_wgt_skewness A_7_ipw_b_wgt_ku
+> rtosis A_7_ipw_b_wgt_max rep
+     to: N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt
+> _max rep dgp_txt c est_txt
+A_8/ipw:
+   from: A_8_b_N A_8_b_Nt A_8_b_true A_8_ipw_b_impact_est A_8_ipw_b_sd_error A_8_ipw_b_bias A_8_ipw_b_error_sqr A_8_ipw_b_p_0 A_8_ipw_b_reject_0 A_8_i
+> pw_b_p_g1 A_8_ipw_b_reject_g1 A_8_ipw_b_bal_max_asd A_8_ipw_b_bal_mean_asd A_8_ipw_b_wgt_sd A_8_ipw_b_wgt_cv A_8_ipw_b_wgt_skewness A_8_ipw_b_wgt_ku
+> rtosis A_8_ipw_b_wgt_max rep
+     to: N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt
+> _max rep dgp_txt c est_txt
+A_9/ipw:
+   from: A_9_b_N A_9_b_Nt A_9_b_true A_9_ipw_b_impact_est A_9_ipw_b_sd_error A_9_ipw_b_bias A_9_ipw_b_error_sqr A_9_ipw_b_p_0 A_9_ipw_b_reject_0 A_9_i
+> pw_b_p_g1 A_9_ipw_b_reject_g1 A_9_ipw_b_bal_max_asd A_9_ipw_b_bal_mean_asd A_9_ipw_b_wgt_sd A_9_ipw_b_wgt_cv A_9_ipw_b_wgt_skewness A_9_ipw_b_wgt_ku
+> rtosis A_9_ipw_b_wgt_max rep
+     to: N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt
+> _max rep dgp_txt c est_txt
+A_10/ipw:
+   from: A_10_b_N A_10_b_Nt A_10_b_true A_10_ipw_b_impact_est A_10_ipw_b_sd_error A_10_ipw_b_bias A_10_ipw_b_error_sqr A_10_ipw_b_p_0 A_10_ipw_b_rejec
+> t_0 A_10_ipw_b_p_g1 A_10_ipw_b_reject_g1 A_10_ipw_b_bal_max_asd A_10_ipw_b_bal_mean_asd A_10_ipw_b_wgt_sd A_10_ipw_b_wgt_cv A_10_ipw_b_wgt_skewness 
+> A_10_ipw_b_wgt_kurtosis A_10_ipw_b_wgt_max rep
+     to: N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt
+> _max rep dgp_txt c est_txt
+A_11/ipw:
+   from: A_11_b_N A_11_b_Nt A_11_b_true A_11_ipw_b_impact_est A_11_ipw_b_sd_error A_11_ipw_b_bias A_11_ipw_b_error_sqr A_11_ipw_b_p_0 A_11_ipw_b_rejec
+> t_0 A_11_ipw_b_p_g1 A_11_ipw_b_reject_g1 A_11_ipw_b_bal_max_asd A_11_ipw_b_bal_mean_asd A_11_ipw_b_wgt_sd A_11_ipw_b_wgt_cv A_11_ipw_b_wgt_skewness 
+> A_11_ipw_b_wgt_kurtosis A_11_ipw_b_wgt_max rep
+     to: N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt
+> _max rep dgp_txt c est_txt
+A_12/ipw:
+   from: A_12_b_N A_12_b_Nt A_12_b_true A_12_ipw_b_impact_est A_12_ipw_b_sd_error A_12_ipw_b_bias A_12_ipw_b_error_sqr A_12_ipw_b_p_0 A_12_ipw_b_rejec
+> t_0 A_12_ipw_b_p_g1 A_12_ipw_b_reject_g1 A_12_ipw_b_bal_max_asd A_12_ipw_b_bal_mean_asd A_12_ipw_b_wgt_sd A_12_ipw_b_wgt_cv A_12_ipw_b_wgt_skewness 
+> A_12_ipw_b_wgt_kurtosis A_12_ipw_b_wgt_max rep
+     to: N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt
+> _max rep dgp_txt c est_txt
+A_13/ipw:
+   from: A_13_b_N A_13_b_Nt A_13_b_true A_13_ipw_b_impact_est A_13_ipw_b_sd_error A_13_ipw_b_bias A_13_ipw_b_error_sqr A_13_ipw_b_p_0 A_13_ipw_b_rejec
+> t_0 A_13_ipw_b_p_g1 A_13_ipw_b_reject_g1 A_13_ipw_b_bal_max_asd A_13_ipw_b_bal_mean_asd A_13_ipw_b_wgt_sd A_13_ipw_b_wgt_cv A_13_ipw_b_wgt_skewness 
+> A_13_ipw_b_wgt_kurtosis A_13_ipw_b_wgt_max rep
+     to: N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt
+> _max rep dgp_txt c est_txt
+(note: variable N was byte, now int to accommodate using data's values)
+(note: variable Nt was byte, now int to accommodate using data's values)
+(simulate: onerep)
+(6,500 real changes made)
+
+Contains data from C:\Users\kkranker\AppData\Local\Temp\ST_5448_000001.tmp
+  obs:         6,500                          simulate: onerep
+ vars:            22                          26 Oct 2018 16:28
+ size:       487,500                          
+------------------------------------------------------------------------------------------------------------------------------------------------------
+              storage   display    value
+variable name   type    format     label      variable label
+------------------------------------------------------------------------------------------------------------------------------------------------------
+rep             float   %9.0g                 
+c               byte    %10.0g                
+dgp             long    %8.0g      dgp        
+estimator       long    %8.0g      est        
+N               int     %9.0g                 
+Nt              int     %9.0g                 
+true            float   %9.0g                 
+impact_est      float   %9.0g                 
+sd_error        float   %9.0g                 
+bias            float   %9.0g                 
+error_sqr       float   %9.0g                 
+p_0             float   %9.0g                 
+reject_0        byte    %9.0g                 
+p_g1            float   %9.0g                 
+reject_g1       byte    %9.0g                 
+bal_max_asd     float   %9.0g                 
+bal_mean_asd    float   %9.0g                 
+wgt_sd          float   %9.0g                 
+wgt_cv          float   %9.0g                 
+wgt_skewness    float   %9.0g                 
+wgt_kurtosis    float   %9.0g                 
+wgt_max         float   %9.0g                 
+------------------------------------------------------------------------------------------------------------------------------------------------------
+Sorted by: rep  estimator  dgp  true  N  c
+     Note: Dataset has changed since last saved.
+
+Variable    Obs Unique   Mean  Min  Max  Label
+------------------------------------------------------------------------------------------------------------------------------------------------------
+rep        6500    500  250.5    1  500  
+c          6500     13      7    1   13  
+dgp        6500      1      1    1    1  
+estimator  6500      1      2    2    2  
+------------------------------------------------------------------------------------------------------------------------------------------------------
+
+----------------------------------------------------------------------------------------
+          |                               estimator and N                               
+dgp and   | ------------------------------------ IPW -----------------------------------
+true      |  100   200   400   500   600   800  1000  1250  1500  1750  2000  4000  8000
+----------+-----------------------------------------------------------------------------
+A         |
+      -.1 |  500   500   500   500   500   500   500   500   500   500   500   500   500
+----------------------------------------------------------------------------------------
+
+. save sims/sim1/sim1a.dta, replace
+(note: file sims/sim1/sim1a.dta not found)
+file sims/sim1/sim1a.dta saved
+
+. graph bar (mean) reject_0, over(N) over(estimator) name(g1a)
+
+. graph export sims/sim1/sim1a_power.png, replace
+(note: file sims/sim1/sim1a_power.png not found)
+(file sims/sim1/sim1a_power.png written in PNG format)
+
+. 
+. 
+. // ------------------------------------------------------------------------
+. // 1-B Variouis sample sizes with impact = .10
+. // ------------------------------------------------------------------------
+. 
+. parallel sim, expr(_b) reps(`reps') processors(1): ///
+>   onerep A, impact(-.05(-.01)-.15) estimators(ipw) n(2000)
+--------------------------------------------------------------------------------
+Parallel Computing with Stata
+Clusters   : 6
+pll_id     : 9gmpdbu4c3
+Running at : C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch
+Randtype   : datetime
+Waiting for the clusters to finish...
+cluster 0004 has exited without error...
+cluster 0005 has exited without error...
+cluster 0002 has exited without error...
+cluster 0001 has exited without error...
+cluster 0003 has exited without error...
+cluster 0006 has exited without error...
+--------------------------------------------------------------------------------
+Enter -parallel printlog #- to checkout logfiles.
+--------------------------------------------------------------------------------
+
+. 
+. sim_reshape
+
+Contains data from C:\Users\kkranker\AppData\Local\Temp/__pll9gmpdbu4c3_sim_outdta.dta
+  obs:           500                          simulate: onerep
+ vars:           198                          26 Oct 2018 16:31
+ size:       396,000                          
+Sorted by: 
+There are 11 prefixes
+_prefixes:      A_1 A_2 A_3 A_4 A_5 A_6 A_7 A_8 A_9 A_10 A_11
+There are 1 ests
+_ests:          ipw
+A_1/ipw:
+   from: A_1_b_N A_1_b_Nt A_1_b_true A_1_ipw_b_impact_est A_1_ipw_b_sd_error A_1_ipw_b_bias A_1_ipw_b_error_sqr A_1_ipw_b_p_0 A_1_ipw_b_reject_0 A_1_i
+> pw_b_p_g1 A_1_ipw_b_reject_g1 A_1_ipw_b_bal_max_asd A_1_ipw_b_bal_mean_asd A_1_ipw_b_wgt_sd A_1_ipw_b_wgt_cv A_1_ipw_b_wgt_skewness A_1_ipw_b_wgt_ku
+> rtosis A_1_ipw_b_wgt_max rep
+     to: N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt
+> _max rep dgp_txt c est_txt
+A_2/ipw:
+   from: A_2_b_N A_2_b_Nt A_2_b_true A_2_ipw_b_impact_est A_2_ipw_b_sd_error A_2_ipw_b_bias A_2_ipw_b_error_sqr A_2_ipw_b_p_0 A_2_ipw_b_reject_0 A_2_i
+> pw_b_p_g1 A_2_ipw_b_reject_g1 A_2_ipw_b_bal_max_asd A_2_ipw_b_bal_mean_asd A_2_ipw_b_wgt_sd A_2_ipw_b_wgt_cv A_2_ipw_b_wgt_skewness A_2_ipw_b_wgt_ku
+> rtosis A_2_ipw_b_wgt_max rep
+     to: N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt
+> _max rep dgp_txt c est_txt
+A_3/ipw:
+   from: A_3_b_N A_3_b_Nt A_3_b_true A_3_ipw_b_impact_est A_3_ipw_b_sd_error A_3_ipw_b_bias A_3_ipw_b_error_sqr A_3_ipw_b_p_0 A_3_ipw_b_reject_0 A_3_i
+> pw_b_p_g1 A_3_ipw_b_reject_g1 A_3_ipw_b_bal_max_asd A_3_ipw_b_bal_mean_asd A_3_ipw_b_wgt_sd A_3_ipw_b_wgt_cv A_3_ipw_b_wgt_skewness A_3_ipw_b_wgt_ku
+> rtosis A_3_ipw_b_wgt_max rep
+     to: N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt
+> _max rep dgp_txt c est_txt
+A_4/ipw:
+   from: A_4_b_N A_4_b_Nt A_4_b_true A_4_ipw_b_impact_est A_4_ipw_b_sd_error A_4_ipw_b_bias A_4_ipw_b_error_sqr A_4_ipw_b_p_0 A_4_ipw_b_reject_0 A_4_i
+> pw_b_p_g1 A_4_ipw_b_reject_g1 A_4_ipw_b_bal_max_asd A_4_ipw_b_bal_mean_asd A_4_ipw_b_wgt_sd A_4_ipw_b_wgt_cv A_4_ipw_b_wgt_skewness A_4_ipw_b_wgt_ku
+> rtosis A_4_ipw_b_wgt_max rep
+     to: N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt
+> _max rep dgp_txt c est_txt
+A_5/ipw:
+   from: A_5_b_N A_5_b_Nt A_5_b_true A_5_ipw_b_impact_est A_5_ipw_b_sd_error A_5_ipw_b_bias A_5_ipw_b_error_sqr A_5_ipw_b_p_0 A_5_ipw_b_reject_0 A_5_i
+> pw_b_p_g1 A_5_ipw_b_reject_g1 A_5_ipw_b_bal_max_asd A_5_ipw_b_bal_mean_asd A_5_ipw_b_wgt_sd A_5_ipw_b_wgt_cv A_5_ipw_b_wgt_skewness A_5_ipw_b_wgt_ku
+> rtosis A_5_ipw_b_wgt_max rep
+     to: N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt
+> _max rep dgp_txt c est_txt
+A_6/ipw:
+   from: A_6_b_N A_6_b_Nt A_6_b_true A_6_ipw_b_impact_est A_6_ipw_b_sd_error A_6_ipw_b_bias A_6_ipw_b_error_sqr A_6_ipw_b_p_0 A_6_ipw_b_reject_0 A_6_i
+> pw_b_p_g1 A_6_ipw_b_reject_g1 A_6_ipw_b_bal_max_asd A_6_ipw_b_bal_mean_asd A_6_ipw_b_wgt_sd A_6_ipw_b_wgt_cv A_6_ipw_b_wgt_skewness A_6_ipw_b_wgt_ku
+> rtosis A_6_ipw_b_wgt_max rep
+     to: N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt
+> _max rep dgp_txt c est_txt
+A_7/ipw:
+   from: A_7_b_N A_7_b_Nt A_7_b_true A_7_ipw_b_impact_est A_7_ipw_b_sd_error A_7_ipw_b_bias A_7_ipw_b_error_sqr A_7_ipw_b_p_0 A_7_ipw_b_reject_0 A_7_i
+> pw_b_p_g1 A_7_ipw_b_reject_g1 A_7_ipw_b_bal_max_asd A_7_ipw_b_bal_mean_asd A_7_ipw_b_wgt_sd A_7_ipw_b_wgt_cv A_7_ipw_b_wgt_skewness A_7_ipw_b_wgt_ku
+> rtosis A_7_ipw_b_wgt_max rep
+     to: N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt
+> _max rep dgp_txt c est_txt
+A_8/ipw:
+   from: A_8_b_N A_8_b_Nt A_8_b_true A_8_ipw_b_impact_est A_8_ipw_b_sd_error A_8_ipw_b_bias A_8_ipw_b_error_sqr A_8_ipw_b_p_0 A_8_ipw_b_reject_0 A_8_i
+> pw_b_p_g1 A_8_ipw_b_reject_g1 A_8_ipw_b_bal_max_asd A_8_ipw_b_bal_mean_asd A_8_ipw_b_wgt_sd A_8_ipw_b_wgt_cv A_8_ipw_b_wgt_skewness A_8_ipw_b_wgt_ku
+> rtosis A_8_ipw_b_wgt_max rep
+     to: N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt
+> _max rep dgp_txt c est_txt
+A_9/ipw:
+   from: A_9_b_N A_9_b_Nt A_9_b_true A_9_ipw_b_impact_est A_9_ipw_b_sd_error A_9_ipw_b_bias A_9_ipw_b_error_sqr A_9_ipw_b_p_0 A_9_ipw_b_reject_0 A_9_i
+> pw_b_p_g1 A_9_ipw_b_reject_g1 A_9_ipw_b_bal_max_asd A_9_ipw_b_bal_mean_asd A_9_ipw_b_wgt_sd A_9_ipw_b_wgt_cv A_9_ipw_b_wgt_skewness A_9_ipw_b_wgt_ku
+> rtosis A_9_ipw_b_wgt_max rep
+     to: N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt
+> _max rep dgp_txt c est_txt
+A_10/ipw:
+   from: A_10_b_N A_10_b_Nt A_10_b_true A_10_ipw_b_impact_est A_10_ipw_b_sd_error A_10_ipw_b_bias A_10_ipw_b_error_sqr A_10_ipw_b_p_0 A_10_ipw_b_rejec
+> t_0 A_10_ipw_b_p_g1 A_10_ipw_b_reject_g1 A_10_ipw_b_bal_max_asd A_10_ipw_b_bal_mean_asd A_10_ipw_b_wgt_sd A_10_ipw_b_wgt_cv A_10_ipw_b_wgt_skewness 
+> A_10_ipw_b_wgt_kurtosis A_10_ipw_b_wgt_max rep
+     to: N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt
+> _max rep dgp_txt c est_txt
+A_11/ipw:
+   from: A_11_b_N A_11_b_Nt A_11_b_true A_11_ipw_b_impact_est A_11_ipw_b_sd_error A_11_ipw_b_bias A_11_ipw_b_error_sqr A_11_ipw_b_p_0 A_11_ipw_b_rejec
+> t_0 A_11_ipw_b_p_g1 A_11_ipw_b_reject_g1 A_11_ipw_b_bal_max_asd A_11_ipw_b_bal_mean_asd A_11_ipw_b_wgt_sd A_11_ipw_b_wgt_cv A_11_ipw_b_wgt_skewness 
+> A_11_ipw_b_wgt_kurtosis A_11_ipw_b_wgt_max rep
+     to: N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt
+> _max rep dgp_txt c est_txt
+(simulate: onerep)
+(5,500 real changes made)
+
+Contains data from C:\Users\kkranker\AppData\Local\Temp\ST_5448_000001.tmp
+  obs:         5,500                          simulate: onerep
+ vars:            22                          26 Oct 2018 16:31
+ size:       412,500                          
+------------------------------------------------------------------------------------------------------------------------------------------------------
+              storage   display    value
+variable name   type    format     label      variable label
+------------------------------------------------------------------------------------------------------------------------------------------------------
+rep             float   %9.0g                 
+c               byte    %10.0g                
+dgp             long    %8.0g      dgp        
+estimator       long    %8.0g      est        
+N               int     %9.0g                 
+Nt              int     %9.0g                 
+true            float   %9.0g                 
+impact_est      float   %9.0g                 
+sd_error        float   %9.0g                 
+bias            float   %9.0g                 
+error_sqr       float   %9.0g                 
+p_0             float   %9.0g                 
+reject_0        byte    %9.0g                 
+p_g1            float   %9.0g                 
+reject_g1       byte    %9.0g                 
+bal_max_asd     float   %9.0g                 
+bal_mean_asd    float   %9.0g                 
+wgt_sd          float   %9.0g                 
+wgt_cv          float   %9.0g                 
+wgt_skewness    float   %9.0g                 
+wgt_kurtosis    float   %9.0g                 
+wgt_max         float   %9.0g                 
+------------------------------------------------------------------------------------------------------------------------------------------------------
+Sorted by: rep  estimator  dgp  true  N  c
+     Note: Dataset has changed since last saved.
+
+Variable    Obs Unique   Mean  Min  Max  Label
+------------------------------------------------------------------------------------------------------------------------------------------------------
+rep        5500    500  250.5    1  500  
+c          5500     11      6    1   11  
+dgp        5500      1      1    1    1  
+estimator  5500      1      2    2    2  
+------------------------------------------------------------------------------------------------------------------------------------------------------
+
+----------------
+          |estim
+          | ator
+          |and N
+dgp and   |  IPW 
+true      | 2000
+----------+-----
+A         |
+     -.15 |  500
+     -.14 |  500
+     -.13 |  500
+     -.12 |  500
+     -.11 |  500
+      -.1 |  500
+     -.09 |  500
+     -.08 |  500
+     -.07 |  500
+     -.06 |  500
+     -.05 |  500
+----------------
+
+. save sims/sim1/sim1b.dta, replace
+(note: file sims/sim1/sim1b.dta not found)
+file sims/sim1/sim1b.dta saved
+
+. graph bar (mean) reject_0, over(true) name(g1b)
+
+. graph export sims/sim1/sim1b_power.png, replace
+(note: file sims/sim1/sim1b_power.png not found)
+(file sims/sim1/sim1b_power.png written in PNG format)
+
+. 
+. 
+. // ------------------------------------------------------------------------
+. // 1-C Variouis sample sizes with impact = .10
+. // ------------------------------------------------------------------------
+. 
+. parallel sim, expr(_b) reps(`reps') processors(1): ///
+>   onerep A B C D E F G, impact(-.07) estimators(ipw) n(2000)
+--------------------------------------------------------------------------------
+Parallel Computing with Stata
+Clusters   : 6
+pll_id     : v44gtpr175
+Running at : C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch
+Randtype   : datetime
+Waiting for the clusters to finish...
+cluster 0003 has exited without error...
+cluster 0002 has exited without error...
+cluster 0004 has exited without error...
+cluster 0006 has exited without error...
+cluster 0005 has exited without error...
+cluster 0001 has exited without error...
+--------------------------------------------------------------------------------
+Enter -parallel printlog #- to checkout logfiles.
+--------------------------------------------------------------------------------
+
+. 
+. sim_reshape
+
+Contains data from C:\Users\kkranker\AppData\Local\Temp/__pllv44gtpr175_sim_outdta.dta
+  obs:           500                          simulate: onerep
+ vars:           126                          26 Oct 2018 16:34
+ size:       252,000                          
+Sorted by: 
+There are 7 prefixes
+_prefixes:      A_1 B_2 C_3 D_4 E_5 F_6 G_7
+There are 1 ests
+_ests:          ipw
+A_1/ipw:
+   from: A_1_b_N A_1_b_Nt A_1_b_true A_1_ipw_b_impact_est A_1_ipw_b_sd_error A_1_ipw_b_bias A_1_ipw_b_error_sqr A_1_ipw_b_p_0 A_1_ipw_b_reject_0 A_1_i
+> pw_b_p_g1 A_1_ipw_b_reject_g1 A_1_ipw_b_bal_max_asd A_1_ipw_b_bal_mean_asd A_1_ipw_b_wgt_sd A_1_ipw_b_wgt_cv A_1_ipw_b_wgt_skewness A_1_ipw_b_wgt_ku
+> rtosis A_1_ipw_b_wgt_max rep
+     to: N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt
+> _max rep dgp_txt c est_txt
+B_2/ipw:
+   from: B_2_b_N B_2_b_Nt B_2_b_true B_2_ipw_b_impact_est B_2_ipw_b_sd_error B_2_ipw_b_bias B_2_ipw_b_error_sqr B_2_ipw_b_p_0 B_2_ipw_b_reject_0 B_2_i
+> pw_b_p_g1 B_2_ipw_b_reject_g1 B_2_ipw_b_bal_max_asd B_2_ipw_b_bal_mean_asd B_2_ipw_b_wgt_sd B_2_ipw_b_wgt_cv B_2_ipw_b_wgt_skewness B_2_ipw_b_wgt_ku
+> rtosis B_2_ipw_b_wgt_max rep
+     to: N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt
+> _max rep dgp_txt c est_txt
+C_3/ipw:
+   from: C_3_b_N C_3_b_Nt C_3_b_true C_3_ipw_b_impact_est C_3_ipw_b_sd_error C_3_ipw_b_bias C_3_ipw_b_error_sqr C_3_ipw_b_p_0 C_3_ipw_b_reject_0 C_3_i
+> pw_b_p_g1 C_3_ipw_b_reject_g1 C_3_ipw_b_bal_max_asd C_3_ipw_b_bal_mean_asd C_3_ipw_b_wgt_sd C_3_ipw_b_wgt_cv C_3_ipw_b_wgt_skewness C_3_ipw_b_wgt_ku
+> rtosis C_3_ipw_b_wgt_max rep
+     to: N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt
+> _max rep dgp_txt c est_txt
+D_4/ipw:
+   from: D_4_b_N D_4_b_Nt D_4_b_true D_4_ipw_b_impact_est D_4_ipw_b_sd_error D_4_ipw_b_bias D_4_ipw_b_error_sqr D_4_ipw_b_p_0 D_4_ipw_b_reject_0 D_4_i
+> pw_b_p_g1 D_4_ipw_b_reject_g1 D_4_ipw_b_bal_max_asd D_4_ipw_b_bal_mean_asd D_4_ipw_b_wgt_sd D_4_ipw_b_wgt_cv D_4_ipw_b_wgt_skewness D_4_ipw_b_wgt_ku
+> rtosis D_4_ipw_b_wgt_max rep
+     to: N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt
+> _max rep dgp_txt c est_txt
+E_5/ipw:
+   from: E_5_b_N E_5_b_Nt E_5_b_true E_5_ipw_b_impact_est E_5_ipw_b_sd_error E_5_ipw_b_bias E_5_ipw_b_error_sqr E_5_ipw_b_p_0 E_5_ipw_b_reject_0 E_5_i
+> pw_b_p_g1 E_5_ipw_b_reject_g1 E_5_ipw_b_bal_max_asd E_5_ipw_b_bal_mean_asd E_5_ipw_b_wgt_sd E_5_ipw_b_wgt_cv E_5_ipw_b_wgt_skewness E_5_ipw_b_wgt_ku
+> rtosis E_5_ipw_b_wgt_max rep
+     to: N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt
+> _max rep dgp_txt c est_txt
+F_6/ipw:
+   from: F_6_b_N F_6_b_Nt F_6_b_true F_6_ipw_b_impact_est F_6_ipw_b_sd_error F_6_ipw_b_bias F_6_ipw_b_error_sqr F_6_ipw_b_p_0 F_6_ipw_b_reject_0 F_6_i
+> pw_b_p_g1 F_6_ipw_b_reject_g1 F_6_ipw_b_bal_max_asd F_6_ipw_b_bal_mean_asd F_6_ipw_b_wgt_sd F_6_ipw_b_wgt_cv F_6_ipw_b_wgt_skewness F_6_ipw_b_wgt_ku
+> rtosis F_6_ipw_b_wgt_max rep
+     to: N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt
+> _max rep dgp_txt c est_txt
+G_7/ipw:
+   from: G_7_b_N G_7_b_Nt G_7_b_true G_7_ipw_b_impact_est G_7_ipw_b_sd_error G_7_ipw_b_bias G_7_ipw_b_error_sqr G_7_ipw_b_p_0 G_7_ipw_b_reject_0 G_7_i
+> pw_b_p_g1 G_7_ipw_b_reject_g1 G_7_ipw_b_bal_max_asd G_7_ipw_b_bal_mean_asd G_7_ipw_b_wgt_sd G_7_ipw_b_wgt_cv G_7_ipw_b_wgt_skewness G_7_ipw_b_wgt_ku
+> rtosis G_7_ipw_b_wgt_max rep
+     to: N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt
+> _max rep dgp_txt c est_txt
+(simulate: onerep)
+(3,500 real changes made)
+
+Contains data from C:\Users\kkranker\AppData\Local\Temp\ST_5448_000001.tmp
+  obs:         3,500                          simulate: onerep
+ vars:            22                          26 Oct 2018 16:34
+ size:       262,500                          
+------------------------------------------------------------------------------------------------------------------------------------------------------
+              storage   display    value
+variable name   type    format     label      variable label
+------------------------------------------------------------------------------------------------------------------------------------------------------
+rep             float   %9.0g                 
+c               byte    %10.0g                
+dgp             long    %8.0g      dgp        
+estimator       long    %8.0g      est        
+N               int     %9.0g                 
+Nt              int     %9.0g                 
+true            float   %9.0g                 
+impact_est      float   %9.0g                 
+sd_error        float   %9.0g                 
+bias            float   %9.0g                 
+error_sqr       float   %9.0g                 
+p_0             float   %9.0g                 
+reject_0        byte    %9.0g                 
+p_g1            float   %9.0g                 
+reject_g1       byte    %9.0g                 
+bal_max_asd     float   %9.0g                 
+bal_mean_asd    float   %9.0g                 
+wgt_sd          float   %9.0g                 
+wgt_cv          float   %9.0g                 
+wgt_skewness    float   %9.0g                 
+wgt_kurtosis    float   %9.0g                 
+wgt_max         float   %9.0g                 
+------------------------------------------------------------------------------------------------------------------------------------------------------
+Sorted by: rep  estimator  dgp  true  N  c
+     Note: Dataset has changed since last saved.
+
+Variable    Obs Unique   Mean  Min  Max  Label
+------------------------------------------------------------------------------------------------------------------------------------------------------
+rep        3500    500  250.5    1  500  
+c          3500      7      4    1    7  
+dgp        3500      7      4    1    7  
+estimator  3500      1      2    2    2  
+------------------------------------------------------------------------------------------------------------------------------------------------------
+
+----------------
+          |estim
+          | ator
+          |and N
+dgp and   |  IPW 
+true      | 2000
+----------+-----
+A         |
+     -.07 |  500
+----------+-----
+B         |
+     -.07 |  500
+----------+-----
+C         |
+     -.07 |  500
+----------+-----
+D         |
+     -.07 |  500
+----------+-----
+E         |
+     -.07 |  500
+----------+-----
+F         |
+     -.07 |  500
+----------+-----
+G         |
+     -.07 |  500
+----------------
+
+. save sims/sim1/sim1c.dta, replace
+(note: file sims/sim1/sim1c.dta not found)
+file sims/sim1/sim1c.dta saved
+
+. graph bar (mean) reject_0, over(dgp) name(g1c)
+
+. graph export sims/sim1/sim1c_power.png, replace
+(note: file sims/sim1/sim1c_power.png not found)
+(file sims/sim1/sim1c_power.png written in PNG format)
+
+. 
+. log close sim1
+      name:  sim1
+       log:  C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\sims/sim1/logfile.log
+  log type:  text
+ closed on:  26 Oct 2018, 16:34:02
+------------------------------------------------------------------------------------------------------------------------------------------------------
