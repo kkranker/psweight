@@ -1,0 +1,426 @@
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      name:  sims1
+       log:  C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\sims/sims1.log
+  log type:  text
+ opened on:  25 Oct 2018, 17:25:44
+
+. 
+. // DGP is saved in a separate .ado file
+. adopath ++ "./sims"
+  [1]              "./sims"
+  [2]  (BASE)      "C:\Program Files (x86)\Stata15\ado\base/"
+  [3]  (SITE)      "C:\Program Files (x86)\Stata15\ado\site/"
+  [4]              "."
+  [5]  (PERSONAL)  "C:\Users\kkranker\Documents\Stata\Ado\personal/"
+  [6]  (PLUS)      "C:\Users\kkranker\Documents\Stata\Ado\plus/"
+  [7]  (OLDPLACE)  "C:\Users\kkranker\Documents\Stata\Ado/"
+  [8]              "C:\Users\kkranker\Documents\Stata\Stata-Common-Code"
+
+. which dgp_ssbgc
+./sims\dgp_ssbgc.ado
+*! $Id: dgp_ssbgc.ado,v 872b01f9dee1 2018/10/25 23:15:03 kkranker $
+*! Data generating processe (DGP) senarios A through G from Setoguchi et al. (2008)
+*! By Keith Kranker
+
+. which addstats
+./sims\addstats.ado
+
+. 
+. program define onerep
+  1.   version 15.1
+  2.   set cformat %9.2fc
+  3.   set pformat %5.3f
+  4.   set sformat %7.3f
+  5.   set type float
+  6.   set maxiter 50
+  7. 
+.   // this lets me keep the "parallal sim"  command simple
+.   // but probably slows things down
+.   cd "C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch"
+  8.   adopath ++ "./sims"
+  9. 
+.   syntax [anything], n(numlist min=1 >0 integer sort)
+ 10.   tempname bbld
+ 11. 
+.   local L : word count `n'
+ 12.   dgp_ssbgc `anything', n(`: word `L' of `n'')
+ 13. 
+.   local l = `L'
+ 14.   while `l' > 0 {
+ 15.     local thisN : word `l' of `n'
+ 16.     di _n(3) "N = `thisN'" _n(2)
+ 17.     keep in 1/`thisN'
+ 18. 
+.     gmatch a w1-w10, atet ipw pooledvariance
+ 19.     regress y i.a [aw=_weight], noheader
+ 20.     addstats `bbld' ipw_`thisN' 1.a
+ 21. 
+.     local --l
+ 22.   }
+ 23. 
+.   // gmatch a w1-w10, atet cbps pooledvariance
+.   ereturn clear
+ 24.   ereturn post `bbld'
+ 25. end
+
+. 
+. 
+. set seed 1
+
+. 
+. onerep A, n(100)
+C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch
+  [1]              "./sims"
+  [2]  (BASE)      "C:\Program Files (x86)\Stata15\ado\base/"
+  [3]  (SITE)      "C:\Program Files (x86)\Stata15\ado\site/"
+  [4]              "."
+  [5]  (PERSONAL)  "C:\Users\kkranker\Documents\Stata\Ado\personal/"
+  [6]  (PLUS)      "C:\Users\kkranker\Documents\Stata\Ado\plus/"
+  [7]  (OLDPLACE)  "C:\Users\kkranker\Documents\Stata\Ado/"
+  [8]              "C:\Users\kkranker\Documents\Stata\Stata-Common-Code"
+(obs 100)
+
+
+
+N = 100
+
+
+(0 observations deleted)
+
+  45 control obs
+  55 treatment obs
+  (Data are unweighted.)
+initial:       f(p) = -69.314718
+alternative:   f(p) = -69.907698
+rescale:       f(p) = -68.843942
+Iteration 0:   f(p) = -68.843942  
+Iteration 1:   f(p) =  -49.58671  
+Iteration 2:   f(p) = -49.367688  
+Iteration 3:   f(p) = -49.367045  
+Iteration 4:   f(p) = -49.367045  
+
+Propensity score model coefficients                Number of obs  =        100
+Generalization of IPW/CPBS-type reweigting
+Loss = IPW
+------------------------------------------------------------------------------
+           a |      Coef.
+-------------+----------------------------------------------------------------
+          w1 |       0.43
+          w2 |      -0.01
+          w3 |       0.87
+          w4 |      -0.24
+          w5 |      -2.51
+          w6 |      -0.25
+          w7 |       0.69
+          w8 |      -0.06
+          w9 |       0.65
+         w10 |      -0.89
+       _cons |       0.88
+------------------------------------------------------------------------------
+
+New variables (unweighted summary statistics)
+
+Summary for variables: _weight _weight_mtch _pscore
+     by categories of: _treated 
+
+_treated |         N      mean        sd       min        p1       p10       p25       p50       p75       p90       p99       max
+---------+------------------------------------------------------------------------------------------------------------------------
+       0 |        45         1      3.37    .00828    .00828     .0584      .116      .199      .733      1.72      22.7      22.7
+         |        45         1      3.37    .00828    .00828     .0584      .116      .199      .733      1.72      22.7      22.7
+         |        45      .357      .259     .0148     .0148     .0956      .174      .265       .57      .757      .976      .976
+---------+------------------------------------------------------------------------------------------------------------------------
+       1 |        55         1         0         1         1         1         1         1         1         1         1         1
+         |        55         1         0         1         1         1         1         1         1         1         1         1
+         |        55      .708      .216      .112      .112      .353      .596      .732      .893      .948      .974      .974
+---------+------------------------------------------------------------------------------------------------------------------------
+   Total |       100         1      2.24    .00828      .017     .0837       .22         1         1      1.06      12.6      22.7
+         |       100         1      2.24    .00828      .017     .0837       .22         1         1      1.06      12.6      22.7
+         |       100       .55      .293     .0148     .0297      .125      .259      .635      .799      .928      .975      .976
+----------------------------------------------------------------------------------------------------------------------------------
+(sum of wgt is 100)
+------------------------------------------------------------------------------
+           y |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+           a |
+  Treatment  |      -0.16       0.12   -1.352   0.180        -0.40        0.08
+       _cons |      -4.13       0.09  -46.732   0.000        -4.31       -3.96
+------------------------------------------------------------------------------
+
+ ( 1)  1.a = 0
+
+       F(  1,    98) =    1.83
+            Prob > F =    0.1796
+
+ ( 1)  1.a = -.4
+
+       F(  1,    98) =    4.01
+            Prob > F =    0.0480
+  Balance:
+-------------------------------------------------------------------------------
+             |    mean_T     mean_C       diff   std_diff    sd_pool  var_ratio
+-------------+-----------------------------------------------------------------
+          w1 |  .4545455   .6498762  -.1953308  -.3901115    .500705   1.085157
+          w2 | -.1824849   .1343234  -.3168083  -.4004338   .7911627   1.994936
+          w3 |  .5818182   .8117786  -.2299604  -.4926994   .4667357   1.585824
+          w4 | -.0118669  -.7262923   .7144254   .6863875   1.040848   1.419979
+          w5 |        .4   .2046221   .1953779   .4195571   .4656765   1.468569
+          w6 |  .4727273    .225066   .2476612   .5129777   .4827914   1.423247
+          w7 |  .3091801   .2773161    .031864   .0385077   .8274709   1.138523
+          w8 |  .4545455   .2321856   .2223599   .4625113   .4807664   1.385012
+          w9 |  .5090909   .2238792   .2852117   .5844306   .4880164   1.432394
+         w10 | -.1942465  -.4045132   .2102667    .229962   .9143542    1.84971
+-------------------------------------------------------------------------------
+  
+  Mean standardized diff., squared
+  .0272609549
+  Mean absolute standardized diff.
+  .4217578585
+  Maximum absolute standardized diff.
+  .6863875398
+  C.V. of matching weights:
+  2.243611239
+  S.D. of matching weights:
+  2.243611239
+  Skewness of matching weights:
+  .9137526629
+  Kurtosis of matching weights:
+  .888357018
+  Maximum matching weight:
+  22.67203626
+
+__000001[1,15]
+         ipw_100:      ipw_100:      ipw_100:      ipw_100:      ipw_100:      ipw_100:      ipw_100:      ipw_100:      ipw_100:      ipw_100:      ipw_100:      ipw_100:
+      impact_est      sd_error          bias     error_sqr      p_null_0  reject_nul~0   p_null_true  reject_nul~e   bal_max_asd  bal_mean_asd        wgt_sd        wgt_cv
+r1    -.16120775     .11927034     .23879225     .05702174     .17960966             0     .04803654             1     .68638754     .42175786     2.2436112     2.2436112
+
+         ipw_100:      ipw_100:      ipw_100:
+    wgt_skewness  wgt_kurtosis       wgt_max
+r1     .91375266     .88835702     22.672036
+
+. ereturn display
+----------------------------------------------------------------------------------
+                 |      Coef.
+-----------------+----------------------------------------------------------------
+ipw_100          |
+      impact_est |      -0.16
+        sd_error |       0.12
+            bias |       0.24
+       error_sqr |       0.06
+        p_null_0 |       0.18
+   reject_null_0 |       0.00
+     p_null_true |       0.05
+reject_null_true |       1.00
+     bal_max_asd |       0.69
+    bal_mean_asd |       0.42
+          wgt_sd |       2.24
+          wgt_cv |       2.24
+    wgt_skewness |       0.91
+    wgt_kurtosis |       0.89
+         wgt_max |      22.67
+----------------------------------------------------------------------------------
+
+. 
+. // simulate _b, reps(10): onerep A, n(500)
+. // codebook, compact
+. 
+. parallel setclusters `c(processors_mach)'
+N Clusters: 8
+Stata dir:  C:\Program Files (x86)\Stata15/StataMP-64.exe
+
+. parallel sim, expr(_b) reps(1000) processors(1): onerep A, n(8000 4000 2000 1000 800 600 400 200 100)
+--------------------------------------------------------------------------------
+Exporting the following program(s): onerep
+
+onerep:
+  1.   version 15.1
+  2.   set cformat %9.2fc
+  3.   set pformat %5.3f
+  4.   set sformat %7.3f
+  5.   set type float
+  6.   set maxiter 50
+  7.   cd "C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch"
+  8.   adopath ++ "./sims"
+  9.   syntax [anything], n(numlist min=1 >0 integer sort)
+ 10.   tempname bbld
+ 11.   local L : word count `n'
+ 12.   dgp_ssbgc `anything', n(`: word `L' of `n'')
+ 13.   local l = `L'
+ 14.   while `l' > 0 {
+ 15.     local thisN : word `l' of `n'
+ 16.     di _n(3) "N = `thisN'" _n(2)
+ 17.     keep in 1/`thisN'
+ 18.     gmatch a w1-w10, atet ipw pooledvariance
+ 19.     regress y i.a [aw=_weight], noheader
+ 20.     addstats `bbld' ipw_`thisN' 1.a
+ 21.     local --l
+ 22.   }
+ 23.   ereturn clear
+ 24.   ereturn post `bbld'
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+Parallel Computing with Stata (by GVY)
+Clusters   : 8
+pll_id     : n5xf4e6l91
+Running at : C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch
+Randtype   : datetime
+Waiting for the clusters to finish...
+cluster 0007 has exited without error...
+cluster 0008 has exited without error...
+cluster 0002 has exited without error...
+cluster 0005 has exited without error...
+cluster 0001 has exited without error...
+cluster 0003 has exited without error...
+cluster 0006 has exited without error...
+cluster 0004 has exited without error...
+--------------------------------------------------------------------------------
+Enter -parallel printlog #- to checkout logfiles.
+--------------------------------------------------------------------------------
+
+. codebook, compact
+
+Variable       Obs Unique       Mean        Min        Max  Label
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ipw_8000_b~t  1000   1000  -.3993969  -.4482798  -.3535551  [ipw_8000]_b[impact_est]
+ipw_8000_~or  1000    999   .0160462   .0155171   .0166896  [ipw_8000]_b[sd_error]
+ipw_8000_~as  1000   1000   .0006031  -.0482798   .0464449  [ipw_8000]_b[bias]
+ipw_8000_~qr  1000   1000   .0001693   2.29e-10   .0023309  [ipw_8000]_b[error_sqr]
+ipw_8000_b..  1000      1          0          0          0  [ipw_8000]_b[p_null_0]
+ipw_8000_b..  1000      1          1          1          1  [ipw_8000]_b[reject_null_0]
+ipw_8000_b..  1000   1000   .5711066   .0033348   .9992461  [ipw_8000]_b[p_null_true]
+ipw_8000_b..  1000      2        .02          0          1  [ipw_8000]_b[reject_null_true]
+ipw_8000_b..  1000   1000   .0328012   .0106546   .0775565  [ipw_8000]_b[bal_max_asd]
+ipw_8000_b..  1000   1000   .0140938   .0053953    .038727  [ipw_8000]_b[bal_mean_asd]
+ipw_8000~_sd  1000   1000   .9091934   .7751112   1.294968  [ipw_8000]_b[wgt_sd]
+ipw_8000_b~v  1000   1000   .9091934   .7751112   1.294968  [ipw_8000]_b[wgt_cv]
+ipw_8000_~ss  1000   1000   .0879715   .0505263   .3734439  [ipw_8000]_b[wgt_skewness]
+ipw_8000_~is  1000   1000   .0176269   .0045204    .250849  [ipw_8000]_b[wgt_kurtosis]
+ipw_8000_b~x  1000   1000   23.52558   10.82164   77.32488  [ipw_8000]_b[wgt_max]
+ipw_4000_b~t  1000   1000  -.3986305  -.4863347   -.335946  [ipw_4000]_b[impact_est]
+ipw_4000_~or  1000   1000   .0226879   .0216649   .0242671  [ipw_4000]_b[sd_error]
+ipw_4000_~as  1000   1000   .0013695  -.0863347    .064054  [ipw_4000]_b[bias]
+ipw_4000_~qr  1000   1000   .0003413   6.70e-11   .0074537  [ipw_4000]_b[error_sqr]
+ipw_4000_b..  1000      1          0          0          0  [ipw_4000]_b[p_null_0]
+ipw_4000_b..  1000      1          1          1          1  [ipw_4000]_b[reject_null_0]
+ipw_4000_b..  1000   1000   .5753915   .0002685   .9997119  [ipw_4000]_b[p_null_true]
+ipw_4000_b..  1000      2       .019          0          1  [ipw_4000]_b[reject_null_true]
+ipw_4000_b..  1000   1000   .0475403   .0088566   .1195298  [ipw_4000]_b[bal_max_asd]
+ipw_4000_b..  1000   1000   .0203063   .0052293   .0530083  [ipw_4000]_b[bal_mean_asd]
+ipw_4000~_sd  1000   1000   .9156343   .7156695    1.61734  [ipw_4000]_b[wgt_sd]
+ipw_4000_b~v  1000   1000   .9156343   .7156695    1.61734  [ipw_4000]_b[wgt_cv]
+ipw_4000_~ss  1000   1000   .1209986   .0610975   .6140252  [ipw_4000]_b[wgt_skewness]
+ipw_4000_~is  1000   1000   .0318648   .0063773   .5043794  [ipw_4000]_b[wgt_kurtosis]
+ipw_4000_b~x  1000   1000   20.28424   8.978436   87.09734  [ipw_4000]_b[wgt_max]
+ipw_2000_b~t  1000   1000  -.3982707  -.5645667  -.3166718  [ipw_2000]_b[impact_est]
+ipw_2000_~or  1000   1000   .0320779   .0300441    .035831  [ipw_2000]_b[sd_error]
+ipw_2000_~as  1000   1000   .0017293  -.1645667   .0833282  [ipw_2000]_b[bias]
+ipw_2000_~qr  1000   1000   .0007102   1.13e-10   .0270822  [ipw_2000]_b[error_sqr]
+ipw_2000_b..  1000    885   5.13e-25          0   3.97e-22  [ipw_2000]_b[p_null_0]
+ipw_2000_b..  1000      1          1          1          1  [ipw_2000]_b[reject_null_0]
+ipw_2000_b..  1000   1000   .5701395   2.75e-06   .9997395  [ipw_2000]_b[p_null_true]
+ipw_2000_b..  1000      2       .021          0          1  [ipw_2000]_b[reject_null_true]
+ipw_2000_b..  1000   1000   .0675303   .0200476    .220785  [ipw_2000]_b[bal_max_asd]
+ipw_2000_b..  1000   1000    .028846   .0088805   .1179194  [ipw_2000]_b[bal_mean_asd]
+ipw_2000~_sd  1000   1000   .9240689   .6746564   2.309294  [ipw_2000]_b[wgt_sd]
+ipw_2000_b~v  1000   1000   .9240689   .6746564   2.309294  [ipw_2000]_b[wgt_cv]
+ipw_2000_~ss  1000   1000   .1613952    .077864   .7684161  [ipw_2000]_b[wgt_skewness]
+ipw_2000_~is  1000   1000   .0535075   .0106206   .6939863  [ipw_2000]_b[wgt_kurtosis]
+ipw_2000_b~x  1000   1000   17.19671    6.73099   91.60179  [ipw_2000]_b[wgt_max]
+ipw_1000_b~t  1000   1000  -.3970196  -.6264117  -.2081047  [ipw_1000]_b[impact_est]
+ipw_1000_~or  1000   1000   .0453504   .0408174   .0532043  [ipw_1000]_b[sd_error]
+ipw_1000_~as  1000   1000   .0029804  -.2264117   .1918953  [ipw_1000]_b[bias]
+ipw_1000_~qr  1000   1000    .001498   4.87e-10   .0512623  [ipw_1000]_b[error_sqr]
+ipw_1000_b..  1000   1000   1.07e-08   2.15e-30   .0000107  [ipw_1000]_b[p_null_0]
+ipw_1000_b..  1000      1          1          1          1  [ipw_1000]_b[reject_null_0]
+ipw_1000_b..  1000   1000   .5706395   .0000228   .9996112  [ipw_1000]_b[p_null_true]
+ipw_1000_b..  1000      2       .016          0          1  [ipw_1000]_b[reject_null_true]
+ipw_1000_b..  1000   1000   .0953531   .0256238   .3114469  [ipw_1000]_b[bal_max_asd]
+ipw_1000_b..  1000   1000   .0413865    .013186   .2096063  [ipw_1000]_b[bal_mean_asd]
+ipw_1000~_sd  1000   1000   .9337653   .5726694   2.899363  [ipw_1000]_b[wgt_sd]
+ipw_1000_b~v  1000   1000   .9337653   .5726694   2.899363  [ipw_1000]_b[wgt_cv]
+ipw_1000_~ss  1000   1000   .2101708    .080193   .8405853  [ipw_1000]_b[wgt_skewness]
+ipw_1000_~is  1000   1000   .0843492   .0126571   .7884609  [ipw_1000]_b[wgt_kurtosis]
+ipw_1000_b~x  1000   1000   14.42414   5.386149   86.85237  [ipw_1000]_b[wgt_max]
+ipw_800_b_~t  1000   1000  -.3963943  -.6606466   -.231432  [ipw_800]_b[impact_est]
+ipw_800_b~or  1000   1000   .0507003   .0454428   .0612009  [ipw_800]_b[sd_error]
+ipw_800_b~as  1000   1000   .0036057  -.2606466    .168568  [ipw_800]_b[bias]
+ipw_800_b~qr  1000   1000   .0018202   8.39e-10   .0679367  [ipw_800]_b[error_sqr]
+ipw_800_b_..  1000   1000   1.77e-08   1.51e-25   .0000167  [ipw_800]_b[p_null_0]
+ipw_800_b_..  1000      1          1          1          1  [ipw_800]_b[reject_null_0]
+ipw_800_b_..  1000    999   .5754532    .000023   .9995615  [ipw_800]_b[p_null_true]
+ipw_800_b_..  1000      2       .023          0          1  [ipw_800]_b[reject_null_true]
+ipw_800_b_..  1000    999   .1067009   .0353927   .4347922  [ipw_800]_b[bal_max_asd]
+ipw_800_b_..  1000   1000   .0465953   .0147684    .212103  [ipw_800]_b[bal_mean_asd]
+ipw_800_~_sd  1000   1000    .937879   .6029456   3.058944  [ipw_800]_b[wgt_sd]
+ipw_800_b_~v  1000   1000    .937879   .6029456   3.058944  [ipw_800]_b[wgt_cv]
+ipw_800_b~ss  1000   1000   .2263563   .0898338   .9266158  [ipw_800]_b[wgt_skewness]
+ipw_800_b~is  1000   1000   .0953829   .0168187   .9017416  [ipw_800]_b[wgt_kurtosis]
+ipw_800_b_~x  1000   1000   13.57821   5.185317   85.25671  [ipw_800]_b[wgt_max]
+ipw_600_b_~t  1000   1000  -.3976067  -1.069626  -.1992268  [ipw_600]_b[impact_est]
+ipw_600_b~or  1000   1000   .0585817   .0525215    .080138  [ipw_600]_b[sd_error]
+ipw_600_b~as  1000   1000   .0023933  -.6696264   .2007732  [ipw_600]_b[bias]
+ipw_600_b~qr  1000   1000   .0026979   1.84e-08   .4483995  [ipw_600]_b[error_sqr]
+ipw_600_b_..  1000   1000   9.85e-07   9.34e-36   .0005586  [ipw_600]_b[p_null_0]
+ipw_600_b_..  1000      1          1          1          1  [ipw_600]_b[reject_null_0]
+ipw_600_b_..  1000    999   .5823067   4.55e-16   .9981289  [ipw_600]_b[p_null_true]
+ipw_600_b_..  1000      2       .023          0          1  [ipw_600]_b[reject_null_true]
+ipw_60~x_asd  1000   1000   .1227941   .0348618   .6465734  [ipw_600]_b[bal_max_asd]
+ipw_60~n_asd  1000   1000   .0537848   .0156514   .3525127  [ipw_600]_b[bal_mean_asd]
+ipw_600_~_sd  1000   1000   .9484629   .5231272   3.892414  [ipw_600]_b[wgt_sd]
+ipw_600_b_~v  1000   1000   .9484629   .5231272   3.892414  [ipw_600]_b[wgt_cv]
+ipw_600_b~ss  1000   1000   .2503337   .0766801   .9515367  [ipw_600]_b[wgt_skewness]
+ipw_600_b~is  1000   1000   .1125666   .0149941   .9343417  [ipw_600]_b[wgt_kurtosis]
+ipw_600_b_~x  1000   1000   12.64845   3.911287   94.65787  [ipw_600]_b[wgt_max]
+ipw_400_b_~t  1000    999  -.3962674  -1.025914  -.1722002  [ipw_400]_b[impact_est]
+ipw_400_b~or  1000    999   .0717474   .0618906   .0964887  [ipw_400]_b[sd_error]
+ipw_400_b~as  1000    999   .0037326  -.6259136   .2277998  [ipw_400]_b[bias]
+ipw_400_b~qr  1000    999   .0042347   6.07e-08   .3917678  [ipw_400]_b[error_sqr]
+ipw_400_b_..  1000   1000   .0000544   2.08e-23   .0299779  [ipw_400]_b[p_null_0]
+ipw_400_b_..  1000      1          1          1          1  [ipw_400]_b[reject_null_0]
+ipw_400_b_..  1000   1000   .5818016   2.60e-10   .9969851  [ipw_400]_b[p_null_true]
+ipw_400_b_..  1000      2       .035          0          1  [ipw_400]_b[reject_null_true]
+ipw_400_b_..  1000   1000   .1530812   .0409074   .7412486  [ipw_400]_b[bal_max_asd]
+ipw_400_b_..  1000   1000   .0678685   .0157044   .4061717  [ipw_400]_b[bal_mean_asd]
+ipw_400_~_sd  1000   1000   .9744886   .4907051   4.025675  [ipw_400]_b[wgt_sd]
+ipw_400_b_~v  1000   1000   .9744886   .4907051   4.025675  [ipw_400]_b[wgt_cv]
+ipw_400_b~ss  1000   1000   .2883849   .0988852   .9623886  [ipw_400]_b[wgt_skewness]
+ipw_400_b~is  1000   1000   .1435397   .0248543   .9494338  [ipw_400]_b[wgt_kurtosis]
+ipw_400_b_~x  1000   1000   11.57173   3.578966   80.37521  [ipw_400]_b[wgt_max]
+ipw_200_b_~t  1000   1000  -.3954217  -.9880505   .0881553  [ipw_200]_b[impact_est]
+ipw_200_b~or  1000    999   .1008835   .0820412   .1273157  [ipw_200]_b[sd_error]
+ipw_200_b~as  1000   1000   .0045783  -.5880505   .4881553  [ipw_200]_b[bias]
+ipw_200_b~qr  1000   1000   .0096657   3.64e-10   .3458034  [ipw_200]_b[error_sqr]
+ipw_200_b_..  1000   1000   .0060669   5.80e-14   .7945169  [ipw_200]_b[p_null_0]
+ipw_200_b_..  1000      2       .983          0          1  [ipw_200]_b[reject_null_0]
+ipw_200_b_..  1000   1000   .5647923   1.00e-06   .9998338  [ipw_200]_b[p_null_true]
+ipw_200_b_..  1000      2       .045          0          1  [ipw_200]_b[reject_null_true]
+ipw_200_b_..  1000   1000   .2277927   .0381632   .9710584  [ipw_200]_b[bal_max_asd]
+ipw_200_b_..  1000   1000   .1036962   .0176758   .5810338  [ipw_200]_b[bal_mean_asd]
+ipw_200_~_sd  1000   1000   1.034902   .4990692   3.729885  [ipw_200]_b[wgt_sd]
+ipw_200_b_~v  1000   1000   1.034902   .4990692   3.729885  [ipw_200]_b[wgt_cv]
+ipw_200_b~ss  1000   1000   .3700097   .1223137   .9625466  [ipw_200]_b[wgt_skewness]
+ipw_200_b~is  1000   1000   .2229714   .0331903    .950527  [ipw_200]_b[wgt_kurtosis]
+ipw_200_b_~x  1000   1000   10.30935    3.52157   52.95312  [ipw_200]_b[wgt_max]
+ipw_100_b_~t  1000   1000  -.3866371  -1.482515   .5004243  [ipw_100]_b[impact_est]
+ipw_100_b~or  1000   1000   .1415618   .0992553   .1962231  [ipw_100]_b[sd_error]
+ipw_100_b~as  1000   1000   .0133629  -1.082515   .9004244  [ipw_100]_b[bias]
+ipw_100_b~qr  1000   1000   .0257582   6.49e-09   1.171838  [ipw_100]_b[error_sqr]
+ipw_100_b_..  1000   1000   .0502459   7.87e-18   .9660305  [ipw_100]_b[p_null_0]
+ipw_100_b_..  1000      2       .789          0          1  [ipw_100]_b[reject_null_0]
+ipw_100_b_..  1000   1000   .5085294   7.97e-11   .9995357  [ipw_100]_b[p_null_true]
+ipw_100_b_..  1000      2       .067          0          1  [ipw_100]_b[reject_null_true]
+ipw_100_b_..  1000   1000   .3532967    .076866   1.102716  [ipw_100]_b[bal_max_asd]
+ipw_100_b_..  1000   1000   .1653126   .0316664   .7445278  [ipw_100]_b[bal_mean_asd]
+ipw_100_~_sd  1000   1000   1.136432   .3375932   3.923404  [ipw_100]_b[wgt_sd]
+ipw_100_b_~v  1000   1000   1.136432   .3375932   3.923404  [ipw_100]_b[wgt_cv]
+ipw_100_b~ss  1000   1000   .4628864   .1217556   .9647124  [ipw_100]_b[wgt_skewness]
+ipw_100_b~is  1000   1000   .3271984   .0525147   .9539218  [ipw_100]_b[wgt_kurtosis]
+ipw_100_b_~x  1000   1000   9.205347    2.62357   39.57957  [ipw_100]_b[wgt_max]
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+. 
+. log close sims1
+      name:  sims1
+       log:  C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\sims/sims1.log
+  log type:  text
+ closed on:  25 Oct 2018, 17:29:52
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------

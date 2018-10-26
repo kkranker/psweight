@@ -58,7 +58,7 @@ ereturn display
 // codebook, compact
 
 parallel setclusters `c(processors_mach)'
-parallel sim, expr(_b) reps(1000) processors(1): onerep A, n(10000 5000 2500 1000 750 500 250 100)
+parallel sim, expr(_b) reps(1000) processors(1): onerep A, n(8000 4000 2000 1000 800 600 400 200 100)
 codebook, compact
 
 log close sims1
