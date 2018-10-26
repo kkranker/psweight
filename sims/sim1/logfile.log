@@ -2,15 +2,15 @@
       name:  sim1
        log:  C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\sims/sim1/logfile.log
   log type:  text
- opened on:  26 Oct 2018, 16:25:13
+ opened on:  26 Oct 2018, 16:57:07
 
 . 
-. *! $Id$
+. *! $Id: sim1.do,v 506ca4351b67 2018/10/26 22:47:53 kkranker $
 . *! Simulation setup #1
 . // Here I'm trying to find combinations of N/impact that are "marginally" powered
 . //
 . *! By Keith Kranker
-. // Last updated $Date$
+. // Last updated $Date: 2018/10/26 22:47:53 $
 . //
 . // Copyright (C) Mathematica Policy Research, Inc.
 . // This code cannot be copied, distributed or used without the express written
@@ -80,14 +80,14 @@ Warning: No data loaded.
 --------------------------------------------------------------------------------
 Parallel Computing with Stata
 Clusters   : 6
-pll_id     : 8y38hxqlb1
+pll_id     : niy153dtc5
 Running at : C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch
 Randtype   : datetime
 Waiting for the clusters to finish...
 cluster 0003 has exited without error...
 cluster 0001 has exited without error...
-cluster 0004 has exited without error...
 cluster 0002 has exited without error...
+cluster 0004 has exited without error...
 cluster 0005 has exited without error...
 cluster 0006 has exited without error...
 --------------------------------------------------------------------------------
@@ -97,9 +97,9 @@ Enter -parallel printlog #- to checkout logfiles.
 . 
 . sim_reshape
 
-Contains data from C:\Users\kkranker\AppData\Local\Temp/__pll8y38hxqlb1_sim_outdta.dta
+Contains data from C:\Users\kkranker\AppData\Local\Temp/__pllniy153dtc5_sim_outdta.dta
   obs:           500                          simulate: onerep
- vars:           234                          26 Oct 2018 16:28
+ vars:           234                          26 Oct 2018 17:00
  size:       468,000                          
 Sorted by: 
 There are 13 prefixes
@@ -189,9 +189,9 @@ A_13/ipw:
 (simulate: onerep)
 (6,500 real changes made)
 
-Contains data from C:\Users\kkranker\AppData\Local\Temp\ST_5448_000001.tmp
+Contains data from C:\Users\kkranker\AppData\Local\Temp\ST_5044_000001.tmp
   obs:         6,500                          simulate: onerep
- vars:            22                          26 Oct 2018 16:28
+ vars:            22                          26 Oct 2018 17:00
  size:       487,500                          
 ------------------------------------------------------------------------------------------------------------------------------------------------------
               storage   display    value
@@ -241,12 +241,11 @@ A         |
 ----------------------------------------------------------------------------------------
 
 . save sims/sim1/sim1a.dta, replace
-(note: file sims/sim1/sim1a.dta not found)
 file sims/sim1/sim1a.dta saved
 
 . graph bar (mean) reject_0, over(N) over(estimator) name(g1a)
 
-. graph export sims/sim1/sim1a_power.png, replace
+. graph export "sims/sim1/sim1a_power.png", replace
 (note: file sims/sim1/sim1a_power.png not found)
 (file sims/sim1/sim1a_power.png written in PNG format)
 
@@ -261,15 +260,15 @@ file sims/sim1/sim1a.dta saved
 --------------------------------------------------------------------------------
 Parallel Computing with Stata
 Clusters   : 6
-pll_id     : 9gmpdbu4c3
+pll_id     : mqc58hgd77
 Running at : C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch
 Randtype   : datetime
 Waiting for the clusters to finish...
+cluster 0001 has exited without error...
+cluster 0003 has exited without error...
 cluster 0004 has exited without error...
 cluster 0005 has exited without error...
 cluster 0002 has exited without error...
-cluster 0001 has exited without error...
-cluster 0003 has exited without error...
 cluster 0006 has exited without error...
 --------------------------------------------------------------------------------
 Enter -parallel printlog #- to checkout logfiles.
@@ -278,9 +277,9 @@ Enter -parallel printlog #- to checkout logfiles.
 . 
 . sim_reshape
 
-Contains data from C:\Users\kkranker\AppData\Local\Temp/__pll9gmpdbu4c3_sim_outdta.dta
+Contains data from C:\Users\kkranker\AppData\Local\Temp/__pllmqc58hgd77_sim_outdta.dta
   obs:           500                          simulate: onerep
- vars:           198                          26 Oct 2018 16:31
+ vars:           198                          26 Oct 2018 17:03
  size:       396,000                          
 Sorted by: 
 There are 11 prefixes
@@ -356,9 +355,9 @@ A_11/ipw:
 (simulate: onerep)
 (5,500 real changes made)
 
-Contains data from C:\Users\kkranker\AppData\Local\Temp\ST_5448_000001.tmp
+Contains data from C:\Users\kkranker\AppData\Local\Temp\ST_5044_000001.tmp
   obs:         5,500                          simulate: onerep
- vars:            22                          26 Oct 2018 16:31
+ vars:            22                          26 Oct 2018 17:03
  size:       412,500                          
 ------------------------------------------------------------------------------------------------------------------------------------------------------
               storage   display    value
@@ -420,12 +419,11 @@ A         |
 ----------------
 
 . save sims/sim1/sim1b.dta, replace
-(note: file sims/sim1/sim1b.dta not found)
 file sims/sim1/sim1b.dta saved
 
 . graph bar (mean) reject_0, over(true) name(g1b)
 
-. graph export sims/sim1/sim1b_power.png, replace
+. graph export "sims/sim1/sim1b_power.png", replace
 (note: file sims/sim1/sim1b_power.png not found)
 (file sims/sim1/sim1b_power.png written in PNG format)
 
@@ -440,16 +438,16 @@ file sims/sim1/sim1b.dta saved
 --------------------------------------------------------------------------------
 Parallel Computing with Stata
 Clusters   : 6
-pll_id     : v44gtpr175
+pll_id     : svxmho3ds9
 Running at : C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch
 Randtype   : datetime
 Waiting for the clusters to finish...
-cluster 0003 has exited without error...
-cluster 0002 has exited without error...
 cluster 0004 has exited without error...
-cluster 0006 has exited without error...
-cluster 0005 has exited without error...
 cluster 0001 has exited without error...
+cluster 0003 has exited without error...
+cluster 0005 has exited without error...
+cluster 0002 has exited without error...
+cluster 0006 has exited without error...
 --------------------------------------------------------------------------------
 Enter -parallel printlog #- to checkout logfiles.
 --------------------------------------------------------------------------------
@@ -457,9 +455,9 @@ Enter -parallel printlog #- to checkout logfiles.
 . 
 . sim_reshape
 
-Contains data from C:\Users\kkranker\AppData\Local\Temp/__pllv44gtpr175_sim_outdta.dta
+Contains data from C:\Users\kkranker\AppData\Local\Temp/__pllsvxmho3ds9_sim_outdta.dta
   obs:           500                          simulate: onerep
- vars:           126                          26 Oct 2018 16:34
+ vars:           126                          26 Oct 2018 17:05
  size:       252,000                          
 Sorted by: 
 There are 7 prefixes
@@ -511,9 +509,9 @@ G_7/ipw:
 (simulate: onerep)
 (3,500 real changes made)
 
-Contains data from C:\Users\kkranker\AppData\Local\Temp\ST_5448_000001.tmp
+Contains data from C:\Users\kkranker\AppData\Local\Temp\ST_5044_000001.tmp
   obs:         3,500                          simulate: onerep
- vars:            22                          26 Oct 2018 16:34
+ vars:            22                          26 Oct 2018 17:05
  size:       262,500                          
 ------------------------------------------------------------------------------------------------------------------------------------------------------
               storage   display    value
@@ -583,12 +581,11 @@ G         |
 ----------------
 
 . save sims/sim1/sim1c.dta, replace
-(note: file sims/sim1/sim1c.dta not found)
 file sims/sim1/sim1c.dta saved
 
 . graph bar (mean) reject_0, over(dgp) name(g1c)
 
-. graph export sims/sim1/sim1c_power.png, replace
+. graph export "sims/sim1/sim1c_power.png", replace
 (note: file sims/sim1/sim1c_power.png not found)
 (file sims/sim1/sim1c_power.png written in PNG format)
 
@@ -597,5 +594,5 @@ file sims/sim1/sim1c.dta saved
       name:  sim1
        log:  C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\sims/sim1/logfile.log
   log type:  text
- closed on:  26 Oct 2018, 16:34:02
+ closed on:  26 Oct 2018, 17:06:00
 ------------------------------------------------------------------------------------------------------------------------------------------------------

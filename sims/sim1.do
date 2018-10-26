@@ -47,7 +47,7 @@ parallel sim, expr(_b) reps(`reps') processors(1): ///
 sim_reshape
 save sims/sim1/sim1a.dta, replace
 graph bar (mean) reject_0, over(N) over(estimator) name(g1a)
-graph export sims/sim1/sim1a_power.png, replace
+graph export "sims/sim1/sim1a_power.png", replace
 
 
 // ------------------------------------------------------------------------
@@ -60,7 +60,7 @@ parallel sim, expr(_b) reps(`reps') processors(1): ///
 sim_reshape
 save sims/sim1/sim1b.dta, replace
 graph bar (mean) reject_0, over(true) name(g1b)
-graph export sims/sim1/sim1b_power.png, replace
+graph export "sims/sim1/sim1b_power.png", replace
 
 
 // ------------------------------------------------------------------------
@@ -73,6 +73,6 @@ parallel sim, expr(_b) reps(`reps') processors(1): ///
 sim_reshape
 save sims/sim1/sim1c.dta, replace
 graph bar (mean) reject_0, over(dgp) name(g1c)
-graph export sims/sim1/sim1c_power.png, replace
+graph export "sims/sim1/sim1c_power.png", replace
 
 log close sim1
