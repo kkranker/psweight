@@ -1,5 +1,3 @@
-
-//****************************************************************************/
 *! $Id$
 *! Data generating processe (DGP) senarios A through G from Setoguchi et al. (2008)
 //    Setoguchi S, Schneeweiss S, Brookhart MA, Glynn RJ, Cook EF. Evaluating uses of data mining techniques
@@ -27,7 +25,7 @@
 
 program define dgp_ssbgc
   version 15.1
-  syntax anything(name=scenario id="scenario"), n(int) [impact(real -0.4)]
+  syntax name(name=scenario id="scenario"), n(int) [impact(real -0.4)]
 
   // ---------
   // Draw W_i
