@@ -29,8 +29,9 @@ program define onerep, eclass
          ESTimators(namelist)
 
   tempname _b_ add
+  local c = 0
+  local scenariolist: list sort scenariolist
   foreach scenario of local scenariolist {
-    local c = 0
     foreach impact of local impacts {
       local L : word count `n'
       dgp_ssbgc `scenario', n(`: word `L' of `n'') impact(`impact')
