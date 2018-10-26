@@ -24,11 +24,11 @@ program define onerep
   cd "C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch"
   adopath ++ "./sims"
 
-  syntax [anything], n(numlist min=1 >0 integer sort)
+  syntax [anything], n(numlist min=1 >0 integer sort) [*]
   tempname bbld
 
   local L : word count `n'
-  dgp_ssbgc `anything', n(`: word `L' of `n'')
+  dgp_ssbgc `anything', n(`: word `L' of `n'') `options'
 
   local l = `L'
   while `l' > 0 {
@@ -48,7 +48,6 @@ program define onerep
   ereturn post `bbld'
 end
 
-
 set seed 1
 
 onerep A, n(100)
@@ -58,7 +57,8 @@ ereturn display
 // codebook, compact
 
 parallel setclusters `c(processors_mach)'
-parallel sim, expr(_b) reps(1000) processors(1): onerep A, n(8000 4000 2000 1000 800 600 400 200 100)
+parallel sim, expr(_b) reps(2000) processors(1): onerep A, n(8000 500 4000 2000 1750 1500 1250 1000 800 600 400 200 100) impact(-.10)
 codebook, compact
+save sims/sims1.dta
 
 log close sims1
