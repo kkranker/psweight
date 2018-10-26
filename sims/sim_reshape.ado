@@ -26,7 +26,6 @@ program define sim_reshape
   di as txt "There are `: list sizeof ests' ests"
   mac list _ests
 
-  // preserve
   local s = 0
   tempfile stack
   gen rep = _n
@@ -53,24 +52,26 @@ program define sim_reshape
   restore, not
   use "`stack'", clear
 
-  foreach v of var _all {
-    label var `v'
-  }
+  // strings to numeric
   label define dgp 1 "A" 2 "B" 3 "C" 4 "D" 5 "E" 6 "F" 7 "G"
   label define est 1 "OLS" 2 "IPW" 3 "CBPS"
   encode dgp_txt, gen(dgp) label(dgp) noextend
   replace est_txt = upper(est_txt)
-  encode est_txt, gen(est) label(est)
+  encode est_txt, gen(estimator) label(est)
   qui destring c, replace
-
   drop dgp_txt est_txt
-  order rep c dgp est, first
-  isid rep c est
-  sort rep c est
+
+  // checks, cleanup
+  order rep c dgp estimator, first
+  isid rep c estimator
+  sort rep estimator dgp true N c
+  foreach v of var _all {
+    label var `v'
+  }
 
   if ("`replace'"!="" & `"`using'"'!="") save "`using'", replace
   desc
-  codebook rep c dgp est, compact
-  table true N est, by(dgp) concise
+  codebook rep c dgp estimator, compact
+  table true N estimator, by(dgp) concise
 
 end
