@@ -27,7 +27,7 @@
 
 program define dgp_ssbgc
   version 15.1
-  syntax anything(name=scenario id="scenario"), n(int)
+  syntax anything(name=scenario id="scenario"), n(int) [impact(real -0.4)]
 
   // ---------
   // Draw W_i
@@ -87,7 +87,7 @@ program define dgp_ssbgc
   sca _a5 =  0.71
   sca _a6 = -0.19
   sca _a7 =  0.26
-  sca _g1 = -0.4 // true effect
+  sca _g1 = `impact' // true effect -0.4 by default (see above)
 
   // ---------------------------------------------
   // True propensity score models & outcome model
