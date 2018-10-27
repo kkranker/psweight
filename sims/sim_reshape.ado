@@ -9,8 +9,9 @@
 // permission of Mathematica Policy Research, Inc.
 
 program define sim_reshape
-  syntax [using/] [, clear replace]
+  syntax [using/] [, clear replace noisily]
   if (`"`using'"'!="") use "`using'", `clear'
+  di as txt "Before reshape:"
   desc, short
   qui compress
   unab varlist : _all
@@ -35,8 +36,8 @@ program define sim_reshape
       restore, preserve
       di "`prefix'/`est':"
       keep rep `prefix'_b_* `prefix'_`est'_b_*
-      qui desc, varlist
-      di as txt "   from: " as res =r(varlist)
+      if ("`noisily'"!="") qui desc, varlist
+      if ("`noisily'"!="") di as txt "   from: " as res =r(varlist)
       rename `prefix'_* *
       rename `est'_* *
       rename  b_* *
@@ -44,8 +45,8 @@ program define sim_reshape
       gen c       = regexs(2) if regexm("`prefix'", "^([A-G]*)_([0-9]*)$")
       gen est_txt = "`est'"
       qui desc, varlist
-      di as txt "     to: " as res =r(varlist)
-      if `++s'>1 append using "`stack'"
+      if ("`noisily'"!="") di as txt "     to: " as res =r(varlist)
+      if ("`noisily'"!="") if `++s'>1 append using "`stack'"
       qui save "`stack'", replace
     }
   }
@@ -70,6 +71,7 @@ program define sim_reshape
   }
 
   if ("`replace'"!="" & `"`using'"'!="") save "`using'", replace
+  di as txt "After reshape:"
   desc
   codebook rep c dgp estimator, compact
   table true N estimator, by(dgp) concise
