@@ -54,7 +54,7 @@ program define sim_reshape
 
   // strings to numeric
   label define dgp 1 "A" 2 "B" 3 "C" 4 "D" 5 "E" 6 "F" 7 "G"
-  label define est 1 "OLS" 2 "IPW" 3 "CBPS"
+  label define est 1 "RAW" "IPW_TE" 3 "IPW" 4 "CBPS"
   encode dgp_txt, gen(dgp) label(dgp) noextend
   replace est_txt = upper(est_txt)
   encode est_txt, gen(estimator) label(est)

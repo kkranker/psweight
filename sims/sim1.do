@@ -2,10 +2,11 @@ cd "C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch"
 clear all
 cls
 
-cap log close sim1
-//set linesize 180
-cap mkdir  sims/sim1
-log using "sims/sim1/logfile.log", replace name(sim1)
+local sim = 1
+cap log close sim`sim'
+set linesize 180
+cap mkdir  sims/sim`sim'
+log using "sims/sim`sim'/logfile.log", replace name(sim`sim')
 
 *! $Id$
 *! Simulation setup #1
@@ -17,62 +18,72 @@ log using "sims/sim1/logfile.log", replace name(sim1)
 // Copyright (C) Mathematica Policy Research, Inc.
 // This code cannot be copied, distributed or used without the express written
 // permission of Mathematica Policy Research, Inc.
+mac list _sim
 
 // DGP is saved in a separate .ado file
-  adopath ++ "./sims"
-  which dgp_ssbgc
-  which onerep
-  which sim_reshape
+adopath ++ "./sims"
+which dgp_ssbgc
+which onerep
+which sim_reshape
 
 // options
-  parallel setclusters `c(processors_mach)'
-  set cformat %9.3fc
-  set pformat %5.3f
-  set sformat %7.3f
-  set type float
-  set tracedepth 1
-  set maxiter 50
+parallel setclusters `c(processors_mach)'
+local commonopts atet iter(30) cformat(%9.3fc) pformat(%5.3f) sformat(%7.3f) pooledvariance
 
 // control simulations
-set seed 1  //  1 for simulation 1, 2 for simulation 2, etc.
+set seed `sim'  //  1 for simulation 1, 2 for simulation 2, etc.
 local reps 500
 
 // ------------------------------------------------------------------------
-// 1-A Variouis sample sizes with impact = .10
+// 1-A Variouis sample sizes with impact = -.10
 // ------------------------------------------------------------------------
 
 parallel sim, expr(_b) reps(`reps') processors(1): ///
-  onerep A, impact(-.10) estimators(ipw) n(8000 500 4000 2000 1750 1500 1250 1000 800 600 400 200 100)
+  onerep A, impact(-.075) estimators(ipw) ///
+  n(8000 500 4000 2000 1750 1500 1250 1000 800 600 400 200 100)  `commonopts'
 
 sim_reshape
-save sims/sim1/sim1a.dta, replace
-graph bar (mean) reject_0, over(N) over(estimator) name(g1a)
-graph export "sims/sim1/sim1a_power.png", replace
+save sims/sim`sim'/sim`sim'a.dta, replace
 
+foreach v of var impact_est-wgt_max {
+  tabstat `v', by(N) s(N mean p50 sd)
+}
+
+graph bar (mean) reject_0, over(N) name(g1a)
+graph export "sims/sim`sim'/sim`sim'a_power.png", replace
 
 // ------------------------------------------------------------------------
-// 1-B Variouis sample sizes with impact = .10
+// 1-B Variouis imapct sizes with N=2000
 // ------------------------------------------------------------------------
 
 parallel sim, expr(_b) reps(`reps') processors(1): ///
-  onerep A, impact(-.05(-.01)-.15) estimators(ipw) n(2000)
+  onerep A, impact(-.05(-.01)-.15) estimators(ipw) n(2000) `commonopts'
 
 sim_reshape
-save sims/sim1/sim1b.dta, replace
+save sims/sim`sim'/sim`sim'b.dta, replace
+
+foreach v of var impact_est-wgt_max {
+  tabstat `v', by(true) s(N mean p50 sd)
+}
+
 graph bar (mean) reject_0, over(true) name(g1b)
-graph export "sims/sim1/sim1b_power.png", replace
-
+graph export "sims/sim`sim'/sim`sim'b_power.png", replace
 
 // ------------------------------------------------------------------------
-// 1-C Variouis sample sizes with impact = .10
+// 1-C All DPGs (A to G) with n=2000, impact = -.075
 // ------------------------------------------------------------------------
 
 parallel sim, expr(_b) reps(`reps') processors(1): ///
-  onerep A B C D E F G, impact(-.07) estimators(ipw) n(2000)
+  onerep A B C D E F G, impact(-.075) estimators(ipw) n(2000) `commonopts'
 
 sim_reshape
-save sims/sim1/sim1c.dta, replace
-graph bar (mean) reject_0, over(dgp) name(g1c)
-graph export "sims/sim1/sim1c_power.png", replace
+save sims/sim`sim'/sim`sim'c.dta, replace
 
-log close sim1
+foreach v of var impact_est-wgt_max {
+  tabstat `v', by(dpg) s(N mean p50 sd)
+}
+
+graph bar (mean) reject_0, over(dgp) name(g1c)
+graph export "sims/sim`sim'/sim`sim'c_power.png", replace
+
+log close sim`sim'
