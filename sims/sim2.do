@@ -28,7 +28,7 @@ which sim_reshape
 
 // options
 parallel setclusters `c(processors_mach)'
-local commonopts atet iter(15) cformat(%9.3fc) pformat(%5.3f) sformat(%7.3f) pooledvariance
+local commonopts atet iter(20) cformat(%9.3fc) pformat(%5.3f) sformat(%7.3f) pooledvariance
 
 // control simulations
 set seed `sim'  //  1 for simulation 1, 2 for simulation 2, etc.
@@ -39,13 +39,13 @@ local reps 1000
 // ------------------------------------------------------------------------
 
 onerep A, impact(-.075) n(2000) ///
-     estimators(raw ipw ipw_te cbps) ///
-     cvtargets(110(-5)70) `commonopts'
+     estimators(raw ipw_true_ps ipw ipw_te cbps stdprogdiff) ///
+     cvtargets(99 97 95(-5)70) `commonopts'
 
 parallel sim, expr(_b) reps(`reps') processors(1): ///
   onerep A, impact(-.075) n(2000) ///
-     estimators(raw ipw ipw_te cbps) ///
-     cvtargets(110(-5)70) `commonopts'
+     estimators(raw ipw_true_ps ipw ipw_te cbps stdprogdiff) ///
+     cvtargets(99 97 95(-5)70) `commonopts'
 
 sim_reshape
 save sims/sim`sim'/sim`sim'a.dta, replace
