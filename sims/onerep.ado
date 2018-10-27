@@ -116,14 +116,12 @@ program define onerep, eclass
         foreach cut of local cvtargets {
           local e "cbps`cut'"
           if (`cut'==100) continue
-          if `: list e in estimators' {
-            local cvtarget = round(`cvcbps'*`cut'/100,.001)
-            mac list _cvtarget
-            gmatch a w1-w10, cbps cvtarget(1 `cvtarget' 6) `ate'`atet'`ateu' `fromopt' `options' `diopts'
-            matrix `from' = e(b)
-            regress y i.a [aw=_weight], noheader `diopts'
-            addstats `_b_' 1.a `prefix'_`e'
-          }
+          local cvtarget = round(`cvcbps'*`cut'/100,.001)
+          mac list _cvtarget
+          gmatch a w1-w10, cbps cvtarget(1 `cvtarget' 6) `ate'`atet'`ateu' `fromopt' `options' `diopts'
+          matrix `from' = e(b)
+          regress y i.a [aw=_weight], noheader `diopts'
+          addstats `_b_' 1.a `prefix'_`e'
         }
 
         local --l
@@ -185,6 +183,6 @@ program define addstats
 
   matrix coleq `add' = `eqname'
   matrix `matname' = (nullmat(`matname'), `add')
-  mat list `add'
+  // mat list `add'
 
 end
