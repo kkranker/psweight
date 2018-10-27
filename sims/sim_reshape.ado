@@ -9,7 +9,7 @@
 // permission of Mathematica Policy Research, Inc.
 
 program define sim_reshape
-  syntax [using/] [, clear replace noisily]
+  syntax [using/] [, clear replace]
   if (`"`using'"'!="") use "`using'", `clear'
   di as txt "Before reshape:"
   desc, short
@@ -34,10 +34,8 @@ program define sim_reshape
   foreach prefix of local prefixes {
     foreach est of local ests {
       restore, preserve
-      di "`prefix'/`est':"
+      di as res "`prefix'/`est':" _c
       keep rep `prefix'_b_* `prefix'_`est'_b_*
-      if ("`noisily'"!="") qui desc, varlist
-      if ("`noisily'"!="") di as txt "   from: " as res =r(varlist)
       rename `prefix'_* *
       rename `est'_* *
       rename  b_* *
@@ -45,8 +43,8 @@ program define sim_reshape
       gen c       = regexs(2) if regexm("`prefix'", "^([A-G]*)_([0-9]*)$")
       gen est_txt = "`est'"
       qui desc, varlist
-      if ("`noisily'"!="") di as txt "     to: " as res =r(varlist)
-      if ("`noisily'"!="") if `++s'>1 append using "`stack'"
+      di as txt =r(varlist)
+      if `++s'>1 append using "`stack'"
       qui save "`stack'", replace
     }
   }
@@ -55,7 +53,7 @@ program define sim_reshape
 
   // strings to numeric
   label define dgp 1 "A" 2 "B" 3 "C" 4 "D" 5 "E" 6 "F" 7 "G"
-  label define est 1 "RAW" "IPW_TE" 3 "IPW" 4 "CBPS"
+  label define est 1 "RAW" 2 "IPW_TE" 3 "IPW" 4 "CBPS"
   encode dgp_txt, gen(dgp) label(dgp) noextend
   replace est_txt = upper(est_txt)
   encode est_txt, gen(estimator) label(est)
