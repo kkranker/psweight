@@ -33,13 +33,10 @@ program define onerep, eclass
   _get_diopts diopts options, `options'
 
   // throw error if invalid options
-  local valid_est raw ipw ipw_te cbps cbps90 cbps75 cbps50
+  local valid_est raw ipw_true_ps ipw ipw_te stdprogdiff cbps cbps90 cbps75 cbps50
   if !`:list estimators in valid_est' {
     di as error "estimators(`: list estimators-valid_est') invalid"
     error 198
-  }
-  if "`cvtargets'"!="" {
-    local estimators `estimators' cbps
   }
   if ("`ate'`atet'`ateu'"=="") {
     local atet atet
@@ -47,7 +44,6 @@ program define onerep, eclass
 
   tempname _b_ add from
   local c = 0
-  local scenariolist: list sort scenariolist
   foreach scenario of local scenariolist {
     foreach impact of local impacts {
       local L : word count `n'
@@ -76,13 +72,45 @@ program define onerep, eclass
         // Difference in means ("raw")
         local e "raw"
         if `: list e in estimators' {
-          regress y i.a, noheader `diopts'
+          di _n(2) as txt "`prefix' with estimator: " as res "`e'" _n(2)
+          regress y i.a, vce(robust) noheader `diopts'
+          addstats `_b_' 1.a `prefix'_`e'
+        }
+
+        // Difference in means, weighted using true propensity scores ("true")
+        local e "ipw_true_ps"
+        if `: list e in estimators' cap nois {
+          di _n(2) as txt "`prefix' with estimator: " as res "`e'" _n(2)
+          tempvar trueW
+          if "`ate'`atet'`ateu'"=="ate" {
+            gen `trueW' = cond(a, 1/ps, 1/(1-ps))
+            summ `trueW' if a
+            qui replace `trueW' = `trueW' / r(mean) if a
+            summ `trueW' if !a
+            qui replace `trueW' = `trueW' / r(mean) if !a
+          }
+          else if "`ate'`atet'`ateu'"=="atet" {
+            gen `trueW' = cond(a, 1, ps/(1-ps))
+            summ `trueW' if !a
+            qui replace `trueW' = `trueW' / r(mean) if !a
+          }
+          else if "`ate'`atet'`ateu'"=="atet" {
+            gen `trueW' = cond(a, (1-ps)/ps, 1)
+            summ `trueW' if a
+            qui replace `trueW' = `trueW' / r(mean) if a
+          }
+          else {
+            di as error "`ate'`atet'`ateu' invalid"
+            error 198
+          }
+          regress y i.a [aw=`trueW'], vce(robust) noheader `diopts'
           addstats `_b_' 1.a `prefix'_`e'
         }
 
         // IPW model (with teffects)
         local e "ipw_te"
-        if `: list e in estimators' {
+        if `: list e in estimators' cap nois {
+          di _n(2) as txt "`prefix' with estimator: " as res "`e'" _n(2)
           teffects ipw (y) (a w1-w10), `ate'`atet'`ateu' aeq `diopts'
           matrix `from' = e(b)
           matrix `from' = `from'[1, "TME1:"]
@@ -92,21 +120,37 @@ program define onerep, eclass
 
         // IPW model (with gmatch.ado)
         local e "ipw"
-        if `: list e in estimators' {
-          gmatch a w1-w10, `ate'`atet'`ateu' `fromopt' `options' `diopts'
+        if `: list e in estimators' cap nois  {
+          di _n(2) as txt "`prefix' with estimator: " as res "`e'" _n(2)
+if runiform()<.2 error 1
+          gmatch a w1-w10, ipw `ate'`atet'`ateu' `fromopt' `options' `diopts'
           matrix `from' = e(b)
           local fromopt from(`from')
-          regress y i.a [aw=_weight], noheader `diopts'
+          regress y i.a [aw=_weight], vce(robust) noheader `diopts'
           addstats `_b_' 1.a `prefix'_`e'
+        }
+
+        // Minimize difference in prognostic scores model (with gmatch.ado)
+        local e "stdprogdiff"
+        if `: list e in estimators' cap nois {
+          di _n(2) as txt "`prefix' with estimator: " as res "`e'" _n(2)
+          gmatch a w1-w10, stdprogdiff depvar(y) `ate'`atet'`ateu' `fromopt' `options' `diopts'
+          matrix `from' = e(b)
+          local fromopt from(`from')
+          regress y i.a [aw=_weight], vce(robust) noheader `diopts'
+          addstats `_b_' 1.a `prefix'_`e'
+          local cvcbps = r(wgt_cv)
+          mac list _cvcbps
         }
 
         // CBPS model (with gmatch.ado)
         local e "cbps"
         if `: list e in estimators' {
+          di _n(2) as txt "`prefix' with estimator: " as res "`e'" _n(2)
           gmatch a w1-w10, cbps `ate'`atet'`ateu' `fromopt' `options' `diopts'
           matrix `from' = e(b)
           local fromopt from(`from')
-          regress y i.a [aw=_weight], noheader `diopts'
+          regress y i.a [aw=_weight], vce(robust) noheader `diopts'
           addstats `_b_' 1.a `prefix'_`e'
           local cvcbps = r(wgt_cv)
           mac list _cvcbps
@@ -114,14 +158,19 @@ program define onerep, eclass
 
         // CBPS model (with gmatch.ado), with CV at X%
         foreach cut of local cvtargets {
+          cap nois {
           local e "cbps`cut'"
+          di _n(2) as txt "`prefix' with estimator: " as res "`e'" _n(2)
+          local confirm cbps
+          if (!`: list confirm in estimators') continue
           if (`cut'==100) continue
           local cvtarget = round(`cvcbps'*`cut'/100,.001)
           mac list _cvtarget
           gmatch a w1-w10, cbps cvtarget(1 `cvtarget' 6) `ate'`atet'`ateu' `fromopt' `options' `diopts'
           matrix `from' = e(b)
-          regress y i.a [aw=_weight], noheader `diopts'
+          regress y i.a [aw=_weight], vce(robust) noheader `diopts'
           addstats `_b_' 1.a `prefix'_`e'
+          }
         }
 
         local --l
@@ -130,7 +179,7 @@ program define onerep, eclass
   }
 
   ereturn clear
-  mat list `_b_'
+  // mat list `_b_'
   ereturn post `_b_'
   ereturn local cmd "onerep"
   ereturn local cmdline "`cmd'"
