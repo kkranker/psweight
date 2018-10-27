@@ -28,7 +28,7 @@ which sim_reshape
 
 // options
 parallel setclusters `c(processors_mach)'
-local commonopts atet iter(30) cformat(%9.3fc) pformat(%5.3f) sformat(%7.3f) pooledvariance
+local commonopts atet iter(50) cformat(%9.3fc) pformat(%5.3f) sformat(%7.3f) pooledvariance
 
 // control simulations
 set seed `sim'  //  1 for simulation 1, 2 for simulation 2, etc.
@@ -39,8 +39,8 @@ local reps 1000
 // ------------------------------------------------------------------------
 
 parallel sim, expr(_b) reps(`reps') processors(1): ///
-  onerep A, impact(-.075) estimators(ipw) ///
-  n(8000 500 4000 2000 1750 1500 1250 1000 800 600 400 200 100)  `commonopts'
+  onerep A, impact(-.075) estimators(cbps) ///
+  n(8000 500 4000 2000 1750 1500 1250 1000 800 600 400 200 100) `commonopts'
 
 sim_reshape
 save sims/sim`sim'/sim`sim'a.dta, replace
@@ -57,7 +57,7 @@ graph export "sims/sim`sim'/sim`sim'a_power.png", replace
 // ------------------------------------------------------------------------
 
 parallel sim, expr(_b) reps(`reps') processors(1): ///
-  onerep A, impact(-.05(-.01)-.15) estimators(ipw) n(2000) `commonopts'
+  onerep A, impact(-.05(-.01)-.15 -.07(-.005)-.06) estimators(cbps) n(2000) `commonopts'
 
 sim_reshape
 save sims/sim`sim'/sim`sim'b.dta, replace
@@ -74,13 +74,13 @@ graph export "sims/sim`sim'/sim`sim'b_power.png", replace
 // ------------------------------------------------------------------------
 
 parallel sim, expr(_b) reps(`reps') processors(1): ///
-  onerep A B C D E F G, impact(-.075) estimators(ipw) n(2000) `commonopts'
+  onerep A B C D E F G, impact(-.075) estimators(cbps) n(2000) `commonopts'
 
 sim_reshape
 save sims/sim`sim'/sim`sim'c.dta, replace
 
 foreach v of var impact_est-wgt_max {
-  tabstat `v', by(dpg) s(N mean p50 sd)
+  tabstat `v', by(dgp) s(N mean p50 sd)
 }
 
 graph bar (mean) reject_0, over(dgp) name(g1c)
