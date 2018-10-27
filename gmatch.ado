@@ -33,7 +33,7 @@ program Estimate, eclass sortpreserve
   // standard syntax parsing
   local cmdline : copy local 0
   syntax varlist(min=2 numeric fv) [if] [in] [fw iw/], ///
-          [ depvars(varlist numeric) /// outcome variables (if any)
+          [ DEPvars(varlist numeric) /// outcome variables (if any)
             ate atet ateu /// to fill in est
             ipw cbps mean_sd sd mean_sd_sq sd_sq STDProgdiff /// to fill in fctn and oid
             TREatvariance CONtrolvariance POOledvariance Averagevariance /// to fill in denominator
