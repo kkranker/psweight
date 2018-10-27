@@ -26,6 +26,9 @@ program define sim_reshape
   local ests: subinstr local ests "_b_impact_est" "", all
   di as txt "There are `: list sizeof ests' ests"
   mac list _ests
+  format %7.4f _all
+  format %7.1f *_wgt_max*
+  format %7.0g *_reject* *_N* *_Nt*
 
   local s = 0
   tempfile stack
