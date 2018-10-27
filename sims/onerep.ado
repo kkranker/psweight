@@ -26,9 +26,28 @@ program define onerep, eclass
   syntax namelist(name=scenariolist id="scenario(s)"), ///
          n(numlist min=1 >0 integer sort) ///
          Impacts(numlist sort) ///
-         ESTimators(namelist)
+         ESTimators(namelist) ///
+         [CVTargets(numlist >5 sort) ///
+         ate atet ateu /// atet is the default
+         ITERate(integer 50) ///
+         *] // display options passed everywhere;  remaining options passed to gmatch.ado (if applicable)
+  _get_diopts diopts options, `options'
 
-  tempname _b_ add
+  // throw error if invalid options
+  local valid_est raw ipw ipw_te cbps cbps90 cbps75 cbps50
+  if !`:list estimators in valid_est' {
+    di as error "estimators(`: list estimators-valid_est') invalid"
+    error 198
+  }
+  if "`cvtargets'"!="" {
+    local estimators `estimators' cbps
+  }
+  if ("`ate'`atet'`ateu'"=="") {
+    local atet atet
+  }
+  set maxiter `iterate'
+
+  tempname _b_ add from
   local c = 0
   local scenariolist: list sort scenariolist
   foreach scenario of local scenariolist {
@@ -56,19 +75,57 @@ program define onerep, eclass
         matrix coleq    `add' = `prefix'
         matrix          `_b_' = (nullmat(`_b_'), `add')
 
-        // IPW model
+        // Difference in means ("raw")
         local e "raw"
         if `: list e in estimators' {
-          regress y i.a, noheader
-          addstats `_b_' 1.a `prefix'_ols
+          regress y i.a, noheader `diopts'
+          addstats `_b_' 1.a `prefix'_`e'
         }
 
-        // IPW model
+        // IPW model (with teffects)
+        local e "ipw_te"
+        if `: list e in estimators' {
+          teffects ipw (y) (a w1-w10), `ate'`atet'`ateu' aeq `diopts'
+          matrix `from' = e(b)
+          matrix `from' = `from'[1, "TME1:"]
+          local fromopt from(`from')
+          addstats `_b_' ATET:r1vs0.a `prefix'_`e'
+        }
+
+        // IPW model (with gmatch.ado)
         local e "ipw"
         if `: list e in estimators' {
-          gmatch a w1-w10, atet ipw pooledvariance
-          regress y i.a [aw=_weight], noheader
-          addstats `_b_' 1.a `prefix'_ipw
+          gmatch a w1-w10, `ate'`atet'`ateu' `fromopt' `options' `diopts'
+          matrix `from' = e(b)
+          local fromopt from(`from')
+          regress y i.a [aw=_weight], noheader `diopts'
+          addstats `_b_' 1.a `prefix'_`e'
+        }
+
+        // CBPS model (with gmatch.ado)
+        local e "cbps"
+        if `: list e in estimators' {
+          gmatch a w1-w10, cbps `ate'`atet'`ateu' `fromopt' `options' `diopts'
+          matrix `from' = e(b)
+          local fromopt from(`from')
+          regress y i.a [aw=_weight], noheader `diopts'
+          addstats `_b_' 1.a `prefix'_`e'
+          local cvcbps = r(wgt_cv)
+          mac list _cvcbps
+        }
+
+        // CBPS model (with gmatch.ado), with CV at X%
+        foreach cut of local cvtargets {
+          local e "cbps`cut'"
+          if (`cut'==100) continue
+          if `: list e in estimators' {
+            local cvtarget = round(`cvcbps'*`cut'/100,.001)
+            mac list _cvtarget
+            gmatch a w1-w10, cbps cvtarget(1 `cvtarget' 6) `ate'`atet'`ateu' `fromopt' `options' `diopts'
+            matrix `from' = e(b)
+            regress y i.a [aw=_weight], noheader `diopts'
+            addstats `_b_' 1.a `prefix'_`e'
+          }
         }
 
         local --l
@@ -82,6 +139,7 @@ program define onerep, eclass
   ereturn local cmd "onerep"
   ereturn local cmdline "`cmd'"
   ereturn local cmdline "Simulation results"
+  ereturn display, `diopts'
 end
 
 
