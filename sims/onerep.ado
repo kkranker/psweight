@@ -29,7 +29,6 @@ program define onerep, eclass
          ESTimators(namelist) ///
          [CVTargets(numlist >5 sort) ///
          ate atet ateu /// atet is the default
-         ITERate(integer 50) ///
          *] // display options passed everywhere;  remaining options passed to gmatch.ado (if applicable)
   _get_diopts diopts options, `options'
 
@@ -45,7 +44,6 @@ program define onerep, eclass
   if ("`ate'`atet'`ateu'"=="") {
     local atet atet
   }
-  set maxiter `iterate'
 
   tempname _b_ add from
   local c = 0
