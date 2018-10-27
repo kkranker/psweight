@@ -32,7 +32,7 @@ local commonopts atet iter(30) cformat(%9.3fc) pformat(%5.3f) sformat(%7.3f) poo
 
 // control simulations
 set seed `sim'  //  1 for simulation 1, 2 for simulation 2, etc.
-local reps 500
+local reps 1000
 
 // ------------------------------------------------------------------------
 // 1-A Variouis sample sizes with impact = -.10
