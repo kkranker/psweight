@@ -27,7 +27,7 @@ program define onerep, eclass
          n(numlist min=1 >0 integer sort) ///
          Impacts(numlist sort) ///
          ESTimators(namelist) ///
-         [CVTargets(numlist >5 sort) ///
+         [CVTargets(numlist >5) ///
          ate atet ateu /// atet is the default
          *] // display options passed everywhere;  remaining options passed to gmatch.ado (if applicable)
   _get_diopts diopts options, `options'
