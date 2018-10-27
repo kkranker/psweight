@@ -35,11 +35,11 @@ set seed `sim'  //  1 for simulation 1, 2 for simulation 2, etc.
 local reps 1000
 
 // ------------------------------------------------------------------------
-// 1-A Variouis sample sizes with impact = -.10
+// 1-A Variouis sample sizes with impact = -0.09
 // ------------------------------------------------------------------------
 
 parallel sim, expr(_b) reps(`reps') processors(1): ///
-  onerep A, impact(-.075) estimators(cbps) ///
+  onerep A, impact(-0.09) estimators(cbps) ///
   n(8000 500 4000 2000 1750 1500 1250 1000 800 600 400 200 100) `commonopts'
 
 sim_reshape
@@ -74,7 +74,7 @@ graph export "sims/sim`sim'/sim`sim'b_power.png", replace
 // ------------------------------------------------------------------------
 
 parallel sim, expr(_b) reps(`reps') processors(1): ///
-  onerep A B C D E F G, impact(-.075) estimators(cbps) n(2000) `commonopts'
+  onerep A B C D E F G, impact(-0.09) estimators(cbps) n(2000) `commonopts'
 
 sim_reshape
 save sims/sim`sim'/sim`sim'c.dta, replace

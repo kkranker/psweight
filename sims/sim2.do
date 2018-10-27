@@ -38,12 +38,12 @@ local reps 1000
 // 2-A Variouis estmators with impact = -.075, N=2000
 // ------------------------------------------------------------------------
 
-onerep A, impact(-.075) n(2000) ///
+onerep A, impact(-0.09) n(2000) ///
      estimators(raw ipw_true_ps ipw ipw_te cbps stdprogdiff) ///
      cvtargets(99 97 95(-5)70) `commonopts'
 
 parallel sim, expr(_b) reps(`reps') processors(1): ///
-  onerep A, impact(-.075) n(2000) ///
+  onerep A, impact(-0.09) n(2000) ///
      estimators(raw ipw_true_ps ipw ipw_te cbps stdprogdiff) ///
      cvtargets(99 97 95(-5)70) `commonopts'
 
