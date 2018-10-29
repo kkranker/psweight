@@ -10,7 +10,7 @@ log using "sims/sim`sim'/logfile.log", replace name(sim`sim')
 
 *! $Id$
 *! Simulation setup #1
-// Here I'm trying to find combinations of N/impact that are "marginally" powered
+// First pass at showing tradeoffs between balance and power
 //
 *! By Keith Kranker
 // Last updated $Date$
