@@ -1,23 +1,26 @@
-------------------------------------------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
       name:  sim1
        log:  C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\sims/sim1/logfile.log
   log type:  text
- opened on:  26 Oct 2018, 16:57:07
+ opened on:  27 Oct 2018, 14:42:38
 
 . 
-. *! $Id: sim1.do,v 506ca4351b67 2018/10/26 22:47:53 kkranker $
+. *! $Id: sim1.do,v 15a558fa565d 2018/10/27 20:42:21 kkranker $
 . *! Simulation setup #1
 . // Here I'm trying to find combinations of N/impact that are "marginally" powered
 . //
 . *! By Keith Kranker
-. // Last updated $Date: 2018/10/26 22:47:53 $
+. // Last updated $Date: 2018/10/27 20:42:21 $
 . //
 . // Copyright (C) Mathematica Policy Research, Inc.
 . // This code cannot be copied, distributed or used without the express written
 . // permission of Mathematica Policy Research, Inc.
+. mac list _sim
+_sim:           1
+
 . 
 . // DGP is saved in a separate .ado file
-.   adopath ++ "./sims"
+. adopath ++ "./sims"
   [1]              "./sims"
   [2]  (BASE)      "C:\Program Files (x86)\Stata15\ado\base/"
   [3]  (SITE)      "C:\Program Files (x86)\Stata15\ado\site/"
@@ -27,426 +30,962 @@
   [7]  (OLDPLACE)  "C:\Users\kkranker\Documents\Stata\Ado/"
   [8]              "C:\Users\kkranker\Documents\Stata\Stata-Common-Code"
 
-.   which dgp_ssbgc
+. which dgp_ssbgc
 ./sims\dgp_ssbgc.ado
 *! $Id: dgp_ssbgc.ado,v 27da5bdb985d 2018/10/26 21:49:02 kkranker $
 *! Data generating processe (DGP) senarios A through G from Setoguchi et al. (2008)
 *! By Keith Kranker
 
-.   which onerep
+. which onerep
 ./sims\onerep.ado
-*! $Id: onerep.ado,v c48028eb1766 2018/10/26 22:24:25 kkranker $
+*! $Id: onerep.ado,v bb29396769ad 2018/10/27 17:18:42 kkranker $
 *! One replication of the Simulations
 *! By Keith Kranker
 
-.   which sim_reshape
+. which sim_reshape
 ./sims\sim_reshape.ado
-*! $Id: sim_reshape.ado,v c48028eb1766 2018/10/26 22:24:25 kkranker $
+*! $Id: sim_reshape.ado,v 15a558fa565d 2018/10/27 20:42:21 kkranker $
 *! Reshapes the outpute from simmulate: from wide to tall
 *! By Keith Kranker
 
 . 
 . // options
-.   parallel setclusters `c(processors_mach)'
+. parallel setclusters `c(processors_mach)'
 N Clusters: 6
 Stata dir:  C:\Program Files (x86)\Stata15/StataMP-64.exe
 
-.   set cformat %9.3fc
-
-.   set pformat %5.3f
-
-.   set sformat %7.3f
-
-.   set type float
-
-.   set tracedepth 1
-
-.   set maxiter 50
+. local commonopts atet iter(50) cformat(%9.3fc) pformat(%5.3f) sformat(%7.3f) pooledvariance
 
 . 
 . // control simulations
-. set seed 1  //  1 for simulation 1, 2 for simulation 2, etc.
+. set seed `sim'  //  1 for simulation 1, 2 for simulation 2, etc.
 
-. local reps 500
+. local reps 1000
 
 . 
 . // ------------------------------------------------------------------------
-. // 1-A Variouis sample sizes with impact = .10
+. // 1-A Variouis sample sizes with impact = -0.09
 . // ------------------------------------------------------------------------
 . 
 . parallel sim, expr(_b) reps(`reps') processors(1): ///
->   onerep A, impact(-.10) estimators(ipw) n(8000 500 4000 2000 1750 1500 1250 1000 800 600 400 200 100)
+>   onerep A, impact(-0.09) estimators(cbps) ///
+>   n(8000 500 4000 2000 1750 1500 1250 1000 800 600 400 200 100) `commonopts'
 Warning: No data loaded.
 --------------------------------------------------------------------------------
 Parallel Computing with Stata
 Clusters   : 6
-pll_id     : niy153dtc5
+pll_id     : crhtqiulg1
 Running at : C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch
 Randtype   : datetime
 Waiting for the clusters to finish...
-cluster 0003 has exited without error...
-cluster 0001 has exited without error...
 cluster 0002 has exited without error...
 cluster 0004 has exited without error...
 cluster 0005 has exited without error...
 cluster 0006 has exited without error...
+cluster 0001 has exited without error...
+cluster 0003 has exited without error...
 --------------------------------------------------------------------------------
 Enter -parallel printlog #- to checkout logfiles.
 --------------------------------------------------------------------------------
 
 . 
 . sim_reshape
+Before reshape:
 
-Contains data from C:\Users\kkranker\AppData\Local\Temp/__pllniy153dtc5_sim_outdta.dta
-  obs:           500                          simulate: onerep
- vars:           234                          26 Oct 2018 17:00
- size:       468,000                          
+Contains data from C:\Users\kkranker\AppData\Local\Temp/__pllcrhtqiulg1_sim_outdta.dta
+  obs:         1,000                          simulate: onerep
+ vars:           234                          27 Oct 2018 15:09
+ size:       936,000                          
 Sorted by: 
 There are 13 prefixes
 _prefixes:      A_1 A_2 A_3 A_4 A_5 A_6 A_7 A_8 A_9 A_10 A_11 A_12 A_13
 There are 1 ests
-_ests:          ipw
-A_1/ipw:
-   from: A_1_b_N A_1_b_Nt A_1_b_true A_1_ipw_b_impact_est A_1_ipw_b_sd_error A_1_ipw_b_bias A_1_ipw_b_error_sqr A_1_ipw_b_p_0 A_1_ipw_b_reject_0 A_1_i
-> pw_b_p_g1 A_1_ipw_b_reject_g1 A_1_ipw_b_bal_max_asd A_1_ipw_b_bal_mean_asd A_1_ipw_b_wgt_sd A_1_ipw_b_wgt_cv A_1_ipw_b_wgt_skewness A_1_ipw_b_wgt_ku
-> rtosis A_1_ipw_b_wgt_max rep
-     to: N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt
-> _max rep dgp_txt c est_txt
-A_2/ipw:
-   from: A_2_b_N A_2_b_Nt A_2_b_true A_2_ipw_b_impact_est A_2_ipw_b_sd_error A_2_ipw_b_bias A_2_ipw_b_error_sqr A_2_ipw_b_p_0 A_2_ipw_b_reject_0 A_2_i
-> pw_b_p_g1 A_2_ipw_b_reject_g1 A_2_ipw_b_bal_max_asd A_2_ipw_b_bal_mean_asd A_2_ipw_b_wgt_sd A_2_ipw_b_wgt_cv A_2_ipw_b_wgt_skewness A_2_ipw_b_wgt_ku
-> rtosis A_2_ipw_b_wgt_max rep
-     to: N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt
-> _max rep dgp_txt c est_txt
-A_3/ipw:
-   from: A_3_b_N A_3_b_Nt A_3_b_true A_3_ipw_b_impact_est A_3_ipw_b_sd_error A_3_ipw_b_bias A_3_ipw_b_error_sqr A_3_ipw_b_p_0 A_3_ipw_b_reject_0 A_3_i
-> pw_b_p_g1 A_3_ipw_b_reject_g1 A_3_ipw_b_bal_max_asd A_3_ipw_b_bal_mean_asd A_3_ipw_b_wgt_sd A_3_ipw_b_wgt_cv A_3_ipw_b_wgt_skewness A_3_ipw_b_wgt_ku
-> rtosis A_3_ipw_b_wgt_max rep
-     to: N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt
-> _max rep dgp_txt c est_txt
-A_4/ipw:
-   from: A_4_b_N A_4_b_Nt A_4_b_true A_4_ipw_b_impact_est A_4_ipw_b_sd_error A_4_ipw_b_bias A_4_ipw_b_error_sqr A_4_ipw_b_p_0 A_4_ipw_b_reject_0 A_4_i
-> pw_b_p_g1 A_4_ipw_b_reject_g1 A_4_ipw_b_bal_max_asd A_4_ipw_b_bal_mean_asd A_4_ipw_b_wgt_sd A_4_ipw_b_wgt_cv A_4_ipw_b_wgt_skewness A_4_ipw_b_wgt_ku
-> rtosis A_4_ipw_b_wgt_max rep
-     to: N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt
-> _max rep dgp_txt c est_txt
-A_5/ipw:
-   from: A_5_b_N A_5_b_Nt A_5_b_true A_5_ipw_b_impact_est A_5_ipw_b_sd_error A_5_ipw_b_bias A_5_ipw_b_error_sqr A_5_ipw_b_p_0 A_5_ipw_b_reject_0 A_5_i
-> pw_b_p_g1 A_5_ipw_b_reject_g1 A_5_ipw_b_bal_max_asd A_5_ipw_b_bal_mean_asd A_5_ipw_b_wgt_sd A_5_ipw_b_wgt_cv A_5_ipw_b_wgt_skewness A_5_ipw_b_wgt_ku
-> rtosis A_5_ipw_b_wgt_max rep
-     to: N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt
-> _max rep dgp_txt c est_txt
-A_6/ipw:
-   from: A_6_b_N A_6_b_Nt A_6_b_true A_6_ipw_b_impact_est A_6_ipw_b_sd_error A_6_ipw_b_bias A_6_ipw_b_error_sqr A_6_ipw_b_p_0 A_6_ipw_b_reject_0 A_6_i
-> pw_b_p_g1 A_6_ipw_b_reject_g1 A_6_ipw_b_bal_max_asd A_6_ipw_b_bal_mean_asd A_6_ipw_b_wgt_sd A_6_ipw_b_wgt_cv A_6_ipw_b_wgt_skewness A_6_ipw_b_wgt_ku
-> rtosis A_6_ipw_b_wgt_max rep
-     to: N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt
-> _max rep dgp_txt c est_txt
-A_7/ipw:
-   from: A_7_b_N A_7_b_Nt A_7_b_true A_7_ipw_b_impact_est A_7_ipw_b_sd_error A_7_ipw_b_bias A_7_ipw_b_error_sqr A_7_ipw_b_p_0 A_7_ipw_b_reject_0 A_7_i
-> pw_b_p_g1 A_7_ipw_b_reject_g1 A_7_ipw_b_bal_max_asd A_7_ipw_b_bal_mean_asd A_7_ipw_b_wgt_sd A_7_ipw_b_wgt_cv A_7_ipw_b_wgt_skewness A_7_ipw_b_wgt_ku
-> rtosis A_7_ipw_b_wgt_max rep
-     to: N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt
-> _max rep dgp_txt c est_txt
-A_8/ipw:
-   from: A_8_b_N A_8_b_Nt A_8_b_true A_8_ipw_b_impact_est A_8_ipw_b_sd_error A_8_ipw_b_bias A_8_ipw_b_error_sqr A_8_ipw_b_p_0 A_8_ipw_b_reject_0 A_8_i
-> pw_b_p_g1 A_8_ipw_b_reject_g1 A_8_ipw_b_bal_max_asd A_8_ipw_b_bal_mean_asd A_8_ipw_b_wgt_sd A_8_ipw_b_wgt_cv A_8_ipw_b_wgt_skewness A_8_ipw_b_wgt_ku
-> rtosis A_8_ipw_b_wgt_max rep
-     to: N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt
-> _max rep dgp_txt c est_txt
-A_9/ipw:
-   from: A_9_b_N A_9_b_Nt A_9_b_true A_9_ipw_b_impact_est A_9_ipw_b_sd_error A_9_ipw_b_bias A_9_ipw_b_error_sqr A_9_ipw_b_p_0 A_9_ipw_b_reject_0 A_9_i
-> pw_b_p_g1 A_9_ipw_b_reject_g1 A_9_ipw_b_bal_max_asd A_9_ipw_b_bal_mean_asd A_9_ipw_b_wgt_sd A_9_ipw_b_wgt_cv A_9_ipw_b_wgt_skewness A_9_ipw_b_wgt_ku
-> rtosis A_9_ipw_b_wgt_max rep
-     to: N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt
-> _max rep dgp_txt c est_txt
-A_10/ipw:
-   from: A_10_b_N A_10_b_Nt A_10_b_true A_10_ipw_b_impact_est A_10_ipw_b_sd_error A_10_ipw_b_bias A_10_ipw_b_error_sqr A_10_ipw_b_p_0 A_10_ipw_b_rejec
-> t_0 A_10_ipw_b_p_g1 A_10_ipw_b_reject_g1 A_10_ipw_b_bal_max_asd A_10_ipw_b_bal_mean_asd A_10_ipw_b_wgt_sd A_10_ipw_b_wgt_cv A_10_ipw_b_wgt_skewness 
-> A_10_ipw_b_wgt_kurtosis A_10_ipw_b_wgt_max rep
-     to: N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt
-> _max rep dgp_txt c est_txt
-A_11/ipw:
-   from: A_11_b_N A_11_b_Nt A_11_b_true A_11_ipw_b_impact_est A_11_ipw_b_sd_error A_11_ipw_b_bias A_11_ipw_b_error_sqr A_11_ipw_b_p_0 A_11_ipw_b_rejec
-> t_0 A_11_ipw_b_p_g1 A_11_ipw_b_reject_g1 A_11_ipw_b_bal_max_asd A_11_ipw_b_bal_mean_asd A_11_ipw_b_wgt_sd A_11_ipw_b_wgt_cv A_11_ipw_b_wgt_skewness 
-> A_11_ipw_b_wgt_kurtosis A_11_ipw_b_wgt_max rep
-     to: N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt
-> _max rep dgp_txt c est_txt
-A_12/ipw:
-   from: A_12_b_N A_12_b_Nt A_12_b_true A_12_ipw_b_impact_est A_12_ipw_b_sd_error A_12_ipw_b_bias A_12_ipw_b_error_sqr A_12_ipw_b_p_0 A_12_ipw_b_rejec
-> t_0 A_12_ipw_b_p_g1 A_12_ipw_b_reject_g1 A_12_ipw_b_bal_max_asd A_12_ipw_b_bal_mean_asd A_12_ipw_b_wgt_sd A_12_ipw_b_wgt_cv A_12_ipw_b_wgt_skewness 
-> A_12_ipw_b_wgt_kurtosis A_12_ipw_b_wgt_max rep
-     to: N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt
-> _max rep dgp_txt c est_txt
-A_13/ipw:
-   from: A_13_b_N A_13_b_Nt A_13_b_true A_13_ipw_b_impact_est A_13_ipw_b_sd_error A_13_ipw_b_bias A_13_ipw_b_error_sqr A_13_ipw_b_p_0 A_13_ipw_b_rejec
-> t_0 A_13_ipw_b_p_g1 A_13_ipw_b_reject_g1 A_13_ipw_b_bal_max_asd A_13_ipw_b_bal_mean_asd A_13_ipw_b_wgt_sd A_13_ipw_b_wgt_cv A_13_ipw_b_wgt_skewness 
-> A_13_ipw_b_wgt_kurtosis A_13_ipw_b_wgt_max rep
-     to: N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt
-> _max rep dgp_txt c est_txt
+_ests:          cbps
+A_1/cbps:N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt_max rep dgp_txt c est_txt
+A_2/cbps:N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt_max rep dgp_txt c est_txt
+A_3/cbps:N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt_max rep dgp_txt c est_txt
+A_4/cbps:N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt_max rep dgp_txt c est_txt
+A_5/cbps:N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt_max rep dgp_txt c est_txt
+A_6/cbps:N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt_max rep dgp_txt c est_txt
+A_7/cbps:N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt_max rep dgp_txt c est_txt
+A_8/cbps:N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt_max rep dgp_txt c est_txt
+A_9/cbps:N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt_max rep dgp_txt c est_txt
+A_10/cbps:N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt_max rep dgp_txt c est_txt
+A_11/cbps:N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt_max rep dgp_txt c est_txt
+A_12/cbps:N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt_max rep dgp_txt c est_txt
+A_13/cbps:N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt_max rep dgp_txt c est_txt
 (note: variable N was byte, now int to accommodate using data's values)
 (note: variable Nt was byte, now int to accommodate using data's values)
 (simulate: onerep)
-(6,500 real changes made)
+(13,000 real changes made)
+After reshape:
 
-Contains data from C:\Users\kkranker\AppData\Local\Temp\ST_5044_000001.tmp
-  obs:         6,500                          simulate: onerep
- vars:            22                          26 Oct 2018 17:00
- size:       487,500                          
-------------------------------------------------------------------------------------------------------------------------------------------------------
+Contains data from C:\Users\kkranker\AppData\Local\Temp\ST_5778_000001.tmp
+  obs:        13,000                          simulate: onerep
+ vars:            22                          27 Oct 2018 15:09
+ size:       975,000                          
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
               storage   display    value
 variable name   type    format     label      variable label
-------------------------------------------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 rep             float   %9.0g                 
 c               byte    %10.0g                
 dgp             long    %8.0g      dgp        
 estimator       long    %8.0g      est        
-N               int     %9.0g                 
-Nt              int     %9.0g                 
-true            float   %9.0g                 
-impact_est      float   %9.0g                 
-sd_error        float   %9.0g                 
-bias            float   %9.0g                 
-error_sqr       float   %9.0g                 
-p_0             float   %9.0g                 
-reject_0        byte    %9.0g                 
-p_g1            float   %9.0g                 
-reject_g1       byte    %9.0g                 
-bal_max_asd     float   %9.0g                 
-bal_mean_asd    float   %9.0g                 
-wgt_sd          float   %9.0g                 
-wgt_cv          float   %9.0g                 
-wgt_skewness    float   %9.0g                 
-wgt_kurtosis    float   %9.0g                 
-wgt_max         float   %9.0g                 
-------------------------------------------------------------------------------------------------------------------------------------------------------
+N               int     %7.0g                 
+Nt              int     %7.0g                 
+true            float   %7.4f                 
+impact_est      float   %7.4f                 
+sd_error        float   %7.4f                 
+bias            float   %7.4f                 
+error_sqr       float   %7.4f                 
+p_0             float   %7.4f                 
+reject_0        byte    %7.0g                 
+p_g1            float   %7.4f                 
+reject_g1       byte    %7.0g                 
+bal_max_asd     float   %7.4f                 
+bal_mean_asd    float   %7.4f                 
+wgt_sd          float   %7.4f                 
+wgt_cv          float   %7.4f                 
+wgt_skewness    float   %7.4f                 
+wgt_kurtosis    float   %7.4f                 
+wgt_max         float   %7.1f                 
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 Sorted by: rep  estimator  dgp  true  N  c
      Note: Dataset has changed since last saved.
 
-Variable    Obs Unique   Mean  Min  Max  Label
-------------------------------------------------------------------------------------------------------------------------------------------------------
-rep        6500    500  250.5    1  500  
-c          6500     13      7    1   13  
-dgp        6500      1      1    1    1  
-estimator  6500      1      2    2    2  
-------------------------------------------------------------------------------------------------------------------------------------------------------
+Variable     Obs Unique   Mean  Min   Max  Label
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+rep        13000   1000  500.5    1  1000  
+c          13000     13      7    1    13  
+dgp        13000      1      1    1     1  
+estimator  13000      1      6    6     6  
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-----------------------------------------------------------------------------------------
-          |                               estimator and N                               
-dgp and   | ------------------------------------ IPW -----------------------------------
-true      |  100   200   400   500   600   800  1000  1250  1500  1750  2000  4000  8000
-----------+-----------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------
+          |                                      estimator and N                                     
+dgp and   | ------------------------------------------ CBPS -----------------------------------------
+true      |   100    200    400    500    600    800   1000   1250   1500   1750   2000   4000   8000
+----------+------------------------------------------------------------------------------------------
 A         |
-      -.1 |  500   500   500   500   500   500   500   500   500   500   500   500   500
-----------------------------------------------------------------------------------------
+  -0.0900 | 1,000  1,000  1,000  1,000  1,000  1,000  1,000  1,000  1,000  1,000  1,000  1,000  1,000
+-----------------------------------------------------------------------------------------------------
 
-. save sims/sim1/sim1a.dta, replace
+. save sims/sim`sim'/sim`sim'a.dta, replace
+(note: file sims/sim1/sim1a.dta not found)
 file sims/sim1/sim1a.dta saved
 
-. graph bar (mean) reject_0, over(N) over(estimator) name(g1a)
+. 
+. foreach v of var impact_est-wgt_max {
+  2.   tabstat `v', by(N) s(N mean p50 sd)
+  3. }
 
-. graph export "sims/sim1/sim1a_power.png", replace
+Summary for variables: impact_est
+     by categories of: N 
+
+       N |         N      mean       p50        sd
+---------+----------------------------------------
+     100 |      1000 -.0786017 -.0899999    .04975
+     200 |      1000 -.0898678      -.09  .0043281
+     400 |      1000      -.09      -.09  1.81e-07
+     500 |      1000      -.09      -.09  1.76e-07
+     600 |      1000      -.09      -.09  1.58e-07
+     800 |      1000      -.09      -.09  1.70e-07
+    1000 |      1000      -.09      -.09  1.57e-07
+    1250 |      1000      -.09      -.09  1.66e-07
+    1500 |      1000      -.09      -.09  1.84e-07
+    1750 |      1000      -.09      -.09  1.65e-07
+    2000 |      1000      -.09      -.09  1.69e-07
+    4000 |      1000      -.09      -.09  1.89e-07
+    8000 |      1000      -.09      -.09  2.13e-07
+---------+----------------------------------------
+   Total |     13000  -.089113      -.09  .0141726
+--------------------------------------------------
+
+Summary for variables: sd_error
+     by categories of: N 
+
+       N |         N      mean       p50        sd
+---------+----------------------------------------
+     100 |      1000  .2189694  .2082127   .060269
+     200 |      1000  .1457062  .1400232  .0305864
+     400 |      1000  .0989873  .0962345  .0147195
+     500 |      1000  .0880251  .0859827  .0119476
+     600 |      1000   .079939  .0778027   .010172
+     800 |      1000  .0691448  .0677016  .0078248
+    1000 |      1000  .0616767  .0606588  .0062037
+    1250 |      1000  .0550642  .0543134  .0053215
+    1500 |      1000  .0503328  .0495339   .004708
+    1750 |      1000  .0466465  .0460426  .0040767
+    2000 |      1000  .0435892  .0430042  .0036289
+    4000 |      1000  .0308913  .0305996  .0021202
+    8000 |      1000   .021872  .0216695  .0012485
+---------+----------------------------------------
+   Total |     13000  .0777573  .0610869  .0550442
+--------------------------------------------------
+
+Summary for variables: bias
+     by categories of: N 
+
+       N |         N      mean       p50        sd
+---------+----------------------------------------
+     100 |      1000  .0113983  8.09e-08    .04975
+     200 |      1000  .0001322  5.36e-09  .0043281
+     400 |      1000 -3.48e-09  1.17e-09  1.81e-07
+     500 |      1000  3.07e-09 -9.54e-10  1.77e-07
+     600 |      1000 -6.24e-09  4.52e-10  1.58e-07
+     800 |      1000  9.41e-09  2.42e-09  1.70e-07
+    1000 |      1000 -3.49e-09 -2.94e-10  1.57e-07
+    1250 |      1000 -1.66e-09 -3.88e-12  1.66e-07
+    1500 |      1000  3.17e-09  4.46e-10  1.84e-07
+    1750 |      1000 -2.99e-10 -5.50e-10  1.65e-07
+    2000 |      1000 -3.90e-09  1.27e-10  1.70e-07
+    4000 |      1000 -1.15e-08 -9.09e-10  1.89e-07
+    8000 |      1000 -1.09e-08  7.83e-10  2.13e-07
+---------+----------------------------------------
+   Total |     13000   .000887  1.21e-09  .0141726
+--------------------------------------------------
+
+Summary for variables: error_sqr
+     by categories of: N 
+
+       N |         N      mean       p50        sd
+---------+----------------------------------------
+     100 |      1000  .0026025  1.48e-07  .0101402
+     200 |      1000  .0000187  4.90e-15   .000242
+     400 |      1000  3.27e-14  2.55e-15  9.65e-14
+     500 |      1000  3.12e-14  1.94e-15  9.76e-14
+     600 |      1000  2.49e-14  1.55e-15  7.18e-14
+     800 |      1000  2.89e-14  1.51e-15  8.36e-14
+    1000 |      1000  2.46e-14  1.36e-15  6.92e-14
+    1250 |      1000  2.75e-14  1.91e-15  6.58e-14
+    1500 |      1000  3.40e-14  2.06e-15  8.78e-14
+    1750 |      1000  2.72e-14  1.86e-15  7.10e-14
+    2000 |      1000  2.87e-14  1.79e-15  7.45e-14
+    4000 |      1000  3.59e-14  2.42e-15  8.55e-14
+    8000 |      1000  4.53e-14  4.59e-15  1.04e-13
+---------+----------------------------------------
+   Total |     13000  .0002016  2.73e-15  .0028961
+--------------------------------------------------
+
+Summary for variables: p_0
+     by categories of: N 
+
+       N |         N      mean       p50        sd
+---------+----------------------------------------
+     100 |      1000  .6810683  .6777291  .1290936
+     200 |      1000  .5253303  .5205926  .0800774
+     400 |      1000  .3579731  .3502445  .0664209
+     500 |      1000  .3030161  .2957352  .0612274
+     600 |      1000  .2578797  .2478287  .0569557
+     800 |      1000  .1923906   .184108  .0483195
+    1000 |      1000  .1448651  .1382019  .0393871
+    1250 |      1000  .1031467  .0977611  .0329929
+    1500 |      1000  .0751413  .0694262  .0278542
+    1750 |      1000  .0551599  .0507764  .0223175
+    2000 |      1000  .0404233   .036492  .0179539
+    4000 |      1000   .004133  .0032881  .0035749
+    8000 |      1000   .000081  .0000331  .0008027
+---------+----------------------------------------
+   Total |     13000   .210816  .1406626  .2091329
+--------------------------------------------------
+
+Summary for variables: reject_0
+     by categories of: N 
+
+       N |         N      mean       p50        sd
+---------+----------------------------------------
+     100 |      1000      .001         0  .0316228
+     200 |      1000         0         0         0
+     400 |      1000         0         0         0
+     500 |      1000         0         0         0
+     600 |      1000         0         0         0
+     800 |      1000         0         0         0
+    1000 |      1000         0         0         0
+    1250 |      1000      .005         0   .070569
+    1500 |      1000      .137         0  .3440194
+    1750 |      1000      .476         0  .4996736
+    2000 |      1000      .794         1  .4046328
+    4000 |      1000         1         1         0
+    8000 |      1000         1         1         0
+---------+----------------------------------------
+   Total |     13000  .2625385         0  .4400306
+--------------------------------------------------
+
+Summary for variables: p_g1
+     by categories of: N 
+
+       N |         N      mean       p50        sd
+---------+----------------------------------------
+     100 |      1000   .925033  .9984317  .1519172
+     200 |      1000  .9977535  .9999996  .0225373
+     400 |      1000  .9999991  .9999996  1.18e-06
+     500 |      1000  .9999991  .9999996  1.34e-06
+     600 |      1000  .9999991  .9999996  1.31e-06
+     800 |      1000  .9999989  .9999996  1.63e-06
+    1000 |      1000  .9999988  .9999995  1.67e-06
+    1250 |      1000  .9999985  .9999993  1.94e-06
+    1500 |      1000  .9999982  .9999993  2.45e-06
+    1750 |      1000  .9999983  .9999993  2.36e-06
+    2000 |      1000  .9999981  .9999993  2.57e-06
+    4000 |      1000   .999997  .9999987  3.97e-06
+    8000 |      1000  .9999951  .9999975  6.09e-06
+---------+----------------------------------------
+   Total |     13000   .994059  .9999993   .047012
+--------------------------------------------------
+
+Summary for variables: reject_g1
+     by categories of: N 
+
+       N |         N      mean       p50        sd
+---------+----------------------------------------
+     100 |      1000         0         0         0
+     200 |      1000         0         0         0
+     400 |      1000         0         0         0
+     500 |      1000         0         0         0
+     600 |      1000         0         0         0
+     800 |      1000         0         0         0
+    1000 |      1000         0         0         0
+    1250 |      1000         0         0         0
+    1500 |      1000         0         0         0
+    1750 |      1000         0         0         0
+    2000 |      1000         0         0         0
+    4000 |      1000         0         0         0
+    8000 |      1000         0         0         0
+---------+----------------------------------------
+   Total |     13000         0         0         0
+--------------------------------------------------
+
+Summary for variables: bal_max_asd
+     by categories of: N 
+
+       N |         N      mean       p50        sd
+---------+----------------------------------------
+     100 |      1000  .0754054  .0031388  .1252358
+     200 |      1000  .0018002  3.00e-07  .0215863
+     400 |      1000  3.59e-07  2.23e-07  3.70e-07
+     500 |      1000  3.55e-07  2.05e-07  3.90e-07
+     600 |      1000  3.00e-07  1.84e-07  3.18e-07
+     800 |      1000  3.16e-07  1.80e-07  3.40e-07
+    1000 |      1000  3.04e-07  1.68e-07  3.23e-07
+    1250 |      1000  3.56e-07  2.35e-07  3.41e-07
+    1500 |      1000  3.46e-07  2.20e-07  3.46e-07
+    1750 |      1000  3.39e-07  2.09e-07  3.40e-07
+    2000 |      1000  3.37e-07  2.12e-07  3.36e-07
+    4000 |      1000  3.64e-07  2.32e-07  3.54e-07
+    8000 |      1000  4.11e-07  2.97e-07  3.65e-07
+---------+----------------------------------------
+   Total |     13000  .0059392  2.47e-07  .0405407
+--------------------------------------------------
+
+Summary for variables: bal_mean_asd
+     by categories of: N 
+
+       N |         N      mean       p50        sd
+---------+----------------------------------------
+     100 |      1000  .0333264  .0013154  .0550439
+     200 |      1000  .0006635  1.25e-07  .0071625
+     400 |      1000  1.54e-07  9.68e-08  1.58e-07
+     500 |      1000  1.46e-07  8.13e-08  1.57e-07
+     600 |      1000  1.24e-07  7.46e-08  1.31e-07
+     800 |      1000  1.29e-07  7.17e-08  1.37e-07
+    1000 |      1000  1.24e-07  7.21e-08  1.30e-07
+    1250 |      1000  1.41e-07  9.27e-08  1.33e-07
+    1500 |      1000  1.35e-07  8.88e-08  1.30e-07
+    1750 |      1000  1.30e-07  8.62e-08  1.28e-07
+    2000 |      1000  1.32e-07  8.45e-08  1.28e-07
+    4000 |      1000  1.40e-07  9.12e-08  1.33e-07
+    8000 |      1000  1.53e-07  1.09e-07  1.32e-07
+---------+----------------------------------------
+   Total |     13000  .0026147  1.00e-07  .0177603
+--------------------------------------------------
+
+Summary for variables: wgt_sd
+     by categories of: N 
+
+       N |         N      mean       p50        sd
+---------+----------------------------------------
+     100 |      1000  1.205806  1.179289  .2990467
+     200 |      1000  1.069844  1.043511  .2445282
+     400 |      1000  .9708372  .9566337  .1590539
+     500 |      1000  .9535417  .9499641  .1395147
+     600 |      1000  .9422529  .9338505  .1282541
+     800 |      1000  .9306183  .9265242  .1107783
+    1000 |      1000  .9235239  .9196419  .1007278
+    1250 |      1000  .9179183  .9150806  .0900918
+    1500 |      1000  .9160484  .9114276  .0837295
+    1750 |      1000  .9156762  .9143943  .0804262
+    2000 |      1000  .9138156  .9126581  .0780896
+    4000 |      1000   .911644  .9084605  .0594472
+    8000 |      1000   .910937  .9077997   .042258
+---------+----------------------------------------
+   Total |     13000  .9601895  .9283638  .1648604
+--------------------------------------------------
+
+Summary for variables: wgt_cv
+     by categories of: N 
+
+       N |         N      mean       p50        sd
+---------+----------------------------------------
+     100 |      1000  1.205806  1.179289  .2990467
+     200 |      1000  1.069844  1.043511  .2445282
+     400 |      1000  .9708372  .9566337  .1590539
+     500 |      1000  .9535417  .9499641  .1395147
+     600 |      1000  .9422529  .9338505  .1282541
+     800 |      1000  .9306183  .9265242  .1107783
+    1000 |      1000  .9235239  .9196419  .1007278
+    1250 |      1000  .9179183  .9150806  .0900918
+    1500 |      1000  .9160484  .9114276  .0837295
+    1750 |      1000  .9156762  .9143943  .0804262
+    2000 |      1000  .9138156  .9126581  .0780896
+    4000 |      1000   .911644  .9084605  .0594472
+    8000 |      1000   .910937  .9077997   .042258
+---------+----------------------------------------
+   Total |     13000  .9601895  .9283638  .1648604
+--------------------------------------------------
+
+Summary for variables: wgt_skewness
+     by categories of: N 
+
+       N |         N      mean       p50        sd
+---------+----------------------------------------
+     100 |      1000  .3501757  .3432255  .0896171
+     200 |      1000  .3010878  .2870743  .0857489
+     400 |      1000  .2469904  .2333683  .0702609
+     500 |      1000  .2312408  .2169562  .0670655
+     600 |      1000  .2163208   .203512  .0632521
+     800 |      1000  .1964426  .1836528  .0547634
+    1000 |      1000  .1844641  .1713938  .0527639
+    1250 |      1000  .1713116  .1606386  .0479861
+    1500 |      1000   .160598  .1491726  .0473837
+    1750 |      1000  .1535631   .142502   .047098
+    2000 |      1000  .1461243  .1346515  .0463983
+    4000 |      1000  .1125196  .1031513  .0376946
+    8000 |      1000   .085117  .0783746   .028009
+---------+----------------------------------------
+   Total |     13000   .196612  .1759835  .0921126
+--------------------------------------------------
+
+Summary for variables: wgt_kurtosis
+     by categories of: N 
+
+       N |         N      mean       p50        sd
+---------+----------------------------------------
+     100 |      1000  .1906137  .1730386  .0830741
+     200 |      1000  .1455118  .1258499  .0798481
+     400 |      1000  .1027723    .08549  .0599286
+     500 |      1000  .0916835  .0742486  .0555869
+     600 |      1000   .081192  .0671781  .0520879
+     800 |      1000   .067872  .0549338  .0424795
+    1000 |      1000  .0611894  .0491632   .040421
+    1250 |      1000  .0537356    .04334  .0354025
+    1500 |      1000  .0481578  .0379043  .0352393
+    1750 |      1000  .0449509   .034982  .0348419
+    2000 |      1000  .0413852  .0313513  .0339184
+    4000 |      1000  .0262842  .0194102   .025962
+    8000 |      1000  .0161066  .0116567  .0170154
+---------+----------------------------------------
+   Total |     13000  .0747273  .0525073  .0682867
+--------------------------------------------------
+
+Summary for variables: wgt_max
+     by categories of: N 
+
+       N |         N      mean       p50        sd
+---------+----------------------------------------
+     100 |      1000  8.010649  7.649692  2.472182
+     200 |      1000  9.108645  8.606531  2.916061
+     400 |      1000  10.35974  9.889674  3.005476
+     500 |      1000  10.90937  10.41149  3.075434
+     600 |      1000  11.30999  10.75887  3.190503
+     800 |      1000  12.11015  11.48631  3.352499
+    1000 |      1000  12.93843  12.24501  3.641404
+    1250 |      1000  13.75742  13.10323  3.872641
+    1500 |      1000  14.45191   13.5306   4.17814
+    1750 |      1000  15.25495  14.21161  4.527974
+    2000 |      1000  15.79105  14.69508   4.79951
+    4000 |      1000   18.9741  17.65288  5.980942
+    8000 |      1000  22.86806  21.15189  7.272516
+---------+----------------------------------------
+   Total |     13000   13.5265   12.3518  5.766547
+--------------------------------------------------
+
+. 
+. graph bar (mean) reject_0, over(N) name(g1a)
+
+. graph export "sims/sim`sim'/sim`sim'a_power.png", replace
 (note: file sims/sim1/sim1a_power.png not found)
 (file sims/sim1/sim1a_power.png written in PNG format)
 
 . 
-. 
 . // ------------------------------------------------------------------------
-. // 1-B Variouis sample sizes with impact = .10
+. // 1-B Variouis imapct sizes with N=2000
 . // ------------------------------------------------------------------------
 . 
 . parallel sim, expr(_b) reps(`reps') processors(1): ///
->   onerep A, impact(-.05(-.01)-.15) estimators(ipw) n(2000)
+>   onerep A, impact(-.05(-.01)-.15 -.07(-.005)-.06) estimators(cbps) n(2000) `commonopts'
 --------------------------------------------------------------------------------
 Parallel Computing with Stata
 Clusters   : 6
-pll_id     : mqc58hgd77
+pll_id     : wuv7gkck93
 Running at : C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch
 Randtype   : datetime
 Waiting for the clusters to finish...
-cluster 0001 has exited without error...
-cluster 0003 has exited without error...
 cluster 0004 has exited without error...
-cluster 0005 has exited without error...
-cluster 0002 has exited without error...
 cluster 0006 has exited without error...
+cluster 0001 has exited without error...
+cluster 0002 has exited without error...
+cluster 0005 has exited without error...
+cluster 0003 has exited without error...
 --------------------------------------------------------------------------------
 Enter -parallel printlog #- to checkout logfiles.
 --------------------------------------------------------------------------------
 
 . 
 . sim_reshape
+Before reshape:
 
-Contains data from C:\Users\kkranker\AppData\Local\Temp/__pllmqc58hgd77_sim_outdta.dta
-  obs:           500                          simulate: onerep
- vars:           198                          26 Oct 2018 17:03
- size:       396,000                          
+Contains data from C:\Users\kkranker\AppData\Local\Temp/__pllwuv7gkck93_sim_outdta.dta
+  obs:         1,000                          simulate: onerep
+ vars:           252                          27 Oct 2018 15:44
+ size:     1,008,000                          
 Sorted by: 
-There are 11 prefixes
-_prefixes:      A_1 A_2 A_3 A_4 A_5 A_6 A_7 A_8 A_9 A_10 A_11
+There are 14 prefixes
+_prefixes:      A_1 A_2 A_3 A_4 A_5 A_6 A_7 A_8 A_9 A_10 A_11 A_12 A_13 A_14
 There are 1 ests
-_ests:          ipw
-A_1/ipw:
-   from: A_1_b_N A_1_b_Nt A_1_b_true A_1_ipw_b_impact_est A_1_ipw_b_sd_error A_1_ipw_b_bias A_1_ipw_b_error_sqr A_1_ipw_b_p_0 A_1_ipw_b_reject_0 A_1_i
-> pw_b_p_g1 A_1_ipw_b_reject_g1 A_1_ipw_b_bal_max_asd A_1_ipw_b_bal_mean_asd A_1_ipw_b_wgt_sd A_1_ipw_b_wgt_cv A_1_ipw_b_wgt_skewness A_1_ipw_b_wgt_ku
-> rtosis A_1_ipw_b_wgt_max rep
-     to: N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt
-> _max rep dgp_txt c est_txt
-A_2/ipw:
-   from: A_2_b_N A_2_b_Nt A_2_b_true A_2_ipw_b_impact_est A_2_ipw_b_sd_error A_2_ipw_b_bias A_2_ipw_b_error_sqr A_2_ipw_b_p_0 A_2_ipw_b_reject_0 A_2_i
-> pw_b_p_g1 A_2_ipw_b_reject_g1 A_2_ipw_b_bal_max_asd A_2_ipw_b_bal_mean_asd A_2_ipw_b_wgt_sd A_2_ipw_b_wgt_cv A_2_ipw_b_wgt_skewness A_2_ipw_b_wgt_ku
-> rtosis A_2_ipw_b_wgt_max rep
-     to: N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt
-> _max rep dgp_txt c est_txt
-A_3/ipw:
-   from: A_3_b_N A_3_b_Nt A_3_b_true A_3_ipw_b_impact_est A_3_ipw_b_sd_error A_3_ipw_b_bias A_3_ipw_b_error_sqr A_3_ipw_b_p_0 A_3_ipw_b_reject_0 A_3_i
-> pw_b_p_g1 A_3_ipw_b_reject_g1 A_3_ipw_b_bal_max_asd A_3_ipw_b_bal_mean_asd A_3_ipw_b_wgt_sd A_3_ipw_b_wgt_cv A_3_ipw_b_wgt_skewness A_3_ipw_b_wgt_ku
-> rtosis A_3_ipw_b_wgt_max rep
-     to: N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt
-> _max rep dgp_txt c est_txt
-A_4/ipw:
-   from: A_4_b_N A_4_b_Nt A_4_b_true A_4_ipw_b_impact_est A_4_ipw_b_sd_error A_4_ipw_b_bias A_4_ipw_b_error_sqr A_4_ipw_b_p_0 A_4_ipw_b_reject_0 A_4_i
-> pw_b_p_g1 A_4_ipw_b_reject_g1 A_4_ipw_b_bal_max_asd A_4_ipw_b_bal_mean_asd A_4_ipw_b_wgt_sd A_4_ipw_b_wgt_cv A_4_ipw_b_wgt_skewness A_4_ipw_b_wgt_ku
-> rtosis A_4_ipw_b_wgt_max rep
-     to: N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt
-> _max rep dgp_txt c est_txt
-A_5/ipw:
-   from: A_5_b_N A_5_b_Nt A_5_b_true A_5_ipw_b_impact_est A_5_ipw_b_sd_error A_5_ipw_b_bias A_5_ipw_b_error_sqr A_5_ipw_b_p_0 A_5_ipw_b_reject_0 A_5_i
-> pw_b_p_g1 A_5_ipw_b_reject_g1 A_5_ipw_b_bal_max_asd A_5_ipw_b_bal_mean_asd A_5_ipw_b_wgt_sd A_5_ipw_b_wgt_cv A_5_ipw_b_wgt_skewness A_5_ipw_b_wgt_ku
-> rtosis A_5_ipw_b_wgt_max rep
-     to: N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt
-> _max rep dgp_txt c est_txt
-A_6/ipw:
-   from: A_6_b_N A_6_b_Nt A_6_b_true A_6_ipw_b_impact_est A_6_ipw_b_sd_error A_6_ipw_b_bias A_6_ipw_b_error_sqr A_6_ipw_b_p_0 A_6_ipw_b_reject_0 A_6_i
-> pw_b_p_g1 A_6_ipw_b_reject_g1 A_6_ipw_b_bal_max_asd A_6_ipw_b_bal_mean_asd A_6_ipw_b_wgt_sd A_6_ipw_b_wgt_cv A_6_ipw_b_wgt_skewness A_6_ipw_b_wgt_ku
-> rtosis A_6_ipw_b_wgt_max rep
-     to: N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt
-> _max rep dgp_txt c est_txt
-A_7/ipw:
-   from: A_7_b_N A_7_b_Nt A_7_b_true A_7_ipw_b_impact_est A_7_ipw_b_sd_error A_7_ipw_b_bias A_7_ipw_b_error_sqr A_7_ipw_b_p_0 A_7_ipw_b_reject_0 A_7_i
-> pw_b_p_g1 A_7_ipw_b_reject_g1 A_7_ipw_b_bal_max_asd A_7_ipw_b_bal_mean_asd A_7_ipw_b_wgt_sd A_7_ipw_b_wgt_cv A_7_ipw_b_wgt_skewness A_7_ipw_b_wgt_ku
-> rtosis A_7_ipw_b_wgt_max rep
-     to: N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt
-> _max rep dgp_txt c est_txt
-A_8/ipw:
-   from: A_8_b_N A_8_b_Nt A_8_b_true A_8_ipw_b_impact_est A_8_ipw_b_sd_error A_8_ipw_b_bias A_8_ipw_b_error_sqr A_8_ipw_b_p_0 A_8_ipw_b_reject_0 A_8_i
-> pw_b_p_g1 A_8_ipw_b_reject_g1 A_8_ipw_b_bal_max_asd A_8_ipw_b_bal_mean_asd A_8_ipw_b_wgt_sd A_8_ipw_b_wgt_cv A_8_ipw_b_wgt_skewness A_8_ipw_b_wgt_ku
-> rtosis A_8_ipw_b_wgt_max rep
-     to: N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt
-> _max rep dgp_txt c est_txt
-A_9/ipw:
-   from: A_9_b_N A_9_b_Nt A_9_b_true A_9_ipw_b_impact_est A_9_ipw_b_sd_error A_9_ipw_b_bias A_9_ipw_b_error_sqr A_9_ipw_b_p_0 A_9_ipw_b_reject_0 A_9_i
-> pw_b_p_g1 A_9_ipw_b_reject_g1 A_9_ipw_b_bal_max_asd A_9_ipw_b_bal_mean_asd A_9_ipw_b_wgt_sd A_9_ipw_b_wgt_cv A_9_ipw_b_wgt_skewness A_9_ipw_b_wgt_ku
-> rtosis A_9_ipw_b_wgt_max rep
-     to: N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt
-> _max rep dgp_txt c est_txt
-A_10/ipw:
-   from: A_10_b_N A_10_b_Nt A_10_b_true A_10_ipw_b_impact_est A_10_ipw_b_sd_error A_10_ipw_b_bias A_10_ipw_b_error_sqr A_10_ipw_b_p_0 A_10_ipw_b_rejec
-> t_0 A_10_ipw_b_p_g1 A_10_ipw_b_reject_g1 A_10_ipw_b_bal_max_asd A_10_ipw_b_bal_mean_asd A_10_ipw_b_wgt_sd A_10_ipw_b_wgt_cv A_10_ipw_b_wgt_skewness 
-> A_10_ipw_b_wgt_kurtosis A_10_ipw_b_wgt_max rep
-     to: N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt
-> _max rep dgp_txt c est_txt
-A_11/ipw:
-   from: A_11_b_N A_11_b_Nt A_11_b_true A_11_ipw_b_impact_est A_11_ipw_b_sd_error A_11_ipw_b_bias A_11_ipw_b_error_sqr A_11_ipw_b_p_0 A_11_ipw_b_rejec
-> t_0 A_11_ipw_b_p_g1 A_11_ipw_b_reject_g1 A_11_ipw_b_bal_max_asd A_11_ipw_b_bal_mean_asd A_11_ipw_b_wgt_sd A_11_ipw_b_wgt_cv A_11_ipw_b_wgt_skewness 
-> A_11_ipw_b_wgt_kurtosis A_11_ipw_b_wgt_max rep
-     to: N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt
-> _max rep dgp_txt c est_txt
+_ests:          cbps
+A_1/cbps:N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt_max rep dgp_txt c est_txt
+A_2/cbps:N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt_max rep dgp_txt c est_txt
+A_3/cbps:N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt_max rep dgp_txt c est_txt
+A_4/cbps:N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt_max rep dgp_txt c est_txt
+A_5/cbps:N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt_max rep dgp_txt c est_txt
+A_6/cbps:N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt_max rep dgp_txt c est_txt
+A_7/cbps:N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt_max rep dgp_txt c est_txt
+A_8/cbps:N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt_max rep dgp_txt c est_txt
+A_9/cbps:N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt_max rep dgp_txt c est_txt
+A_10/cbps:N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt_max rep dgp_txt c est_txt
+A_11/cbps:N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt_max rep dgp_txt c est_txt
+A_12/cbps:N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt_max rep dgp_txt c est_txt
+A_13/cbps:N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt_max rep dgp_txt c est_txt
+A_14/cbps:N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt_max rep dgp_txt c est_txt
 (simulate: onerep)
-(5,500 real changes made)
+(14,000 real changes made)
+After reshape:
 
-Contains data from C:\Users\kkranker\AppData\Local\Temp\ST_5044_000001.tmp
-  obs:         5,500                          simulate: onerep
- vars:            22                          26 Oct 2018 17:03
- size:       412,500                          
-------------------------------------------------------------------------------------------------------------------------------------------------------
+Contains data from C:\Users\kkranker\AppData\Local\Temp\ST_5778_000001.tmp
+  obs:        14,000                          simulate: onerep
+ vars:            22                          27 Oct 2018 15:44
+ size:     1,050,000                          
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
               storage   display    value
 variable name   type    format     label      variable label
-------------------------------------------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 rep             float   %9.0g                 
 c               byte    %10.0g                
 dgp             long    %8.0g      dgp        
 estimator       long    %8.0g      est        
-N               int     %9.0g                 
-Nt              int     %9.0g                 
-true            float   %9.0g                 
-impact_est      float   %9.0g                 
-sd_error        float   %9.0g                 
-bias            float   %9.0g                 
-error_sqr       float   %9.0g                 
-p_0             float   %9.0g                 
-reject_0        byte    %9.0g                 
-p_g1            float   %9.0g                 
-reject_g1       byte    %9.0g                 
-bal_max_asd     float   %9.0g                 
-bal_mean_asd    float   %9.0g                 
-wgt_sd          float   %9.0g                 
-wgt_cv          float   %9.0g                 
-wgt_skewness    float   %9.0g                 
-wgt_kurtosis    float   %9.0g                 
-wgt_max         float   %9.0g                 
-------------------------------------------------------------------------------------------------------------------------------------------------------
+N               int     %7.0g                 
+Nt              int     %7.0g                 
+true            float   %7.4f                 
+impact_est      float   %7.4f                 
+sd_error        float   %7.4f                 
+bias            float   %7.4f                 
+error_sqr       float   %7.4f                 
+p_0             float   %7.4f                 
+reject_0        byte    %7.0g                 
+p_g1            float   %7.4f                 
+reject_g1       byte    %7.0g                 
+bal_max_asd     float   %7.4f                 
+bal_mean_asd    float   %7.4f                 
+wgt_sd          float   %7.4f                 
+wgt_cv          float   %7.4f                 
+wgt_skewness    float   %7.4f                 
+wgt_kurtosis    float   %7.4f                 
+wgt_max         float   %7.1f                 
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 Sorted by: rep  estimator  dgp  true  N  c
      Note: Dataset has changed since last saved.
 
-Variable    Obs Unique   Mean  Min  Max  Label
-------------------------------------------------------------------------------------------------------------------------------------------------------
-rep        5500    500  250.5    1  500  
-c          5500     11      6    1   11  
-dgp        5500      1      1    1    1  
-estimator  5500      1      2    2    2  
-------------------------------------------------------------------------------------------------------------------------------------------------------
+Variable     Obs Unique   Mean  Min   Max  Label
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+rep        14000   1000  500.5    1  1000  
+c          14000     14    7.5    1    14  
+dgp        14000      1      1    1     1  
+estimator  14000      1      6    6     6  
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-----------------
-          |estim
-          | ator
-          |and N
-dgp and   |  IPW 
-true      | 2000
-----------+-----
+-----------------
+          |estima
+          |  tor 
+          | and N
+dgp and   | - C -
+true      |  2000
+----------+------
 A         |
-     -.15 |  500
-     -.14 |  500
-     -.13 |  500
-     -.12 |  500
-     -.11 |  500
-      -.1 |  500
-     -.09 |  500
-     -.08 |  500
-     -.07 |  500
-     -.06 |  500
-     -.05 |  500
-----------------
+  -0.1500 | 1,000
+  -0.1400 | 1,000
+  -0.1300 | 1,000
+  -0.1200 | 1,000
+  -0.1100 | 1,000
+  -0.1000 | 1,000
+  -0.0900 | 1,000
+  -0.0800 | 1,000
+  -0.0700 | 2,000
+  -0.0650 | 1,000
+  -0.0600 | 2,000
+  -0.0500 | 1,000
+-----------------
 
-. save sims/sim1/sim1b.dta, replace
+. save sims/sim`sim'/sim`sim'b.dta, replace
+(note: file sims/sim1/sim1b.dta not found)
 file sims/sim1/sim1b.dta saved
 
+. 
+. foreach v of var impact_est-wgt_max {
+  2.   tabstat `v', by(true) s(N mean p50 sd)
+  3. }
+
+Summary for variables: impact_est
+     by categories of: true 
+
+    true |         N      mean       p50        sd
+---------+----------------------------------------
+-.150000 |      1000      -.15      -.15  1.70e-07
+-.140000 |      1000      -.14      -.14  1.63e-07
+-.129999 |      1000      -.13      -.13  1.62e-07
+-.119999 |      1000      -.12      -.12  1.69e-07
+-.109999 |      1000      -.11      -.11  1.59e-07
+-.100000 |      1000       -.1       -.1  1.67e-07
+-.090000 |      1000      -.09      -.09  1.63e-07
+-.079999 |      1000      -.08      -.08  1.53e-07
+-.070000 |      2000      -.07      -.07  1.63e-07
+-.064999 |      1000     -.065     -.065  1.66e-07
+-.059999 |      2000      -.06      -.06  1.68e-07
+-.050000 |      1000      -.05      -.05  1.67e-07
+---------+----------------------------------------
+   Total |     14000    -.0925 -.0849999  .0315532
+--------------------------------------------------
+
+Summary for variables: sd_error
+     by categories of: true 
+
+    true |         N      mean       p50        sd
+---------+----------------------------------------
+-.150000 |      1000  .0435914  .0431097  .0036533
+-.140000 |      1000  .0434988  .0429685  .0036509
+-.129999 |      1000  .0435756  .0430017  .0037116
+-.119999 |      1000  .0435765  .0429887  .0039409
+-.109999 |      1000  .0436537  .0429011   .003808
+-.100000 |      1000  .0436312   .043081  .0035746
+-.090000 |      1000  .0435123    .04281   .003571
+-.079999 |      1000  .0436333  .0430411  .0036234
+-.070000 |      2000  .0436084  .0429937  .0038305
+-.064999 |      1000  .0434923  .0429786  .0037244
+-.059999 |      2000  .0436721  .0430267  .0038122
+-.050000 |      1000  .0437357  .0430215   .004025
+---------+----------------------------------------
+   Total |     14000  .0436044  .0430009  .0037563
+--------------------------------------------------
+
+Summary for variables: bias
+     by categories of: true 
+
+    true |         N      mean       p50        sd
+---------+----------------------------------------
+-.150000 |      1000  4.20e-09  3.30e-10  1.70e-07
+-.140000 |      1000 -1.12e-09 -1.15e-09  1.63e-07
+-.129999 |      1000  4.37e-09 -9.92e-11  1.62e-07
+-.119999 |      1000 -6.30e-09 -1.97e-09  1.68e-07
+-.109999 |      1000 -4.43e-09 -1.37e-09  1.59e-07
+-.100000 |      1000 -4.49e-09 -3.13e-09  1.67e-07
+-.090000 |      1000  1.20e-08  1.69e-09  1.63e-07
+-.079999 |      1000  1.84e-09  4.42e-10  1.53e-07
+-.070000 |      2000  1.84e-09  1.68e-10  1.63e-07
+-.064999 |      1000  4.13e-09  2.25e-10  1.66e-07
+-.059999 |      2000  8.56e-09  5.80e-10  1.68e-07
+-.050000 |      1000  4.57e-09  1.91e-09  1.67e-07
+---------+----------------------------------------
+   Total |     14000  2.54e-09 -2.29e-10  1.64e-07
+--------------------------------------------------
+
+Summary for variables: error_sqr
+     by categories of: true 
+
+    true |         N      mean       p50        sd
+---------+----------------------------------------
+-.150000 |      1000  2.88e-14  2.30e-15  7.51e-14
+-.140000 |      1000  2.65e-14  1.63e-15  7.66e-14
+-.129999 |      1000  2.63e-14  1.66e-15  7.33e-14
+-.119999 |      1000  2.84e-14  1.58e-15  8.69e-14
+-.109999 |      1000  2.54e-14  1.74e-15  7.20e-14
+-.100000 |      1000  2.80e-14  1.64e-15  7.44e-14
+-.090000 |      1000  2.67e-14  1.59e-15  7.92e-14
+-.079999 |      1000  2.34e-14  1.66e-15  6.60e-14
+-.070000 |      2000  2.65e-14  1.38e-15  7.70e-14
+-.064999 |      1000  2.74e-14  1.54e-15  8.63e-14
+-.059999 |      2000  2.82e-14  1.81e-15  7.55e-14
+-.050000 |      1000  2.80e-14  1.63e-15  7.94e-14
+---------+----------------------------------------
+   Total |     14000  2.70e-14  1.64e-15  7.69e-14
+--------------------------------------------------
+
+Summary for variables: p_0
+     by categories of: true 
+
+    true |         N      mean       p50        sd
+---------+----------------------------------------
+-.150000 |      1000  .0009082  .0005131  .0015296
+-.140000 |      1000  .0018058    .00114  .0027858
+-.129999 |      1000  .0036375  .0025335  .0042126
+-.119999 |      1000  .0070827  .0052974  .0076169
+-.109999 |      1000  .0131481  .0104188  .0098357
+-.100000 |      1000  .0233725   .020376  .0123379
+-.090000 |      1000   .040049   .035651  .0175847
+-.079999 |      1000  .0679687  .0632178  .0235216
+-.070000 |      2000  .1091746  .1036518  .0309468
+-.064999 |      1000  .1353846  .1305964  .0329864
+-.059999 |      2000  .1692973  .1633279  .0359651
+-.050000 |      1000   .251658  .2452892  .0410493
+---------+----------------------------------------
+   Total |     14000  .0787114  .0514059  .0808742
+--------------------------------------------------
+
+Summary for variables: reject_0
+     by categories of: true 
+
+    true |         N      mean       p50        sd
+---------+----------------------------------------
+-.150000 |      1000         1         1         0
+-.140000 |      1000         1         1         0
+-.129999 |      1000         1         1         0
+-.119999 |      1000      .994         1  .0772656
+-.109999 |      1000      .991         1  .0944877
+-.100000 |      1000      .965         1  .1838717
+-.090000 |      1000      .795         1  .4039036
+-.079999 |      1000      .201         0  .4009486
+-.070000 |      2000         0         0         0
+-.064999 |      1000         0         0         0
+-.059999 |      2000         0         0         0
+-.050000 |      1000         0         0         0
+---------+----------------------------------------
+   Total |     14000  .4961429         0   .500003
+--------------------------------------------------
+
+Summary for variables: p_g1
+     by categories of: true 
+
+    true |         N      mean       p50        sd
+---------+----------------------------------------
+-.150000 |      1000  .9999981  .9999991  2.52e-06
+-.140000 |      1000  .9999983  .9999993  2.49e-06
+-.129999 |      1000  .9999983  .9999992  2.42e-06
+-.119999 |      1000  .9999983  .9999993  2.57e-06
+-.109999 |      1000  .9999983  .9999992  2.43e-06
+-.100000 |      1000  .9999982  .9999993  2.50e-06
+-.090000 |      1000  .9999983  .9999993  2.46e-06
+-.079999 |      1000  .9999983  .9999992  2.28e-06
+-.070000 |      2000  .9999983  .9999993  2.52e-06
+-.064999 |      1000  .9999983  .9999993  2.51e-06
+-.059999 |      2000  .9999982  .9999992  2.55e-06
+-.050000 |      1000  .9999982  .9999993  2.60e-06
+---------+----------------------------------------
+   Total |     14000  .9999982  .9999993  2.50e-06
+--------------------------------------------------
+
+Summary for variables: reject_g1
+     by categories of: true 
+
+    true |         N      mean       p50        sd
+---------+----------------------------------------
+-.150000 |      1000         0         0         0
+-.140000 |      1000         0         0         0
+-.129999 |      1000         0         0         0
+-.119999 |      1000         0         0         0
+-.109999 |      1000         0         0         0
+-.100000 |      1000         0         0         0
+-.090000 |      1000         0         0         0
+-.079999 |      1000         0         0         0
+-.070000 |      2000         0         0         0
+-.064999 |      1000         0         0         0
+-.059999 |      2000         0         0         0
+-.050000 |      1000         0         0         0
+---------+----------------------------------------
+   Total |     14000         0         0         0
+--------------------------------------------------
+
+Summary for variables: bal_max_asd
+     by categories of: true 
+
+    true |         N      mean       p50        sd
+---------+----------------------------------------
+-.150000 |      1000  3.29e-07  2.17e-07  3.19e-07
+-.140000 |      1000  3.02e-07  1.71e-07  3.20e-07
+-.129999 |      1000  3.11e-07  1.78e-07  3.19e-07
+-.119999 |      1000  3.09e-07  1.74e-07  3.31e-07
+-.109999 |      1000  3.04e-07  1.75e-07  3.08e-07
+-.100000 |      1000  3.05e-07  1.80e-07  3.18e-07
+-.090000 |      1000  3.14e-07  1.95e-07  3.30e-07
+-.079999 |      1000  3.03e-07  1.81e-07  3.17e-07
+-.070000 |      2000  3.00e-07  1.70e-07  3.14e-07
+-.064999 |      1000  3.15e-07  1.73e-07  3.32e-07
+-.059999 |      2000  3.22e-07  1.90e-07  3.28e-07
+-.050000 |      1000  3.08e-07  1.68e-07  3.29e-07
+---------+----------------------------------------
+   Total |     14000  3.10e-07  1.80e-07  3.22e-07
+--------------------------------------------------
+
+Summary for variables: bal_mean_asd
+     by categories of: true 
+
+    true |         N      mean       p50        sd
+---------+----------------------------------------
+-.150000 |      1000  1.27e-07  8.67e-08  1.20e-07
+-.140000 |      1000  1.21e-07  6.82e-08  1.27e-07
+-.129999 |      1000  1.26e-07  7.85e-08  1.29e-07
+-.119999 |      1000  1.23e-07  7.05e-08  1.29e-07
+-.109999 |      1000  1.25e-07  7.28e-08  1.28e-07
+-.100000 |      1000  1.20e-07  6.92e-08  1.23e-07
+-.090000 |      1000  1.24e-07  7.58e-08  1.26e-07
+-.079999 |      1000  1.21e-07  7.08e-08  1.25e-07
+-.070000 |      2000  1.19e-07  6.77e-08  1.22e-07
+-.064999 |      1000  1.24e-07  7.18e-08  1.27e-07
+-.059999 |      2000  1.28e-07  7.64e-08  1.28e-07
+-.050000 |      1000  1.22e-07  6.79e-08  1.28e-07
+---------+----------------------------------------
+   Total |     14000  1.23e-07  7.27e-08  1.26e-07
+--------------------------------------------------
+
+Summary for variables: wgt_sd
+     by categories of: true 
+
+    true |         N      mean       p50        sd
+---------+----------------------------------------
+-.150000 |      1000  .9115933  .9086002  .0762909
+-.140000 |      1000  .9108786  .9038524  .0745082
+-.129999 |      1000  .9153764  .9103067  .0741585
+-.119999 |      1000  .9116248   .907316  .0777196
+-.109999 |      1000    .91663  .9103977  .0766602
+-.100000 |      1000  .9127652  .9056901  .0748831
+-.090000 |      1000  .9149334   .911126  .0746273
+-.079999 |      1000  .9103786  .9058965   .074701
+-.070000 |      2000  .9140503  .9080302  .0764203
+-.064999 |      1000  .9131882  .9099398   .077148
+-.059999 |      2000  .9141872  .9103678   .075717
+-.050000 |      1000  .9117153  .9063059  .0754051
+---------+----------------------------------------
+   Total |     14000  .9132542  .9082983  .0757392
+--------------------------------------------------
+
+Summary for variables: wgt_cv
+     by categories of: true 
+
+    true |         N      mean       p50        sd
+---------+----------------------------------------
+-.150000 |      1000  .9115933  .9086002  .0762909
+-.140000 |      1000  .9108786  .9038524  .0745082
+-.129999 |      1000  .9153764  .9103067  .0741585
+-.119999 |      1000  .9116248   .907316  .0777196
+-.109999 |      1000    .91663  .9103977  .0766602
+-.100000 |      1000  .9127652  .9056901  .0748831
+-.090000 |      1000  .9149334   .911126  .0746273
+-.079999 |      1000  .9103786  .9058965   .074701
+-.070000 |      2000  .9140503  .9080302  .0764203
+-.064999 |      1000  .9131882  .9099398   .077148
+-.059999 |      2000  .9141872  .9103678   .075717
+-.050000 |      1000  .9117153  .9063059  .0754051
+---------+----------------------------------------
+   Total |     14000  .9132542  .9082983  .0757392
+--------------------------------------------------
+
+Summary for variables: wgt_skewness
+     by categories of: true 
+
+    true |         N      mean       p50        sd
+---------+----------------------------------------
+-.150000 |      1000  .1465807   .133737  .0487233
+-.140000 |      1000  .1449562  .1337657  .0444647
+-.129999 |      1000  .1483525  .1355963  .0495421
+-.119999 |      1000  .1466626  .1343314  .0487203
+-.109999 |      1000  .1464219  .1362078  .0448149
+-.100000 |      1000   .145745  .1355819  .0426691
+-.090000 |      1000  .1469303  .1349856   .046884
+-.079999 |      1000  .1470208  .1353502  .0480228
+-.070000 |      2000  .1465007  .1358089  .0455414
+-.064999 |      1000  .1462791  .1353299  .0458054
+-.059999 |      2000  .1460898  .1347889  .0460778
+-.050000 |      1000  .1462506  .1327965  .0496901
+---------+----------------------------------------
+   Total |     14000  .1464558  .1349016  .0466425
+--------------------------------------------------
+
+Summary for variables: wgt_kurtosis
+     by categories of: true 
+
+    true |         N      mean       p50        sd
+---------+----------------------------------------
+-.150000 |      1000  .0418385  .0314819  .0363549
+-.140000 |      1000  .0403755  .0309472  .0322822
+-.129999 |      1000  .0430683  .0317152  .0367319
+-.119999 |      1000   .041893  .0313267  .0368875
+-.109999 |      1000  .0412384  .0322244  .0319197
+-.100000 |      1000  .0406064  .0318311  .0295066
+-.090000 |      1000  .0417277  .0313277  .0342323
+-.079999 |      1000  .0418973  .0319884  .0357216
+-.070000 |      2000  .0413102  .0319951  .0332909
+-.064999 |      1000  .0414658  .0313776  .0331269
+-.059999 |      2000  .0411789  .0312442  .0339375
+-.050000 |      1000  .0416013  .0303745  .0374932
+---------+----------------------------------------
+   Total |     14000  .0414779  .0315162   .034254
+--------------------------------------------------
+
+Summary for variables: wgt_max
+     by categories of: true 
+
+    true |         N      mean       p50        sd
+---------+----------------------------------------
+-.150000 |      1000  15.73288  14.80266  4.770098
+-.140000 |      1000  15.55701  14.65474  4.532922
+-.129999 |      1000  15.92681  14.81104  4.882247
+-.119999 |      1000  15.75452  14.61949  4.850359
+-.109999 |      1000  15.79359  14.79899  4.731232
+-.100000 |      1000  15.68815  14.73462  4.399543
+-.090000 |      1000  15.73338  14.71142  4.729264
+-.079999 |      1000  15.75293  14.90369  4.720985
+-.070000 |      2000  15.74313  14.83354  4.636577
+-.064999 |      1000   15.7019  14.60072  4.702996
+-.059999 |      2000  15.72015  14.71311  4.689893
+-.050000 |      1000  15.65114  14.60349  4.808356
+---------+----------------------------------------
+   Total |     14000  15.72992  14.73714  4.698947
+--------------------------------------------------
+
+. 
 . graph bar (mean) reject_0, over(true) name(g1b)
 
-. graph export "sims/sim1/sim1b_power.png", replace
+. graph export "sims/sim`sim'/sim`sim'b_power.png", replace
 (note: file sims/sim1/sim1b_power.png not found)
 (file sims/sim1/sim1b_power.png written in PNG format)
 
 . 
-. 
 . // ------------------------------------------------------------------------
-. // 1-C Variouis sample sizes with impact = .10
+. // 1-C All DPGs (A to G) with n=2000, impact = -.075
 . // ------------------------------------------------------------------------
 . 
 . parallel sim, expr(_b) reps(`reps') processors(1): ///
->   onerep A B C D E F G, impact(-.07) estimators(ipw) n(2000)
+>   onerep A B C D E F G, impact(-0.09) estimators(cbps) n(2000) `commonopts'
 --------------------------------------------------------------------------------
 Parallel Computing with Stata
 Clusters   : 6
-pll_id     : svxmho3ds9
+pll_id     : ncrjrwlb25
 Running at : C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch
 Randtype   : datetime
 Waiting for the clusters to finish...
-cluster 0004 has exited without error...
-cluster 0001 has exited without error...
 cluster 0003 has exited without error...
 cluster 0005 has exited without error...
+cluster 0001 has exited without error...
 cluster 0002 has exited without error...
+cluster 0004 has exited without error...
 cluster 0006 has exited without error...
 --------------------------------------------------------------------------------
 Enter -parallel printlog #- to checkout logfiles.
@@ -454,145 +993,359 @@ Enter -parallel printlog #- to checkout logfiles.
 
 . 
 . sim_reshape
+Before reshape:
 
-Contains data from C:\Users\kkranker\AppData\Local\Temp/__pllsvxmho3ds9_sim_outdta.dta
-  obs:           500                          simulate: onerep
- vars:           126                          26 Oct 2018 17:05
- size:       252,000                          
+Contains data from C:\Users\kkranker\AppData\Local\Temp/__pllncrjrwlb25_sim_outdta.dta
+  obs:         1,000                          simulate: onerep
+ vars:           126                          27 Oct 2018 16:01
+ size:       504,000                          
 Sorted by: 
 There are 7 prefixes
 _prefixes:      A_1 B_2 C_3 D_4 E_5 F_6 G_7
 There are 1 ests
-_ests:          ipw
-A_1/ipw:
-   from: A_1_b_N A_1_b_Nt A_1_b_true A_1_ipw_b_impact_est A_1_ipw_b_sd_error A_1_ipw_b_bias A_1_ipw_b_error_sqr A_1_ipw_b_p_0 A_1_ipw_b_reject_0 A_1_i
-> pw_b_p_g1 A_1_ipw_b_reject_g1 A_1_ipw_b_bal_max_asd A_1_ipw_b_bal_mean_asd A_1_ipw_b_wgt_sd A_1_ipw_b_wgt_cv A_1_ipw_b_wgt_skewness A_1_ipw_b_wgt_ku
-> rtosis A_1_ipw_b_wgt_max rep
-     to: N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt
-> _max rep dgp_txt c est_txt
-B_2/ipw:
-   from: B_2_b_N B_2_b_Nt B_2_b_true B_2_ipw_b_impact_est B_2_ipw_b_sd_error B_2_ipw_b_bias B_2_ipw_b_error_sqr B_2_ipw_b_p_0 B_2_ipw_b_reject_0 B_2_i
-> pw_b_p_g1 B_2_ipw_b_reject_g1 B_2_ipw_b_bal_max_asd B_2_ipw_b_bal_mean_asd B_2_ipw_b_wgt_sd B_2_ipw_b_wgt_cv B_2_ipw_b_wgt_skewness B_2_ipw_b_wgt_ku
-> rtosis B_2_ipw_b_wgt_max rep
-     to: N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt
-> _max rep dgp_txt c est_txt
-C_3/ipw:
-   from: C_3_b_N C_3_b_Nt C_3_b_true C_3_ipw_b_impact_est C_3_ipw_b_sd_error C_3_ipw_b_bias C_3_ipw_b_error_sqr C_3_ipw_b_p_0 C_3_ipw_b_reject_0 C_3_i
-> pw_b_p_g1 C_3_ipw_b_reject_g1 C_3_ipw_b_bal_max_asd C_3_ipw_b_bal_mean_asd C_3_ipw_b_wgt_sd C_3_ipw_b_wgt_cv C_3_ipw_b_wgt_skewness C_3_ipw_b_wgt_ku
-> rtosis C_3_ipw_b_wgt_max rep
-     to: N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt
-> _max rep dgp_txt c est_txt
-D_4/ipw:
-   from: D_4_b_N D_4_b_Nt D_4_b_true D_4_ipw_b_impact_est D_4_ipw_b_sd_error D_4_ipw_b_bias D_4_ipw_b_error_sqr D_4_ipw_b_p_0 D_4_ipw_b_reject_0 D_4_i
-> pw_b_p_g1 D_4_ipw_b_reject_g1 D_4_ipw_b_bal_max_asd D_4_ipw_b_bal_mean_asd D_4_ipw_b_wgt_sd D_4_ipw_b_wgt_cv D_4_ipw_b_wgt_skewness D_4_ipw_b_wgt_ku
-> rtosis D_4_ipw_b_wgt_max rep
-     to: N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt
-> _max rep dgp_txt c est_txt
-E_5/ipw:
-   from: E_5_b_N E_5_b_Nt E_5_b_true E_5_ipw_b_impact_est E_5_ipw_b_sd_error E_5_ipw_b_bias E_5_ipw_b_error_sqr E_5_ipw_b_p_0 E_5_ipw_b_reject_0 E_5_i
-> pw_b_p_g1 E_5_ipw_b_reject_g1 E_5_ipw_b_bal_max_asd E_5_ipw_b_bal_mean_asd E_5_ipw_b_wgt_sd E_5_ipw_b_wgt_cv E_5_ipw_b_wgt_skewness E_5_ipw_b_wgt_ku
-> rtosis E_5_ipw_b_wgt_max rep
-     to: N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt
-> _max rep dgp_txt c est_txt
-F_6/ipw:
-   from: F_6_b_N F_6_b_Nt F_6_b_true F_6_ipw_b_impact_est F_6_ipw_b_sd_error F_6_ipw_b_bias F_6_ipw_b_error_sqr F_6_ipw_b_p_0 F_6_ipw_b_reject_0 F_6_i
-> pw_b_p_g1 F_6_ipw_b_reject_g1 F_6_ipw_b_bal_max_asd F_6_ipw_b_bal_mean_asd F_6_ipw_b_wgt_sd F_6_ipw_b_wgt_cv F_6_ipw_b_wgt_skewness F_6_ipw_b_wgt_ku
-> rtosis F_6_ipw_b_wgt_max rep
-     to: N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt
-> _max rep dgp_txt c est_txt
-G_7/ipw:
-   from: G_7_b_N G_7_b_Nt G_7_b_true G_7_ipw_b_impact_est G_7_ipw_b_sd_error G_7_ipw_b_bias G_7_ipw_b_error_sqr G_7_ipw_b_p_0 G_7_ipw_b_reject_0 G_7_i
-> pw_b_p_g1 G_7_ipw_b_reject_g1 G_7_ipw_b_bal_max_asd G_7_ipw_b_bal_mean_asd G_7_ipw_b_wgt_sd G_7_ipw_b_wgt_cv G_7_ipw_b_wgt_skewness G_7_ipw_b_wgt_ku
-> rtosis G_7_ipw_b_wgt_max rep
-     to: N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt
-> _max rep dgp_txt c est_txt
+_ests:          cbps
+A_1/cbps:N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt_max rep dgp_txt c est_txt
+B_2/cbps:N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt_max rep dgp_txt c est_txt
+C_3/cbps:N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt_max rep dgp_txt c est_txt
+D_4/cbps:N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt_max rep dgp_txt c est_txt
+E_5/cbps:N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt_max rep dgp_txt c est_txt
+F_6/cbps:N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt_max rep dgp_txt c est_txt
+G_7/cbps:N Nt true impact_est sd_error bias error_sqr p_0 reject_0 p_g1 reject_g1 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt_max rep dgp_txt c est_txt
 (simulate: onerep)
-(3,500 real changes made)
+(7,000 real changes made)
+After reshape:
 
-Contains data from C:\Users\kkranker\AppData\Local\Temp\ST_5044_000001.tmp
-  obs:         3,500                          simulate: onerep
- vars:            22                          26 Oct 2018 17:05
- size:       262,500                          
-------------------------------------------------------------------------------------------------------------------------------------------------------
+Contains data from C:\Users\kkranker\AppData\Local\Temp\ST_5778_000001.tmp
+  obs:         7,000                          simulate: onerep
+ vars:            22                          27 Oct 2018 16:01
+ size:       525,000                          
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
               storage   display    value
 variable name   type    format     label      variable label
-------------------------------------------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 rep             float   %9.0g                 
 c               byte    %10.0g                
 dgp             long    %8.0g      dgp        
 estimator       long    %8.0g      est        
-N               int     %9.0g                 
-Nt              int     %9.0g                 
-true            float   %9.0g                 
-impact_est      float   %9.0g                 
-sd_error        float   %9.0g                 
-bias            float   %9.0g                 
-error_sqr       float   %9.0g                 
-p_0             float   %9.0g                 
-reject_0        byte    %9.0g                 
-p_g1            float   %9.0g                 
-reject_g1       byte    %9.0g                 
-bal_max_asd     float   %9.0g                 
-bal_mean_asd    float   %9.0g                 
-wgt_sd          float   %9.0g                 
-wgt_cv          float   %9.0g                 
-wgt_skewness    float   %9.0g                 
-wgt_kurtosis    float   %9.0g                 
-wgt_max         float   %9.0g                 
-------------------------------------------------------------------------------------------------------------------------------------------------------
+N               int     %7.0g                 
+Nt              int     %7.0g                 
+true            float   %7.4f                 
+impact_est      float   %7.4f                 
+sd_error        float   %7.4f                 
+bias            float   %7.4f                 
+error_sqr       float   %7.4f                 
+p_0             float   %7.4f                 
+reject_0        byte    %7.0g                 
+p_g1            float   %7.4f                 
+reject_g1       byte    %7.0g                 
+bal_max_asd     float   %7.4f                 
+bal_mean_asd    float   %7.4f                 
+wgt_sd          float   %7.4f                 
+wgt_cv          float   %7.4f                 
+wgt_skewness    float   %7.4f                 
+wgt_kurtosis    float   %7.4f                 
+wgt_max         float   %7.1f                 
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 Sorted by: rep  estimator  dgp  true  N  c
      Note: Dataset has changed since last saved.
 
-Variable    Obs Unique   Mean  Min  Max  Label
-------------------------------------------------------------------------------------------------------------------------------------------------------
-rep        3500    500  250.5    1  500  
-c          3500      7      4    1    7  
-dgp        3500      7      4    1    7  
-estimator  3500      1      2    2    2  
-------------------------------------------------------------------------------------------------------------------------------------------------------
+Variable    Obs Unique   Mean  Min   Max  Label
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+rep        7000   1000  500.5    1  1000  
+c          7000      7      4    1     7  
+dgp        7000      7      4    1     7  
+estimator  7000      1      6    6     6  
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-----------------
-          |estim
-          | ator
-          |and N
-dgp and   |  IPW 
-true      | 2000
-----------+-----
+-----------------
+          |estima
+          |  tor 
+          | and N
+dgp and   | - C -
+true      |  2000
+----------+------
 A         |
-     -.07 |  500
-----------+-----
+  -0.0900 | 1,000
+----------+------
 B         |
-     -.07 |  500
-----------+-----
+  -0.0900 | 1,000
+----------+------
 C         |
-     -.07 |  500
-----------+-----
+  -0.0900 | 1,000
+----------+------
 D         |
-     -.07 |  500
-----------+-----
+  -0.0900 | 1,000
+----------+------
 E         |
-     -.07 |  500
-----------+-----
+  -0.0900 | 1,000
+----------+------
 F         |
-     -.07 |  500
-----------+-----
+  -0.0900 | 1,000
+----------+------
 G         |
-     -.07 |  500
-----------------
+  -0.0900 | 1,000
+-----------------
 
-. save sims/sim1/sim1c.dta, replace
+. save sims/sim`sim'/sim`sim'c.dta, replace
+(note: file sims/sim1/sim1c.dta not found)
 file sims/sim1/sim1c.dta saved
 
+. 
+. foreach v of var impact_est-wgt_max {
+  2.   tabstat `v', by(dgp) s(N mean p50 sd)
+  3. }
+
+Summary for variables: impact_est
+     by categories of: dgp 
+
+   dgp |         N      mean       p50        sd
+-------+----------------------------------------
+     A |      1000      -.09      -.09  1.70e-07
+     B |      1000      -.09      -.09  1.78e-07
+     C |      1000      -.09      -.09  1.56e-07
+     D |      1000      -.09      -.09  1.43e-07
+     E |      1000      -.09      -.09  1.68e-07
+     F |      1000      -.09      -.09  1.22e-07
+     G |      1000      -.09      -.09  1.65e-07
+-------+----------------------------------------
+ Total |      7000      -.09      -.09  1.59e-07
+------------------------------------------------
+
+Summary for variables: sd_error
+     by categories of: dgp 
+
+   dgp |         N      mean       p50        sd
+-------+----------------------------------------
+     A |      1000  .0437029    .04312  .0038179
+     B |      1000  .0429173  .0424555  .0031342
+     C |      1000  .0410836  .0408102  .0026554
+     D |      1000  .0477202   .046836  .0052683
+     E |      1000  .0465981  .0459011  .0044904
+     F |      1000  .0465922  .0456623    .00461
+     G |      1000  .0432917  .0428757  .0029959
+-------+----------------------------------------
+ Total |      7000   .044558  .0437305  .0045498
+------------------------------------------------
+
+Summary for variables: bias
+     by categories of: dgp 
+
+   dgp |         N      mean       p50        sd
+-------+----------------------------------------
+     A |      1000 -2.06e-09  8.09e-10  1.70e-07
+     B |      1000  1.72e-09 -2.02e-09  1.78e-07
+     C |      1000  3.93e-09  2.55e-10  1.56e-07
+     D |      1000  7.72e-09  3.16e-09  1.43e-07
+     E |      1000 -3.35e-09  2.05e-10  1.69e-07
+     F |      1000  1.45e-09 -8.48e-10  1.22e-07
+     G |      1000  5.97e-09  2.62e-09  1.65e-07
+-------+----------------------------------------
+ Total |      7000  2.20e-09  5.63e-10  1.59e-07
+------------------------------------------------
+
+Summary for variables: error_sqr
+     by categories of: dgp 
+
+   dgp |         N      mean       p50        sd
+-------+----------------------------------------
+     A |      1000  2.88e-14  2.40e-15  7.41e-14
+     B |      1000  3.16e-14  2.08e-15  8.14e-14
+     C |      1000  2.45e-14  1.46e-15  6.29e-14
+     D |      1000  2.06e-14  1.35e-15  6.01e-14
+     E |      1000  2.84e-14  1.80e-15  8.65e-14
+     F |      1000  1.48e-14  9.07e-16  4.53e-14
+     G |      1000  2.73e-14  1.38e-15  7.69e-14
+-------+----------------------------------------
+ Total |      7000  2.52e-14  1.54e-15  7.10e-14
+------------------------------------------------
+
+Summary for variables: p_0
+     by categories of: dgp 
+
+   dgp |         N      mean       p50        sd
+-------+----------------------------------------
+     A |      1000  .0410738  .0369968  .0189155
+     B |      1000  .0372124  .0341412   .014603
+     C |      1000  .0294707  .0275439  .0111216
+     D |      1000  .0613557  .0547984  .0294855
+     E |      1000  .0551898  .0500484  .0245495
+     F |      1000  .0552681  .0488631  .0250663
+     G |      1000  .0387209  .0359333  .0143749
+-------+----------------------------------------
+ Total |      7000  .0454702   .039714  .0233947
+------------------------------------------------
+
+Summary for variables: reject_0
+     by categories of: dgp 
+
+   dgp |         N      mean       p50        sd
+-------+----------------------------------------
+     A |      1000      .782         1   .413094
+     B |      1000      .853         1  .3542831
+     C |      1000       .95         1   .218054
+     D |      1000      .417         0  .4933096
+     E |      1000      .497         0  .5002412
+     F |      1000      .515         1   .500025
+     G |      1000       .85         1  .3572501
+-------+----------------------------------------
+ Total |      7000  .6948571         1  .4605008
+------------------------------------------------
+
+Summary for variables: p_g1
+     by categories of: dgp 
+
+   dgp |         N      mean       p50        sd
+-------+----------------------------------------
+     A |      1000  .9999981  .9999991  2.52e-06
+     B |      1000   .999998  .9999992  2.67e-06
+     C |      1000  .9999982  .9999992  2.47e-06
+     D |      1000  .9999986  .9999994  2.03e-06
+     E |      1000  .9999984  .9999993  2.46e-06
+     F |      1000  .9999988  .9999995  1.76e-06
+     G |      1000  .9999983  .9999993  2.58e-06
+-------+----------------------------------------
+ Total |      7000  .9999983  .9999993  2.39e-06
+------------------------------------------------
+
+Summary for variables: reject_g1
+     by categories of: dgp 
+
+   dgp |         N      mean       p50        sd
+-------+----------------------------------------
+     A |      1000         0         0         0
+     B |      1000         0         0         0
+     C |      1000         0         0         0
+     D |      1000         0         0         0
+     E |      1000         0         0         0
+     F |      1000         0         0         0
+     G |      1000         0         0         0
+-------+----------------------------------------
+ Total |      7000         0         0         0
+------------------------------------------------
+
+Summary for variables: bal_max_asd
+     by categories of: dgp 
+
+   dgp |         N      mean       p50        sd
+-------+----------------------------------------
+     A |      1000  3.33e-07  2.18e-07  3.24e-07
+     B |      1000  3.58e-07  1.98e-07  3.79e-07
+     C |      1000  3.11e-07  1.93e-07  3.15e-07
+     D |      1000  2.83e-07  1.71e-07  3.03e-07
+     E |      1000  3.22e-07  1.86e-07  3.43e-07
+     F |      1000  2.61e-07  1.49e-07  2.74e-07
+     G |      1000  3.29e-07  1.95e-07  3.43e-07
+-------+----------------------------------------
+ Total |      7000  3.14e-07  1.85e-07  3.29e-07
+------------------------------------------------
+
+Summary for variables: bal_mean_asd
+     by categories of: dgp 
+
+   dgp |         N      mean       p50        sd
+-------+----------------------------------------
+     A |      1000  1.30e-07  8.46e-08  1.24e-07
+     B |      1000  1.38e-07  8.01e-08  1.42e-07
+     C |      1000  1.19e-07  7.77e-08  1.14e-07
+     D |      1000  1.11e-07  6.67e-08  1.12e-07
+     E |      1000  1.31e-07  7.59e-08  1.41e-07
+     F |      1000  1.06e-07  6.42e-08  1.07e-07
+     G |      1000  1.30e-07  7.58e-08  1.31e-07
+-------+----------------------------------------
+ Total |      7000  1.23e-07  7.49e-08  1.26e-07
+------------------------------------------------
+
+Summary for variables: wgt_sd
+     by categories of: dgp 
+
+   dgp |         N      mean       p50        sd
+-------+----------------------------------------
+     A |      1000  .9171191  .9127058  .0782117
+     B |      1000  .9095465  .9047593  .0749916
+     C |      1000   .714985  .7102001  .0631941
+     D |      1000  1.057323  1.052041  .0875602
+     E |      1000  1.056536  1.049268  .0887208
+     F |      1000  .9242881  .9176049  .0800371
+     G |      1000  .7168018  .7143046  .0591091
+-------+----------------------------------------
+ Total |      7000  .8995142   .908677  .1507943
+------------------------------------------------
+
+Summary for variables: wgt_cv
+     by categories of: dgp 
+
+   dgp |         N      mean       p50        sd
+-------+----------------------------------------
+     A |      1000  .9171191  .9127058  .0782117
+     B |      1000  .9095465  .9047593  .0749916
+     C |      1000   .714985  .7102001  .0631941
+     D |      1000  1.057323  1.052041  .0875602
+     E |      1000  1.056536  1.049268  .0887208
+     F |      1000  .9242881  .9176049  .0800371
+     G |      1000  .7168018  .7143046  .0591091
+-------+----------------------------------------
+ Total |      7000  .8995142   .908677  .1507943
+------------------------------------------------
+
+Summary for variables: wgt_skewness
+     by categories of: dgp 
+
+   dgp |         N      mean       p50        sd
+-------+----------------------------------------
+     A |      1000  .1485129  .1373009  .0486526
+     B |      1000  .1329368    .12181  .0426842
+     C |      1000  .1055659  .0996675  .0303138
+     D |      1000  .1743118  .1603061  .0557911
+     E |      1000  .1629994  .1478598  .0539474
+     F |      1000   .161402  .1489785  .0484199
+     G |      1000  .1179906  .1122274  .0271328
+-------+----------------------------------------
+ Total |      7000  .1433885   .132267  .0508167
+------------------------------------------------
+
+Summary for variables: wgt_kurtosis
+     by categories of: dgp 
+
+   dgp |         N      mean       p50        sd
+-------+----------------------------------------
+     A |      1000  .0427691  .0322548  .0366722
+     B |      1000   .035005  .0261342  .0305221
+     C |      1000  .0237009   .018929   .018284
+     D |      1000  .0560324  .0427672  .0438567
+     E |      1000  .0502673  .0368292  .0409546
+     F |      1000  .0484169  .0377325   .035091
+     G |      1000  .0273335  .0230838  .0153483
+-------+----------------------------------------
+ Total |      7000  .0405036  .0301889  .0349738
+------------------------------------------------
+
+Summary for variables: wgt_max
+     by categories of: dgp 
+
+   dgp |         N      mean       p50        sd
+-------+----------------------------------------
+     A |      1000   15.9242  14.87814  4.859562
+     B |      1000  14.83277  13.75637  4.416343
+     C |      1000   10.6351  10.07001  3.048532
+     D |      1000  19.86007  18.55465  5.977179
+     E |      1000  19.17109  17.70775  5.994178
+     F |      1000  16.69163  15.64881  4.827852
+     G |      1000  11.10317  10.50069  2.758882
+-------+----------------------------------------
+ Total |      7000  15.45972  14.33968  5.761793
+------------------------------------------------
+
+. 
 . graph bar (mean) reject_0, over(dgp) name(g1c)
 
-. graph export "sims/sim1/sim1c_power.png", replace
+. graph export "sims/sim`sim'/sim`sim'c_power.png", replace
 (note: file sims/sim1/sim1c_power.png not found)
 (file sims/sim1/sim1c_power.png written in PNG format)
 
 . 
-. log close sim1
+. log close sim`sim'
       name:  sim1
        log:  C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\sims/sim1/logfile.log
   log type:  text
- closed on:  26 Oct 2018, 17:06:00
-------------------------------------------------------------------------------------------------------------------------------------------------------
+ closed on:  27 Oct 2018, 16:01:38
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
