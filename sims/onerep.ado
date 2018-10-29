@@ -27,19 +27,24 @@ program define onerep, eclass
          n(numlist min=1 >0 integer sort) ///
          Impacts(numlist sort) ///
          ESTimators(namelist) ///
-         [CVTargets(numlist >5) ///
+       [ AUGmented ///
+         CVTargets(numlist >=10 <=100) ///
          ate atet ateu /// atet is the default
-         *] // display options passed everywhere;  remaining options passed to gmatch.ado (if applicable)
+         *] // display options passed everywhere; remaining options passed to gmatch.ado (if applicable)
   _get_diopts diopts options, `options'
 
   // throw error if invalid options
-  local valid_est raw ipw_true_ps ipw ipw_te stdprogdiff cbps cbps90 cbps75 cbps50
+  local valid_est raw ipw_true_ps ipw ipw_te stdprogdiff cbps
   if !`:list estimators in valid_est' {
     di as error "estimators(`: list estimators-valid_est') invalid"
     error 198
   }
   if ("`ate'`atet'`ateu'"=="") {
     local atet atet
+  }
+  if ("`augmented'"=="augmented") {
+    local omvarlist "w1-w10"
+    local aug "aug"
   }
 
   tempname _b_ add from
@@ -72,15 +77,15 @@ program define onerep, eclass
         // Difference in means ("raw")
         local e "raw"
         if `: list e in estimators' {
-          di _n(2) as txt "`prefix' with estimator: " as res "`e'" _n(2)
-          regress y i.a, vce(robust) noheader `diopts'
-          addstats `_b_' 1.a `prefix'_`e'
+          di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `augmented'" _n(2)
+          regress y i.a `omvarlist', vce(robust) noheader `diopts'
+          addstats `_b_' 1.a `prefix'_`e'`aug'
         }
 
         // Difference in means, weighted using true propensity scores ("true")
         local e "ipw_true_ps"
         if `: list e in estimators' cap nois {
-          di _n(2) as txt "`prefix' with estimator: " as res "`e'" _n(2)
+          di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `augmented'" _n(2)
           tempvar trueW
           if "`ate'`atet'`ateu'"=="ate" {
             gen `trueW' = cond(a, 1/ps, 1/(1-ps))
@@ -103,42 +108,42 @@ program define onerep, eclass
             di as error "`ate'`atet'`ateu' invalid"
             error 198
           }
-          regress y i.a [aw=`trueW'], vce(robust) noheader `diopts'
-          addstats `_b_' 1.a `prefix'_`e'
+          regress y i.a `omvarlist' [aw=`trueW'], vce(robust) noheader `diopts'
+          addstats `_b_' 1.a `prefix'_`e'`aug'
         }
 
         // IPW model (with teffects)
         local e "ipw_te"
         if `: list e in estimators' cap nois {
-          di _n(2) as txt "`prefix' with estimator: " as res "`e'" _n(2)
-          teffects ipw (y) (a w1-w10), `ate'`atet'`ateu' aeq `diopts'
+          di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `augmented'" _n(2)
+          if ("`augmented'"=="augmented") teffects aipw (y `omvarlist') (a w1-w10), `ate'`atet'`ateu' aeq `diopts'
+          else teffects ipw (y) (a w1-w10), `ate'`atet'`ateu' aeq `diopts'
           matrix `from' = e(b)
           matrix `from' = `from'[1, "TME1:"]
           local fromopt from(`from')
-          addstats `_b_' ATET:r1vs0.a `prefix'_`e'
+          addstats `_b_' ATET:r1vs0.a `prefix'_`e'`aug'
         }
 
         // IPW model (with gmatch.ado)
         local e "ipw"
         if `: list e in estimators' cap nois  {
-          di _n(2) as txt "`prefix' with estimator: " as res "`e'" _n(2)
-if runiform()<.2 error 1
+          di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `augmented'" _n(2)
           gmatch a w1-w10, ipw `ate'`atet'`ateu' `fromopt' `options' `diopts'
           matrix `from' = e(b)
           local fromopt from(`from')
-          regress y i.a [aw=_weight], vce(robust) noheader `diopts'
-          addstats `_b_' 1.a `prefix'_`e'
+          regress y i.a `omvarlist' [aw=_weight], vce(robust) noheader `diopts'
+          addstats `_b_' 1.a `prefix'_`e'`aug'
         }
 
         // Minimize difference in prognostic scores model (with gmatch.ado)
         local e "stdprogdiff"
         if `: list e in estimators' cap nois {
-          di _n(2) as txt "`prefix' with estimator: " as res "`e'" _n(2)
+          di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `augmented'" _n(2)
           gmatch a w1-w10, stdprogdiff depvar(y) `ate'`atet'`ateu' `fromopt' `options' `diopts'
           matrix `from' = e(b)
           local fromopt from(`from')
-          regress y i.a [aw=_weight], vce(robust) noheader `diopts'
-          addstats `_b_' 1.a `prefix'_`e'
+          regress y i.a `omvarlist' [aw=_weight], vce(robust) noheader `diopts'
+          addstats `_b_' 1.a `prefix'_`e'`aug'
           local cvcbps = r(wgt_cv)
           mac list _cvcbps
         }
@@ -146,12 +151,12 @@ if runiform()<.2 error 1
         // CBPS model (with gmatch.ado)
         local e "cbps"
         if `: list e in estimators' {
-          di _n(2) as txt "`prefix' with estimator: " as res "`e'" _n(2)
+          di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `augmented'" _n(2)
           gmatch a w1-w10, cbps `ate'`atet'`ateu' `fromopt' `options' `diopts'
           matrix `from' = e(b)
           local fromopt from(`from')
-          regress y i.a [aw=_weight], vce(robust) noheader `diopts'
-          addstats `_b_' 1.a `prefix'_`e'
+          regress y i.a `omvarlist' [aw=_weight], vce(robust) noheader `diopts'
+          addstats `_b_' 1.a `prefix'_`e'`aug'
           local cvcbps = r(wgt_cv)
           mac list _cvcbps
         }
@@ -159,17 +164,17 @@ if runiform()<.2 error 1
         // CBPS model (with gmatch.ado), with CV at X%
         foreach cut of local cvtargets {
           cap nois {
-          local e "cbps`cut'"
-          di _n(2) as txt "`prefix' with estimator: " as res "`e'" _n(2)
+          local e = strtoname("cbps`cut'")
           local confirm cbps
           if (!`: list confirm in estimators') continue
           if (`cut'==100) continue
-          local cvtarget = round(`cvcbps'*`cut'/100,.001)
-          mac list _cvtarget
+          local cvtarget = (`cvcbps'*`cut'/100)
+          di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `augmented'" _n ///
+                   as txt "CV target: cvtarget(1 " as res %7.4f `cvtarget' as txt " 6)" _n(2)
           gmatch a w1-w10, cbps cvtarget(1 `cvtarget' 6) `ate'`atet'`ateu' `fromopt' `options' `diopts'
           matrix `from' = e(b)
-          regress y i.a [aw=_weight], vce(robust) noheader `diopts'
-          addstats `_b_' 1.a `prefix'_`e'
+          regress y i.a `omvarlist' [aw=_weight], vce(robust) noheader `diopts'
+          addstats `_b_' 1.a `prefix'_`e'`aug'
           }
         }
 
@@ -194,11 +199,20 @@ program define addstats
   args matname coef eqname
   tempname add cell
 
+  // impact estimate, standard error, bias, MSE
   mat `add' = (_b[`coef'], /// beta
                _se[`coef'], /// standard error
                (_b[`coef'] - _g1), /// impact estimate - true
-               (_b[`coef'] - _g1)^2) // (impact estimate - true)^2
+               ((_b[`coef'] - _g1)^2)) // (impact estimate - true)^2
   mat colnames `add' = impact_est sd_error bias error_sqr
+
+  // power to detect true effect given SE
+  cap nois {
+    mata: power_zstat(st_matrix("`add'")[2], st_numscalar("_g1"), .05, 2)
+    mat `cell' = (r(beta))
+    mat colnames `cell' = power_zstat_0
+    mat `add' = (`add', `cell')
+  }
 
   cap nois {
     return clear
@@ -234,4 +248,15 @@ program define addstats
   matrix `matname' = (nullmat(`matname'), `add')
   // mat list `add'
 
+end
+
+mata:
+  mata set matastrict on
+  void power_zstat(real scalar se, real scalar effect, real scalar alpha , real scalar sides) {
+    if (alpha<=0 | alpha>=1)  _error("The third argument (alpha) must be between 0 and 1")
+    if (sides!=2 & sides!=1)  _error("The fourth argument (sides) must be 1 or 2")
+    beta = normal(abs(effect/se) + invnormal(alpha/sides))
+    st_numscalar("r(beta)", beta)
+    strofreal(round(beta#100,.01)) + " percent power to detect an effect of " + strofreal(effect) + ", assuming a standard error of " + strofreal(se) + " and a " + strofreal(sides) + "-sided test and alpha = " + strofreal(alpha)
+  }
 end

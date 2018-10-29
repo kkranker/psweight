@@ -26,6 +26,13 @@ program define sim_reshape
   local ests: subinstr local ests "_b_impact_est" "", all
   di as txt "There are `: list sizeof ests' ests"
   mac list _ests
+  local ee = 0
+  local estdefine  `++ee' "IPW_TRUE_PS" `++ee' "STDPROGDIFF" `++ee' "IPW_TE" `++ee' "IPW" `++ee' "CBPS"
+  foreach est of local ests {
+    if !regexm(strupper("`est'"), "CBPS[0-9].*") continue
+    local estdefine `estdefine' `++ee' `=strupper("`est'")'
+  }
+  local estdefine `estdefine' `++ee' "RAW"
   format %7.4f _all
   format %7.1f *_wgt_max*
   format %7.0g *_reject* *_N* *_Nt*
@@ -37,7 +44,7 @@ program define sim_reshape
   foreach prefix of local prefixes {
     foreach est of local ests {
       restore, preserve
-      di as res "`prefix'/`est':" _c
+      // di as res "`prefix'/`est':" _c
       keep rep `prefix'_b_* `prefix'_`est'_b_*
       rename `prefix'_* *
       rename `est'_* *
@@ -46,8 +53,8 @@ program define sim_reshape
       gen c       = regexs(2) if regexm("`prefix'", "^([A-G]*)_([0-9]*)$")
       gen est_txt = "`est'"
       qui desc, varlist
-      di as txt =r(varlist)
-      if `++s'>1 append using "`stack'"
+      // di as txt =r(varlist)
+      if `++s'>1 qui append using "`stack'"
       qui save "`stack'", replace
     }
   }
@@ -56,9 +63,9 @@ program define sim_reshape
 
   // strings to numeric
   label define dgp 1 "A" 2 "B" 3 "C" 4 "D" 5 "E" 6 "F" 7 "G"
-  label define est 1 "RAW" 2 "IPW_TRUE_PS" 3 "IPW_TE" 4 "IPW" 5 "STDPROGDIFF" 6 "CBPS"
   encode dgp_txt, gen(dgp) label(dgp) noextend
-  replace est_txt = upper(est_txt)
+  label define est `estdefine'
+  qui replace est_txt = upper(est_txt)
   encode est_txt, gen(estimator) label(est)
   qui destring c, replace
   drop dgp_txt est_txt
@@ -75,6 +82,6 @@ program define sim_reshape
   di as txt "After reshape:"
   desc
   codebook rep c dgp estimator, compact
-  table true N estimator, by(dgp) concise
+  table estimator true N , by(dgp) concise
 
 end
