@@ -1,4 +1,4 @@
-cd "C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch"
+cd "U:\Stata\Ado\Devel\gmatch"
 clear all
 cls
 
@@ -27,27 +27,26 @@ which onerep
 which sim_reshape
 
 // options
-parallel setclusters `c(processors_mach)'
-local commonopts atet iter(20) cformat(%9.3fc) pformat(%5.3f) sformat(%7.3f) pooledvariance
+parallel setclusters 6
+local commonopts atet iter(120) cformat(%9.3fc) pformat(%5.3f) sformat(%7.3f) pooledvariance
 
 // control simulations
 set seed `sim'  //  1 for simulation 1, 2 for simulation 2, etc.
-local reps 200
+local reps 1000
 
-local reps 4
 
 // ------------------------------------------------------------------------
 // 3-A Variouis estmators with impact = -.09, N=2000
 // ------------------------------------------------------------------------
 
 onerep A, impact(-0.09) n(2000) ///
-    estimators(raw ipw_true_ps ipw cbps stdprogdiff) ///
-    cvtargets(99.9999 99.999 99.99 99.9(-.1)99 97 95(-10)85) `commonopts'
+    estimators(raw ipw_true_ps ipw cbps) ///
+    cvtargets(99.999999 99.9(-.2)99 99 97 95(-10)75) `commonopts'
 
-parallel sim, expr(_b) reps(`reps') processors(1): ///
+parallel sim, expr(_b) reps(`reps') processors(4): ///
   onerep A, impact(-0.09) n(2000) ///
-     estimators(raw ipw_true_ps ipw cbps stdprogdiff) ///
-     cvtargets(99.9999 99.999 99.99 99.9(-.1)99 97 95(-10)85) `commonopts'
+    estimators(raw ipw_true_ps ipw cbps) ///
+    cvtargets(99.999999 99.9(-.2)99 99 97 95(-10)75) `commonopts'
 
 sim_reshape
 save sims/sim`sim'/sim`sim'a.dta, replace
