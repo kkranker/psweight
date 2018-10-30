@@ -1,0 +1,3007 @@
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      name:  sim3
+       log:  U:\Stata\Ado\Devel\gmatch\sims/sim3/logfile.log
+  log type:  text
+ opened on:  29 Oct 2018, 17:10:12
+
+. 
+. *! $Id: sim3.do,v b735ea4b8bbc 2018/10/29 20:53:59 kkranker $
+. *! Simulation setup #1
+. // Refining the Simulation -- larger CV targets, add augmenteed models
+. //
+. *! By Keith Kranker
+. // Last updated $Date: 2018/10/29 20:53:59 $
+. //
+. // Copyright (C) Mathematica Policy Research, Inc.
+. // This code cannot be copied, distributed or used without the express written
+. // permission of Mathematica Policy Research, Inc.
+. mac list _sim
+_sim:           3
+
+. 
+. // DGP is saved in a separate .ado file
+. adopath ++ "./sims"
+  [1]              "./sims"
+  [2]  (BASE)      "C:\Program Files (x86)\Stata15\ado\base/"
+  [3]  (SITE)      "C:\Program Files (x86)\Stata15\ado\site/"
+  [4]              "."
+  [5]  (PERSONAL)  "U:\Stata\Ado\personal/"
+  [6]  (PLUS)      "U:\Stata\Ado\plus/"
+  [7]  (OLDPLACE)  "C:\Users\kkranker\Documents\Stata\Ado/"
+  [8]              "U:\Stata\Ado\personal"
+  [9]              "U:\Stata\Ado\plus"
+  [10]             "U:\Stata\Stata-Common-Code"
+  [11]             "C:\Users\kkranker\Documents\Stata\Stata-Common-Code"
+
+. which dgp_ssbgc
+./sims\dgp_ssbgc.ado
+*! $Id: dgp_ssbgc.ado,v 27da5bdb985d 2018/10/26 21:49:02 kkranker $
+*! Data generating processe (DGP) senarios A through G from Setoguchi et al. (2008)
+*! By Keith Kranker
+
+. which onerep
+./sims\onerep.ado
+*! $Id: onerep.ado,v b735ea4b8bbc 2018/10/29 20:53:59 kkranker $
+*! One replication of the Simulations
+*! By Keith Kranker
+
+. which sim_reshape
+./sims\sim_reshape.ado
+*! $Id: sim_reshape.ado,v 6ba3d27ac355 2018/10/29 19:34:19 kkranker $
+*! Reshapes the outpute from simmulate: from wide to tall
+*! By Keith Kranker
+
+. 
+. // options
+. parallel setclusters 6
+N Clusters: 30
+Stata dir:  C:\Program Files (x86)\Stata15/StataMP-64.exe
+
+. local commonopts atet iter(80) cformat(%9.3fc) pformat(%5.3f) sformat(%7.3f) pooledvariance
+
+. 
+. // control simulations
+. set seed `sim'  //  1 for simulation 1, 2 for simulation 2, etc.
+
+. local reps 1000
+
+. 
+. 
+. // ------------------------------------------------------------------------
+. // 3-A Variouis estmators with impact = -.09, N=2000
+. // ------------------------------------------------------------------------
+. 
+. onerep A, impact(-0.09) n(2000) ///
+>     estimators(raw ipw_true_ps ipw cbps) ///
+>     cvtargets(99.999999 99.9(-.2)99 99 97 95(-10)75) `commonopts'
+(obs 2,000)
+(0 observations deleted)
+
+
+
+--------------------
+A_1
+--------------------
+Scenario: A
+Impact:   -.09
+N:        2000
+--------------------
+
+
+
+
+A_1 with estimator: raw 
+
+
+------------------------------------------------------------------------------
+             |               Robust
+           y |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+           a |
+  Treatment  |      0.121      0.032    3.792   0.000        0.059       0.184
+       _cons |     -3.946      0.022 -176.312   0.000       -3.990      -3.902
+------------------------------------------------------------------------------
+  80.42 percent power to detect an effect of -.09, assuming a standard error of .031951 and a 2-sided test and alpha = .05
+
+ ( 1)  1.a = 0
+
+       F(  1,  1998) =   14.38
+            Prob > F =    0.0002
+
+ ( 1)  1.a = -.09
+
+       F(  1,  1998) =   43.68
+            Prob > F =    0.0000
+type mismatch:  exp.exp:  transmorphic found where struct expected
+
+
+A_1 with estimator: ipw_true_ps 
+
+
+
+    Variable |        Obs        Mean    Std. Dev.       Min        Max
+-------------+---------------------------------------------------------
+    __000003 |        981    .9963857     1.24186     .01538   14.08091
+(sum of wgt is 1,999.99999886844)
+------------------------------------------------------------------------------
+             |               Robust
+           y |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+           a |
+  Treatment  |     -0.059      0.048   -1.233   0.218       -0.154       0.035
+       _cons |     -3.766      0.043  -88.565   0.000       -3.849      -3.682
+------------------------------------------------------------------------------
+  46.24 percent power to detect an effect of -.09, assuming a standard error of .0482456 and a 2-sided test and alpha = .05
+
+ ( 1)  1.a = 0
+
+       F(  1,  1998) =    1.52
+            Prob > F =    0.2179
+
+ ( 1)  1.a = -.09
+
+       F(  1,  1998) =    0.40
+            Prob > F =    0.5269
+type mismatch:  exp.exp:  transmorphic found where struct expected
+
+
+A_1 with estimator: ipw 
+
+
+
+  981 control obs
+  1019 treatment obs
+  (Data are unweighted.)
+initial:       f(p) = -1386.2944
+alternative:   f(p) =  -1438.654
+rescale:       f(p) = -1385.9447
+Iteration 0:   f(p) = -1385.9447  
+Iteration 1:   f(p) = -1141.2254  
+Iteration 2:   f(p) = -1140.1795  
+Iteration 3:   f(p) = -1140.1777  
+Iteration 4:   f(p) = -1140.1777  
+
+Propensity score model coefficients                Number of obs  =      2,000
+Generalization of IPW/CPBS-type reweigting
+Loss = IPW
+------------------------------------------------------------------------------
+           a |      Coef.
+-------------+----------------------------------------------------------------
+          w1 |      1.005
+          w2 |     -0.244
+          w3 |      0.640
+          w4 |     -0.373
+          w5 |     -0.701
+          w6 |     -0.463
+          w7 |      0.813
+          w8 |      0.103
+          w9 |     -0.098
+         w10 |      0.081
+       _cons |     -0.174
+------------------------------------------------------------------------------
+
+New variables (unweighted summary statistics)
+
+Summary for variables: _weight _weight_mtch _pscore
+     by categories of: _treated 
+
+_treated |         N      mean        sd       min        p1       p10       p25       p50       p75       p90       p99       max
+---------+------------------------------------------------------------------------------------------------------------------------
+       0 |       981         1      1.43    .00997     .0533      .144      .271      .536      1.21      2.23      7.21      17.3
+         |       981         1      1.43    .00997     .0533      .144      .271      .536      1.21      2.23      7.21      17.3
+         |       981      .395      .212     .0104     .0531      .132      .222      .361      .559      .701      .884      .948
+---------+------------------------------------------------------------------------------------------------------------------------
+       1 |      1019         1         0         1         1         1         1         1         1         1         1         1
+         |      1019         1         0         1         1         1         1         1         1         1         1         1
+         |      1019      .619      .204      .038      .134      .328      .473      .646      .783      .871      .949      .981
+---------+------------------------------------------------------------------------------------------------------------------------
+   Total |      2000         1         1    .00997     .0629       .23      .557         1         1      1.43      5.31      17.3
+         |      2000         1         1    .00997     .0629       .23      .557         1         1      1.43      5.31      17.3
+         |      2000       .51      .236     .0104     .0608      .185      .318      .518      .701       .83      .938      .981
+----------------------------------------------------------------------------------------------------------------------------------
+(sum of wgt is 2,000)
+------------------------------------------------------------------------------
+             |               Robust
+           y |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+           a |
+  Treatment  |     -0.096      0.055   -1.761   0.078       -0.204       0.011
+       _cons |     -3.729      0.050  -74.955   0.000       -3.826      -3.631
+------------------------------------------------------------------------------
+  37.63 percent power to detect an effect of -.09, assuming a standard error of .0547226 and a 2-sided test and alpha = .05
+
+ ( 1)  1.a = 0
+
+       F(  1,  1998) =    3.10
+            Prob > F =    0.0785
+
+ ( 1)  1.a = -.09
+
+       F(  1,  1998) =    0.01
+            Prob > F =    0.9078
+  Balance:
+-------------------------------------------------------------------------------
+             |    mean_T     mean_C       diff   std_diff    sd_pool  var_ratio
+-------------+-----------------------------------------------------------------
+          w1 |  .5947007   .6118978  -.0171971  -.0351413   .4893697   1.014922
+          w2 | -.1054126  -.1130517    .007639   .0076135   1.003349   .8561197
+          w3 |  .5544652   .5498311    .004634   .0093166   .4973929   .9980094
+          w4 | -.1347553  -.0812225  -.0535328  -.0544057   .9839561   1.148821
+          w5 |  .4337586   .4221231   .0116355   .0235098   .4949201   1.006836
+          w6 |  .4298332   .4320692   -.002236  -.0045142   .4953302   .9987036
+          w7 |  .2866279    .320747  -.0341191  -.0363204   .9393916   .8882249
+          w8 |  .5191364   .5242115  -.0050751  -.0101572    .499657   1.000844
+          w9 |  .4288518   .4361108   -.007259  -.0146489   .4955348   .9959761
+         w10 | -.0410457  -.0274677   -.013578  -.0139642   .9723408   1.025728
+-------------------------------------------------------------------------------
+  
+  Mean standardized diff., squared
+  .0001656677
+  Mean absolute standardized diff.
+  .0209591879
+  Maximum absolute standardized diff.
+  .0544057144
+  C.V. of matching weights:
+  1.004215584
+  S.D. of matching weights:
+  1.004215584
+  Skewness of matching weights:
+  .1648453459
+  Kurtosis of matching weights:
+  .0446678771
+  Maximum matching weight:
+  17.25808572
+
+
+A_1 with estimator: cbps 
+
+
+
+  981 control obs
+  1019 treatment obs
+  (Data are unweighted.)
+  Step 1 skipped (initial values provided by user):
+  
+  Step 2 (CBPS) :
+Iteration 0:   f(p) =  2.548e-10  
+Iteration 1:   f(p) =  1.171e-10  
+Iteration 2:   f(p) =  8.798e-11  
+Iteration 3:   f(p) =  4.381e-11  
+Iteration 4:   f(p) =  2.490e-11  
+Iteration 5:   f(p) =  1.035e-11  
+Iteration 6:   f(p) =  8.288e-12  
+Iteration 7:   f(p) =  5.401e-12  
+Iteration 8:   f(p) =  3.946e-12  
+Iteration 9:   f(p) =  2.049e-12  
+Iteration 10:  f(p) =  1.446e-12  
+Iteration 11:  f(p) =  7.907e-13  
+Iteration 12:  f(p) =  5.941e-13  
+Iteration 13:  f(p) =  3.037e-13  
+Iteration 14:  f(p) =  1.105e-13  
+Iteration 15:  f(p) =  9.026e-14  
+Iteration 16:  f(p) =  1.519e-14  
+Iteration 17:  f(p) =  1.153e-14  
+Iteration 18:  f(p) =  4.841e-15  
+Iteration 19:  f(p) =  3.224e-16  
+Iteration 20:  f(p) =  2.422e-16  
+Iteration 21:  f(p) =  8.707e-17  
+Iteration 22:  f(p) =  2.019e-18  
+Iteration 23:  f(p) =  1.683e-22  
+
+Propensity score model coefficients                Number of obs  =      2,000
+Generalization of IPW/CPBS-type reweigting
+Loss = CBPS
+------------------------------------------------------------------------------
+           a |      Coef.
+-------------+----------------------------------------------------------------
+          w1 |      0.934
+          w2 |     -0.241
+          w3 |      0.661
+          w4 |     -0.464
+          w5 |     -0.636
+          w6 |     -0.477
+          w7 |      0.785
+          w8 |      0.078
+          w9 |      0.000
+         w10 |      0.068
+       _cons |     -0.209
+------------------------------------------------------------------------------
+
+New variables (unweighted summary statistics)
+
+Summary for variables: _weight _weight_mtch _pscore
+     by categories of: _treated 
+
+_treated |         N      mean        sd       min        p1       p10       p25       p50       p75       p90       p99       max
+---------+------------------------------------------------------------------------------------------------------------------------
+       0 |       981         1      1.37      .012      .056       .15      .277      .577      1.22       2.2      6.84      14.7
+         |       981         1      1.37      .012      .056       .15      .277      .577      1.22       2.2      6.84      14.7
+         |       981      .397       .21     .0123      .055      .135      .223      .375      .559      .695      .877      .938
+---------+------------------------------------------------------------------------------------------------------------------------
+       1 |      1019         1         0         1         1         1         1         1         1         1         1         1
+         |      1019         1         0         1         1         1         1         1         1         1         1         1
+         |      1019      .618      .203     .0409      .123       .33      .473      .643      .786      .867      .949      .981
+---------+------------------------------------------------------------------------------------------------------------------------
+   Total |      2000         1      .958      .012     .0657      .244      .587         1         1      1.43       4.9      14.7
+         |      2000         1      .958      .012     .0657      .244      .587         1         1      1.43       4.9      14.7
+         |      2000       .51      .234     .0123     .0623      .189      .324      .518      .699      .827      .936      .981
+----------------------------------------------------------------------------------------------------------------------------------
+(sum of wgt is 2,000)
+------------------------------------------------------------------------------
+             |               Robust
+           y |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+           a |
+  Treatment  |     -0.090      0.051   -1.769   0.077       -0.190       0.010
+       _cons |     -3.735      0.045  -82.101   0.000       -3.824      -3.646
+------------------------------------------------------------------------------
+  42.41 percent power to detect an effect of -.09, assuming a standard error of .0508875 and a 2-sided test and alpha = .05
+
+ ( 1)  1.a = 0
+
+       F(  1,  1998) =    3.13
+            Prob > F =    0.0771
+
+ ( 1)  1.a = -.09
+
+       F(  1,  1998) =    0.00
+            Prob > F =    1.0000
+  Balance:
+-------------------------------------------------------------------------------
+             |    mean_T     mean_C       diff   std_diff    sd_pool  var_ratio
+-------------+-----------------------------------------------------------------
+          w1 |  .5947007   .5947007   8.26e-09   1.68e-08   .4910727   .9999619
+          w2 | -.1054126  -.1054126  -1.02e-08  -1.02e-08   .9986259   .8715631
+          w3 |  .5544652   .5544652   1.08e-08   2.18e-08    .497149   .9999619
+          w4 | -.1347553  -.1347553   5.86e-09   5.96e-09   .9824759   1.154565
+          w5 |  .4337586   .4337586   1.51e-08   3.05e-08   .4957166    .999962
+          w6 |  .4298332   .4298332  -1.91e-08  -3.86e-08   .4951759   .9999619
+          w7 |  .2866279   .2866279   1.83e-08   1.95e-08   .9360542   .8999304
+          w8 |  .5191364   .5191364   7.08e-09   1.42e-08   .4997586   .9999619
+          w9 |  .4288518   .4288518   4.26e-10   8.61e-10   .4950358   .9999619
+         w10 | -.0410457  -.0410457   3.90e-09   4.01e-09    .972975   1.022868
+-------------------------------------------------------------------------------
+  
+  Mean standardized diff., squared
+  4.20294e-17
+  Mean absolute standardized diff.
+  1.62316e-08
+  Maximum absolute standardized diff.
+  3.85660e-08
+  C.V. of matching weights:
+  .9578433538
+  S.D. of matching weights:
+  .9578433538
+  Skewness of matching weights:
+  .1524968223
+  Kurtosis of matching weights:
+  .0384401655
+  Maximum matching weight:
+  14.67423359
+_cvcbps:        .9578433538429323
+
+
+A_1 with estimator: cbps99_999999 
+CV target: cvtarget(20  0.9578 6)
+
+
+
+  981 control obs
+  1019 treatment obs
+  (Data are unweighted.)
+  Step 1 skipped (initial values provided by user):
+  
+  Step 2 (CBPS) :
+Iteration 0:   f(p) =  .09522777  
+Iteration 1:   f(p) =  .07043404  
+Iteration 2:   f(p) =  .02493259  
+Iteration 3:   f(p) =  7.574e-06  
+Iteration 4:   f(p) =  1.368e-07  
+Iteration 5:   f(p) =  1.346e-07  
+Iteration 6:   f(p) =  1.345e-07  
+Iteration 7:   f(p) =  1.344e-07  
+Iteration 8:   f(p) =  1.344e-07  
+Iteration 9:   f(p) =  1.344e-07  
+Iteration 10:  f(p) =  1.251e-07  
+Iteration 11:  f(p) =  1.924e-08  
+Iteration 12:  f(p) =  1.838e-08  
+Iteration 13:  f(p) =  1.372e-08  
+Iteration 14:  f(p) =  1.319e-08  
+Iteration 15:  f(p) =  1.289e-08  
+Iteration 16:  f(p) =  1.284e-08  
+Iteration 17:  f(p) =  1.284e-08  
+Iteration 18:  f(p) =  1.284e-08  
+Iteration 19:  f(p) =  1.284e-08  
+Iteration 20:  f(p) =  1.284e-08  
+Iteration 21:  f(p) =  1.284e-08  
+Iteration 22:  f(p) =  1.284e-08  
+Iteration 23:  f(p) =  1.284e-08  
+Iteration 24:  f(p) =  1.284e-08  
+Iteration 25:  f(p) =  1.283e-08  
+Iteration 26:  f(p) =  1.239e-08  
+Iteration 27:  f(p) =  1.236e-08  
+Iteration 28:  f(p) =  1.178e-08  
+Iteration 29:  f(p) =  9.292e-09  
+Iteration 30:  f(p) =  9.130e-09  
+Iteration 31:  f(p) =  8.510e-09  
+Iteration 32:  f(p) =  7.131e-09  
+Iteration 33:  f(p) =  6.944e-09  
+Iteration 34:  f(p) =  6.007e-09  
+Iteration 35:  f(p) =  5.519e-09  
+Iteration 36:  f(p) =  5.505e-09  
+Iteration 37:  f(p) =  4.580e-09  
+Iteration 38:  f(p) =  4.522e-09  
+Iteration 39:  f(p) =  3.522e-09  
+Iteration 40:  f(p) =  2.730e-09  
+Iteration 41:  f(p) =  2.656e-09  
+Iteration 42:  f(p) =  2.520e-09  
+Iteration 43:  f(p) =  2.304e-09  
+Iteration 44:  f(p) =  2.173e-09  
+Iteration 45:  f(p) =  2.169e-09  
+Iteration 46:  f(p) =  2.164e-09  
+Iteration 47:  f(p) =  2.164e-09  
+Iteration 48:  f(p) =  2.164e-09  
+Iteration 49:  f(p) =  2.164e-09  
+Iteration 50:  f(p) =  2.164e-09  
+Iteration 51:  f(p) =  2.164e-09  
+Iteration 52:  f(p) =  2.160e-09  
+Iteration 53:  f(p) =  2.025e-09  
+Iteration 54:  f(p) =  1.397e-09  
+Iteration 55:  f(p) =  1.365e-09  
+Iteration 56:  f(p) =  1.025e-09  
+Iteration 57:  f(p) =  9.960e-10  
+Iteration 58:  f(p) =  9.918e-10  
+Iteration 59:  f(p) =  9.893e-10  
+Iteration 60:  f(p) =  9.886e-10  
+Iteration 61:  f(p) =  9.885e-10  
+Iteration 62:  f(p) =  9.885e-10  
+Iteration 63:  f(p) =  9.885e-10  
+Iteration 64:  f(p) =  9.885e-10  
+Iteration 65:  f(p) =  9.885e-10  
+Iteration 66:  f(p) =  9.805e-10  
+Iteration 67:  f(p) =  9.115e-10  
+Iteration 68:  f(p) =  8.903e-10  
+Iteration 69:  f(p) =  8.861e-10  
+Iteration 70:  f(p) =  8.849e-10  
+Iteration 71:  f(p) =  8.847e-10  
+Iteration 72:  f(p) =  8.847e-10  
+Iteration 73:  f(p) =  8.847e-10  
+Iteration 74:  f(p) =  8.847e-10  
+Iteration 75:  f(p) =  8.847e-10  
+Iteration 76:  f(p) =  8.841e-10  
+Iteration 77:  f(p) =  8.508e-10  
+Iteration 78:  f(p) =  8.075e-10  
+Iteration 79:  f(p) =  8.054e-10  
+Iteration 80:  f(p) =  8.054e-10  
+convergence not achieved
+
+Propensity score model coefficients                Number of obs  =      2,000
+Generalization of IPW/CPBS-type reweigting
+Loss = CBPS + 20*abs(wgt_cv()-.9578433442645)^6)
+------------------------------------------------------------------------------
+           a |      Coef.
+-------------+----------------------------------------------------------------
+          w1 |      0.734
+          w2 |     -0.204
+          w3 |      0.519
+          w4 |     -0.352
+          w5 |     -0.512
+          w6 |     -0.361
+          w7 |      0.604
+          w8 |      0.069
+          w9 |      0.006
+         w10 |      0.057
+       _cons |     -0.181
+------------------------------------------------------------------------------
+
+New variables (unweighted summary statistics)
+
+Summary for variables: _weight _weight_mtch _pscore
+     by categories of: _treated 
+
+_treated |         N      mean        sd       min        p1       p10       p25       p50       p75       p90       p99       max
+---------+------------------------------------------------------------------------------------------------------------------------
+       0 |       981         1      .966     .0357      .117      .253      .408      .705      1.27      2.04      4.85       9.3
+         |       981         1      .966     .0357      .117      .253      .408      .705      1.27      2.04      4.85       9.3
+         |       981      .412      .176     .0321     .0981       .19      .275      .396      .542      .655      .818      .896
+---------+------------------------------------------------------------------------------------------------------------------------
+       1 |      1019         1         0         1         1         1         1         1         1         1         1         1
+         |      1019         1         0         1         1         1         1         1         1         1         1         1
+         |      1019      .597       .17     .0799      .184      .364      .478      .611      .731       .81      .905      .953
+---------+------------------------------------------------------------------------------------------------------------------------
+   Total |      2000         1      .676     .0357      .131      .364      .719         1         1      1.45      3.79       9.3
+         |      2000         1      .676     .0357      .131      .364      .719         1         1      1.45      3.79       9.3
+         |      2000      .506      .196     .0321      .108       .24      .358      .511      .657      .771      .888      .953
+----------------------------------------------------------------------------------------------------------------------------------
+(sum of wgt is 2,000)
+------------------------------------------------------------------------------
+             |               Robust
+           y |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+           a |
+  Treatment  |     -0.048      0.042   -1.148   0.251       -0.130       0.034
+       _cons |     -3.777      0.035 -107.724   0.000       -3.846      -3.708
+------------------------------------------------------------------------------
+  57.61 percent power to detect an effect of -.09, assuming a standard error of .0418239 and a 2-sided test and alpha = .05
+
+ ( 1)  1.a = 0
+
+       F(  1,  1998) =    1.32
+            Prob > F =    0.2509
+
+ ( 1)  1.a = -.09
+
+       F(  1,  1998) =    1.01
+            Prob > F =    0.3158
+  Balance:
+-------------------------------------------------------------------------------
+             |    mean_T     mean_C       diff   std_diff    sd_pool  var_ratio
+-------------+-----------------------------------------------------------------
+          w1 |  .5947007   .5515118   .0431889    .087305   .4946895   .9744329
+          w2 | -.1054126  -.0537936   -.051619   -.051992   .9928267   .8923896
+          w3 |  .5544652   .5324519   .0220132   .0441843   .4982141   .9922766
+          w4 | -.1347553  -.0623887  -.0723667  -.0732573   .9878427   1.130696
+          w5 |  .4337586   .4572431  -.0234845   -.047241   .4971207   .9896478
+          w6 |  .4298332   .4566912  -.0268581   -.054055   .4968654   .9876793
+          w7 |  .2866279   .1487909    .137837   .1464402   .9412507    .890093
+          w8 |  .5191364   .5119601   .0071764   .0143561   .4998811   .9990688
+          w9 |  .4288518   .4578287  -.0289769  -.0583186   .4968721   .9867338
+         w10 | -.0410457   -.046516   .0054703    .005604   .9761371   1.009331
+-------------------------------------------------------------------------------
+  
+  Mean standardized diff., squared
+  1.69672e-06
+  Mean absolute standardized diff.
+  .0582753514
+  Maximum absolute standardized diff.
+  .1464402389
+  C.V. of matching weights:
+  .676285963
+  S.D. of matching weights:
+  .676285963
+  Skewness of matching weights:
+  .1054508786
+  Kurtosis of matching weights:
+  .0212152102
+  Maximum matching weight:
+  9.2954205
+
+
+A_1 with estimator: cbps99_9 
+CV target: cvtarget(20  0.9569 6)
+
+
+
+  981 control obs
+  1019 treatment obs
+  (Data are unweighted.)
+  Step 1 skipped (initial values provided by user):
+  
+  Step 2 (CBPS) :
+Iteration 0:   f(p) =  1.331e-09  
+Iteration 1:   f(p) =  1.331e-09  (backed up)
+Iteration 2:   f(p) =  1.330e-09  
+Iteration 3:   f(p) =  1.330e-09  
+Iteration 4:   f(p) =  1.330e-09  
+Iteration 5:   f(p) =  1.330e-09  
+Iteration 6:   f(p) =  1.330e-09  
+Iteration 7:   f(p) =  1.330e-09  
+Iteration 8:   f(p) =  1.329e-09  
+Iteration 9:   f(p) =  1.325e-09  
+Iteration 10:  f(p) =  1.322e-09  
+Iteration 11:  f(p) =  1.322e-09  
+Iteration 12:  f(p) =  1.322e-09  
+Iteration 13:  f(p) =  1.322e-09  
+Iteration 14:  f(p) =  1.322e-09  
+Iteration 15:  f(p) =  1.322e-09  
+Iteration 16:  f(p) =  1.322e-09  
+Iteration 17:  f(p) =  1.322e-09  
+Iteration 18:  f(p) =  1.322e-09  
+Iteration 19:  f(p) =  1.321e-09  
+Iteration 20:  f(p) =  1.319e-09  
+Iteration 21:  f(p) =  1.319e-09  
+Iteration 22:  f(p) =  1.319e-09  
+Iteration 23:  f(p) =  1.319e-09  
+Iteration 24:  f(p) =  1.319e-09  
+Iteration 25:  f(p) =  1.319e-09  
+Iteration 26:  f(p) =  1.319e-09  
+Iteration 27:  f(p) =  1.318e-09  
+Iteration 28:  f(p) =  1.317e-09  
+Iteration 29:  f(p) =  1.317e-09  
+Iteration 30:  f(p) =  1.317e-09  
+Iteration 31:  f(p) =  1.317e-09  
+Iteration 32:  f(p) =  1.317e-09  
+Iteration 33:  f(p) =  1.317e-09  
+Iteration 34:  f(p) =  1.317e-09  
+Iteration 35:  f(p) =  1.317e-09  
+Iteration 36:  f(p) =  1.316e-09  
+Iteration 37:  f(p) =  1.316e-09  
+Iteration 38:  f(p) =  1.316e-09  
+Iteration 39:  f(p) =  1.316e-09  
+Iteration 40:  f(p) =  1.316e-09  
+Iteration 41:  f(p) =  1.316e-09  
+Iteration 42:  f(p) =  1.316e-09  
+Iteration 43:  f(p) =  1.315e-09  
+Iteration 44:  f(p) =  1.315e-09  
+Iteration 45:  f(p) =  1.315e-09  
+Iteration 46:  f(p) =  1.315e-09  
+Iteration 47:  f(p) =  1.315e-09  
+Iteration 48:  f(p) =  1.315e-09  
+Iteration 49:  f(p) =  1.315e-09  
+Iteration 50:  f(p) =  1.315e-09  
+Iteration 51:  f(p) =  1.315e-09  
+Iteration 52:  f(p) =  1.315e-09  
+Iteration 53:  f(p) =  1.315e-09  
+Iteration 54:  f(p) =  1.315e-09  
+Iteration 55:  f(p) =  1.315e-09  
+Iteration 56:  f(p) =  1.315e-09  
+Iteration 57:  f(p) =  1.315e-09  
+Iteration 58:  f(p) =  1.315e-09  
+Iteration 59:  f(p) =  1.315e-09  
+Iteration 60:  f(p) =  1.315e-09  
+Iteration 61:  f(p) =  1.315e-09  
+Iteration 62:  f(p) =  1.315e-09  
+Iteration 63:  f(p) =  1.315e-09  
+Iteration 64:  f(p) =  1.315e-09  
+Iteration 65:  f(p) =  1.315e-09  
+Iteration 66:  f(p) =  1.315e-09  
+Iteration 67:  f(p) =  1.315e-09  
+Iteration 68:  f(p) =  1.315e-09  
+Iteration 69:  f(p) =  1.315e-09  
+Iteration 70:  f(p) =  1.315e-09  
+Iteration 71:  f(p) =  1.315e-09  
+Iteration 72:  f(p) =  1.315e-09  
+Iteration 73:  f(p) =  1.315e-09  
+Iteration 74:  f(p) =  1.315e-09  
+Iteration 75:  f(p) =  1.315e-09  (backed up)
+Iteration 76:  f(p) =  1.315e-09  (backed up)
+Iteration 77:  f(p) =  1.315e-09  (backed up)
+Iteration 78:  f(p) =  1.315e-09  (backed up)
+Iteration 79:  f(p) =  1.315e-09  
+Iteration 80:  f(p) =  1.315e-09  
+convergence not achieved
+
+Propensity score model coefficients                Number of obs  =      2,000
+Generalization of IPW/CPBS-type reweigting
+Loss = CBPS + 20*abs(wgt_cv()-.9568855104891)^6)
+------------------------------------------------------------------------------
+           a |      Coef.
+-------------+----------------------------------------------------------------
+          w1 |      0.732
+          w2 |     -0.197
+          w3 |      0.507
+          w4 |     -0.347
+          w5 |     -0.499
+          w6 |     -0.369
+          w7 |      0.610
+          w8 |      0.071
+          w9 |     -0.019
+         w10 |      0.060
+       _cons |     -0.154
+------------------------------------------------------------------------------
+
+New variables (unweighted summary statistics)
+
+Summary for variables: _weight _weight_mtch _pscore
+     by categories of: _treated 
+
+_treated |         N      mean        sd       min        p1       p10       p25       p50       p75       p90       p99       max
+---------+------------------------------------------------------------------------------------------------------------------------
+       0 |       981         1      .966     .0352      .117      .252      .406      .709      1.28      2.05      4.93      9.34
+         |       981         1      .966     .0352      .117      .252      .406      .709      1.28      2.05      4.93      9.34
+         |       981      .414      .176      .032     .0988      .191      .276      .399      .546      .658      .822      .898
+---------+------------------------------------------------------------------------------------------------------------------------
+       1 |      1019         1         0         1         1         1         1         1         1         1         1         1
+         |      1019         1         0         1         1         1         1         1         1         1         1         1
+         |      1019      .599       .17     .0804      .184      .365      .481      .612      .734      .812      .907      .954
+---------+------------------------------------------------------------------------------------------------------------------------
+   Total |      2000         1      .676     .0352      .132      .365       .72         1         1      1.46      3.83      9.34
+         |      2000         1      .676     .0352      .132      .365       .72         1         1      1.46      3.83      9.34
+         |      2000      .508      .196      .032      .109      .241      .362      .513       .66      .773      .891      .954
+----------------------------------------------------------------------------------------------------------------------------------
+(sum of wgt is 2,000)
+------------------------------------------------------------------------------
+             |               Robust
+           y |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+           a |
+  Treatment  |     -0.050      0.042   -1.202   0.229       -0.132       0.032
+       _cons |     -3.775      0.035 -107.482   0.000       -3.844      -3.706
+------------------------------------------------------------------------------
+  57.51 percent power to detect an effect of -.09, assuming a standard error of .0418721 and a 2-sided test and alpha = .05
+
+ ( 1)  1.a = 0
+
+       F(  1,  1998) =    1.45
+            Prob > F =    0.2294
+
+ ( 1)  1.a = -.09
+
+       F(  1,  1998) =    0.90
+            Prob > F =    0.3437
+  Balance:
+-------------------------------------------------------------------------------
+             |    mean_T     mean_C       diff   std_diff    sd_pool  var_ratio
+-------------+-----------------------------------------------------------------
+          w1 |  .5947007   .5516019   .0430988   .0871241   .4946829   .9744695
+          w2 | -.1054126   -.048936  -.0564766  -.0568719   .9930498   .8918458
+          w3 |  .5544652   .5293175   .0251477   .0504623   .4983465   .9915054
+          w4 | -.1347553  -.0658708  -.0688845  -.0697307   .9878651   1.130274
+          w5 |  .4337586   .4607681  -.0270096  -.0543115   .4973081   .9884966
+          w6 |  .4298332   .4574604  -.0276273  -.0555983   .4969086   .9874165
+          w7 |  .2866279   .1546918   .1319361   .1401768    .941212   .8894614
+          w8 |  .5191364   .5117797   .0073567   .0147169   .4998838   .9990517
+          w9 |  .4288518   .4534966  -.0246448  -.0496247   .4966238   .9882632
+         w10 | -.0410457   -.045179   .0041333    .004235   .9759677   1.010042
+-------------------------------------------------------------------------------
+  
+  Mean standardized diff., squared
+  1.11896e-06
+  Mean absolute standardized diff.
+  .0582852248
+  Maximum absolute standardized diff.
+  .140176801
+  C.V. of matching weights:
+  .6761618437
+  S.D. of matching weights:
+  .6761618437
+  Skewness of matching weights:
+  .1053530787
+  Kurtosis of matching weights:
+  .0212938808
+  Maximum matching weight:
+  9.343656319
+
+
+A_1 with estimator: cbps99_7 
+CV target: cvtarget(20  0.9550 6)
+
+
+
+  981 control obs
+  1019 treatment obs
+  (Data are unweighted.)
+  Step 1 skipped (initial values provided by user):
+  
+  Step 2 (CBPS) :
+Iteration 0:   f(p) =  1.321e-09  
+Iteration 1:   f(p) =  1.320e-09  (backed up)
+Iteration 2:   f(p) =  1.315e-09  
+Iteration 3:   f(p) =  1.315e-09  
+Iteration 4:   f(p) =  1.315e-09  
+Iteration 5:   f(p) =  1.315e-09  
+Iteration 6:   f(p) =  1.315e-09  
+Iteration 7:   f(p) =  1.315e-09  
+Iteration 8:   f(p) =  1.314e-09  
+Iteration 9:   f(p) =  1.312e-09  
+Iteration 10:  f(p) =  1.311e-09  
+Iteration 11:  f(p) =  1.311e-09  
+Iteration 12:  f(p) =  1.311e-09  
+Iteration 13:  f(p) =  1.311e-09  
+Iteration 14:  f(p) =  1.311e-09  
+Iteration 15:  f(p) =  1.311e-09  
+Iteration 16:  f(p) =  1.311e-09  
+Iteration 17:  f(p) =  1.310e-09  
+Iteration 18:  f(p) =  1.309e-09  
+Iteration 19:  f(p) =  1.309e-09  
+Iteration 20:  f(p) =  1.309e-09  
+Iteration 21:  f(p) =  1.309e-09  
+Iteration 22:  f(p) =  1.309e-09  
+Iteration 23:  f(p) =  1.309e-09  
+Iteration 24:  f(p) =  1.309e-09  
+Iteration 25:  f(p) =  1.309e-09  
+Iteration 26:  f(p) =  1.309e-09  
+Iteration 27:  f(p) =  1.309e-09  
+Iteration 28:  f(p) =  1.309e-09  
+
+Propensity score model coefficients                Number of obs  =      2,000
+Generalization of IPW/CPBS-type reweigting
+Loss = CBPS + 20*abs(wgt_cv()-.9549698237814)^6)
+------------------------------------------------------------------------------
+           a |      Coef.
+-------------+----------------------------------------------------------------
+          w1 |      0.747
+          w2 |     -0.196
+          w3 |      0.505
+          w4 |     -0.346
+          w5 |     -0.499
+          w6 |     -0.365
+          w7 |      0.606
+          w8 |      0.069
+          w9 |     -0.016
+         w10 |      0.059
+       _cons |     -0.164
+------------------------------------------------------------------------------
+
+New variables (unweighted summary statistics)
+
+Summary for variables: _weight _weight_mtch _pscore
+     by categories of: _treated 
+
+_treated |         N      mean        sd       min        p1       p10       p25       p50       p75       p90       p99       max
+---------+------------------------------------------------------------------------------------------------------------------------
+       0 |       981         1      .964     .0357      .118      .253      .408      .709      1.28      2.04      4.93      9.29
+         |       981         1      .964     .0357      .118      .253      .408      .709      1.28      2.04      4.93      9.29
+         |       981      .414      .176     .0324     .0994      .192      .277      .399      .546      .656      .822      .897
+---------+------------------------------------------------------------------------------------------------------------------------
+       1 |      1019         1         0         1         1         1         1         1         1         1         1         1
+         |      1019         1         0         1         1         1         1         1         1         1         1         1
+         |      1019      .599       .17     .0808      .187      .366      .481      .613      .733      .811      .906      .954
+---------+------------------------------------------------------------------------------------------------------------------------
+   Total |      2000         1      .675     .0357      .132      .367       .72         1         1      1.47      3.81      9.29
+         |      2000         1      .675     .0357      .132      .367       .72         1         1      1.47      3.81      9.29
+         |      2000      .508      .196     .0324      .109      .243      .361      .514      .659      .772      .889      .954
+----------------------------------------------------------------------------------------------------------------------------------
+(sum of wgt is 2,000)
+------------------------------------------------------------------------------
+             |               Robust
+           y |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+           a |
+  Treatment  |     -0.050      0.042   -1.202   0.230       -0.132       0.032
+       _cons |     -3.775      0.035 -107.689   0.000       -3.844      -3.706
+------------------------------------------------------------------------------
+  57.62 percent power to detect an effect of -.09, assuming a standard error of .0418164 and a 2-sided test and alpha = .05
+
+ ( 1)  1.a = 0
+
+       F(  1,  1998) =    1.44
+            Prob > F =    0.2296
+
+ ( 1)  1.a = -.09
+
+       F(  1,  1998) =    0.90
+            Prob > F =    0.3419
+  Balance:
+-------------------------------------------------------------------------------
+             |    mean_T     mean_C       diff   std_diff    sd_pool  var_ratio
+-------------+-----------------------------------------------------------------
+          w1 |  .5947007   .5555105   .0391902   .0792692   .4943939   .9761218
+          w2 | -.1054126  -.0467539  -.0586587  -.0590573   .9932511   .8912587
+          w3 |  .5544652     .52898   .0254851    .051138   .4983605   .9914272
+          w4 | -.1347553  -.0643977  -.0703577  -.0712178   .9879228   1.130116
+          w5 |  .4337586   .4614491  -.0276905  -.0556769   .4973436    .988286
+          w6 |  .4298332   .4584926  -.0286594  -.0576688    .496966   .9870715
+          w7 |  .2866279   .1511519    .135476   .1438899   .9415254   .8887758
+          w8 |  .5191364   .5115548   .0075816   .0151666   .4998872   .9990307
+          w9 |  .4288518   .4542397  -.0253879  -.0511165   .4966671   .9879899
+         w10 | -.0410457  -.0456764   .0046307    .004744   .9761193   1.009402
+-------------------------------------------------------------------------------
+  
+  Mean standardized diff., squared
+  2.80399e-09
+  Mean absolute standardized diff.
+  .0588944962
+  Maximum absolute standardized diff.
+  .1438899347
+  C.V. of matching weights:
+  .6748541171
+  S.D. of matching weights:
+  .6748541171
+  Skewness of matching weights:
+  .1050821478
+  Kurtosis of matching weights:
+  .0211463158
+  Maximum matching weight:
+  9.285370043
+
+
+A_1 with estimator: cbps99_5 
+CV target: cvtarget(20  0.9531 6)
+
+
+
+  981 control obs
+  1019 treatment obs
+  (Data are unweighted.)
+  Step 1 skipped (initial values provided by user):
+  
+  Step 2 (CBPS) :
+Iteration 0:   f(p) =  1.336e-09  
+Iteration 1:   f(p) =  1.333e-09  
+Iteration 2:   f(p) =  1.330e-09  
+Iteration 3:   f(p) =  1.330e-09  
+Iteration 4:   f(p) =  1.330e-09  
+Iteration 5:   f(p) =  1.330e-09  
+Iteration 6:   f(p) =  1.330e-09  
+Iteration 7:   f(p) =  1.329e-09  
+Iteration 8:   f(p) =  1.329e-09  
+Iteration 9:   f(p) =  1.327e-09  
+Iteration 10:  f(p) =  1.327e-09  
+Iteration 11:  f(p) =  1.327e-09  
+
+Propensity score model coefficients                Number of obs  =      2,000
+Generalization of IPW/CPBS-type reweigting
+Loss = CBPS + 20*abs(wgt_cv()-.9530541370737)^6)
+------------------------------------------------------------------------------
+           a |      Coef.
+-------------+----------------------------------------------------------------
+          w1 |      0.748
+          w2 |     -0.195
+          w3 |      0.502
+          w4 |     -0.345
+          w5 |     -0.497
+          w6 |     -0.364
+          w7 |      0.605
+          w8 |      0.071
+          w9 |     -0.014
+         w10 |      0.059
+       _cons |     -0.167
+------------------------------------------------------------------------------
+
+New variables (unweighted summary statistics)
+
+Summary for variables: _weight _weight_mtch _pscore
+     by categories of: _treated 
+
+_treated |         N      mean        sd       min        p1       p10       p25       p50       p75       p90       p99       max
+---------+------------------------------------------------------------------------------------------------------------------------
+       0 |       981         1      .962     .0359      .118      .253      .408       .71      1.28      2.04      4.93      9.27
+         |       981         1      .962     .0359      .118      .253      .408       .71      1.28      2.04      4.93      9.27
+         |       981      .414      .175     .0326     .0996      .192      .277      .399      .545      .656      .822      .897
+---------+------------------------------------------------------------------------------------------------------------------------
+       1 |      1019         1         0         1         1         1         1         1         1         1         1         1
+         |      1019         1         0         1         1         1         1         1         1         1         1         1
+         |      1019      .598       .17     .0812      .188      .366       .48      .613      .733      .811      .906      .953
+---------+------------------------------------------------------------------------------------------------------------------------
+   Total |      2000         1      .674     .0359      .133      .368      .721         1         1      1.47       3.8      9.27
+         |      2000         1      .674     .0359      .133      .368      .721         1         1      1.47       3.8      9.27
+         |      2000      .508      .196     .0326      .109      .243      .361      .514      .659      .771      .889      .953
+----------------------------------------------------------------------------------------------------------------------------------
+(sum of wgt is 2,000)
+------------------------------------------------------------------------------
+             |               Robust
+           y |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+           a |
+  Treatment  |     -0.050      0.042   -1.206   0.228       -0.132       0.032
+       _cons |     -3.775      0.035 -107.800   0.000       -3.843      -3.706
+------------------------------------------------------------------------------
+  57.69 percent power to detect an effect of -.09, assuming a standard error of .0417848 and a 2-sided test and alpha = .05
+
+ ( 1)  1.a = 0
+
+       F(  1,  1998) =    1.46
+            Prob > F =    0.2278
+
+ ( 1)  1.a = -.09
+
+       F(  1,  1998) =    0.90
+            Prob > F =    0.3435
+  Balance:
+-------------------------------------------------------------------------------
+             |    mean_T     mean_C       diff   std_diff    sd_pool  var_ratio
+-------------+-----------------------------------------------------------------
+          w1 |  .5947007    .555847   .0388537   .0785925   .4943686   .9762699
+          w2 | -.1054126  -.0460389  -.0593737  -.0597759   .9932719   .8912233
+          w3 |  .5544652   .5284159   .0260493   .0522675   .4983837   .9912983
+          w4 | -.1347553  -.0635898  -.0711655  -.0720309   .9879862   1.129872
+          w5 |  .4337586    .461877  -.0281184  -.0565347   .4973658   .9881555
+          w6 |  .4298332   .4589033  -.0290701  -.0584925   .4969887   .9869367
+          w7 |  .2866279   .1508534   .1357745   .1441996   .9415732   .8886406
+          w8 |  .5191364   .5118362   .0073002   .0146038   .4998829   .9990571
+          w9 |  .4288518   .4547228   -.025871  -.0520862    .496695   .9878147
+         w10 | -.0410457  -.0458223   .0047766   .0048933   .9761416   1.009308
+-------------------------------------------------------------------------------
+  
+  Mean standardized diff., squared
+  1.90381e-07
+  Mean absolute standardized diff.
+  .0593476941
+  Maximum absolute standardized diff.
+  .1441996154
+  C.V. of matching weights:
+  .6735248344
+  S.D. of matching weights:
+  .6735248344
+  Skewness of matching weights:
+  .1048327111
+  Kurtosis of matching weights:
+  .0210630163
+  Maximum matching weight:
+  9.268755931
+
+
+A_1 with estimator: cbps99_3 
+CV target: cvtarget(20  0.9511 6)
+
+
+
+  981 control obs
+  1019 treatment obs
+  (Data are unweighted.)
+  Step 1 skipped (initial values provided by user):
+  
+  Step 2 (CBPS) :
+Iteration 0:   f(p) =  1.352e-09  
+Iteration 1:   f(p) =  1.349e-09  
+Iteration 2:   f(p) =  1.345e-09  
+Iteration 3:   f(p) =  1.345e-09  
+Iteration 4:   f(p) =  1.345e-09  
+Iteration 5:   f(p) =  1.345e-09  
+Iteration 6:   f(p) =  1.345e-09  
+Iteration 7:   f(p) =  1.345e-09  
+Iteration 8:   f(p) =  1.344e-09  
+Iteration 9:   f(p) =  1.344e-09  
+Iteration 10:  f(p) =  1.344e-09  
+Iteration 11:  f(p) =  1.344e-09  
+Iteration 12:  f(p) =  1.344e-09  
+Iteration 13:  f(p) =  1.344e-09  
+Iteration 14:  f(p) =  1.344e-09  
+Iteration 15:  f(p) =  1.343e-09  
+Iteration 16:  f(p) =  1.343e-09  
+Iteration 17:  f(p) =  1.343e-09  
+Iteration 18:  f(p) =  1.343e-09  
+
+Propensity score model coefficients                Number of obs  =      2,000
+Generalization of IPW/CPBS-type reweigting
+Loss = CBPS + 20*abs(wgt_cv()-.951138450366)^6)
+------------------------------------------------------------------------------
+           a |      Coef.
+-------------+----------------------------------------------------------------
+          w1 |      0.746
+          w2 |     -0.197
+          w3 |      0.501
+          w4 |     -0.346
+          w5 |     -0.497
+          w6 |     -0.363
+          w7 |      0.603
+          w8 |      0.070
+          w9 |     -0.013
+         w10 |      0.060
+       _cons |     -0.166
+------------------------------------------------------------------------------
+
+New variables (unweighted summary statistics)
+
+Summary for variables: _weight _weight_mtch _pscore
+     by categories of: _treated 
+
+_treated |         N      mean        sd       min        p1       p10       p25       p50       p75       p90       p99       max
+---------+------------------------------------------------------------------------------------------------------------------------
+       0 |       981         1       .96     .0363      .119      .254      .408      .711      1.28      2.04      4.91      9.27
+         |       981         1       .96     .0363      .119      .254      .408      .711      1.28      2.04      4.91      9.27
+         |       981      .414      .175     .0329        .1      .192      .277        .4      .546      .656      .821      .897
+---------+------------------------------------------------------------------------------------------------------------------------
+       1 |      1019         1         0         1         1         1         1         1         1         1         1         1
+         |      1019         1         0         1         1         1         1         1         1         1         1         1
+         |      1019      .598       .17     .0817      .188      .366      .481      .613      .733      .811      .906      .953
+---------+------------------------------------------------------------------------------------------------------------------------
+   Total |      2000         1      .672     .0363      .133      .369       .72         1         1      1.47      3.79      9.27
+         |      2000         1      .672     .0363      .133      .369       .72         1         1      1.47      3.79      9.27
+         |      2000      .508      .195     .0329       .11      .243      .361      .514      .658      .771      .888      .953
+----------------------------------------------------------------------------------------------------------------------------------
+(sum of wgt is 2,000)
+------------------------------------------------------------------------------
+             |               Robust
+           y |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+           a |
+  Treatment  |     -0.051      0.042   -1.219   0.223       -0.133       0.031
+       _cons |     -3.774      0.035 -107.838   0.000       -3.843      -3.705
+------------------------------------------------------------------------------
+  57.72 percent power to detect an effect of -.09, assuming a standard error of .0417702 and a 2-sided test and alpha = .05
+
+ ( 1)  1.a = 0
+
+       F(  1,  1998) =    1.49
+            Prob > F =    0.2228
+
+ ( 1)  1.a = -.09
+
+       F(  1,  1998) =    0.87
+            Prob > F =    0.3498
+  Balance:
+-------------------------------------------------------------------------------
+             |    mean_T     mean_C       diff   std_diff    sd_pool  var_ratio
+-------------+-----------------------------------------------------------------
+          w1 |  .5947007   .5553523   .0393483   .0795871   .4944057   .9760525
+          w2 | -.1054126   -.047492  -.0579206  -.0583165   .9932102   .8913625
+          w3 |  .5544652   .5282865   .0261787   .0525266    .498389   .9912691
+          w4 | -.1347553  -.0637001  -.0710552  -.0719213    .987958   1.130003
+          w5 |  .4337586   .4618114  -.0280529  -.0564033   .4973624   .9881754
+          w6 |  .4298332   .4584857  -.0286525   -.057655   .4969656   .9870738
+          w7 |  .2866279   .1489687   .1376592   .1461961   .9416067   .8887683
+          w8 |  .5191364   .5116278   .0075087   .0150207   .4998861   .9990375
+          w9 |  .4288518     .45484  -.0259882  -.0523216   .4967018   .9877724
+         w10 | -.0410457  -.0450338    .003988   .0040852   .9762233   1.008958
+-------------------------------------------------------------------------------
+  
+  Mean standardized diff., squared
+  6.36961e-09
+  Mean absolute standardized diff.
+  .0594033438
+  Maximum absolute standardized diff.
+  .146196092
+  C.V. of matching weights:
+  .6721898071
+  S.D. of matching weights:
+  .6721898071
+  Skewness of matching weights:
+  .10470071
+  Kurtosis of matching weights:
+  .0210337389
+  Maximum matching weight:
+  9.271450125
+
+
+A_1 with estimator: cbps99_1 
+CV target: cvtarget(20  0.9492 6)
+
+
+
+  981 control obs
+  1019 treatment obs
+  (Data are unweighted.)
+  Step 1 skipped (initial values provided by user):
+  
+  Step 2 (CBPS) :
+Iteration 0:   f(p) =  1.369e-09  
+Iteration 1:   f(p) =  1.369e-09  (backed up)
+Iteration 2:   f(p) =  1.360e-09  
+Iteration 3:   f(p) =  1.360e-09  
+Iteration 4:   f(p) =  1.360e-09  
+
+Propensity score model coefficients                Number of obs  =      2,000
+Generalization of IPW/CPBS-type reweigting
+Loss = CBPS + 20*abs(wgt_cv()-.9492227636583)^6)
+------------------------------------------------------------------------------
+           a |      Coef.
+-------------+----------------------------------------------------------------
+          w1 |      0.746
+          w2 |     -0.196
+          w3 |      0.501
+          w4 |     -0.345
+          w5 |     -0.496
+          w6 |     -0.362
+          w7 |      0.602
+          w8 |      0.070
+          w9 |     -0.013
+         w10 |      0.060
+       _cons |     -0.166
+------------------------------------------------------------------------------
+
+New variables (unweighted summary statistics)
+
+Summary for variables: _weight _weight_mtch _pscore
+     by categories of: _treated 
+
+_treated |         N      mean        sd       min        p1       p10       p25       p50       p75       p90       p99       max
+---------+------------------------------------------------------------------------------------------------------------------------
+       0 |       981         1      .958     .0365      .119      .255      .409      .711      1.28      2.04       4.9      9.23
+         |       981         1      .958     .0365      .119      .255      .409      .711      1.28      2.04       4.9      9.23
+         |       981      .414      .175      .033        .1      .193      .277        .4      .546      .656      .821      .896
+---------+------------------------------------------------------------------------------------------------------------------------
+       1 |      1019         1         0         1         1         1         1         1         1         1         1         1
+         |      1019         1         0         1         1         1         1         1         1         1         1         1
+         |      1019      .598      .169      .082      .188      .366      .481      .613      .732      .811      .905      .953
+---------+------------------------------------------------------------------------------------------------------------------------
+   Total |      2000         1      .671     .0365      .134       .37      .721         1         1      1.47      3.78      9.23
+         |      2000         1      .671     .0365      .134       .37      .721         1         1      1.47      3.78      9.23
+         |      2000      .508      .195      .033       .11      .244      .361      .514      .658      .771      .888      .953
+----------------------------------------------------------------------------------------------------------------------------------
+(sum of wgt is 2,000)
+------------------------------------------------------------------------------
+             |               Robust
+           y |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+           a |
+  Treatment  |     -0.051      0.042   -1.210   0.226       -0.132       0.031
+       _cons |     -3.775      0.035 -108.029   0.000       -3.843      -3.706
+------------------------------------------------------------------------------
+  57.82 percent power to detect an effect of -.09, assuming a standard error of .0417217 and a 2-sided test and alpha = .05
+
+ ( 1)  1.a = 0
+
+       F(  1,  1998) =    1.47
+            Prob > F =    0.2263
+
+ ( 1)  1.a = -.09
+
+       F(  1,  1998) =    0.90
+            Prob > F =    0.3439
+  Balance:
+-------------------------------------------------------------------------------
+             |    mean_T     mean_C       diff   std_diff    sd_pool  var_ratio
+-------------+-----------------------------------------------------------------
+          w1 |  .5947007   .5552608   .0394399   .0797712   .4944126   .9760124
+          w2 | -.1054126  -.0467687  -.0586439  -.0590464   .9931843   .8914889
+          w3 |  .5544652   .5283247   .0261405   .0524501   .4983874   .9912777
+          w4 | -.1347553  -.0634248  -.0713305  -.0721983   .9879806   1.129914
+          w5 |  .4337586   .4618582  -.0280997  -.0564971   .4973648   .9881612
+          w6 |  .4298332   .4587461   -.028913  -.0581773   .4969801   .9869881
+          w7 |  .2866279   .1480484   .1385795   .1471661   .9416533   .8887214
+          w8 |  .5191364   .5115926   .0075438   .0150911   .4998867   .9990342
+          w9 |  .4288518   .4549643  -.0261125   -.052571    .496709   .9877278
+         w10 | -.0410457  -.0450977    .004052   .0041506   .9762441   1.008871
+-------------------------------------------------------------------------------
+  
+  Mean standardized diff., squared
+  1.93649e-10
+  Mean absolute standardized diff.
+  .059711913
+  Maximum absolute standardized diff.
+  .1471661388
+  C.V. of matching weights:
+  .6708630294
+  S.D. of matching weights:
+  .6708630294
+  Skewness of matching weights:
+  .1044227544
+  Kurtosis of matching weights:
+  .0209353292
+  Maximum matching weight:
+  9.233685961
+
+
+A_1 with estimator: cbps99 
+CV target: cvtarget(20  0.9483 6)
+
+
+
+  981 control obs
+  1019 treatment obs
+  (Data are unweighted.)
+  Step 1 skipped (initial values provided by user):
+  
+  Step 2 (CBPS) :
+Iteration 0:   f(p) =  1.371e-09  
+Iteration 1:   f(p) =  1.370e-09  (backed up)
+Iteration 2:   f(p) =  1.369e-09  
+Iteration 3:   f(p) =  1.369e-09  
+Iteration 4:   f(p) =  1.369e-09  
+Iteration 5:   f(p) =  1.369e-09  
+Iteration 6:   f(p) =  1.369e-09  
+Iteration 7:   f(p) =  1.369e-09  
+Iteration 8:   f(p) =  1.369e-09  
+Iteration 9:   f(p) =  1.369e-09  
+
+Propensity score model coefficients                Number of obs  =      2,000
+Generalization of IPW/CPBS-type reweigting
+Loss = CBPS + 20*abs(wgt_cv()-.9482649203045)^6)
+------------------------------------------------------------------------------
+           a |      Coef.
+-------------+----------------------------------------------------------------
+          w1 |      0.742
+          w2 |     -0.196
+          w3 |      0.502
+          w4 |     -0.345
+          w5 |     -0.496
+          w6 |     -0.361
+          w7 |      0.603
+          w8 |      0.071
+          w9 |     -0.012
+         w10 |      0.059
+       _cons |     -0.167
+------------------------------------------------------------------------------
+
+New variables (unweighted summary statistics)
+
+Summary for variables: _weight _weight_mtch _pscore
+     by categories of: _treated 
+
+_treated |         N      mean        sd       min        p1       p10       p25       p50       p75       p90       p99       max
+---------+------------------------------------------------------------------------------------------------------------------------
+       0 |       981         1      .957     .0365      .119      .255       .41      .711      1.28      2.04       4.9      9.21
+         |       981         1      .957     .0365      .119      .255       .41      .711      1.28      2.04       4.9      9.21
+         |       981      .414      .175      .033        .1      .193      .277        .4      .545      .656      .821      .896
+---------+------------------------------------------------------------------------------------------------------------------------
+       1 |      1019         1         0         1         1         1         1         1         1         1         1         1
+         |      1019         1         0         1         1         1         1         1         1         1         1         1
+         |      1019      .598      .169      .082      .188      .366      .481      .613      .732       .81      .905      .953
+---------+------------------------------------------------------------------------------------------------------------------------
+   Total |      2000         1       .67     .0365      .134      .369      .722         1         1      1.46      3.78      9.21
+         |      2000         1       .67     .0365      .134      .369      .722         1         1      1.46      3.78      9.21
+         |      2000      .508      .195      .033       .11      .243      .361      .514      .658      .771      .888      .953
+----------------------------------------------------------------------------------------------------------------------------------
+(sum of wgt is 2,000)
+------------------------------------------------------------------------------
+             |               Robust
+           y |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+           a |
+  Treatment  |     -0.050      0.042   -1.193   0.233       -0.131       0.032
+       _cons |     -3.775      0.035 -108.175   0.000       -3.844      -3.707
+------------------------------------------------------------------------------
+  57.88 percent power to detect an effect of -.09, assuming a standard error of .0416883 and a 2-sided test and alpha = .05
+
+ ( 1)  1.a = 0
+
+       F(  1,  1998) =    1.42
+            Prob > F =    0.2332
+
+ ( 1)  1.a = -.09
+
+       F(  1,  1998) =    0.93
+            Prob > F =    0.3340
+  Balance:
+-------------------------------------------------------------------------------
+             |    mean_T     mean_C       diff   std_diff    sd_pool  var_ratio
+-------------+-----------------------------------------------------------------
+          w1 |  .5947007   .5543042   .0403965   .0816942   .4944839   .9755984
+          w2 | -.1054126  -.0460694  -.0593433  -.0597538   .9931289   .8917168
+          w3 |  .5544652   .5285551   .0259101   .0519889    .498378   .9913299
+          w4 | -.1347553  -.0631042  -.0716511  -.0725194   .9880266   1.129714
+          w5 |  .4337586   .4619356   -.028177  -.0566521   .4973688   .9881378
+          w6 |  .4298332   .4591488  -.0293156  -.0589849   .4970023   .9868567
+          w7 |  .2866279   .1490437   .1375842   .1461165    .941606   .8887607
+          w8 |  .5191364   .5117622   .0073742   .0147519   .4998841   .9990501
+          w9 |  .4288518   .4551871  -.0263353  -.0530182   .4967218    .987648
+         w10 | -.0410457  -.0454488    .004403   .0045104   .9761971   1.009071
+-------------------------------------------------------------------------------
+  
+  Mean standardized diff., squared
+  3.48376e-08
+  Mean absolute standardized diff.
+  .0599990257
+  Maximum absolute standardized diff.
+  .1461165478
+  C.V. of matching weights:
+  .6701912655
+  S.D. of matching weights:
+  .6701912655
+  Skewness of matching weights:
+  .1042501917
+  Kurtosis of matching weights:
+  .0208792851
+  Maximum matching weight:
+  9.208854625
+
+
+A_1 with estimator: cbps97 
+CV target: cvtarget(20  0.9291 6)
+
+
+
+  981 control obs
+  1019 treatment obs
+  (Data are unweighted.)
+  Step 1 skipped (initial values provided by user):
+  
+  Step 2 (CBPS) :
+Iteration 0:   f(p) =  1.114e-08  
+Iteration 1:   f(p) =  5.587e-09  
+Iteration 2:   f(p) =  3.707e-09  
+Iteration 3:   f(p) =  3.704e-09  
+Iteration 4:   f(p) =  3.704e-09  
+Iteration 5:   f(p) =  3.666e-09  
+Iteration 6:   f(p) =  3.658e-09  
+Iteration 7:   f(p) =  3.620e-09  
+Iteration 8:   f(p) =  2.719e-09  
+Iteration 9:   f(p) =  2.575e-09  
+Iteration 10:  f(p) =  1.590e-09  
+Iteration 11:  f(p) =  1.529e-09  
+Iteration 12:  f(p) =  1.518e-09  
+Iteration 13:  f(p) =  1.515e-09  
+Iteration 14:  f(p) =  1.515e-09  
+Iteration 15:  f(p) =  1.515e-09  
+Iteration 16:  f(p) =  1.515e-09  
+Iteration 17:  f(p) =  1.515e-09  
+Iteration 18:  f(p) =  1.515e-09  
+Iteration 19:  f(p) =  1.515e-09  
+Iteration 20:  f(p) =  1.509e-09  
+Iteration 21:  f(p) =  1.508e-09  
+Iteration 22:  f(p) =  1.508e-09  
+Iteration 23:  f(p) =  1.508e-09  
+Iteration 24:  f(p) =  1.508e-09  
+Iteration 25:  f(p) =  1.508e-09  
+Iteration 26:  f(p) =  1.508e-09  
+Iteration 27:  f(p) =  1.507e-09  
+Iteration 28:  f(p) =  1.504e-09  
+Iteration 29:  f(p) =  1.504e-09  
+Iteration 30:  f(p) =  1.504e-09  
+Iteration 31:  f(p) =  1.504e-09  
+Iteration 32:  f(p) =  1.504e-09  
+Iteration 33:  f(p) =  1.504e-09  
+Iteration 34:  f(p) =  1.504e-09  
+Iteration 35:  f(p) =  1.504e-09  
+Iteration 36:  f(p) =  1.504e-09  
+Iteration 37:  f(p) =  1.504e-09  
+Iteration 38:  f(p) =  1.504e-09  
+Iteration 39:  f(p) =  1.504e-09  
+Iteration 40:  f(p) =  1.504e-09  
+Iteration 41:  f(p) =  1.504e-09  
+Iteration 42:  f(p) =  1.503e-09  
+Iteration 43:  f(p) =  1.503e-09  
+Iteration 44:  f(p) =  1.503e-09  
+Iteration 45:  f(p) =  1.503e-09  
+Iteration 46:  f(p) =  1.503e-09  
+
+Propensity score model coefficients                Number of obs  =      2,000
+Generalization of IPW/CPBS-type reweigting
+Loss = CBPS + 20*abs(wgt_cv()-.9291080532276)^6)
+------------------------------------------------------------------------------
+           a |      Coef.
+-------------+----------------------------------------------------------------
+          w1 |      0.733
+          w2 |     -0.193
+          w3 |      0.491
+          w4 |     -0.338
+          w5 |     -0.491
+          w6 |     -0.356
+          w7 |      0.593
+          w8 |      0.065
+          w9 |     -0.015
+         w10 |      0.058
+       _cons |     -0.161
+------------------------------------------------------------------------------
+
+New variables (unweighted summary statistics)
+
+Summary for variables: _weight _weight_mtch _pscore
+     by categories of: _treated 
+
+_treated |         N      mean        sd       min        p1       p10       p25       p50       p75       p90       p99       max
+---------+------------------------------------------------------------------------------------------------------------------------
+       0 |       981         1      .938     .0384      .124      .262      .418      .719      1.29      2.02      4.78      8.98
+         |       981         1      .938     .0384      .124      .262      .418      .719      1.29      2.02      4.78      8.98
+         |       981      .415      .173     .0345      .104      .196       .28      .401      .545      .653      .817      .893
+---------+------------------------------------------------------------------------------------------------------------------------
+       1 |      1019         1         0         1         1         1         1         1         1         1         1         1
+         |      1019         1         0         1         1         1         1         1         1         1         1         1
+         |      1019      .597      .167     .0842      .192      .368      .481       .61      .729      .806      .902      .951
+---------+------------------------------------------------------------------------------------------------------------------------
+   Total |      2000         1      .657     .0384      .139      .378       .73         1         1      1.46      3.73      8.98
+         |      2000         1      .657     .0384      .139      .378       .73         1         1      1.46      3.73      8.98
+         |      2000      .507      .193     .0345      .113      .246      .363      .513      .656      .767      .885      .951
+----------------------------------------------------------------------------------------------------------------------------------
+(sum of wgt is 2,000)
+------------------------------------------------------------------------------
+             |               Robust
+           y |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+           a |
+  Treatment  |     -0.047      0.041   -1.135   0.256       -0.128       0.034
+       _cons |     -3.778      0.034 -109.614   0.000       -3.846      -3.711
+------------------------------------------------------------------------------
+  58.62 percent power to detect an effect of -.09, assuming a standard error of .0413268 and a 2-sided test and alpha = .05
+
+ ( 1)  1.a = 0
+
+       F(  1,  1998) =    1.29
+            Prob > F =    0.2564
+
+ ( 1)  1.a = -.09
+
+       F(  1,  1998) =    1.09
+            Prob > F =    0.2973
+  Balance:
+-------------------------------------------------------------------------------
+             |    mean_T     mean_C       diff   std_diff    sd_pool  var_ratio
+-------------+-----------------------------------------------------------------
+          w1 |  .5947007   .5523733   .0423274   .0855745   .4946265   .9747856
+          w2 | -.1054126  -.0429883  -.0624243   -.062861    .993053   .8921432
+          w3 |  .5544652   .5265047   .0279604   .0560935   .4984613    .990881
+          w4 | -.1347553  -.0590539  -.0757015  -.0765913   .9883825   1.128321
+          w5 |  .4337586   .4627845  -.0290259  -.0583538   .4974126   .9878838
+          w6 |  .4298332   .4606115  -.0307783  -.0619179   .4970823   .9863905
+          w7 |  .2866279   .1417246   .1449033    .153825   .9420013   .8883197
+          w8 |  .5191364    .510025   .0091114   .0182262   .4999098   .9988988
+          w9 |  .4288518   .4562862  -.0274343  -.0552238   .4967847   .9872607
+         w10 | -.0410457  -.0468192   .0057735   .0059133   .9763561   1.008406
+-------------------------------------------------------------------------------
+  
+  Mean standardized diff., squared
+  2.19465e-07
+  Mean absolute standardized diff.
+  .0634580237
+  Maximum absolute standardized diff.
+  .1538249971
+  C.V. of matching weights:
+  .6568416469
+  S.D. of matching weights:
+  .6568416469
+  Skewness of matching weights:
+  .102035338
+  Kurtosis of matching weights:
+  .0201941151
+  Maximum matching weight:
+  8.975017192
+
+
+A_1 with estimator: cbps95 
+CV target: cvtarget(20  0.9100 6)
+
+
+
+  981 control obs
+  1019 treatment obs
+  (Data are unweighted.)
+  Step 1 skipped (initial values provided by user):
+  
+  Step 2 (CBPS) :
+Iteration 0:   f(p) =  1.150e-08  
+Iteration 1:   f(p) =  2.021e-09  (backed up)
+Iteration 2:   f(p) =  1.814e-09  
+Iteration 3:   f(p) =  1.811e-09  
+Iteration 4:   f(p) =  1.811e-09  
+Iteration 5:   f(p) =  1.811e-09  
+Iteration 6:   f(p) =  1.811e-09  
+Iteration 7:   f(p) =  1.811e-09  
+Iteration 8:   f(p) =  1.811e-09  
+Iteration 9:   f(p) =  1.811e-09  
+Iteration 10:  f(p) =  1.809e-09  
+Iteration 11:  f(p) =  1.808e-09  
+Iteration 12:  f(p) =  1.808e-09  
+Iteration 13:  f(p) =  1.808e-09  
+Iteration 14:  f(p) =  1.808e-09  
+Iteration 15:  f(p) =  1.808e-09  
+Iteration 16:  f(p) =  1.808e-09  
+Iteration 17:  f(p) =  1.808e-09  
+Iteration 18:  f(p) =  1.804e-09  
+Iteration 19:  f(p) =  1.803e-09  
+Iteration 20:  f(p) =  1.803e-09  
+Iteration 21:  f(p) =  1.803e-09  
+Iteration 22:  f(p) =  1.803e-09  
+Iteration 23:  f(p) =  1.803e-09  
+Iteration 24:  f(p) =  1.803e-09  
+Iteration 25:  f(p) =  1.803e-09  
+Iteration 26:  f(p) =  1.802e-09  
+Iteration 27:  f(p) =  1.802e-09  
+Iteration 28:  f(p) =  1.802e-09  
+Iteration 29:  f(p) =  1.802e-09  
+Iteration 30:  f(p) =  1.802e-09  
+Iteration 31:  f(p) =  1.802e-09  
+Iteration 32:  f(p) =  1.802e-09  
+Iteration 33:  f(p) =  1.802e-09  
+Iteration 34:  f(p) =  1.802e-09  
+Iteration 35:  f(p) =  1.802e-09  
+Iteration 36:  f(p) =  1.802e-09  
+Iteration 37:  f(p) =  1.802e-09  
+Iteration 38:  f(p) =  1.802e-09  
+Iteration 39:  f(p) =  1.802e-09  
+Iteration 40:  f(p) =  1.802e-09  
+Iteration 41:  f(p) =  1.802e-09  
+Iteration 42:  f(p) =  1.802e-09  
+Iteration 43:  f(p) =  1.801e-09  
+Iteration 44:  f(p) =  1.801e-09  
+Iteration 45:  f(p) =  1.801e-09  
+Iteration 46:  f(p) =  1.801e-09  
+Iteration 47:  f(p) =  1.801e-09  
+Iteration 48:  f(p) =  1.801e-09  
+Iteration 49:  f(p) =  1.801e-09  
+Iteration 50:  f(p) =  1.801e-09  
+Iteration 51:  f(p) =  1.800e-09  
+Iteration 52:  f(p) =  1.800e-09  
+Iteration 53:  f(p) =  1.800e-09  
+Iteration 54:  f(p) =  1.800e-09  
+Iteration 55:  f(p) =  1.800e-09  
+Iteration 56:  f(p) =  1.800e-09  
+Iteration 57:  f(p) =  1.800e-09  
+Iteration 58:  f(p) =  1.798e-09  
+Iteration 59:  f(p) =  1.796e-09  
+Iteration 60:  f(p) =  1.796e-09  
+Iteration 61:  f(p) =  1.796e-09  
+Iteration 62:  f(p) =  1.796e-09  
+Iteration 63:  f(p) =  1.796e-09  
+Iteration 64:  f(p) =  1.796e-09  
+Iteration 65:  f(p) =  1.796e-09  
+Iteration 66:  f(p) =  1.796e-09  
+Iteration 67:  f(p) =  1.790e-09  
+Iteration 68:  f(p) =  1.787e-09  
+Iteration 69:  f(p) =  1.787e-09  
+Iteration 70:  f(p) =  1.787e-09  
+Iteration 71:  f(p) =  1.787e-09  
+Iteration 72:  f(p) =  1.787e-09  
+Iteration 73:  f(p) =  1.787e-09  
+Iteration 74:  f(p) =  1.787e-09  
+Iteration 75:  f(p) =  1.787e-09  
+Iteration 76:  f(p) =  1.787e-09  
+Iteration 77:  f(p) =  1.786e-09  
+Iteration 78:  f(p) =  1.766e-09  
+Iteration 79:  f(p) =  1.703e-09  
+Iteration 80:  f(p) =  1.701e-09  
+convergence not achieved
+
+Propensity score model coefficients                Number of obs  =      2,000
+Generalization of IPW/CPBS-type reweigting
+Loss = CBPS + 20*abs(wgt_cv()-.9099511861508)^6)
+------------------------------------------------------------------------------
+           a |      Coef.
+-------------+----------------------------------------------------------------
+          w1 |      0.727
+          w2 |     -0.198
+          w3 |      0.476
+          w4 |     -0.345
+          w5 |     -0.496
+          w6 |     -0.337
+          w7 |      0.579
+          w8 |      0.040
+          w9 |      0.004
+         w10 |      0.057
+       _cons |     -0.155
+------------------------------------------------------------------------------
+
+New variables (unweighted summary statistics)
+
+Summary for variables: _weight _weight_mtch _pscore
+     by categories of: _treated 
+
+_treated |         N      mean        sd       min        p1       p10       p25       p50       p75       p90       p99       max
+---------+------------------------------------------------------------------------------------------------------------------------
+       0 |       981         1      .919     .0411      .128      .267      .427      .726      1.27         2      4.57      8.72
+         |       981         1      .919     .0411      .128      .267      .427      .726      1.27         2      4.57      8.72
+         |       981      .416      .171     .0366      .106      .198      .283      .402      .541      .649      .809       .89
+---------+------------------------------------------------------------------------------------------------------------------------
+       1 |      1019         1         0         1         1         1         1         1         1         1         1         1
+         |      1019         1         0         1         1         1         1         1         1         1         1         1
+         |      1019      .595      .166     .0874      .195      .369      .484      .607      .725      .804      .897      .947
+---------+------------------------------------------------------------------------------------------------------------------------
+   Total |      2000         1      .643     .0411      .145      .388       .74         1         1      1.44      3.67      8.72
+         |      2000         1      .643     .0411      .145      .388       .74         1         1      1.44      3.67      8.72
+         |      2000      .507      .191     .0366      .118      .248      .364      .513      .653      .763       .88      .947
+----------------------------------------------------------------------------------------------------------------------------------
+(sum of wgt is 2,000)
+------------------------------------------------------------------------------
+             |               Robust
+           y |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+           a |
+  Treatment  |     -0.044      0.041   -1.078   0.281       -0.124       0.036
+       _cons |     -3.781      0.034 -111.100   0.000       -3.848      -3.714
+------------------------------------------------------------------------------
+  59.37 percent power to detect an effect of -.09, assuming a standard error of .0409639 and a 2-sided test and alpha = .05
+
+ ( 1)  1.a = 0
+
+       F(  1,  1998) =    1.16
+            Prob > F =    0.2813
+
+ ( 1)  1.a = -.09
+
+       F(  1,  1998) =    1.25
+            Prob > F =    0.2631
+  Balance:
+-------------------------------------------------------------------------------
+             |    mean_T     mean_C       diff   std_diff    sd_pool  var_ratio
+-------------+-----------------------------------------------------------------
+          w1 |  .5947007   .5504378   .0442629   .0894621   .4947675   .9740017
+          w2 | -.1054126  -.0425601  -.0628525  -.0632817   .9932185   .8915933
+          w3 |  .5544652   .5229423   .0315229   .0632226   .4986011   .9901813
+          w4 | -.1347553  -.0600428  -.0747125  -.0755888   .9884075   1.128103
+          w5 |  .4337586   .4610533  -.0272947  -.0548832    .497323    .988408
+          w6 |  .4298332    .462378  -.0325449  -.0654592   .4971776   .9858507
+          w7 |  .2866279   .1296205   .1570075   .1666473   .9421542   .8895329
+          w8 |  .5191364   .5036301   .0155063   .0310131    .499992   .9985498
+          w9 |  .4288518   .4582843  -.0294325  -.0592326   .4968976   .9865818
+         w10 | -.0410457  -.0464974   .0054516   .0055808    .976847   1.006332
+-------------------------------------------------------------------------------
+  
+  Mean standardized diff., squared
+  .0000140479
+  Mean absolute standardized diff.
+  .0674371456
+  Maximum absolute standardized diff.
+  .1666473156
+  C.V. of matching weights:
+  .6433272032
+  S.D. of matching weights:
+  .6433272032
+  Skewness of matching weights:
+  .0995854628
+  Kurtosis of matching weights:
+  .0193400145
+  Maximum matching weight:
+  8.7195325
+
+
+A_1 with estimator: cbps85 
+CV target: cvtarget(20  0.8142 6)
+
+
+
+  981 control obs
+  1019 treatment obs
+  (Data are unweighted.)
+  Step 1 skipped (initial values provided by user):
+  
+  Step 2 (CBPS) :
+Iteration 0:   f(p) =  .00002626  
+Iteration 1:   f(p) =  .00002139  
+Iteration 2:   f(p) =  5.028e-08  
+Iteration 3:   f(p) =  5.028e-08  
+numerical derivatives are approximate
+flat or discontinuous region encountered
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 4:   f(p) =  5.028e-08  
+Iteration 5:   f(p) =  5.028e-08  (backed up)
+Iteration 6:   f(p) =  5.028e-08  
+Iteration 7:   f(p) =  5.028e-08  
+Iteration 8:   f(p) =  5.028e-08  
+Iteration 9:   f(p) =  5.028e-08  (backed up)
+Iteration 10:  f(p) =  5.028e-08  (backed up)
+Iteration 11:  f(p) =  5.028e-08  (backed up)
+Iteration 12:  f(p) =  5.028e-08  (backed up)
+Iteration 13:  f(p) =  5.028e-08  (backed up)
+Iteration 14:  f(p) =  5.028e-08  (backed up)
+Iteration 15:  f(p) =  5.028e-08  (backed up)
+Iteration 16:  f(p) =  5.028e-08  (backed up)
+Iteration 17:  f(p) =  5.028e-08  (backed up)
+Iteration 18:  f(p) =  5.028e-08  (backed up)
+BFGS stepping has contracted, resetting BFGS Hessian
+Iteration 19:  f(p) =  5.028e-08  (backed up)
+BFGS stepping has contracted, resetting BFGS Hessian
+Iteration 20:  f(p) =  5.028e-08  (backed up)
+BFGS stepping has contracted, resetting BFGS Hessian
+Iteration 21:  f(p) =  5.028e-08  (backed up)
+BFGS stepping has contracted, resetting BFGS Hessian
+Iteration 22:  f(p) =  5.028e-08  (backed up)
+BFGS stepping has contracted, resetting BFGS Hessian
+Iteration 23:  f(p) =  5.028e-08  (backed up)
+BFGS stepping has contracted, resetting BFGS Hessian
+Iteration 24:  f(p) =  5.028e-08  (backed up)
+Iteration 25:  f(p) =  5.028e-08  (backed up)
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 26:  f(p) =  5.028e-08  
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 27:  f(p) =  5.028e-08  (backed up)
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 28:  f(p) =  5.028e-08  
+numerical derivatives are approximate
+flat or discontinuous region encountered
+BFGS stepping has contracted, resetting BFGS Hessian
+Iteration 29:  f(p) =  5.028e-08  
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 30:  f(p) =  5.028e-08  (backed up)
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 31:  f(p) =  5.028e-08  (backed up)
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 32:  f(p) =  5.028e-08  (backed up)
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 33:  f(p) =  5.028e-08  (backed up)
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 34:  f(p) =  5.028e-08  (backed up)
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 35:  f(p) =  5.028e-08  (backed up)
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 36:  f(p) =  5.028e-08  (backed up)
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 37:  f(p) =  5.028e-08  (backed up)
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 38:  f(p) =  5.028e-08  (backed up)
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 39:  f(p) =  5.028e-08  (backed up)
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 40:  f(p) =  5.028e-08  (backed up)
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 41:  f(p) =  5.028e-08  (backed up)
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 42:  f(p) =  5.028e-08  (backed up)
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 43:  f(p) =  5.028e-08  (backed up)
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 44:  f(p) =  5.028e-08  (backed up)
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 45:  f(p) =  5.028e-08  (backed up)
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 46:  f(p) =  5.028e-08  (backed up)
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 47:  f(p) =  5.028e-08  (backed up)
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 48:  f(p) =  5.028e-08  (backed up)
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 49:  f(p) =  5.028e-08  (backed up)
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 50:  f(p) =  5.028e-08  (backed up)
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 51:  f(p) =  5.028e-08  (backed up)
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 52:  f(p) =  5.028e-08  (backed up)
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 53:  f(p) =  5.028e-08  (backed up)
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 54:  f(p) =  5.028e-08  (backed up)
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 55:  f(p) =  5.028e-08  (backed up)
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 56:  f(p) =  5.028e-08  (backed up)
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 57:  f(p) =  5.028e-08  (backed up)
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 58:  f(p) =  5.028e-08  (backed up)
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 59:  f(p) =  5.028e-08  (backed up)
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 60:  f(p) =  5.028e-08  (backed up)
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 61:  f(p) =  5.028e-08  (backed up)
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 62:  f(p) =  5.028e-08  (backed up)
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 63:  f(p) =  5.028e-08  (backed up)
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 64:  f(p) =  5.028e-08  (backed up)
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 65:  f(p) =  5.028e-08  (backed up)
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 66:  f(p) =  5.028e-08  (backed up)
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 67:  f(p) =  5.028e-08  (backed up)
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 68:  f(p) =  5.028e-08  (backed up)
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 69:  f(p) =  5.028e-08  (backed up)
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 70:  f(p) =  5.028e-08  (backed up)
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 71:  f(p) =  5.028e-08  (backed up)
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 72:  f(p) =  5.028e-08  (backed up)
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 73:  f(p) =  5.028e-08  (backed up)
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 74:  f(p) =  5.028e-08  (backed up)
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 75:  f(p) =  5.028e-08  (backed up)
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 76:  f(p) =  5.028e-08  (backed up)
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 77:  f(p) =  5.028e-08  (backed up)
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 78:  f(p) =  5.028e-08  (backed up)
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 79:  f(p) =  5.028e-08  (backed up)
+numerical derivatives are approximate
+flat or discontinuous region encountered
+Iteration 80:  f(p) =  5.028e-08  (backed up)
+convergence not achieved
+
+Propensity score model coefficients                Number of obs  =      2,000
+Generalization of IPW/CPBS-type reweigting
+Loss = CBPS + 20*abs(wgt_cv()-.8141668507665)^6)
+------------------------------------------------------------------------------
+           a |      Coef.
+-------------+----------------------------------------------------------------
+          w1 |      0.701
+          w2 |     -0.156
+          w3 |      0.464
+          w4 |     -0.316
+          w5 |     -0.480
+          w6 |     -0.320
+          w7 |      0.511
+          w8 |      0.035
+          w9 |      0.016
+         w10 |      0.039
+       _cons |    -11.873
+------------------------------------------------------------------------------
+
+New variables (unweighted summary statistics)
+
+Summary for variables: _weight _weight_mtch _pscore
+     by categories of: _treated 
+
+_treated |         N      mean        sd       min        p1       p10       p25       p50       p75       p90       p99       max
+---------+------------------------------------------------------------------------------------------------------------------------
+       0 |       981         1      .813      .134      .162      .307      .476       .76      1.27      1.92      4.06      7.19
+         |       981         1      .813      .134      .162      .307      .476       .76      1.27      1.92      4.06      7.19
+         |       981   7.5e-06   6.1e-06   1.0e-06   1.2e-06   2.3e-06   3.6e-06   5.7e-06   9.5e-06   1.4e-05   3.0e-05   5.4e-05
+---------+------------------------------------------------------------------------------------------------------------------------
+       1 |      1019         1         0         1         1         1         1         1         1         1         1         1
+         |      1019         1         0         1         1         1         1         1         1         1         1         1
+         |      1019   1.6e-05   1.2e-05   1.0e-06   2.3e-06   5.0e-06   7.7e-06   1.2e-05   2.0e-05   3.0e-05   5.7e-05    .00012
+---------+------------------------------------------------------------------------------------------------------------------------
+   Total |      2000         1      .569      .134       .18      .431      .769         1         1      1.43      3.37      7.19
+         |      2000         1      .569      .134       .18      .431      .769         1         1      1.43      3.37      7.19
+         |      2000   1.2e-05   1.1e-05   1.0e-06   1.3e-06   3.0e-06   4.9e-06   8.6e-06   1.5e-05   2.4e-05   5.0e-05    .00012
+----------------------------------------------------------------------------------------------------------------------------------
+(sum of wgt is 2,000)
+------------------------------------------------------------------------------
+             |               Robust
+           y |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+           a |
+  Treatment  |     -0.016      0.039   -0.426   0.670       -0.092       0.059
+       _cons |     -3.809      0.031 -122.451   0.000       -3.870      -3.748
+------------------------------------------------------------------------------
+  64.57 percent power to detect an effect of -.09, assuming a standard error of .0385657 and a 2-sided test and alpha = .05
+
+ ( 1)  1.a = 0
+
+       F(  1,  1998) =    0.18
+            Prob > F =    0.6703
+
+ ( 1)  1.a = -.09
+
+       F(  1,  1998) =    3.64
+            Prob > F =    0.0566
+  Balance:
+-------------------------------------------------------------------------------
+             |    mean_T     mean_C       diff   std_diff    sd_pool  var_ratio
+-------------+-----------------------------------------------------------------
+          w1 |  .5947007   .5452529   .0494478    .099867   .4951362   .9720528
+          w2 | -.1054126  -.0018628  -.1035498  -.1043547   .9922867   .8978112
+          w3 |  .5544652   .5244997   .0299655   .0601064   .4985407   .9904747
+          w4 | -.1347553  -.0415355  -.0932199  -.0941461   .9901614    1.12138
+          w5 |  .4337586   .4640578  -.0302993  -.0609058   .4974775   .9875138
+          w6 |  .4298332   .4770683  -.0472351  -.0948666   .4979108   .9823355
+          w7 |  .2866279   .0732799    .213348   .2255357   .9459612   .8857227
+          w8 |  .5191364    .502121   .0170154   .0340303   .5000086   .9985152
+          w9 |  .4288518   .4662777  -.0374258  -.0752536   .4973297   .9841913
+         w10 | -.0410457  -.0622155   .0211697   .0216499   .9778197   1.002471
+-------------------------------------------------------------------------------
+  
+  Mean standardized diff., squared
+  1.36016e-06
+  Mean absolute standardized diff.
+  .0870716185
+  Maximum absolute standardized diff.
+  .2255357282
+  C.V. of matching weights:
+  .569308473
+  S.D. of matching weights:
+  .569308473
+  Skewness of matching weights:
+  .0856627492
+  Kurtosis of matching weights:
+  .0150088297
+  Maximum matching weight:
+  7.192180086
+
+
+A_1 with estimator: cbps75 
+CV target: cvtarget(20  0.7184 6)
+
+
+
+  981 control obs
+  1019 treatment obs
+  (Data are unweighted.)
+  Step 1 skipped (initial values provided by user):
+  
+  Step 2 (CBPS) :
+Iteration 0:   f(p) =  .00624623  
+Iteration 1:   f(p) =  .00623181  
+Iteration 2:   f(p) =   .0062318  
+Iteration 3:   f(p) =   .0062318  
+Iteration 4:   f(p) =   .0062318  
+Iteration 5:   f(p) =   .0062318  (backed up)
+Iteration 6:   f(p) =   .0062318  (backed up)
+Iteration 7:   f(p) =   .0062318  (backed up)
+Iteration 8:   f(p) =   .0062318  (backed up)
+Iteration 9:   f(p) =   .0062318  (backed up)
+Iteration 10:  f(p) =   .0062318  (backed up)
+Iteration 11:  f(p) =   .0062318  (backed up)
+Iteration 12:  f(p) =   .0062318  (backed up)
+Iteration 13:  f(p) =   .0062318  (backed up)
+Iteration 14:  f(p) =   .0062318  (backed up)
+Iteration 15:  f(p) =   .0062318  (backed up)
+Iteration 16:  f(p) =   .0062318  (backed up)
+Iteration 17:  f(p) =   .0062318  (backed up)
+Iteration 18:  f(p) =   .0062318  (backed up)
+Iteration 19:  f(p) =   .0062318  (backed up)
+Iteration 20:  f(p) =   .0062318  (backed up)
+Iteration 21:  f(p) =   .0062318  (backed up)
+Iteration 22:  f(p) =   .0062318  (backed up)
+Iteration 23:  f(p) =   .0062318  (backed up)
+Iteration 24:  f(p) =   .0062318  (backed up)
+Iteration 25:  f(p) =   .0062318  (backed up)
+Iteration 26:  f(p) =   .0062318  (backed up)
+Iteration 27:  f(p) =   .0062318  (backed up)
+Iteration 28:  f(p) =   .0062318  (backed up)
+Iteration 29:  f(p) =   .0062318  (backed up)
+Iteration 30:  f(p) =   .0062318  (backed up)
+Iteration 31:  f(p) =   .0062318  (backed up)
+Iteration 32:  f(p) =   .0062318  (backed up)
+Iteration 33:  f(p) =   .0062318  (backed up)
+Iteration 34:  f(p) =   .0062318  (backed up)
+Iteration 35:  f(p) =   .0062318  (backed up)
+Iteration 36:  f(p) =   .0062318  (backed up)
+Iteration 37:  f(p) =   .0062318  (backed up)
+Iteration 38:  f(p) =   .0062318  (backed up)
+Iteration 39:  f(p) =   .0062318  (backed up)
+Iteration 40:  f(p) =   .0062318  (backed up)
+Iteration 41:  f(p) =   .0062318  (backed up)
+Iteration 42:  f(p) =   .0062318  (backed up)
+Iteration 43:  f(p) =   .0062318  (backed up)
+Iteration 44:  f(p) =   .0062318  (backed up)
+Iteration 45:  f(p) =   .0062318  (backed up)
+Iteration 46:  f(p) =   .0062318  (backed up)
+Iteration 47:  f(p) =   .0062318  (backed up)
+Iteration 48:  f(p) =   .0062318  (backed up)
+Iteration 49:  f(p) =   .0062318  (backed up)
+Iteration 50:  f(p) =   .0062318  (backed up)
+Iteration 51:  f(p) =   .0062318  (backed up)
+Iteration 52:  f(p) =   .0062318  (backed up)
+Iteration 53:  f(p) =   .0062318  
+Iteration 54:  f(p) =   .0062318  (backed up)
+Iteration 55:  f(p) =   .0062318  (backed up)
+Iteration 56:  f(p) =   .0062318  
+Iteration 57:  f(p) =   .0062318  (backed up)
+Iteration 58:  f(p) =   .0062318  (backed up)
+Iteration 59:  f(p) =   .0062318  (backed up)
+Iteration 60:  f(p) =   .0062318  (backed up)
+Iteration 61:  f(p) =   .0062318  (backed up)
+Iteration 62:  f(p) =   .0062318  (backed up)
+Iteration 63:  f(p) =   .0062318  (backed up)
+Iteration 64:  f(p) =   .0062318  (backed up)
+Iteration 65:  f(p) =   .0062318  (backed up)
+Iteration 66:  f(p) =   .0062318  (backed up)
+Iteration 67:  f(p) =   .0062318  (backed up)
+Iteration 68:  f(p) =   .0062318  (backed up)
+Iteration 69:  f(p) =   .0062318  (backed up)
+Iteration 70:  f(p) =   .0062318  (backed up)
+Iteration 71:  f(p) =   .0062318  (backed up)
+Iteration 72:  f(p) =   .0062318  (backed up)
+Iteration 73:  f(p) =   .0062318  (backed up)
+Iteration 74:  f(p) =   .0062318  (backed up)
+Iteration 75:  f(p) =   .0062318  (backed up)
+Iteration 76:  f(p) =   .0062318  (backed up)
+Iteration 77:  f(p) =   .0062318  (backed up)
+Iteration 78:  f(p) =   .0062318  (backed up)
+Iteration 79:  f(p) =   .0062318  (backed up)
+Iteration 80:  f(p) =   .0062318  (backed up)
+convergence not achieved
+
+Propensity score model coefficients                Number of obs  =      2,000
+Generalization of IPW/CPBS-type reweigting
+Loss = CBPS + 20*abs(wgt_cv()-.7183825153822)^6)
+------------------------------------------------------------------------------
+           a |      Coef.
+-------------+----------------------------------------------------------------
+          w1 |      0.671
+          w2 |     -0.113
+          w3 |      0.448
+          w4 |     -0.280
+          w5 |     -0.460
+          w6 |     -0.301
+          w7 |      0.435
+          w8 |      0.029
+          w9 |      0.030
+         w10 |      0.032
+       _cons |    -11.874
+------------------------------------------------------------------------------
+
+New variables (unweighted summary statistics)
+
+Summary for variables: _weight _weight_mtch _pscore
+     by categories of: _treated 
+
+_treated |         N      mean        sd       min        p1       p10       p25       p50       p75       p90       p99       max
+---------+------------------------------------------------------------------------------------------------------------------------
+       0 |       981         1      .708      .135      .204      .357      .529      .804      1.27      1.83      3.76         6
+         |       981         1      .708      .135      .204      .357      .529      .804      1.27      1.83      3.76         6
+         |       981   7.4e-06   5.3e-06   1.0e-06   1.5e-06   2.6e-06   3.9e-06   6.0e-06   9.4e-06   1.4e-05   2.8e-05   4.5e-05
+---------+------------------------------------------------------------------------------------------------------------------------
+       1 |      1019         1         0         1         1         1         1         1         1         1         1         1
+         |      1019         1         0         1         1         1         1         1         1         1         1         1
+         |      1019   1.4e-05   9.7e-06   1.2e-06   2.6e-06   5.3e-06   7.8e-06   1.2e-05   1.8e-05   2.6e-05   4.6e-05   9.0e-05
+---------+------------------------------------------------------------------------------------------------------------------------
+   Total |      2000         1      .496      .135       .22      .485      .812         1         1      1.42      3.07         6
+         |      2000         1      .496      .135       .22      .485      .812         1         1      1.42      3.07         6
+         |      2000   1.1e-05   8.6e-06   1.0e-06   1.6e-06   3.4e-06   5.2e-06   8.6e-06   1.4e-05   2.1e-05   4.1e-05   9.0e-05
+----------------------------------------------------------------------------------------------------------------------------------
+(sum of wgt is 2,000)
+------------------------------------------------------------------------------
+             |               Robust
+           y |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+           a |
+  Treatment  |      0.011      0.037    0.297   0.766       -0.061       0.083
+       _cons |     -3.836      0.029 -133.424   0.000       -3.892      -3.780
+------------------------------------------------------------------------------
+  68.89 percent power to detect an effect of -.09, assuming a standard error of .0366945 and a 2-sided test and alpha = .05
+
+ ( 1)  1.a = 0
+
+       F(  1,  1998) =    0.09
+            Prob > F =    0.7661
+
+ ( 1)  1.a = -.09
+
+       F(  1,  1998) =    7.56
+            Prob > F =    0.0060
+  Balance:
+-------------------------------------------------------------------------------
+             |    mean_T     mean_C       diff   std_diff    sd_pool  var_ratio
+-------------+-----------------------------------------------------------------
+          w1 |  .5947007   .5396942   .0550065   .1110084   .4955167   .9702052
+          w2 | -.1054126   .0381112  -.1435238   -.144675   .9920429   .9030601
+          w3 |  .5544652    .525874   .0285912    .057356   .4984865   .9907497
+          w4 | -.1347553  -.0157065  -.1190489  -.1200078   .9920093   1.115721
+          w5 |  .4337586   .4673841  -.0336255  -.0675696   .4976434   .9866091
+          w6 |  .4298332    .492152  -.0623188  -.1249991   .4985541   .9805107
+          w7 |  .2866279   .0116163   .2750116    .289293   .9506332   .8831671
+          w8 |  .5191364   .4997823   .0193541   .0387058    .500032   .9984974
+          w9 |  .4288518   .4770887  -.0482369  -.0968877   .4978643   .9817759
+         w10 | -.0410457  -.0675885   .0265428   .0271053   .9792455   .9966686
+-------------------------------------------------------------------------------
+  
+  Mean standardized diff., squared
+  9.40686e-06
+  Mean absolute standardized diff.
+  .1077607706
+  Maximum absolute standardized diff.
+  .2892930253
+  C.V. of matching weights:
+  .4956642145
+  S.D. of matching weights:
+  .4956642145
+  Skewness of matching weights:
+  .0728223216
+  Kurtosis of matching weights:
+  .0115940335
+  Maximum matching weight:
+  6.000204865
+-----------------------------------------------------------------------------------
+                  |      Coef.
+------------------+----------------------------------------------------------------
+A_1               |
+                N |  2,000.000
+               Nt |  1,019.000
+             true |     -0.090
+------------------+----------------------------------------------------------------
+A_1_raw           |
+       impact_est |      0.121
+         sd_error |      0.032
+             bias |      0.211
+        error_sqr |      0.045
+    power_zstat_0 |      0.804
+              p_0 |      0.000
+         reject_0 |      1.000
+             p_g1 |      0.000
+        reject_g1 |      1.000
+------------------+----------------------------------------------------------------
+A_1_ipw_true_ps   |
+       impact_est |     -0.059
+         sd_error |      0.048
+             bias |      0.031
+        error_sqr |      0.001
+    power_zstat_0 |      0.462
+              p_0 |      0.218
+         reject_0 |      0.000
+             p_g1 |      0.527
+        reject_g1 |      0.000
+------------------+----------------------------------------------------------------
+A_1_ipw           |
+       impact_est |     -0.096
+         sd_error |      0.055
+             bias |     -0.006
+        error_sqr |      0.000
+    power_zstat_0 |      0.376
+              p_0 |      0.078
+         reject_0 |      0.000
+             p_g1 |      0.908
+        reject_g1 |      0.000
+      bal_max_asd |      0.054
+     bal_mean_asd |      0.021
+           wgt_sd |      1.004
+           wgt_cv |      1.004
+     wgt_skewness |      0.165
+     wgt_kurtosis |      0.045
+          wgt_max |     17.258
+------------------+----------------------------------------------------------------
+A_1_cbps          |
+       impact_est |     -0.090
+         sd_error |      0.051
+             bias |      0.000
+        error_sqr |      0.000
+    power_zstat_0 |      0.424
+              p_0 |      0.077
+         reject_0 |      0.000
+             p_g1 |      1.000
+        reject_g1 |      0.000
+      bal_max_asd |      0.000
+     bal_mean_asd |      0.000
+           wgt_sd |      0.958
+           wgt_cv |      0.958
+     wgt_skewness |      0.152
+     wgt_kurtosis |      0.038
+          wgt_max |     14.674
+------------------+----------------------------------------------------------------
+A_1_cbps99_999999 |
+       impact_est |     -0.048
+         sd_error |      0.042
+             bias |      0.042
+        error_sqr |      0.002
+    power_zstat_0 |      0.576
+              p_0 |      0.251
+         reject_0 |      0.000
+             p_g1 |      0.316
+        reject_g1 |      0.000
+      bal_max_asd |      0.146
+     bal_mean_asd |      0.058
+           wgt_sd |      0.676
+           wgt_cv |      0.676
+     wgt_skewness |      0.105
+     wgt_kurtosis |      0.021
+          wgt_max |      9.295
+------------------+----------------------------------------------------------------
+A_1_cbps99_9      |
+       impact_est |     -0.050
+         sd_error |      0.042
+             bias |      0.040
+        error_sqr |      0.002
+    power_zstat_0 |      0.575
+              p_0 |      0.229
+         reject_0 |      0.000
+             p_g1 |      0.344
+        reject_g1 |      0.000
+      bal_max_asd |      0.140
+     bal_mean_asd |      0.058
+           wgt_sd |      0.676
+           wgt_cv |      0.676
+     wgt_skewness |      0.105
+     wgt_kurtosis |      0.021
+          wgt_max |      9.344
+------------------+----------------------------------------------------------------
+A_1_cbps99_7      |
+       impact_est |     -0.050
+         sd_error |      0.042
+             bias |      0.040
+        error_sqr |      0.002
+    power_zstat_0 |      0.576
+              p_0 |      0.230
+         reject_0 |      0.000
+             p_g1 |      0.342
+        reject_g1 |      0.000
+      bal_max_asd |      0.144
+     bal_mean_asd |      0.059
+           wgt_sd |      0.675
+           wgt_cv |      0.675
+     wgt_skewness |      0.105
+     wgt_kurtosis |      0.021
+          wgt_max |      9.285
+------------------+----------------------------------------------------------------
+A_1_cbps99_5      |
+       impact_est |     -0.050
+         sd_error |      0.042
+             bias |      0.040
+        error_sqr |      0.002
+    power_zstat_0 |      0.577
+              p_0 |      0.228
+         reject_0 |      0.000
+             p_g1 |      0.344
+        reject_g1 |      0.000
+      bal_max_asd |      0.144
+     bal_mean_asd |      0.059
+           wgt_sd |      0.674
+           wgt_cv |      0.674
+     wgt_skewness |      0.105
+     wgt_kurtosis |      0.021
+          wgt_max |      9.269
+------------------+----------------------------------------------------------------
+A_1_cbps99_3      |
+       impact_est |     -0.051
+         sd_error |      0.042
+             bias |      0.039
+        error_sqr |      0.002
+    power_zstat_0 |      0.577
+              p_0 |      0.223
+         reject_0 |      0.000
+             p_g1 |      0.350
+        reject_g1 |      0.000
+      bal_max_asd |      0.146
+     bal_mean_asd |      0.059
+           wgt_sd |      0.672
+           wgt_cv |      0.672
+     wgt_skewness |      0.105
+     wgt_kurtosis |      0.021
+          wgt_max |      9.271
+------------------+----------------------------------------------------------------
+A_1_cbps99_1      |
+       impact_est |     -0.051
+         sd_error |      0.042
+             bias |      0.039
+        error_sqr |      0.002
+    power_zstat_0 |      0.578
+              p_0 |      0.226
+         reject_0 |      0.000
+             p_g1 |      0.344
+        reject_g1 |      0.000
+      bal_max_asd |      0.147
+     bal_mean_asd |      0.060
+           wgt_sd |      0.671
+           wgt_cv |      0.671
+     wgt_skewness |      0.104
+     wgt_kurtosis |      0.021
+          wgt_max |      9.234
+------------------+----------------------------------------------------------------
+A_1_cbps99        |
+       impact_est |     -0.050
+         sd_error |      0.042
+             bias |      0.040
+        error_sqr |      0.002
+    power_zstat_0 |      0.579
+              p_0 |      0.233
+         reject_0 |      0.000
+             p_g1 |      0.334
+        reject_g1 |      0.000
+      bal_max_asd |      0.146
+     bal_mean_asd |      0.060
+           wgt_sd |      0.670
+           wgt_cv |      0.670
+     wgt_skewness |      0.104
+     wgt_kurtosis |      0.021
+          wgt_max |      9.209
+------------------+----------------------------------------------------------------
+A_1_cbps97        |
+       impact_est |     -0.047
+         sd_error |      0.041
+             bias |      0.043
+        error_sqr |      0.002
+    power_zstat_0 |      0.586
+              p_0 |      0.256
+         reject_0 |      0.000
+             p_g1 |      0.297
+        reject_g1 |      0.000
+      bal_max_asd |      0.154
+     bal_mean_asd |      0.063
+           wgt_sd |      0.657
+           wgt_cv |      0.657
+     wgt_skewness |      0.102
+     wgt_kurtosis |      0.020
+          wgt_max |      8.975
+------------------+----------------------------------------------------------------
+A_1_cbps95        |
+       impact_est |     -0.044
+         sd_error |      0.041
+             bias |      0.046
+        error_sqr |      0.002
+    power_zstat_0 |      0.594
+              p_0 |      0.281
+         reject_0 |      0.000
+             p_g1 |      0.263
+        reject_g1 |      0.000
+      bal_max_asd |      0.167
+     bal_mean_asd |      0.067
+           wgt_sd |      0.643
+           wgt_cv |      0.643
+     wgt_skewness |      0.100
+     wgt_kurtosis |      0.019
+          wgt_max |      8.720
+------------------+----------------------------------------------------------------
+A_1_cbps85        |
+       impact_est |     -0.016
+         sd_error |      0.039
+             bias |      0.074
+        error_sqr |      0.005
+    power_zstat_0 |      0.646
+              p_0 |      0.670
+         reject_0 |      0.000
+             p_g1 |      0.057
+        reject_g1 |      0.000
+      bal_max_asd |      0.226
+     bal_mean_asd |      0.087
+           wgt_sd |      0.569
+           wgt_cv |      0.569
+     wgt_skewness |      0.086
+     wgt_kurtosis |      0.015
+          wgt_max |      7.192
+------------------+----------------------------------------------------------------
+A_1_cbps75        |
+       impact_est |      0.011
+         sd_error |      0.037
+             bias |      0.101
+        error_sqr |      0.010
+    power_zstat_0 |      0.689
+              p_0 |      0.766
+         reject_0 |      0.000
+             p_g1 |      0.006
+        reject_g1 |      1.000
+      bal_max_asd |      0.289
+     bal_mean_asd |      0.108
+           wgt_sd |      0.496
+           wgt_cv |      0.496
+     wgt_skewness |      0.073
+     wgt_kurtosis |      0.012
+          wgt_max |      6.000
+-----------------------------------------------------------------------------------
+
+. 
+. parallel sim, expr(_b) reps(`reps') processors(4): ///
+>   onerep A, impact(-0.09) n(2000) ///
+>     estimators(raw ipw_true_ps ipw cbps) ///
+>     cvtargets(99.999999 99.9(-.2)99 99 97 95(-10)75) `commonopts'
+--------------------------------------------------------------------------------
+Parallel Computing with Stata
+Clusters   : 30
+pll_id     : l7ryh526i1
+Running at : U:\Stata\Ado\Devel\gmatch
+Randtype   : datetime
+Waiting for the clusters to finish...
+cluster 0022 has exited without error...
+cluster 0010 has exited without error...
+cluster 0014 has exited without error...
+cluster 0018 has exited without error...
+cluster 0002 has exited without error...
+cluster 0006 has exited without error...
+cluster 0026 has exited without error...
+cluster 0029 has exited without error...
+cluster 0009 has exited without error...
+cluster 0025 has exited without error...
+cluster 0017 has exited without error...
+cluster 0005 has exited without error...
+cluster 0013 has exited without error...
+cluster 0001 has exited without error...
+cluster 0021 has exited without error...
+cluster 0030 has exited without error...
+cluster 0012 has exited without error...
+cluster 0016 has exited without error...
+cluster 0004 has exited without error...
+cluster 0008 has exited without error...
+cluster 0027 has exited without error...
+cluster 0028 has exited without error...
+cluster 0015 has exited without error...
+cluster 0020 has exited without error...
+cluster 0024 has exited without error...
+cluster 0011 has exited without error...
+cluster 0019 has exited without error...
+cluster 0007 has exited without error...
+cluster 0023 has exited without error...
+cluster 0003 has exited without error...
+--------------------------------------------------------------------------------
+Enter -parallel printlog #- to checkout logfiles.
+--------------------------------------------------------------------------------
+
+. 
+. sim_reshape
+Before reshape:
+
+Contains data from C:\Users\KKranker\AppData\Local\Temp\6/__plll7ryh526i1_sim_outdta.dta
+  obs:         1,000                          simulate: onerep
+ vars:           229                          29 Oct 2018 18:49
+ size:       916,000                          
+Sorted by: 
+There are 1 prefixes
+_prefixes:      A_1
+There are 15 ests
+_ests:          raw ipw_true_ps ipw cbps cbps99_999999 cbps99_9 cbps99_7 cbps99_5 cbps99_3 cbps99_1 cbps99 cbps97 cbps95
+                cbps85 cbps75
+(simulate: onerep)
+After reshape:
+
+Contains data from C:\Users\KKranker\AppData\Local\Temp\6\ST_3010_000001.tmp
+  obs:        15,000                          simulate: onerep
+ vars:            23                          29 Oct 2018 18:50
+ size:     1,185,000                          
+------------------------------------------------------------------------------------------------------------------------------
+              storage   display    value
+variable name   type    format     label      variable label
+------------------------------------------------------------------------------------------------------------------------------
+rep             float   %9.0g                 
+c               byte    %10.0g                
+dgp             long    %8.0g      dgp        
+estimator       long    %13.0g     est        
+N               int     %7.0g                 
+Nt              int     %7.0g                 
+true            float   %7.4f                 
+impact_est      float   %7.4f                 
+sd_error        float   %7.4f                 
+bias            float   %7.4f                 
+error_sqr       float   %7.4f                 
+power_zstat_0   float   %7.4f                 
+p_0             float   %7.4f                 
+reject_0        byte    %7.0g                 
+p_g1            float   %7.4f                 
+reject_g1       byte    %7.0g                 
+bal_max_asd     float   %7.4f                 
+bal_mean_asd    float   %7.4f                 
+wgt_sd          float   %7.4f                 
+wgt_cv          float   %7.4f                 
+wgt_skewness    float   %7.4f                 
+wgt_kurtosis    float   %7.4f                 
+wgt_max         float   %7.1f                 
+------------------------------------------------------------------------------------------------------------------------------
+Sorted by: rep  estimator  dgp  true  N  c
+     Note: Dataset has changed since last saved.
+
+Variable     Obs Unique      Mean  Min   Max  Label
+------------------------------------------------------------------------------------------------------------------------------
+rep        15000   1000     500.5    1  1000  
+c          15000      1         1    1     1  
+dgp        15000      1         1    1     1  
+estimator  15000     15  9.866667    1    17  
+------------------------------------------------------------------------------------------------------------------------------
+
+-----------------------
+              |  N and 
+              |  true  
+dgp and       | - 200 -
+estimator     | -0.0900
+--------------+--------
+A             |
+  IPW_TRUE_PS |     999
+          IPW |     999
+         CBPS |     999
+CBPS99_999999 |     999
+     CBPS99_9 |     999
+     CBPS99_7 |     999
+     CBPS99_5 |     999
+     CBPS99_3 |     999
+     CBPS99_1 |     999
+       CBPS99 |     999
+       CBPS97 |     999
+       CBPS95 |     999
+       CBPS85 |     999
+       CBPS75 |     999
+          RAW |     999
+-----------------------
+
+. save sims/sim`sim'/sim`sim'a.dta, replace
+(note: file sims/sim3/sim3a.dta not found)
+file sims/sim3/sim3a.dta saved
+
+. 
+. foreach v of var impact_est-wgt_max {
+  2.   tabstat `v', by(estimator) s(N mean p50 sd)
+  3.   graph bar (mean) `v', over(estimator, label(alternate labsize(tiny))) name(`v', replace)
+  4.   graph export "sims/sim`sim'/sim`sim'a_`v'.png", replace
+  5. }
+
+Summary for variables: impact_est
+     by categories of: estimator 
+
+    estimator |         N      mean       p50        sd
+--------------+----------------------------------------
+  IPW_TRUE_PS |       999 -.0879923 -.0873071  .0441466
+          IPW |       999 -.0902239 -.0885868  .0253305
+         CBPS |       999      -.09      -.09  1.71e-07
+CBPS99_999999 |       999 -.0499682 -.0522563  .0698629
+     CBPS99_9 |       999 -.0507162   -.05153   .021447
+     CBPS99_7 |       999  -.051178 -.0515444  .0102582
+     CBPS99_5 |       999 -.0512394 -.0514223  .0090989
+     CBPS99_3 |       999 -.0509577 -.0512158  .0091439
+     CBPS99_1 |       999  -.050777 -.0511054  .0091679
+       CBPS99 |       999 -.0506796 -.0509882  .0092055
+       CBPS97 |       999  -.048834 -.0490215  .0097702
+       CBPS95 |       999 -.0466524 -.0469014  .0100278
+       CBPS85 |       838 -.0192169 -.0317389   .063322
+       CBPS75 |       850  .0071138 -.0144034  .0771842
+          RAW |       999  .0873056  .0872498  .0323937
+--------------+----------------------------------------
+        Total |     14675 -.0437028 -.0506329  .0550721
+-------------------------------------------------------
+(note: file sims/sim3/sim3a_impact_est.png not found)
+(file sims/sim3/sim3a_impact_est.png written in PNG format)
+
+Summary for variables: sd_error
+     by categories of: estimator 
+
+    estimator |         N      mean       p50        sd
+--------------+----------------------------------------
+  IPW_TRUE_PS |       999   .043183   .042247  .0044928
+          IPW |       999  .0436447  .0426702  .0051528
+         CBPS |       999  .0434605  .0428161  .0037003
+CBPS99_999999 |       999  .0383362  .0381364  .0018899
+     CBPS99_9 |       999  .0384145  .0381017  .0020292
+     CBPS99_7 |       999  .0383581  .0380689   .001948
+     CBPS99_5 |       999  .0383427  .0380517  .0019444
+     CBPS99_3 |       999  .0383204  .0380339  .0019374
+     CBPS99_1 |       999  .0382988  .0380161  .0019309
+       CBPS99 |       999  .0382885  .0380065  .0019281
+       CBPS97 |       999  .0380715  .0377942  .0018626
+       CBPS95 |       999  .0378595  .0375955  .0017954
+       CBPS85 |       838  .0367687  .0365629  .0015244
+       CBPS75 |       850  .0358203   .035704  .0013152
+          RAW |       999  .0320783  .0320653  .0004963
+--------------+----------------------------------------
+        Total |     14675   .038665  .0381021  .0038737
+-------------------------------------------------------
+(note: file sims/sim3/sim3a_sd_error.png not found)
+(file sims/sim3/sim3a_sd_error.png written in PNG format)
+
+Summary for variables: bias
+     by categories of: estimator 
+
+    estimator |         N      mean       p50        sd
+--------------+----------------------------------------
+  IPW_TRUE_PS |       999  .0020077   .002693  .0441466
+          IPW |       999 -.0002239  .0014132  .0253305
+         CBPS |       999  4.97e-09 -2.18e-11  1.71e-07
+CBPS99_999999 |       999  .0400318  .0377437  .0698629
+     CBPS99_9 |       999  .0392838    .03847   .021447
+     CBPS99_7 |       999   .038822  .0384556  .0102582
+     CBPS99_5 |       999  .0387606  .0385777  .0090989
+     CBPS99_3 |       999  .0390423  .0387842  .0091439
+     CBPS99_1 |       999   .039223  .0388946  .0091679
+       CBPS99 |       999  .0393204  .0390118  .0092055
+       CBPS97 |       999   .041166  .0409785  .0097702
+       CBPS95 |       999  .0433476  .0430986  .0100278
+       CBPS85 |       838  .0707831  .0582611   .063322
+       CBPS75 |       850  .0971138  .0755966  .0771842
+          RAW |       999  .1773056  .1772498  .0323937
+--------------+----------------------------------------
+        Total |     14675  .0462972  .0393671  .0550721
+-------------------------------------------------------
+(note: file sims/sim3/sim3a_bias.png not found)
+(file sims/sim3/sim3a_bias.png written in PNG format)
+
+Summary for variables: error_sqr
+     by categories of: estimator 
+
+    estimator |         N      mean       p50        sd
+--------------+----------------------------------------
+  IPW_TRUE_PS |       999   .001951  .0008508  .0027754
+          IPW |       999   .000641   .000244  .0011127
+         CBPS |       999  2.94e-14  1.94e-15  7.08e-14
+CBPS99_999999 |       999  .0064785  .0016544   .024368
+     CBPS99_9 |       999  .0020027  .0015069  .0053023
+     CBPS99_7 |       999  .0016123  .0014788  .0009826
+     CBPS99_5 |       999  .0015851  .0014882  .0007166
+     CBPS99_3 |       999  .0016078  .0015042   .000728
+     CBPS99_1 |       999  .0016224  .0015128  .0007335
+       CBPS99 |       999  .0016307  .0015219   .000739
+       CBPS97 |       999    .00179  .0016792  .0008188
+       CBPS95 |       999  .0019795  .0018575   .000884
+       CBPS85 |       838  .0090151  .0034129  .0272498
+       CBPS75 |       850  .0153815  .0057908  .0291769
+          RAW |       999  .0324856  .0314175  .0115599
+--------------+----------------------------------------
+        Total |     14675  .0051762  .0016136  .0145635
+-------------------------------------------------------
+(note: file sims/sim3/sim3a_error_sqr.png not found)
+(file sims/sim3/sim3a_error_sqr.png written in PNG format)
+
+Summary for variables: power_zstat_0
+     by categories of: estimator 
+
+    estimator |         N      mean       p50        sd
+--------------+----------------------------------------
+  IPW_TRUE_PS |       999  .5559359   .567638  .0683296
+          IPW |       999   .548905  .5593156  .0739461
+         CBPS |       999  .5491013  .5564802   .063514
+CBPS99_999999 |         0         .         .         .
+     CBPS99_9 |       999  .6504783  .6562077  .0436927
+     CBPS99_7 |       999  .6516365  .6569568  .0423761
+     CBPS99_5 |       999  .6519789  .6573486  .0423284
+     CBPS99_3 |       999  .6524726   .657755  .0422047
+     CBPS99_1 |       999  .6529511  .6581617  .0420979
+       CBPS99 |       999   .653182  .6583834  .0420527
+       CBPS97 |       999  .6580181  .6632522   .040963
+       CBPS95 |       999  .6627696  .6678336  .0398221
+       CBPS85 |       838  .6877745  .6920082  .0350864
+       CBPS75 |       850  .7101073  .7125197  .0309954
+          RAW |       999  .8010964  .8014495  .0121033
+--------------+----------------------------------------
+        Total |     13676  .6479076  .6562392  .0796158
+-------------------------------------------------------
+(note: file sims/sim3/sim3a_power_zstat_0.png not found)
+(file sims/sim3/sim3a_power_zstat_0.png written in PNG format)
+
+Summary for variables: p_0
+     by categories of: estimator 
+
+    estimator |         N      mean       p50        sd
+--------------+----------------------------------------
+  IPW_TRUE_PS |       999  .1373778  .0429235  .2132037
+          IPW |       999  .0665474  .0398574  .0873741
+         CBPS |       999  .0399095  .0356769  .0182245
+CBPS99_999999 |       999  .1964719  .1529678  .1868756
+     CBPS99_9 |       999  .1982707  .1765182  .1132207
+     CBPS99_7 |       999  .1944404  .1768372  .0909994
+     CBPS99_5 |       999  .1937721  .1775527  .0856493
+     CBPS99_3 |       999  .1961372   .180646  .0871776
+     CBPS99_1 |       999  .1975423  .1815433  .0878687
+       CBPS99 |       999  .1983904  .1826405  .0885667
+       CBPS97 |       999  .2142614  .1963837  .0982187
+       CBPS95 |       999  .2336327  .2134302  .1066673
+       CBPS85 |       838  .3677135  .3419756  .2234969
+       CBPS75 |       850  .4658689  .4735703  .3110037
+          RAW |       999  .0541378  .0063379  .1303231
+--------------+----------------------------------------
+        Total |     14675  .1923614  .1602707  .1759594
+-------------------------------------------------------
+(note: file sims/sim3/sim3a_p_0.png not found)
+(file sims/sim3/sim3a_p_0.png written in PNG format)
+
+Summary for variables: reject_0
+     by categories of: estimator 
+
+    estimator |         N      mean       p50        sd
+--------------+----------------------------------------
+  IPW_TRUE_PS |       999  .5295295         1  .4993772
+          IPW |       999  .5865866         1  .4926924
+         CBPS |       999  .8018018         1   .398842
+CBPS99_999999 |       999  .2182182         0  .4132432
+     CBPS99_9 |       999   .031031         0  .1734884
+     CBPS99_7 |       999   .009009         0  .0945346
+     CBPS99_5 |       999   .007007         0  .0834559
+     CBPS99_3 |       999   .007007         0  .0834559
+     CBPS99_1 |       999   .007007         0  .0834559
+       CBPS99 |       999   .007007         0  .0834559
+       CBPS97 |       999   .008008         0  .0891731
+       CBPS95 |       999   .006006         0   .077304
+       CBPS85 |       838  .0871122         0  .2821678
+       CBPS75 |       850  .1717647         0  .3773979
+          RAW |       999  .7827828         1  .4125582
+--------------+----------------------------------------
+        Total |     14675  .2192164         0  .4137296
+-------------------------------------------------------
+(note: file sims/sim3/sim3a_reject_0.png not found)
+(file sims/sim3/sim3a_reject_0.png written in PNG format)
+
+Summary for variables: p_g1
+     by categories of: estimator 
+
+    estimator |         N      mean       p50        sd
+--------------+----------------------------------------
+  IPW_TRUE_PS |       999  .4967077  .4928617  .2956034
+          IPW |       999  .6789974  .7131804  .2201459
+         CBPS |       999  .9999981  .9999992  2.56e-06
+CBPS99_999999 |       999  .3274864  .2882573  .2353932
+     CBPS99_9 |       999  .3252538    .31043  .1362091
+     CBPS99_7 |       999  .3267818  .3161009  .1199663
+     CBPS99_5 |       999  .3249214  .3155341  .1145939
+     CBPS99_3 |       999  .3212994   .310656  .1137712
+     CBPS99_1 |       999  .3188711  .3089271  .1135519
+       CBPS99 |       999  .3176547  .3075669   .113618
+       CBPS97 |       999  .2946024  .2797206  .1157338
+       CBPS95 |       999  .2680812  .2540709  .1123693
+       CBPS85 |       838  .1455331   .116254   .135708
+       CBPS75 |       850  .0777369  .0337715  .1338847
+          RAW |       999  .0001303  3.45e-08  .0016595
+--------------+----------------------------------------
+        Total |     14675  .3532414  .2952714  .2761356
+-------------------------------------------------------
+(note: file sims/sim3/sim3a_p_g1.png not found)
+(file sims/sim3/sim3a_p_g1.png written in PNG format)
+
+Summary for variables: reject_g1
+     by categories of: estimator 
+
+    estimator |         N      mean       p50        sd
+--------------+----------------------------------------
+  IPW_TRUE_PS |       999  .0540541         0  .2262376
+          IPW |       999         0         0         0
+         CBPS |       999         0         0         0
+CBPS99_999999 |       999  .1191191         0  .3240909
+     CBPS99_9 |       999   .014014         0  .1176073
+     CBPS99_7 |       999   .003003         0  .0547447
+     CBPS99_5 |       999         0         0         0
+     CBPS99_3 |       999         0         0         0
+     CBPS99_1 |       999         0         0         0
+       CBPS99 |       999         0         0         0
+       CBPS97 |       999         0         0         0
+       CBPS95 |       999   .001001         0  .0316386
+       CBPS85 |       838  .2183771         0  .4133914
+       CBPS75 |       850  .5988235         1  .4904252
+          RAW |       999         1         1         0
+--------------+----------------------------------------
+        Total |     14675  .1282453         0  .3343742
+-------------------------------------------------------
+(note: file sims/sim3/sim3a_reject_g1.png not found)
+(file sims/sim3/sim3a_reject_g1.png written in PNG format)
+
+Summary for variables: bal_max_asd
+     by categories of: estimator 
+
+    estimator |         N      mean       p50        sd
+--------------+----------------------------------------
+  IPW_TRUE_PS |         0         .         .         .
+          IPW |       999  .0645757  .0614515  .0201896
+         CBPS |       999  3.30e-07  2.03e-07  3.33e-07
+CBPS99_999999 |       999  .1938907   .142245  .1475976
+     CBPS99_9 |       999  .1411151  .1342298  .0470007
+     CBPS99_7 |       999  .1347552  .1344103  .0153773
+     CBPS99_5 |       999  .1349731   .134805  .0126322
+     CBPS99_3 |       999  .1354868  .1356751  .0122537
+     CBPS99_1 |       999  .1362314  .1362228  .0123385
+       CBPS99 |       999  .1364808   .136528  .0123383
+       CBPS97 |       999  .1452461  .1444582  .0147017
+       CBPS95 |       999   .152116  .1515426  .0146397
+       CBPS85 |       838  .2375568  .1936251   .136789
+       CBPS75 |       850    .32818  .2445733  .1771587
+          RAW |         0         .         .         .
+--------------+----------------------------------------
+        Total |     12677  .1460536  .1376642  .1028121
+-------------------------------------------------------
+(note: file sims/sim3/sim3a_bal_max_asd.png not found)
+(file sims/sim3/sim3a_bal_max_asd.png written in PNG format)
+
+Summary for variables: bal_mean_asd
+     by categories of: estimator 
+
+    estimator |         N      mean       p50        sd
+--------------+----------------------------------------
+  IPW_TRUE_PS |         0         .         .         .
+          IPW |       999  .0279138  .0269564  .0087763
+         CBPS |       999  1.26e-07  7.84e-08  1.25e-07
+CBPS99_999999 |       999  .0872683   .063995  .0625197
+     CBPS99_9 |       999  .0625169  .0606384  .0150995
+     CBPS99_7 |       999  .0605426  .0604606  .0049278
+     CBPS99_5 |       999  .0605041  .0606412   .004029
+     CBPS99_3 |       999  .0607868  .0609414  .0039591
+     CBPS99_1 |       999  .0610982  .0612499  .0039754
+       CBPS99 |       999  .0612651  .0614177  .0039837
+       CBPS97 |       999  .0644016  .0646424  .0042398
+       CBPS95 |       999  .0676789  .0678272  .0044113
+       CBPS85 |       838  .1041774  .0867432  .0554686
+       CBPS75 |       850  .1468313  .1084019   .079333
+          RAW |         0         .         .         .
+--------------+----------------------------------------
+        Total |     12677  .0651155  .0618398  .0447793
+-------------------------------------------------------
+(note: file sims/sim3/sim3a_bal_mean_asd.png not found)
+(file sims/sim3/sim3a_bal_mean_asd.png written in PNG format)
+
+Summary for variables: wgt_sd
+     by categories of: estimator 
+
+    estimator |         N      mean       p50        sd
+--------------+----------------------------------------
+  IPW_TRUE_PS |         0         .         .         .
+          IPW |       999  .9176414  .8957885  .1233697
+         CBPS |       999   .911233  .9045676  .0758212
+CBPS99_999999 |       999  .6415678  .6377645  .0526779
+     CBPS99_9 |       999  .6436305  .6398022  .0541467
+     CBPS99_7 |       999  .6421701  .6384099  .0538949
+     CBPS99_5 |       999   .640913   .637183  .0538539
+     CBPS99_3 |       999  .6396425  .6359283  .0537418
+     CBPS99_1 |       999   .638377  .6346334  .0536344
+       CBPS99 |       999  .6377452  .6340517  .0535789
+       CBPS97 |       999   .625021  .6214823  .0524957
+       CBPS95 |       999  .6123668  .6088291  .0514004
+       CBPS85 |       838   .548234  .5442066  .0457247
+       CBPS75 |       850   .488675  .4847551  .0440348
+          RAW |         0         .         .         .
+--------------+----------------------------------------
+        Total |     12677  .6640019  .6348777  .1319062
+-------------------------------------------------------
+(note: file sims/sim3/sim3a_wgt_sd.png not found)
+(file sims/sim3/sim3a_wgt_sd.png written in PNG format)
+
+Summary for variables: wgt_cv
+     by categories of: estimator 
+
+    estimator |         N      mean       p50        sd
+--------------+----------------------------------------
+  IPW_TRUE_PS |         0         .         .         .
+          IPW |       999  .9176414  .8957885  .1233697
+         CBPS |       999   .911233  .9045676  .0758212
+CBPS99_999999 |       999  .6415678  .6377645  .0526779
+     CBPS99_9 |       999  .6436305  .6398022  .0541467
+     CBPS99_7 |       999  .6421701  .6384099  .0538949
+     CBPS99_5 |       999   .640913   .637183  .0538539
+     CBPS99_3 |       999  .6396425  .6359283  .0537418
+     CBPS99_1 |       999   .638377  .6346334  .0536344
+       CBPS99 |       999  .6377452  .6340517  .0535789
+       CBPS97 |       999   .625021  .6214823  .0524957
+       CBPS95 |       999  .6123668  .6088291  .0514004
+       CBPS85 |       838   .548234  .5442066  .0457247
+       CBPS75 |       850   .488675  .4847551  .0440348
+          RAW |         0         .         .         .
+--------------+----------------------------------------
+        Total |     12677  .6640019  .6348777  .1319062
+-------------------------------------------------------
+(note: file sims/sim3/sim3a_wgt_cv.png not found)
+(file sims/sim3/sim3a_wgt_cv.png written in PNG format)
+
+Summary for variables: wgt_skewness
+     by categories of: estimator 
+
+    estimator |         N      mean       p50        sd
+--------------+----------------------------------------
+  IPW_TRUE_PS |         0         .         .         .
+          IPW |       999  .1551908  .1409956  .0629809
+         CBPS |       999  .1444725  .1346345  .0435842
+CBPS99_999999 |       999  .0944018   .090199   .025598
+     CBPS99_9 |       999  .0973977  .0926434  .0266212
+     CBPS99_7 |       999   .097216  .0925694  .0255517
+     CBPS99_5 |       999  .0971163  .0922704  .0256872
+     CBPS99_3 |       999  .0969032   .092089  .0256708
+     CBPS99_1 |       999  .0966869  .0918273  .0256113
+       CBPS99 |       999  .0965803  .0916955  .0255859
+       CBPS97 |       999  .0944259  .0896536  .0248024
+       CBPS95 |       999  .0922735   .087609  .0240144
+       CBPS85 |       838  .0799402  .0764537  .0208894
+       CBPS75 |       850  .0686684  .0657295  .0190818
+          RAW |         0         .         .         .
+--------------+----------------------------------------
+        Total |     12677  .1015114  .0927021  .0384023
+-------------------------------------------------------
+(note: file sims/sim3/sim3a_wgt_skewness.png not found)
+(file sims/sim3/sim3a_wgt_skewness.png written in PNG format)
+
+Summary for variables: wgt_kurtosis
+     by categories of: estimator 
+
+    estimator |         N      mean       p50        sd
+--------------+----------------------------------------
+  IPW_TRUE_PS |         0         .         .         .
+          IPW |       999  .0475456  .0340385   .047579
+         CBPS |       999  .0398247  .0312525  .0306241
+CBPS99_999999 |       999  .0189463  .0156693  .0153308
+     CBPS99_9 |       999  .0202261  .0165558  .0152964
+     CBPS99_7 |       999  .0200867  .0165859  .0139082
+     CBPS99_5 |       999  .0200776  .0165685  .0139957
+     CBPS99_3 |       999  .0200105  .0165096  .0139886
+     CBPS99_1 |       999  .0199377  .0164304  .0139422
+       CBPS99 |       999   .019903  .0163912   .013921
+       CBPS97 |       999  .0191724  .0157949  .0132563
+       CBPS95 |       999  .0184558  .0153311  .0126619
+       CBPS85 |       838  .0145945  .0123225  .0095003
+       CBPS75 |       850  .0116623  .0099378  .0081897
+          RAW |         0         .         .         .
+--------------+----------------------------------------
+        Total |     12677  .0225657  .0168174   .022218
+-------------------------------------------------------
+(note: file sims/sim3/sim3a_wgt_kurtosis.png not found)
+(file sims/sim3/sim3a_wgt_kurtosis.png written in PNG format)
+
+Summary for variables: wgt_max
+     by categories of: estimator 
+
+    estimator |         N      mean       p50        sd
+--------------+----------------------------------------
+  IPW_TRUE_PS |         0         .         .         .
+          IPW |       999  16.48501  14.76096  6.704409
+         CBPS |       999   15.5503  14.62987  4.511036
+CBPS99_999999 |       999   8.90049  8.433844  2.367578
+     CBPS99_9 |       999   9.19491  8.660657  2.523026
+     CBPS99_7 |       999  9.172883  8.613412  2.487464
+     CBPS99_5 |       999  9.153411  8.611127   2.49239
+     CBPS99_3 |       999  9.125726  8.567513  2.486762
+     CBPS99_1 |       999  9.098857  8.555285  2.479725
+       CBPS99 |       999  9.085894  8.542542  2.476431
+       CBPS97 |       999  8.822105  8.294549  2.396394
+       CBPS95 |       999  8.565257  8.054813  2.307165
+       CBPS85 |       838  7.191072  6.791013    1.9209
+       CBPS75 |       850  6.041023  5.694833  1.625415
+          RAW |         0         .         .         .
+--------------+----------------------------------------
+        Total |     12677  9.797482  8.692142  4.218728
+-------------------------------------------------------
+(note: file sims/sim3/sim3a_wgt_max.png not found)
+(file sims/sim3/sim3a_wgt_max.png written in PNG format)
+
+. 
+. log close sim`sim'
+      name:  sim3
+       log:  U:\Stata\Ado\Devel\gmatch\sims/sim3/logfile.log
+  log type:  text
+ closed on:  29 Oct 2018, 18:50:15
+------------------------------------------------------------------------------------------------------------------------------
