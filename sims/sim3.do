@@ -28,7 +28,7 @@ which sim_reshape
 
 // options
 parallel setclusters 6
-local commonopts atet iter(120) cformat(%9.3fc) pformat(%5.3f) sformat(%7.3f) pooledvariance
+local commonopts atet iter(80) cformat(%9.3fc) pformat(%5.3f) sformat(%7.3f) pooledvariance
 
 // control simulations
 set seed `sim'  //  1 for simulation 1, 2 for simulation 2, etc.
