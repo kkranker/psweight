@@ -28,7 +28,7 @@ program define onerep, eclass
          Impacts(numlist sort) ///
          ESTimators(namelist) ///
        [ AUGmented ///
-         noise(passthru) ///
+         NOIse(passthru) ///
          CVTargets(numlist >=10 <=100) ///
          ate atet ateu /// atet is the default
          *] // display options passed everywhere; remaining options passed to gmatch.ado (if applicable)
@@ -173,7 +173,6 @@ program define onerep, eclass
           di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `augmented'" _n ///
                    as txt "CV target: cvtarget(20 " as res %7.4f `cvtarget' as txt " 6)" _n(2)
           gmatch a w1-w10, cbps cvtarget(20 `cvtarget' 6) `ate'`atet'`ateu' `fromopt' `options' `diopts'
-          matrix `from' = e(b)
           regress y i.a `omvarlist' [aw=_weight], vce(robust) noheader `diopts'
           addstats `_b_' 1.a `prefix'_`e'`aug'
           }
