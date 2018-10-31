@@ -28,6 +28,7 @@ program define onerep, eclass
          Impacts(numlist sort) ///
          ESTimators(namelist) ///
        [ AUGmented ///
+         noise(passthru) ///
          CVTargets(numlist >=10 <=100) ///
          ate atet ateu /// atet is the default
          *] // display options passed everywhere; remaining options passed to gmatch.ado (if applicable)
@@ -52,7 +53,7 @@ program define onerep, eclass
   foreach scenario of local scenariolist {
     foreach impact of local impacts {
       local L : word count `n'
-      dgp_ssbgc `scenario', n(`: word `L' of `n'') impact(`impact')
+      dgp_ssbgc `scenario', n(`: word `L' of `n'') impact(`impact') `noise'
 
       local l = `L'
       while `l' > 0 {
@@ -214,19 +215,15 @@ program define addstats
     mat `add' = (`add', `cell')
   }
 
+  // Ho: null of effect = 0
+  // lincom is just a conventient way to get p-value and CIs.
   cap nois {
     return clear
-    test _b[`coef']=0
-    mat `cell' = (r(p), (r(p) <= (1-c(clevel)/100)))
-    mat colnames `cell' = p_0 reject_0
-    mat `add' = (`add', `cell')
-  }
-
-  cap nois {
-    return clear
-    test _b[`coef']=_g1
-    mat `cell' = (r(p), (r(p) <= (1-c(clevel)/100)))
-    mat colnames `cell' = p_g1 reject_g1
+    lincom _b[`coef']
+    mat `cell' = (r(p), /// grab p-value
+                  (r(p) <= (1 - c(clevel) / 100)), /// reject null?
+                  ((r(lb) <= _g1) & (_g1 <= r(ub)))) // coverage
+    mat colnames `cell' = p_0 reject_0 covered
     mat `add' = (`add', `cell')
   }
 
@@ -234,15 +231,14 @@ program define addstats
     gmatchcall balanceresults()
     mat `cell'  = (r(max_asd), /// Maximum absolute standardized diff.
                    r(mean_asd), /// Mean absolute standardized diff.
-                   r(wgt_sd), /// S.D. of matching weights:
-                   r(wgt_cv), /// C.V. of matching weights:
-                   r(wgt_skewness), /// Skewness of matching weights:
-                   r(wgt_kurtosis), /// Kurtosis of matching weights:
-                   r(wgt_max)) // Maximum matching weight:
+                   r(wgt_sd), /// S.D. of matching weights
+                   r(wgt_cv), /// C.V. of matching weights
+                   r(wgt_skewness), /// Skewness of matching weights
+                   r(wgt_kurtosis), /// Kurtosis of matching weights
+                   r(wgt_max)) // Maximum matching weight
     mat colnames `cell' = bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt_max //
     mat `add' = (`add', `cell')
-}
-
+  }
 
   matrix coleq `add' = `eqname'
   matrix `matname' = (nullmat(`matname'), `add')

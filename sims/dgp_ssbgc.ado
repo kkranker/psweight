@@ -25,7 +25,7 @@
 
 program define dgp_ssbgc
   version 15.1
-  syntax name(name=scenario id="scenario"), n(int) [impact(real -0.4)]
+  syntax name(name=scenario id="scenario"), n(int) [impact(real -0.4) noise(real 0)]
 
   // ---------
   // Draw W_i
@@ -135,5 +135,10 @@ program define dgp_ssbgc
   cap lab drop dgp_ssbgc_tc
   label define dgp_ssbgc_tc 0 "Comparison" 1 "Treatment"
   label val a dgp_ssbgc_tc
+
+  // optionally, add additional noise
+  if (`noise'!=0) {
+    replace y = y + runiform(0, `noise')
+  }
 
 end
