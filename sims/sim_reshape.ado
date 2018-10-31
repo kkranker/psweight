@@ -9,25 +9,25 @@
 // permission of Mathematica Policy Research, Inc.
 
 program define sim_reshape
-  syntax [using/] [, clear replace]
-  if (`"`using'"'!="") use "`using'", `clear'
-  di as txt "Before reshape:"
+  version 15.1
+
+  di _n as txt "Before reshape:" _n
   desc, short
   qui compress
   unab varlist : _all
   unab prefixes : *_b_N
   local prefixes: subinstr local prefixes "_b_N" "", all
-  di as txt "There are `: list sizeof prefixes' prefixes"
+  di as txt "`: list sizeof prefixes' prefixes:"
   mac list _prefixes
 
   local pref1 : word 1 of `prefixes'
   unab ests: `pref1'_*_b_impact_est
   local ests: subinstr local ests "`pref1'_" "", all
   local ests: subinstr local ests "_b_impact_est" "", all
-  di as txt "There are `: list sizeof ests' ests"
+  di as txt "`: list sizeof ests' estimators:"
   mac list _ests
   local ee = 0
-  local estdefine  `++ee' "IPW_TRUE_PS" `++ee' "STDPROGDIFF" `++ee' "IPW_TE" `++ee' "IPW" `++ee' "CBPS"
+  local estdefine `++ee' "IPW_TRUE_PS" `++ee' "STDPROGDIFF" `++ee' "IPW_TE" `++ee' "IPW" `++ee' "CBPS"
   foreach est of local ests {
     if !regexm(strupper("`est'"), "CBPS[0-9].*") continue
     local estdefine `estdefine' `++ee' `=strupper("`est'")'
@@ -35,7 +35,7 @@ program define sim_reshape
   local estdefine `estdefine' `++ee' "RAW"
   format %7.4f _all
   format %7.1f *_wgt_max*
-  format %7.0g *_reject* *_N* *_Nt*
+  format %7.0g *_reject* *covered* *_N* *_Nt*
 
   local s = 0
   tempfile stack
@@ -50,7 +50,7 @@ program define sim_reshape
       rename `est'_* *
       rename  b_* *
       gen dgp_txt = regexs(1) if regexm("`prefix'", "^([A-G]*)_([0-9]*)$")
-      gen c       = regexs(2) if regexm("`prefix'", "^([A-G]*)_([0-9]*)$")
+      gen dataset = regexs(2) if regexm("`prefix'", "^([A-G]*)_([0-9]*)$")
       gen est_txt = "`est'"
       qui desc, varlist
       // di as txt =r(varlist)
@@ -67,21 +67,37 @@ program define sim_reshape
   label define est `estdefine'
   qui replace est_txt = upper(est_txt)
   encode est_txt, gen(estimator) label(est)
-  qui destring c, replace
+  qui destring dataset, replace
   drop dgp_txt est_txt
 
+  // "result" is a unique ID combiining "dataset" and "estimator"
+  // dataset is one loop of "one rep" -- one per scenario per impact per
+  // sanmple size.  However, each daaset can have multiple estimators
+  isid rep dgp true N estimator
+  isid rep dataset    estimator
+  egen result = group(dataset dgp true N estimator), label
+  isid rep result
+
+  // claculate variance of impact_est
+  // store on the last row
+  tempvar mean_bias MSE count
+  bys result (rep): egen double `mean_bias' = mean(bias)
+  by  result (rep): egen double `MSE' = mean(error_sqr)
+  by  result (rep): egen double `count' = count(impact_est)
+  by  result (rep): gen  double impact_est_var = (`MSE' - `mean_bias'^2) * `count' / (`count' - 1) if _n == _N
+  format `:format impact_est' impact_est_var
+  drop `mean_bias' `MSE' `count'
+
   // checks, cleanup
-  order rep c dgp estimator, first
-  isid rep c estimator
-  sort rep estimator dgp true N c
+  order result dataset dgp true N estimator rep, first
+  sort  result dataset dgp true N estimator rep
   foreach v of var _all {
     label var `v'
   }
 
-  if ("`replace'"!="" & `"`using'"'!="") save "`using'", replace
-  di as txt "After reshape:"
+  // save/summarize
+  di _n as txt "After reshape:" _n
   desc
-  codebook rep c dgp estimator, compact
-  table estimator true N , by(dgp) concise
-
+  summ, sep(0)
+  table estimator N true, by(dgp) concise
 end
