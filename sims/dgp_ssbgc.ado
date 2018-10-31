@@ -25,7 +25,7 @@
 
 program define dgp_ssbgc
   version 15.1
-  syntax name(name=scenario id="scenario"), n(int) [impact(real -0.4) noise(real 0)]
+  syntax name(name=scenario id="scenario"), n(int) [impact(real -0.4) NOIse(real 0)]
 
   // ---------
   // Draw W_i
@@ -138,6 +138,7 @@ program define dgp_ssbgc
 
   // optionally, add additional noise
   if (`noise'!=0) {
+    di "Adding noise: y_new =  y_old + runiform(0, `noise')"
     replace y = y + runiform(0, `noise')
   }
 
