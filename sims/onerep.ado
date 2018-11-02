@@ -31,6 +31,7 @@ program define onerep, eclass
          NOIse(passthru) ///
          CVTargets(numlist >=10 <=100) ///
          ate atet ateu /// atet is the default
+         vce(passthru) /// e.g., add robust stnadard errors in outcome models
          *] // display options passed everywhere; remaining options passed to gmatch.ado (if applicable)
   _get_diopts diopts options, `options'
 
@@ -79,7 +80,7 @@ program define onerep, eclass
         local e "raw"
         if `: list e in estimators' {
           di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `augmented'" _n(2)
-          regress y i.a `omvarlist', vce(robust) noheader `diopts'
+          regress y i.a `omvarlist', `vce' noheader `diopts'
           addstats `_b_' 1.a `prefix'_`e'`aug'
         }
 
@@ -109,7 +110,7 @@ program define onerep, eclass
             di as error "`ate'`atet'`ateu' invalid"
             error 198
           }
-          regress y i.a `omvarlist' [aw=`trueW'], vce(robust) noheader `diopts'
+          regress y i.a `omvarlist' [aw=`trueW'], `vce' noheader `diopts'
           addstats `_b_' 1.a `prefix'_`e'`aug'
         }
 
@@ -132,7 +133,7 @@ program define onerep, eclass
           gmatch a w1-w10, ipw `ate'`atet'`ateu' `fromopt' `options' `diopts'
           matrix `from' = e(b)
           local fromopt from(`from')
-          regress y i.a `omvarlist' [aw=_weight], vce(robust) noheader `diopts'
+          regress y i.a `omvarlist' [aw=_weight], `vce' noheader `diopts'
           addstats `_b_' 1.a `prefix'_`e'`aug'
         }
 
@@ -143,7 +144,7 @@ program define onerep, eclass
           gmatch a w1-w10, stdprogdiff depvar(y) `ate'`atet'`ateu' `fromopt' `options' `diopts'
           matrix `from' = e(b)
           local fromopt from(`from')
-          regress y i.a `omvarlist' [aw=_weight], vce(robust) noheader `diopts'
+          regress y i.a `omvarlist' [aw=_weight], `vce' noheader `diopts'
           addstats `_b_' 1.a `prefix'_`e'`aug'
           local cvcbps = r(wgt_cv)
           mac list _cvcbps
@@ -156,7 +157,7 @@ program define onerep, eclass
           gmatch a w1-w10, cbps `ate'`atet'`ateu' `fromopt' `options' `diopts'
           matrix `from' = e(b)
           local fromopt from(`from')
-          regress y i.a `omvarlist' [aw=_weight], vce(robust) noheader `diopts'
+          regress y i.a `omvarlist' [aw=_weight], `vce' noheader `diopts'
           addstats `_b_' 1.a `prefix'_`e'`aug'
           local cvcbps = r(wgt_cv)
           mac list _cvcbps
@@ -173,7 +174,7 @@ program define onerep, eclass
           di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `augmented'" _n ///
                    as txt "CV target: cvtarget(20 " as res %7.4f `cvtarget' as txt " 6)" _n(2)
           gmatch a w1-w10, cbps cvtarget(20 `cvtarget' 6) `ate'`atet'`ateu' `fromopt' `options' `diopts'
-          regress y i.a `omvarlist' [aw=_weight], vce(robust) noheader `diopts'
+          regress y i.a `omvarlist' [aw=_weight], `vce' noheader `diopts'
           addstats `_b_' 1.a `prefix'_`e'`aug'
           }
         }

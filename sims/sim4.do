@@ -79,16 +79,16 @@ foreach v of var impact_est-wgt_max impact_est_var {
 }
 
 
-// ------------------------------------------------------------------------------------------------------------
-// 4-C Variouis estmators with impact = -.09, N=2000, with additional noise and augmented regression models
-// ------------------------------------------------------------------------------------------------------------
+// ------------------------------------------------------------------------------------
+// 4-C Variouis estmators with impact = -.09, N=2000, with augmented regression models
+// ------------------------------------------------------------------------------------
 
 onerep A E G, impact(-0.09) n(2000) ///
-  estimators(cbps) cvtargets(99 85 50) `commonopts' noise(.5) augmented
+  estimators(cbps) cvtargets(99 85 50) `commonopts' augmented
 
 parallel sim, expr(_b) reps(`reps') processors(4): ///
   onerep A E G, impact(-0.09) n(2000) ///
-    estimators(cbps) cvtargets(99 85 50) `commonopts' noise(.5) augmented
+    estimators(cbps) cvtargets(99 85 50) `commonopts' augmented
 
 sim_reshape
 save sims/sim`sim'/sim`sim'c.dta, replace
@@ -99,5 +99,25 @@ foreach v of var impact_est-wgt_max impact_est_var {
   graph export "sims/sim`sim'/sim`sim'c_`v'.png", replace
 }
 
+
+// ------------------------------------------------------------------------------------------------------------
+// 4-D Variouis estmators with impact = -.09, N=2000, with additional noise and augmented regression models
+// ------------------------------------------------------------------------------------------------------------
+
+onerep A E G, impact(-0.09) n(2000) ///
+  estimators(cbps) cvtargets(99 85 50) `commonopts' noise(.5) augmented
+
+parallel sim, expr(_b) reps(`reps') processors(4): ///
+  onerep A E G, impact(-0.09) n(2000) ///
+    estimators(cbps) cvtargets(99 85 50) `commonopts' noise(.5) augmented
+
+sim_reshape
+save sims/sim`sim'/sim`sim'd.dta, replace
+
+foreach v of var impact_est-wgt_max impact_est_var {
+  tabstat `v', by(result) s(N mean p50 sd) nototal
+  graph bar (mean) `v', over(estimator) asyvar over(dgp) title(`v') ytitle("") xsize(12) name(`v', replace)
+  graph export "sims/sim`sim'/sim`sim'd_`v'.png", replace
+}
 
 log close sim`sim'
