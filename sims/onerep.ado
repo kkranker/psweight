@@ -23,16 +23,16 @@ program define onerep, eclass
   version 15.1
 
   local cmd `"onerep `0'"'
-  syntax namelist(name=scenariolist id="scenario(s)"), ///
-         n(numlist min=1 >0 integer sort) ///
-         Impacts(numlist sort) ///
-         ESTimators(namelist) ///
-       [ AUGmented ///
-         NOIse(passthru) ///
-         WNOIse(passthru) ///
-         CVTargets(numlist >=10 <=100) ///
-         ate atet ateu /// atet is the default
-         vce(passthru) /// e.g., add robust stnadard errors in outcome models
+  syntax namelist(name=scenariolist id="scenario(s)"), /// DGP process
+         n(numlist min=1 >0 integer sort) /// loop over one or more sample sizes
+         Impacts(numlist sort) /// loop over one or more impact estimates
+         ESTimators(namelist) /// pick wich estimators to include (IPW, CBPS, etc.) see below
+       [ NOIse(passthru) /// passed to DGP
+         WNOIse(passthru) /// passed to DGP
+         CVTargets(numlist >=10 <=100) /// passed to gmatch
+         ate atet ateu /// atet is the default; passed to reweighting commands (teffects, gmatch, etc)
+         AUGmented /// run OLS models to estimate impacts
+         vce(passthru) /// e.g., add robust standard errors in outcome models
          *] // display options passed everywhere; remaining options passed to gmatch.ado (if applicable)
   _get_diopts diopts options, `options'
 
