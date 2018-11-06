@@ -25,7 +25,12 @@
 
 program define dgp_ssbgc
   version 15.1
-  syntax name(name=scenario id="scenario"), n(int) [impact(real -0.4) NOIse(real 0)]
+  syntax name(name=scenario id="scenario"), /// Specify DGP (A to G)
+    n(int)                                  /// Speficy sample size (T+C)
+    [ impact(real -0.4)                     /// Specify sime of impact
+      NOIse(real 0)                         /// Add noise to outcome (number of standard devaiations)
+      WNOIse(real 0)                        /// Add noise to a confounder (number of standard devaiations)
+    ]
 
   // ---------
   // Draw W_i
@@ -136,10 +141,16 @@ program define dgp_ssbgc
   label define dgp_ssbgc_tc 0 "Comparison" 1 "Treatment"
   label val a dgp_ssbgc_tc
 
-  // optionally, add additional noise
+  // optionally, add noise
   if (`noise'!=0) {
-    di "Adding noise: y_new =  y_old + runiform(0, `noise')"
-    replace y = y + runiform(0, `noise')
+    sum y
+    di "Adding noise: y =  y + runiform(0, `noise'*`=r(sd)')"
+    replace y = y + rnormal(0, `noise'*r(sd))
+  }
+  if (`wnoise'!=0) {
+    sum w2
+    di "Adding noise: w2 =  w2 + runiform(0, `noise'*`=r(sd)')"
+    replace w2 = w2 + rnormal(0, `wnoise'*r(sd))
   }
 
 end

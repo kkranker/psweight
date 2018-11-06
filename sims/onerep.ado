@@ -29,6 +29,7 @@ program define onerep, eclass
          ESTimators(namelist) ///
        [ AUGmented ///
          NOIse(passthru) ///
+         WNOIse(passthru) ///
          CVTargets(numlist >=10 <=100) ///
          ate atet ateu /// atet is the default
          vce(passthru) /// e.g., add robust stnadard errors in outcome models
