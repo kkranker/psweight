@@ -63,11 +63,11 @@ foreach v of var impact_est-wgt_max impact_est_var {
 // ------------------------------------------------------------------------
 
 onerep A E G, impact(-0.09) n(2000) ///
-  estimators(cbps) cvtargets(99 85 50) `commonopts' noise(.5)
+  estimators(cbps) cvtargets(99 85 50) `commonopts' noise(.10)
 
 parallel sim, expr(_b) reps(`reps') processors(4): ///
   onerep A E G, impact(-0.09) n(2000) ///
-    estimators(cbps) cvtargets(99 85 50) `commonopts' noise(.5)
+    estimators(cbps) cvtargets(99 85 50) `commonopts' noise(.10)
 
 sim_reshape
 save sims/sim`sim'/sim`sim'b.dta, replace
@@ -105,11 +105,11 @@ foreach v of var impact_est-wgt_max impact_est_var {
 // ------------------------------------------------------------------------------------------------------------
 
 onerep A E G, impact(-0.09) n(2000) ///
-  estimators(cbps) cvtargets(99 85 50) `commonopts' noise(.5) augmented
+  estimators(cbps) cvtargets(99 85 50) `commonopts' noise(.10) augmented
 
 parallel sim, expr(_b) reps(`reps') processors(4): ///
   onerep A E G, impact(-0.09) n(2000) ///
-    estimators(cbps) cvtargets(99 85 50) `commonopts' noise(.5) augmented
+    estimators(cbps) cvtargets(99 85 50) `commonopts' noise(.10) augmented
 
 sim_reshape
 save sims/sim`sim'/sim`sim'd.dta, replace
