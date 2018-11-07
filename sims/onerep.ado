@@ -49,13 +49,14 @@ program define onerep, eclass
     local omvarlist "w1-w10"
     local aug "aug"
   }
+  set matsize 2000
 
   tempname _b_ add from
   local c = 0
   foreach scenario of local scenariolist {
     foreach impact of local impacts {
       local L : word count `n'
-      dgp_ssbgc `scenario', n(`: word `L' of `n'') impact(`impact') `noise'
+      dgp_ssbgc `scenario', n(`: word `L' of `n'') impact(`impact') `noise' `wnoise'
 
       local l = `L'
       while `l' > 0 {
