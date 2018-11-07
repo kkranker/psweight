@@ -30,11 +30,12 @@ which sim_reshape
 
 // options
 parallel setclusters `=min(6, c(processors_max))'
-local commonopts atet iter(80) cformat(%9.3fc) pformat(%5.3f) sformat(%7.3f) pooledvariance
+local commonopts atet vce(robust) iter(80) cformat(%9.3fc) pformat(%5.3f) sformat(%7.3f) pooledvariance
 
 // control simulations
 set seed `sim'  //  1 for simulation 1, 2 for simulation 2, etc.
 local reps 400
+set matsize 5000
 
 
 // ------------------------------------------------------------------------
