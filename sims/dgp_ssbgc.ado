@@ -149,7 +149,7 @@ program define dgp_ssbgc
   }
   if (`wnoise'!=0) {
     sum w2
-    di "Adding noise: w2 =  w2 + runiform(0, `noise'*`=r(sd)')"
+    di "Adding noise: w2 =  w2 + runiform(0, `wnoise'*`=r(sd)')"
     replace w2 = w2 + rnormal(0, `wnoise'*r(sd))
   }
 
