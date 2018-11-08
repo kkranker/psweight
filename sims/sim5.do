@@ -45,11 +45,11 @@ set matsize 5000
 local subsection A
 
 onerep A B C D E F G, impact(-0.09) n(2000) ///
-  estimators(cbps) cvtargets(99 85 50) `commonopts' wnoise(.10)
+  estimators(cbps) cvtargets(99 85 50) `commonopts' wnoise(1)
 
 parallel sim, expr(_b) reps(`reps') processors(4): ///
   onerep A B C D E F G, impact(-0.09) n(2000) ///
-    estimators(cbps) cvtargets(99 85 50) `commonopts' wnoise(.10)
+    estimators(cbps) cvtargets(99 85 50) `commonopts' wnoise(1)
 
 sim_reshape
 save sims/sim`sim'/Data_`subsection'.dta, replace
