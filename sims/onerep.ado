@@ -29,6 +29,7 @@ program define onerep, eclass
          ESTimators(namelist) /// pick wich estimators to include (IPW, CBPS, etc.) see below
        [ NOIse(passthru) /// passed to DGP
          WNOIse(passthru) /// passed to DGP
+         HISTogram /// passed to DGP
          CVTargets(numlist >=10 <=100) /// passed to gmatch
          ate atet ateu /// atet is the default; passed to reweighting commands (teffects, gmatch, etc)
          AUGmented /// run OLS models to estimate impacts
@@ -56,7 +57,7 @@ program define onerep, eclass
   foreach scenario of local scenariolist {
     foreach impact of local impacts {
       local L : word count `n'
-      dgp_ssbgc `scenario', n(`: word `L' of `n'') impact(`impact') `noise' `wnoise'
+      dgp_ssbgc `scenario', n(`: word `L' of `n'') impact(`impact') `noise' `wnoise' `histogram'
 
       local l = `L'
       while `l' > 0 {

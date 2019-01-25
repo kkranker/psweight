@@ -30,6 +30,7 @@ program define dgp_ssbgc
     [ impact(real -0.4)                     /// Specify sime of impact
       NOIse(real 0)                         /// Add noise to outcome (number of standard devaiations)
       WNOIse(real 0)                        /// Add noise to a confounder (number of standard devaiations)
+      HISTogram                             /// Make a histogram of the propensity scores (requires psmatch2)
     ]
 
   // ---------
@@ -124,6 +125,13 @@ program define dgp_ssbgc
     label data "DGP G: Moderate non-additivity and non-linearity (Setoguchi et al. 2008)"
     gen ps = (1 + exp(-(_b0 + _b1 * w1 + _b2 * w2 + _b3 * w3 + _b4 * w4 + _b5 * w5 + _b6 * w6 + _b7 * w7 + _b2 * w2 * w2 + _b4 * w4 * w4 + _b7 * w7 * w7 + _b1 * 0.5 * w1 * w3 + _b2 * 0.7 * w2 * w4 + _b3 * 0.5 * w3 * w5 + _b4 * 0.7 * w4 * w6 + _b5 * 0.5 * w5 * w7 + _b1 * 0.5 * w1 * w6 + _b2 * 0.7 * w2 * w3 + _b3 * 0.5 * w3 * w4 + _b4 * 0.5 * w4 * w5 + _b5 * 0.5 * w5 * w6)))^-1
   }
+  else if ("`scenario'"=="K1") {
+    label data "DGP G, with a coeficents _b2, _b5, and _b7 50% larger"
+    sca _b2 = _b2 * 1.5
+    sca _b5 = _b5 * 1.5
+    sca _b7 = _b7 * 1.5
+    gen ps = (1 + exp(-(_b0 + _b1 * w1 + _b2 * w2 + _b3 * w3 + _b4 * w4 + _b5 * w5 + _b6 * w6 + _b7 * w7 + _b2 * w2 * w2 + _b4 * w4 * w4 + _b7 * w7 * w7 + _b1 * 0.5 * w1 * w3 + _b2 * 0.7 * w2 * w4 + _b3 * 0.5 * w3 * w5 + _b4 * 0.7 * w4 * w6 + _b5 * 0.5 * w5 * w7 + _b1 * 0.5 * w1 * w6 + _b2 * 0.7 * w2 * w3 + _b3 * 0.5 * w3 * w4 + _b4 * 0.5 * w4 * w5 + _b5 * 0.5 * w5 * w6)))^-1
+  }
   else {
     di as err `"Invalid scenario: "' as input `"`scenario'"'
     error 198
@@ -152,5 +160,8 @@ program define dgp_ssbgc
     di "Adding noise: w2 =  w2 + runiform(0, `wnoise'*`=r(sd)')"
     replace w2 = w2 + rnormal(0, `wnoise'*r(sd))
   }
+
+  // optionally, make a histogram
+  if ("`histogram'"!="") capture nois psgraph, bin(30) treated(a) pscore(ps) name(`=strtoname("ps `scenario' `impact'")', replace)
 
 end
