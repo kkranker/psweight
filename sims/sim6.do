@@ -39,17 +39,39 @@ set matsize 5000
 
 
 // ------------------------------------------------------------------------
-// A Variouis estmators with impact = -.09, N=2000, wnois(.10)
+// A Variouis estmators with impact = -.09, N=400 - DGP G versus K
 // ------------------------------------------------------------------------
 
 local subsection A
 
-onerep G K1, impact(-0.09) n(2000) ///
+onerep G K, impact(-0.09) n(400) ///
   estimators(cbps) cvtargets(99 85 50) `commonopts' histogram
 
 parallel sim, expr(_b) reps(`reps') processors(4): ///
-  onerep G K1, impact(-0.09) n(2000) ///
+  onerep G K, impact(-0.09) n(400) ///
     estimators(cbps) cvtargets(99 85 50) `commonopts'
+
+sim_reshape
+save sims/sim`sim'/Data_`subsection'.dta, replace
+
+foreach v of var impact_est-wgt_max impact_est_var {
+  tabstat `v', by(result) s(N mean p50 sd) nototal
+  graph bar (mean) `v', over(estimator) asyvar over(dgp) title(`v') ytitle("") xsize(12) name(`v', replace)
+  graph export "sims/sim`sim'/Figure_`subsection'_`v'.png", replace
+}
+
+// ------------------------------------------------------------------------
+// B Variouis estmators with impact = -.09, N=400, wnois(1), and DGP K
+// ------------------------------------------------------------------------
+
+local subsection B
+
+onerep K, impact(-0.09) n(400) ///
+  estimators(cbps) cvtargets(99 85 50) `commonopts' wnoise(1)
+
+parallel sim, expr(_b) reps(`reps') processors(4): ///
+  onerep K, impact(-0.09) n(400) ///
+    estimators(cbps) cvtargets(99 85 50) `commonopts' wnoise(1)
 
 sim_reshape
 save sims/sim`sim'/Data_`subsection'.dta, replace

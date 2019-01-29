@@ -49,8 +49,8 @@ program define sim_reshape
       rename `prefix'_* *
       rename `est'_* *
       rename  b_* *
-      gen dgp_txt = regexs(1) if regexm("`prefix'", "^([A-G]*)_([0-9]*)$")
-      gen dataset = regexs(2) if regexm("`prefix'", "^([A-G]*)_([0-9]*)$")
+      gen dgp_txt = regexs(1) if regexm("`prefix'", "^([A-Z]*)_([0-9]*)$")
+      gen dataset = regexs(2) if regexm("`prefix'", "^([A-Z]*)_([0-9]*)$")
       gen est_txt = "`est'"
       qui desc, varlist
       // di as txt =r(varlist)
@@ -62,7 +62,7 @@ program define sim_reshape
   use "`stack'", clear
 
   // strings to numeric
-  label define dgp 1 "A" 2 "B" 3 "C" 4 "D" 5 "E" 6 "F" 7 "G" 8 "K1"
+  label define dgp 1 "A" 2 "B" 3 "C" 4 "D" 5 "E" 6 "F" 7 "G" 8 "K"
   encode dgp_txt, gen(dgp) label(dgp)
   label define est `estdefine'
   qui replace est_txt = upper(est_txt)
