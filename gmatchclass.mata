@@ -200,7 +200,7 @@ void gmatch::get_scores(string rowvector newvarnames, string scalar tousevar)
 real matrix gmatch::balancetable(| real scalar denominator)
 {
   real matrix table
-  string rowvector colstripe, tmp
+  string rowvector colstripe, tmp, frmts
   if (args()<1) denominator=1
 
   if (!length(this.means1))     this.calcmeans()
@@ -226,8 +226,8 @@ real matrix gmatch::balancetable(| real scalar denominator)
 
   tmp=st_tempname()
   stata("matrix "+tmp+"=r(bal)")
-  stata("_matrix_table "+tmp+","+st_local("diopts")); ""
-
+  if (st_global("c(cformat)")!="" & st_global("c(sformat)")!="") frmts = invtokens((st_global("c(cformat)"), st_global("c(cformat)"), st_global("c(cformat)"), st_global("c(sformat)"), st_global("c(cformat)"), st_global("c(sformat)")))
+  stata("_matrix_table "+tmp+", format("+frmts+")"); ""
   return(table)
 }
 
