@@ -30,6 +30,7 @@ program define dgp_ssbgc
     [ impact(real -0.4)                     /// Specify sime of impact
       NOIse(real 0)                         /// Add noise to outcome (number of standard devaiations)
       WNOIse(real 0)                        /// Add noise to a confounder (number of standard devaiations)
+      wcoef(real 0)                        /// Coefficient on w2^2 in outcome model
       HISTogram                             /// Make a histogram of the propensity scores (requires psmatch2)
     ]
 
@@ -149,16 +150,22 @@ program define dgp_ssbgc
   label define dgp_ssbgc_tc 0 "Comparison" 1 "Treatment"
   label val a dgp_ssbgc_tc
 
-  // optionally, add noise
+  // optionally, add nonlinearities and noise
+  if (`wcoef'!=0) {
+    di as txt "Adding nonlinearity: y = y + `wcoef' * w2 * w2"
+    replace y = y + `wcoef' * w2 * w2
+  }
   if (`noise'!=0) {
-    sum y
-    di "Adding noise: y =  y + runiform(0, `noise'*`=r(sd)')"
+    di as txt "Adding noise: y = y + rnormal(0, `noise'*`=r(sd)')"
+    qui sum y
     replace y = y + rnormal(0, `noise'*r(sd))
+    // y = measure_error + _a0 + _a1 * w1 + _a2 * w2 + _a3 * w3 + _a4 * w4 + _a5 * w8 + _a6 * w9 + _a7 * w10 + _g1 * a
   }
   if (`wnoise'!=0) {
-    sum w2
-    di "Adding noise: w2 =  w2 + runiform(0, `wnoise'*`=r(sd)')"
+    di as txt "Adding noise: w2 = w2 + rnormal(0, `wnoise'*`=r(sd)')"
+    qui sum w2
     replace w2 = w2 + rnormal(0, `wnoise'*r(sd))
+    // y = _a0 + _a1 * w1 + _a2 * (w2_obs - measure_errror) + _a3 * w3 + _a4 * w4 + _a5 * w8 + _a6 * w9 + _a7 * w10 + _g1 * a
   }
 
   // optionally, make a histogram
