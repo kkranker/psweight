@@ -27,7 +27,7 @@ program define gmatch, eclass byable(onecall)
   `BY' Estimate `0'
 end
 
-program Estimate, eclass sortpreserve
+program Estimate, eclass sortpreserve byable(recall)
   version 15.1
 
   // standard syntax parsing
@@ -39,6 +39,7 @@ program Estimate, eclass sortpreserve
             TREatvariance CONtrolvariance POOledvariance Averagevariance /// to fill in denominator
             cvtarget(numlist min=3 max=3) skewtarget(numlist min=3 max=3) kurttarget(numlist min=3 max=3) maxtarget(numlist min=3 max=3) ///
             from(name) /// starting values for maximization
+            BALanceonly /// just checks balance (skips reweighting)
             * ] //  display and ml options are allowed
 
   marksample tousevar
@@ -66,7 +67,8 @@ program Estimate, eclass sortpreserve
   }
 
   // mark collinear variables
-  _rmcoll `treatvar' `varlist' if `tousevar' `wgtexp', expand logit touse(`tousevar')
+  if ("`balanceonly'"=="balanceonly") _rmcoll `treatvar' `varlist' if `tousevar' `wgtexp', expand
+  else  _rmcoll `treatvar' `varlist' if `tousevar' `wgtexp', expand logit touse(`tousevar')
   local varlist `r(varlist)'
   gettoken trash varlist : varlist
 
@@ -78,7 +80,8 @@ program Estimate, eclass sortpreserve
 
   // parse the "est" options
   local est "`ate'`atet'`ateu'"
-  if ("`est'"=="") local est ate
+  if ("`balanceonly'"=="balanceonly" & "`est'"!="") di "`est' ignored" // do nothing; option is ignored
+  else if ("`est'"=="") local est ate
   else if (!inlist("`est'", "ate", "atet", "ateu")) {
     di as err `"Specify one of the following: ate, atet, or ateu"'
     error 198
@@ -88,7 +91,8 @@ program Estimate, eclass sortpreserve
   if ("`mean_sd'"=="mean_sd") local mean_sd_sq mean_sd_sq
   if ("`sd'"=="sd")           local sd_sq sd_sq
   local fctn "`ipw'`cbps'`mean_sd_sq'`sd_sq'`stdprogdiff'"
-  if ("`fctn'"=="") local fctn cbps
+  if ("`balanceonly'"=="balanceonly") di _c // do nothing; option is ignored
+  else if ("`fctn'"=="") local fctn cbps
   else if (!inlist("`fctn'", "ipw", "cbps", "ipwcbps", "mean_sd_sq", "sd_sq","stdprogdiff")) {
     di as err `"Specify a valid combination of options: ipw, cbps, mean_sd, sd, or stdprogdiff."'
     error 198
@@ -100,14 +104,15 @@ program Estimate, eclass sortpreserve
   if (!mi("`skewtarget'") & mi("`cvtarget'"))   local cvtarget   "0 0 2"
   local cvopt "`cvtarget' `skewtarget' `kurttarget' `maxtarget'"
   local cvopt : list clean cvopt
-  if (!inlist(`: list sizeof cvopt',0,3,6,9,12)) {
+  if ("`balanceonly'"=="balanceonly") di _c // do nothing; option is ignored
+  else if (!inlist(`: list sizeof cvopt',0,3,6,9,12)) {
     di as error `"cvopt() requires 3, 6, 9, 12 elements"'
     error 198
   }
 
   // parse the "denominator" options
   local denominator "`treatvariance'`controlvariance'`pooledvariance'`averagevariance'"
-  if ("`denominator'"=="")                local denominator = 1
+  if ("`denominator'"=="")                     local denominator = 1
   else if ("`denominator'"=="controlvariance") local denominator = 0
   else if ("`denominator'"=="treatvariance")   local denominator = 1
   else if ("`denominator'"=="pooledvariance")  local denominator = 2
@@ -126,7 +131,13 @@ program Estimate, eclass sortpreserve
   ereturn clear
   return  clear
 
-  // switch over to Mata, run helper function with runs the main function
+  // balanceonly option just prints balance and then end the program
+  if ("`balanceonly'"=="balanceonly") {
+    mata: BalanceOnly()
+    exit
+  }
+
+  // switch over to Mata, helper function runs the main function
   mata: Estimate()
 
   // print results to screen
@@ -204,4 +215,31 @@ void Estimate()
   gmatch_ado_most_recent.get_scores("_weight _weight_mtch _pscore _treated", tousevar)
 
 }
+
+// helper function to move Stata locals into Mata and call the main function
+void BalanceOnly()
+{
+  external class gmatch scalar gmatch_ado_most_recent
+  string scalar    treatvar, varlist, tousevar, wgtvar, depvars
+  string scalar    est, fctn
+  real   scalar    denominator, oid
+  real   rowvector cvopt
+  transmorphic temp
+
+  treatvar    = st_local("treatvar")
+  varlist     = st_local("varlist")
+  tousevar    = st_local("tousevar")
+  wgtvar      = st_local("wgtvar")
+  depvars     = st_local("depvars")
+  denominator = strtoreal(st_local("denominator"))
+
+  gmatch_ado_most_recent = gmatch()
+  if  (wgtvar!="") gmatch_ado_most_recent.set(treatvar, varlist, tousevar, wgtvar)
+  else             gmatch_ado_most_recent.set(treatvar, varlist, tousevar)
+  if (depvars!="") gmatch_ado_most_recent.set_Y(depvars,tousevar)
+
+  temp = gmatch_ado_most_recent.balancetable(denominator)
+
+}
+
 end
