@@ -80,7 +80,7 @@ program Estimate, eclass sortpreserve byable(recall)
 
   // parse the "est" options
   local est "`ate'`atet'`ateu'"
-  if ("`balanceonly'"=="balanceonly" & "`est'"!="") di "`est' ignored" // do nothing; option is ignored
+  if ("`balanceonly'"=="balanceonly" & "`est'"!="") di "`est' ignored"
   else if ("`est'"=="") local est ate
   else if (!inlist("`est'", "ate", "atet", "ateu")) {
     di as err `"Specify one of the following: ate, atet, or ateu"'
@@ -91,7 +91,7 @@ program Estimate, eclass sortpreserve byable(recall)
   if ("`mean_sd'"=="mean_sd") local mean_sd_sq mean_sd_sq
   if ("`sd'"=="sd")           local sd_sq sd_sq
   local fctn "`ipw'`cbps'`mean_sd_sq'`sd_sq'`stdprogdiff'"
-  if ("`balanceonly'"=="balanceonly") di _c // do nothing; option is ignored
+  if ("`balanceonly'"=="balanceonly" & "`fctn'"!="") di "`fctn' ignored"
   else if ("`fctn'"=="") local fctn cbps
   else if (!inlist("`fctn'", "ipw", "cbps", "ipwcbps", "mean_sd_sq", "sd_sq","stdprogdiff")) {
     di as err `"Specify a valid combination of options: ipw, cbps, mean_sd, sd, or stdprogdiff."'
@@ -104,7 +104,7 @@ program Estimate, eclass sortpreserve byable(recall)
   if (!mi("`skewtarget'") & mi("`cvtarget'"))   local cvtarget   "0 0 2"
   local cvopt "`cvtarget' `skewtarget' `kurttarget' `maxtarget'"
   local cvopt : list clean cvopt
-  if ("`balanceonly'"=="balanceonly") di _c // do nothing; option is ignored
+  if ("`balanceonly'"=="balanceonly" & "`cvopt'"!="") di "`cvopt' ignored"
   else if (!inlist(`: list sizeof cvopt',0,3,6,9,12)) {
     di as error `"cvopt() requires 3, 6, 9, 12 elements"'
     error 198
@@ -221,9 +221,7 @@ void BalanceOnly()
 {
   external class gmatch scalar gmatch_ado_most_recent
   string scalar    treatvar, varlist, tousevar, wgtvar, depvars
-  string scalar    est, fctn
-  real   scalar    denominator, oid
-  real   rowvector cvopt
+  real   scalar    denominator
   transmorphic temp
 
   treatvar    = st_local("treatvar")
@@ -237,9 +235,7 @@ void BalanceOnly()
   if  (wgtvar!="") gmatch_ado_most_recent.set(treatvar, varlist, tousevar, wgtvar)
   else             gmatch_ado_most_recent.set(treatvar, varlist, tousevar)
   if (depvars!="") gmatch_ado_most_recent.set_Y(depvars,tousevar)
-
   temp = gmatch_ado_most_recent.balancetable(denominator)
-
 }
 
 end
