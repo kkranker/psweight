@@ -39,7 +39,7 @@ program define onerep, eclass
   _get_diopts diopts options, `options'
 
   // throw error if invalid options
-  local valid_est raw ipw_true_ps ipw ipw_te stdprogdiff cbps
+  local valid_est raw ipw_true_ps ipw ipw_te stdprogdiff cbps ipwcbps
   if !`:list estimators in valid_est' {
     di as error "estimators(`: list estimators-valid_est') invalid"
     error 198
@@ -152,6 +152,15 @@ program define onerep, eclass
           addstats `_b_' 1.a `prefix'_`e'`aug'
           local cvcbps = r(wgt_cv)
           mac list _cvcbps
+        }
+
+        // CBPS overidentified model (with gmatch.ado)
+        local e "ipwcbps"
+        if `: list e in estimators' {
+          di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `augmented'" _n(2)
+          gmatch a w1-w10, cbps ipw `ate'`atet'`ateu' `fromopt' `options' `diopts'
+          regress y i.a `omvarlist' [aw=_weight], `vce' noheader `diopts'
+          addstats `_b_' 1.a `prefix'_`e'`aug'
         }
 
         // CBPS model (with gmatch.ado)
