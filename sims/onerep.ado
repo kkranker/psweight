@@ -202,7 +202,6 @@ program define onerep, eclass
   ereturn post `_b_'
   ereturn local cmd "onerep"
   ereturn local cmdline "`cmd'"
-  ereturn local cmdline "Simulation results"
   ereturn display, `diopts'
 end
 
