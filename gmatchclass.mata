@@ -226,8 +226,7 @@ real matrix gmatch::balancetable(| real scalar denominator)
 
   tmp=st_tempname()
   stata("matrix "+tmp+"=r(bal)")
-  if (st_global("c(cformat)")!="" & st_global("c(sformat)")!="") frmts = invtokens((st_global("c(cformat)"), st_global("c(cformat)"), st_global("c(cformat)"), st_global("c(sformat)"), st_global("c(cformat)"), st_global("c(sformat)")))
-  stata("_matrix_table "+tmp+", format("+frmts+")"); ""
+  stata("_matrix_table " + tmp); ""
   return(table)
 }
 

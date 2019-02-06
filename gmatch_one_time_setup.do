@@ -19,21 +19,21 @@
 
 // gmatch.ado relies heavily on a Mata class named gmatch().  Stata offers two options for using Mata code:
 // (1) re-compiling Mata code each time Stata is launched versus (2) compiling once and saving the reults
-// in a .mlib file.  I prefer the later. Before, using the command for the first time, you wll need to compile 
+// in a .mlib file.  I prefer the later. Before, using the command for the first time, you wll need to compile
 // the Mata code by running this program.
 //
 // One-time setup instructions:
-// 
-// 1. Open Stata.  Type "adopath" into the command line. 
+//
+// 1. Open Stata.  Type "adopath" into the command line.
 //    It will show you were your PERSONAL directory is located.
-// 
+//
 // 2. Drop these files into your PERSONAL directory (in a subfolder named /g/)
 //      <PERSONAL>/g/gmatchclass.mata
 //      <PERSONAL>/g/gmatch.ado
 //      <PERSONAL>/g/gmatchcall.ado
-//      
+//
 // 3. Update the filepath to gmatchclass.mata below.
-// 
+//
 // 4. Run this program (gmatch_one_time_setup.do)
 
 clear mata
