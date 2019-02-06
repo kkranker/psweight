@@ -10,7 +10,7 @@
 
 program define sim_reshape
   version 15.1
-
+  syntax [, DROPaugsuffix]
   di _n as txt "Before reshape:" _n
   desc, short
   qui compress
@@ -66,6 +66,7 @@ program define sim_reshape
   encode dgp_txt, gen(dgp) label(dgp)
   label define est `estdefine'
   qui replace est_txt = upper(est_txt)
+  if ("`dropaugsuffix'"=="dropaugsuffix") replace est_txt =  subinstr(est_txt,"AUG","",1)
   encode est_txt, gen(estimator) label(est)
   qui destring dataset, replace
   drop dgp_txt est_txt
