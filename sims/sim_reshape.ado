@@ -19,11 +19,12 @@ program define sim_reshape
   local prefixes: subinstr local prefixes "_b_N" "", all
   di as txt "`: list sizeof prefixes' prefixes:"
   mac list _prefixes
-
-  local pref1 : word 1 of `prefixes'
-  unab ests: `pref1'_*_b_impact_est
-  local ests: subinstr local ests "`pref1'_" "", all
-  local ests: subinstr local ests "_b_impact_est" "", all
+  foreach pref1 of local prefixes {
+    unab  ests1: `pref1'_*_b_impact_est
+    local ests1: subinstr local ests1 "`pref1'_" "", all
+    local ests1: subinstr local ests1 "_b_impact_est" "", all
+    local ests : list ests | ests1
+  }
   di as txt "`: list sizeof ests' estimators:"
   mac list _ests
   local ee = 0
@@ -74,9 +75,9 @@ program define sim_reshape
   // "result" is a unique ID combiining "dataset" and "estimator"
   // dataset is one loop of "one rep" -- one per scenario per impact per
   // sanmple size.  However, each daaset can have multiple estimators
-  isid rep dgp true N estimator
-  isid rep dataset    estimator
-  egen result = group(dataset dgp true N estimator), label
+  cap nois isid rep dgp true N estimator
+  cap nois isid rep dataset    estimator
+  egen result = group(dataset dgp true N estimator), label missing
   isid rep result
 
   // claculate variance of impact_est
