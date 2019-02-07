@@ -33,6 +33,7 @@ program define onerep_ksir, eclass
          AUGmented /// run OLS models to estimate impacts
          HISTogram /// passed to DGP
          vce(passthru) /// e.g., add robust standard errors in outcome models
+         QUIETly /// supress a lot of the output
          *] // display options passed everywhere; remaining options passed to gmatch.ado (if applicable)
   _get_diopts diopts options, `options'
 
@@ -62,7 +63,7 @@ program define onerep_ksir, eclass
     local omvarlist "x1-x4"
     local aug "aug"
   }
-  else
+  if ("`quietly'"=="") local quietly noisily
   set matsize 2000
 
   tempname _b_ add from
@@ -74,7 +75,7 @@ program define onerep_ksir, eclass
       scalar _g1 = `impact'
 
       local l = `L'
-      while `l' > 0 {
+      while (`l' > 0) {
         local thisN : word `l' of `n'
         local prefix = strtoname(trim("`scenario'_`++c'"))
 
@@ -95,7 +96,7 @@ program define onerep_ksir, eclass
 
         // Difference in means ("raw")
         local e "raw"
-        if `: list e in estimators' {
+        if (`: list e in estimators') cap `quietly' {
           di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `augmented'" _n(2)
           regress y i.a `omvarlist', `vce' noheader `diopts'
           addstats `_b_' 1.a `prefix'_`e'`aug'
@@ -103,7 +104,7 @@ program define onerep_ksir, eclass
 
         // Difference in means, weighted using true propensity scores ("true")
         local e "ipw_true_ps"
-        if `: list e in estimators' cap nois {
+        if (`: list e in estimators') cap `quietly' {
           di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `augmented'" _n(2)
           tempvar trueW
           if "`ate'`atet'`ateu'"=="ate" {
@@ -133,7 +134,7 @@ program define onerep_ksir, eclass
 
         // IPW model (with teffects)
         local e "ipw_te"
-        if `: list e in estimators' cap nois {
+        if (`: list e in estimators') cap `quietly' {
           di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `augmented'" _n(2)
           if ("`augmented'"=="augmented") teffects aipw (y `omvarlist') (a `pscorevarlist'), `ate'`atet'`ateu' aeq `diopts'
           else teffects ipw (y) (a `pscorevarlist'), `ate'`atet'`ateu' aeq `diopts'
@@ -145,7 +146,7 @@ program define onerep_ksir, eclass
 
         // IPW model (with gmatch.ado)
         local e "ipw"
-        if `: list e in estimators' cap nois  {
+        if (`: list e in estimators') cap `quietly' {
           di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `augmented'" _n(2)
           gmatch a `pscorevarlist', ipw `ate'`atet'`ateu' `fromopt' `options' `diopts'
           matrix `from' = e(b)
@@ -156,7 +157,7 @@ program define onerep_ksir, eclass
 
         // Minimize difference in prognostic scores model (with gmatch.ado)
         local e "stdprogdiff"
-        if `: list e in estimators' cap nois {
+        if (`: list e in estimators') cap `quietly' {
           di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `augmented'" _n(2)
           gmatch a `pscorevarlist', stdprogdiff depvar(y) `ate'`atet'`ateu' `fromopt' `options' `diopts'
           matrix `from' = e(b)
@@ -169,7 +170,7 @@ program define onerep_ksir, eclass
 
         // CBPS overidentified model (with gmatch.ado)
         local e "ipwcbps"
-        if `: list e in estimators' {
+        if (`: list e in estimators') cap `quietly' {
           di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `augmented'" _n(2)
           gmatch a `pscorevarlist', cbps ipw `ate'`atet'`ateu' `fromopt' `options' `diopts'
           regress y i.a `omvarlist' [aw=_weight], `vce' noheader `diopts'
@@ -178,7 +179,7 @@ program define onerep_ksir, eclass
 
         // CBPS model (with gmatch.ado)
         local e "cbps"
-        if `: list e in estimators' {
+        if (`: list e in estimators') cap `quietly' {
           di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `augmented'" _n(2)
           gmatch a `pscorevarlist', cbps `ate'`atet'`ateu' `fromopt' `options' `diopts'
           matrix `from' = e(b)
@@ -192,21 +193,23 @@ program define onerep_ksir, eclass
 
         // CBPS model (with gmatch.ado), with CV at X%
         foreach cut of local cvtargets {
+          // for some weird reason cap `quietly' doesn't work" see https://www.statalist.org/forums/forum/general-stata-discussion/general/1482533-macro-expansion-in-a-while-loop
           cap nois {
           local e = strtoname("cbps`cut'")
           local confirm cbps
           if (!`: list confirm in estimators') continue
           if (`cut'==100) continue
           local cvtarget = (`cvcbps'*`cut'/100)
-          di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `augmented'" _n ///
+          `quietly' di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `augmented'" _n ///
                    as txt "CV target: cvtarget(20 " as res %7.4f `cvtarget' as txt " 6)" _n(2)
-          gmatch a `pscorevarlist', cbps cvtarget(20 `cvtarget' 6) `ate'`atet'`ateu' `fromopt' `options' `diopts'
-          regress y i.a `omvarlist' [aw=_weight], `vce' noheader `diopts'
+          `quietly' gmatch a `pscorevarlist', cbps cvtarget(20 `cvtarget' 6) `ate'`atet'`ateu' `fromopt' `options' `diopts'
+          `quietly' regress y i.a `omvarlist' [aw=_weight], `vce' noheader `diopts'
           addstats `_b_' 1.a `prefix'_`e'`aug'
           }
         }
 
         local --l
+
       }
 
   ereturn clear
