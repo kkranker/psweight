@@ -86,7 +86,7 @@ onerep_ksir, `commonopts' augmented truepscore
 parallel sim, `simopts': onerep_ksir, `commonopts' augmented truepscore
 
 sim_reshape, dropaugsuffix
-gen subsection = "augmented truepscore"
+gen subsection = "truepscore"
 save sims/sim`sim'/Data_`subsection'.dta, replace
 
 // ------------------------------------------------------------------------
@@ -121,6 +121,8 @@ save sims/sim`sim'/Data_`subsection'.dta, replace
 // Combine results and summarize
 // ------------------------------------------------------------------------
 
+/* I mannually added est_string in each dataset */
+
 clear
 append using ///
   sims/sim`sim'/Data_A.dta ///
@@ -129,10 +131,32 @@ append using ///
   sims/sim`sim'/Data_D.dta ///
   sims/sim`sim'/Data_E.dta ///
   , gen(sctn)
+
 labmask sctn, values(subsection)
 
+drop estimator
+label define est_consol ///
+ 1 IPW ///
+ 2 CBPS ///
+ 3 IPWCBPS ///
+ 4 CBPS99 ///
+ 5 CBPS98 ///
+ 6 CBPS97 ///
+ 7 CBPS95 ///
+ 8 CBPS93 ///
+ 9 CBPS90 ///
+ 10 CBPS85 ///
+ 11 CBPS80 ///
+ 12 CBPS75 ///
+ 13 CBPS50
+encode est_string, gen(estimator) label(est_consol)
+drop est_string subsection
+
+table estimator sctn, by(N) c(count error_sqr)
+
 foreach v of var impact_est-wgt_max impact_est_var {
-  bys sctn: tabstat `v', by(result) s(N mean p50 sd) nototal
+  // bys sctn: tabstat `v', by(result) s(N mean p50 sd) nototal
+  table estimator sctn, by(N) c(mean error_sqr)
   graph bar (mean) `v', asyvar over(estimator) over(N)  legend(col(3)) by(sctn, row(1) yrescale title(`v')) ytitle("") xsize(12) name(`v', replace)
   graph export "sims/sim`sim'/Figure_`subsection'_`v'.png", replace
 }
