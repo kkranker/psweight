@@ -252,8 +252,8 @@ program define onerep_ksir, eclass
           `quietly' regress y i.a [aw=_weight], `vce' noheader `diopts'
           addstats `_b_' 1.a `prefix'_`e'
           if ("`aug'"=="aug") {
-            di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `truepscore' `augmented' `trueoutcome'" _n(2)
-            regress y i.a `omvarlist' [aw=_weight], `vce' noheader `diopts'
+            `quietly' di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `truepscore' `augmented' `trueoutcome'" _n(2)
+            `quietly' regress y i.a `omvarlist' [aw=_weight], `vce' noheader `diopts'
             addstats `_b_' 1.a `prefix'_`e'`aug'
           }
           }
@@ -298,7 +298,7 @@ program define addstats
   // lincom is just a conventient way to get p-value and CIs.
   cap nois {
     return clear
-    lincom _b[`coef']
+    qui lincom _b[`coef']
     mat `cell' = (r(p), /// grab p-value
                   (r(p) <= (1 - c(clevel) / 100)), /// reject null?
                   ((r(lb) <= _g1) & (_g1 <= r(ub)))) // coverage
