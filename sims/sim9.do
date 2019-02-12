@@ -10,12 +10,13 @@ set linesize 180
 cap mkdir  sims/sim`sim'
 log using "sims/sim`sim'/logfile.log", replace name(sim`sim')
 
-*! $Id$
+*! $Id:$
 *! BPO CBPS Simulation
 // Try using the K-S and I-R simulation setup
+// Compare to IPW, CBPS (both versions), elastic net and RF
 //
 *! By Keith Kranker
-// Last updated $Date$
+// Last updated $Date:$
 //
 // Copyright (C) Mathematica Policy Research, Inc.
 // This code cannot be copied, distributed or used without the express written
@@ -63,7 +64,6 @@ sim_reshape
 table estimator augmented N, c(count error_sqr)
 
 foreach v of var impact_est-wgt_max impact_est_var {
-  // bys augmented: tabstat `v', by(result) s(N mean p50 sd) nototal
   table estimator augmented N, c(mean error_sqr)
   graph bar (mean) `v', asyvar over(estimator) over(N) legend(col(3)) by(augmented, row(1) yrescale title(`v')) ytitle("") xsize(12) name(`v', replace)
   graph export "sims/sim`sim'/Figure_`v'.png", replace
