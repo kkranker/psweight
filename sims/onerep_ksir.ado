@@ -33,13 +33,15 @@ program define onerep_ksir, eclass
          AUGmented /// run OLS models to estimate impacts
          HISTogram /// passed to DGP
          vce(passthru) /// e.g., add robust standard errors in outcome models
+         alpha(passthru) numfolds(passthru) /// passed to elasticregress (ignored if this estimator is off)
+         iterations(passthru) depth(passthru) lsize(passthru) numvars(passthru) /// passed to randomforest (ignored if this estimator is off)
          QUIETly /// supress a lot of the output
          *] // display options passed everywhere; remaining options passed to gmatch.ado (if applicable)
   _get_diopts diopts options, `options'
 
   // process options
   // throw error if invalid options
-  local valid_est raw ipw_true_ps ipw ipw_te stdprogdiff cbps ipwcbps
+  local valid_est raw ipw_true_ps ipw ipw_te stdprogdiff cbps ipwcbps elastic rf
   // if ("`estimators'"=="") local estimators : copy local valid_est
   if !`:list estimators in valid_est' {
     di as error "estimators(`: list estimators-valid_est') invalid"
@@ -97,98 +99,142 @@ program define onerep_ksir, eclass
         // Difference in means ("raw")
         local e "raw"
         if (`: list e in estimators') cap `quietly' {
-          di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `augmented'" _n(2)
-          regress y i.a `omvarlist', `vce' noheader `diopts'
-          addstats `_b_' 1.a `prefix'_`e'`aug'
+          di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `truepscore'" _n(2)
+          regress y i.a, `vce' noheader `diopts'
+          addstats `_b_' 1.a `prefix'_`e'
+          if ("`aug'"=="aug") {
+            di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `truepscore' `augmented' `trueoutcome'" _n(2)
+            regress y i.a `omvarlist', `vce' noheader `diopts'
+            addstats `_b_' 1.a `prefix'_`e'`aug'
+          }
         }
 
         // Difference in means, weighted using true propensity scores ("true")
         local e "ipw_true_ps"
         if (`: list e in estimators') cap `quietly' {
-          di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `augmented'" _n(2)
+          di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `truepscore'" _n(2)
           tempvar trueW
-          if "`ate'`atet'`ateu'"=="ate" {
-            gen `trueW' = cond(a, 1/ps, 1/(1-ps))
-            summ `trueW' if a
-            qui replace `trueW' = `trueW' / r(mean) if a
-            summ `trueW' if !a
-            qui replace `trueW' = `trueW' / r(mean) if !a
+          mkwgt `trueW' = ps, `ate' `atet' `ateu'
+          regress y i.a [aw=`trueW'], `vce' noheader `diopts'
+          addstats `_b_' 1.a `prefix'_`e'
+          if ("`aug'"=="aug") {
+            di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `truepscore' `augmented' `trueoutcome'" _n(2)
+            regress y i.a `omvarlist' [aw=`trueW'], `vce' noheader `diopts'
+            addstats `_b_' 1.a `prefix'_`e'`aug'
           }
-          else if "`ate'`atet'`ateu'"=="atet" {
-            gen `trueW' = cond(a, 1, ps/(1-ps))
-            summ `trueW' if !a
-            qui replace `trueW' = `trueW' / r(mean) if !a
-          }
-          else if "`ate'`atet'`ateu'"=="atet" {
-            gen `trueW' = cond(a, (1-ps)/ps, 1)
-            summ `trueW' if a
-            qui replace `trueW' = `trueW' / r(mean) if a
-          }
-          else {
-            di as error "`ate'`atet'`ateu' invalid"
-            error 198
-          }
-          regress y i.a `omvarlist' [aw=`trueW'], `vce' noheader `diopts'
-          addstats `_b_' 1.a `prefix'_`e'`aug'
         }
 
         // IPW model (with teffects)
         local e "ipw_te"
         if (`: list e in estimators') cap `quietly' {
-          di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `augmented'" _n(2)
-          if ("`augmented'"=="augmented") teffects aipw (y `omvarlist') (a `pscorevarlist'), `ate'`atet'`ateu' aeq `diopts'
-          else teffects ipw (y) (a `pscorevarlist'), `ate'`atet'`ateu' aeq `diopts'
+          di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `truepscore'" _n(2)
+          teffects ipw (y) (a `pscorevarlist'), `ate'`atet'`ateu' aeq `diopts'
           matrix `from' = e(b)
           matrix `from' = `from'[1, "TME1:"]
           local fromopt from(`from')
-          addstats `_b_' ATET:r1vs0.a `prefix'_`e'`aug'
+          addstats `_b_' `=strupper("`ate'`atet'`ateu'")':r1vs0.a `prefix'_`e'
+          if ("`aug'"=="aug") {
+            di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `truepscore' `augmented' `trueoutcome'" _n(2)
+            teffects aipw (y `omvarlist') (a `pscorevarlist'), `ate'`atet'`ateu' aeq `diopts'
+            addstats `_b_' `=strupper("`ate'`atet'`ateu'")':r1vs0.a `prefix'_`e'`aug'
+          }
+        }
+
+        // IPW model with elastic net used to estimate P-scores
+        local e "elastic"
+        if (`: list e in estimators') cap `quietly' {
+          di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `truepscore'" _n(2)
+          elasticregress a c.(`pscorevarlist')##c.(`pscorevarlist'), `alpha' `numfolds'
+          tempvar elasticW elasticPS
+          predict `elasticPS'
+          mkwgt `elasticW' = `elasticPS', `ate' `atet' `ateu' trim
+          regress y i.a [aw=`elasticW'], `vce' noheader `diopts'
+          addstats `_b_' 1.a `prefix'_`e'
+          if ("`aug'"=="aug") {
+            di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `truepscore' `augmented' `trueoutcome'" _n(2)
+            regress y i.a `omvarlist' [aw=`elasticW'], `vce' noheader `diopts'
+            addstats `_b_' 1.a `prefix'_`e'`aug'
+          }
+        }
+
+        // IPW model with randomforest model used to estimate P-scores
+        local e "rf"
+        if (`: list e in estimators') cap `quietly' {
+          di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `truepscore'" _n(2)
+          randomforest a `pscorevarlist', type(class) `iterations' `depth' `lsize' `numvars'
+          tempvar rfW rfPS rfPS0
+          predict `rfPS0' `rfPS', pr
+          mkwgt `rfW' = `rfPS', `ate' `atet' `ateu'
+          regress y i.a [aw=`rfW'], `vce' noheader `diopts'
+          addstats `_b_' 1.a `prefix'_`e'
+          if ("`aug'"=="aug") {
+            di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `truepscore' `augmented' `trueoutcome'" _n(2)
+            regress y i.a `omvarlist' [aw=`rfW'], `vce' noheader `diopts'
+            addstats `_b_' 1.a `prefix'_`e'`aug'
+          }
         }
 
         // IPW model (with gmatch.ado)
         local e "ipw"
         if (`: list e in estimators') cap `quietly' {
-          di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `augmented'" _n(2)
+          di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `truepscore'" _n(2)
           gmatch a `pscorevarlist', ipw `ate'`atet'`ateu' `fromopt' `options' `diopts'
           matrix `from' = e(b)
           local fromopt from(`from')
-          regress y i.a `omvarlist' [aw=_weight], `vce' noheader `diopts'
-          addstats `_b_' 1.a `prefix'_`e'`aug'
+          regress y i.a [aw=_weight], `vce' noheader `diopts'
+          addstats `_b_' 1.a `prefix'_`e'
+          if ("`aug'"=="aug") {
+            di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `truepscore' `augmented' `trueoutcome'" _n(2)
+            regress y i.a `omvarlist' [aw=_weight], `vce' noheader `diopts'
+            addstats `_b_' 1.a `prefix'_`e'`aug'
+          }
         }
 
         // Minimize difference in prognostic scores model (with gmatch.ado)
         local e "stdprogdiff"
         if (`: list e in estimators') cap `quietly' {
-          di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `augmented'" _n(2)
+          di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `truepscore'" _n(2)
           gmatch a `pscorevarlist', stdprogdiff depvar(y) `ate'`atet'`ateu' `fromopt' `options' `diopts'
-          matrix `from' = e(b)
-          local fromopt from(`from')
-          regress y i.a `omvarlist' [aw=_weight], `vce' noheader `diopts'
-          addstats `_b_' 1.a `prefix'_`e'`aug'
-          local cvcbps = r(wgt_cv)
-          mac list _cvcbps
+          regress y i.a [aw=_weight], `vce' noheader `diopts'
+          addstats `_b_' 1.a `prefix'_`e'
+          if ("`aug'"=="aug") {
+            di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `truepscore' `augmented' `trueoutcome'" _n(2)
+            regress y i.a `omvarlist' [aw=_weight], `vce' noheader `diopts'
+            addstats `_b_' 1.a `prefix'_`e'`aug'
+          }
         }
 
         // CBPS overidentified model (with gmatch.ado)
         local e "ipwcbps"
         if (`: list e in estimators') cap `quietly' {
-          di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `augmented'" _n(2)
+          di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `truepscore'" _n(2)
           gmatch a `pscorevarlist', cbps ipw `ate'`atet'`ateu' `fromopt' `options' `diopts'
-          regress y i.a `omvarlist' [aw=_weight], `vce' noheader `diopts'
-          addstats `_b_' 1.a `prefix'_`e'`aug'
+          regress y i.a [aw=_weight], `vce' noheader `diopts'
+          addstats `_b_' 1.a `prefix'_`e'
+          if ("`aug'"=="aug") {
+            di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `truepscore' `augmented' `trueoutcome'" _n(2)
+            regress y i.a `omvarlist' [aw=_weight], `vce' noheader `diopts'
+            addstats `_b_' 1.a `prefix'_`e'`aug'
+          }
         }
 
         // CBPS model (with gmatch.ado)
         local e "cbps"
         if (`: list e in estimators') cap `quietly' {
-          di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `augmented'" _n(2)
+          di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `truepscore'" _n(2)
           gmatch a `pscorevarlist', cbps `ate'`atet'`ateu' `fromopt' `options' `diopts'
           matrix `from' = e(b)
           local fromopt from(`from')
-          regress y i.a `omvarlist' [aw=_weight], `vce' noheader `diopts'
-          addstats `_b_' 1.a `prefix'_`e'`aug'
+          regress y i.a [aw=_weight], `vce' noheader `diopts'
           gmatchcall wgt_cv("`ate'`atet'`ateu'")
           local cvcbps = r(wgt_cv)
+          addstats `_b_' 1.a `prefix'_`e'
           mac list _cvcbps
+          if ("`aug'"=="aug") {
+            di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `truepscore' `augmented' `trueoutcome'" _n(2)
+            regress y i.a `omvarlist' [aw=_weight], `vce' noheader `diopts'
+            addstats `_b_' 1.a `prefix'_`e'`aug'
+          }
         }
 
         // CBPS model (with gmatch.ado), with CV at X%
@@ -203,8 +249,13 @@ program define onerep_ksir, eclass
           `quietly' di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `augmented'" _n ///
                    as txt "CV target: cvtarget(20 " as res %7.4f `cvtarget' as txt " 6)" _n(2)
           `quietly' gmatch a `pscorevarlist', cbps cvtarget(20 `cvtarget' 6) `ate'`atet'`ateu' `fromopt' `options' `diopts'
-          `quietly' regress y i.a `omvarlist' [aw=_weight], `vce' noheader `diopts'
-          addstats `_b_' 1.a `prefix'_`e'`aug'
+          `quietly' regress y i.a [aw=_weight], `vce' noheader `diopts'
+          addstats `_b_' 1.a `prefix'_`e'
+          if ("`aug'"=="aug") {
+            di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `truepscore' `augmented' `trueoutcome'" _n(2)
+            regress y i.a `omvarlist' [aw=_weight], `vce' noheader `diopts'
+            addstats `_b_' 1.a `prefix'_`e'`aug'
+          }
           }
         }
 
@@ -255,7 +306,7 @@ program define addstats
     mat `add' = (`add', `cell')
   }
 
-  cap nois {
+  cap {
     gmatchcall balanceresults()
     mat `cell'  = (r(max_asd), /// Maximum absolute standardized diff.
                    r(mean_asd), /// Mean absolute standardized diff.
@@ -272,8 +323,48 @@ program define addstats
   matrix `matname' = (nullmat(`matname'), `add')
   // mat list `add'
 
+  cap mata: mata drop gmatch_ado_most_recent
+
 end
 
+// converts p-scores into IPW weights
+program define mkwgt
+
+  syntax newvarname =/exp [, ate atet ateu trim]
+
+  tempvar ps
+  qui gen double `ps' = `exp'
+
+  if ("`trim'"=="trim") {
+    di "Trimming p-scores <.0001 or >.9999 when contructing weights"
+    cap nois replace `ps' = .0001 if `ps' < .0001
+    cap nois replace `ps' = .9999 if `ps' > .9999 & !missing(`varlist')
+  }
+  if inlist("`ate'`atet'`ateu'", "ate", "") {
+    gen `varlist' = cond(a, 1/`ps', 1/(1-`ps'))
+    summ `varlist' if a, mean
+    qui replace `varlist' = `varlist' / r(mean) if a
+    summ `varlist' if !a, mean
+    qui replace `varlist' = `varlist' / r(mean) if !a
+  }
+  else if "`ate'`atet'`ateu'"=="atet" {
+    gen `varlist' = cond(a, 1, `ps'/(1-`ps'))
+    summ `varlist' if !a, mean
+    qui replace `varlist' = `varlist' / r(mean) if !a
+  }
+  else if "`ate'`atet'`ateu'"=="ateu" {
+    gen `varlist' = cond(a, (1-`ps')/`ps', 1)
+    summ `varlist' if a, mean
+    qui replace `varlist' = `varlist' / r(mean) if a
+  }
+  else {
+    di as error "`ate' `atet' `ateu' invalid"
+    error 198
+  }
+
+end
+
+// calculates power from a SE and effect size, assuming normal distribution
 mata:
   mata set matastrict on
   void power_zstat(real scalar se, real scalar effect, real scalar alpha , real scalar sides) {

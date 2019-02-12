@@ -10,7 +10,6 @@
 
 program define sim_reshape
   version 15.1
-  syntax [, DROPaugsuffix]
   di _n as txt "Before reshape:" _n
   desc, short
   qui compress
@@ -25,15 +24,16 @@ program define sim_reshape
     local ests1: subinstr local ests1 "_b_impact_est" "", all
     local ests : list ests | ests1
   }
+  local ests : subinstr local ests "aug" "", all
+  local ests : list uniq ests
   di as txt "`: list sizeof ests' estimators:"
   mac list _ests
   local ee = 0
-  local estdefine `++ee' "IPW_TRUE_PS" `++ee' "IPW_TRUE_PSAUG" `++ee' "STDPROGDIFF" `++ee' "STDPROGDIFFAUG" `++ee' "IPW_TE" `++ee' "IPW_TEAUG" `++ee' "IPW" `++ee' "IPWAUG"  `++ee' "IPWCBPS" `++ee' "IPWCBPSAUG" `++ee' "CBPS" `++ee' "CBPSAUG"
+  local estdefine `++ee' "RAW" `++ee' "IPW_TRUE_PS" `++ee' "STDPROGDIFF" `++ee' "IPW_TE" `++ee' "IPW" `ee' "ELASTIC" `++ee' "RF" `++ee' "IPWCBPS" `++ee' "CBPS"
   foreach est of local ests {
     if !regexm(strupper("`est'"), "CBPS[0-9].*") continue
-    local estdefine `estdefine' `++ee' `=strupper("`est'")'  `++ee' `=strupper("`est'AUG")'
+    local estdefine `estdefine' `++ee' `=strupper("`est'")'
   }
-  local estdefine `estdefine' `++ee' "RAW"  `++ee' "RAWAUG"
   format %7.4f _all
   format %7.1f *_wgt_max*
   format %7.0g *_reject* *covered* *_N* *_Nt*
@@ -44,19 +44,22 @@ program define sim_reshape
   preserve
   foreach prefix of local prefixes {
     foreach est of local ests {
-      restore, preserve
-      // di as res "`prefix'/`est':" _c
-      keep rep `prefix'_b_* `prefix'_`est'_b_*
-      rename `prefix'_* *
-      rename `est'_* *
-      rename  b_* *
-      gen dgp_txt = regexs(1) if regexm("`prefix'", "^([A-Z]*)_([0-9]*)$")
-      gen dataset = regexs(2) if regexm("`prefix'", "^([A-Z]*)_([0-9]*)$")
-      gen est_txt = "`est'"
-      qui desc, varlist
-      // di as txt =r(varlist)
-      if `++s'>1 qui append using "`stack'"
-      qui save "`stack'", replace
+      foreach aug in "" "AUG" {
+        restore, preserve
+        // di as res "`prefix'/`est':" _c
+        keep rep `prefix'_b_* `prefix'_`est'_b_*
+        rename `prefix'_* *
+        rename `est'_* *
+        rename  b_* *
+        gen dgp_txt = regexs(1) if regexm("`prefix'", "^([A-Z]*)_([0-9]*)$")
+        gen dataset = regexs(2) if regexm("`prefix'", "^([A-Z]*)_([0-9]*)$")
+        gen augmented = ("`aug'"=="AUG")
+        gen est_txt = "`est'"
+        qui desc, varlist
+        // di as txt =r(varlist)
+        if `++s'>1 qui append using "`stack'"
+        qui save "`stack'", replace
+      }
     }
   }
   restore, not
@@ -67,17 +70,18 @@ program define sim_reshape
   encode dgp_txt, gen(dgp) label(dgp)
   label define est `estdefine'
   qui replace est_txt = upper(est_txt)
-  if ("`dropaugsuffix'"=="dropaugsuffix") replace est_txt =  subinstr(est_txt,"AUG","",1)
   encode est_txt, gen(estimator) label(est)
   qui destring dataset, replace
   drop dgp_txt est_txt
+  label define aug 0 "Unadjusted" 1 "Reg. adjusted"
+  label val augmented aug
 
   // "result" is a unique ID combiining "dataset" and "estimator"
   // dataset is one loop of "one rep" -- one per scenario per impact per
   // sanmple size.  However, each daaset can have multiple estimators
-  cap nois isid rep dgp true N estimator
-  cap nois isid rep dataset    estimator
-  egen result = group(dataset dgp true N estimator), label missing
+  cap nois isid rep dgp true N estimator augmented
+  cap nois isid rep dataset    estimator augmented
+  egen result = group(dataset dgp true N estimator augmented), label missing
   isid rep result
 
   // claculate variance of impact_est
@@ -91,8 +95,8 @@ program define sim_reshape
   drop `mean_bias' `MSE' `count'
 
   // checks, cleanup
-  order result dataset dgp true N estimator rep, first
-  sort  result dataset dgp true N estimator rep
+  order result dataset dgp true N estimator augmented rep, first
+  sort  result dataset dgp true N estimator augmented rep
   foreach v of var _all {
     label var `v'
   }
@@ -101,5 +105,5 @@ program define sim_reshape
   di _n as txt "After reshape:" _n
   desc
   summ, sep(0)
-  table estimator N true, by(dgp) concise
+  table estimator N true, by(augmented dgp) concise
 end
