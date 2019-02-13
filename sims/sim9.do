@@ -61,10 +61,14 @@ onerep_ksir, `commonopts' augmented
 parallel sim, `simopts': onerep_ksir, `commonopts' augmented
 
 sim_reshape
+save sims/sim`sim'/Data_`subsection'.dta, replace
+
+
 table estimator augmented N, c(count error_sqr)
 
 foreach v of var impact_est-wgt_max impact_est_var {
-  table estimator augmented N, c(mean error_sqr)
+  di _n(2) as res `"`v'  `:var lab `v''"'
+  table estimator augmented N, c(mean `v')
   graph bar (mean) `v', asyvar over(estimator) over(N) legend(col(3)) by(augmented, row(1) yrescale title(`v')) ytitle("") xsize(12) name(`v', replace)
   graph export "sims/sim`sim'/Figure_`v'.png", replace
 }
