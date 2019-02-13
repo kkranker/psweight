@@ -1,0 +1,2345 @@
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      name:  sim9
+       log:  U:\Stata\Ado\Devel\gmatch\sims/sim9/logfile.log
+  log type:  text
+ opened on:  12 Feb 2019, 19:11:45
+
+. 
+. *! $Id:$
+. *! BPO CBPS Simulation
+. // Try using the K-S and I-R simulation setup
+. // Compare to IPW, CBPS (both versions), elastic net and RF
+. //
+. *! By Keith Kranker
+. // Last updated $Date:$
+. //
+. // Copyright (C) Mathematica Policy Research, Inc.
+. // This code cannot be copied, distributed or used without the express written
+. // permission of Mathematica Policy Research, Inc.
+. 
+. mac list _sim
+_sim:           9
+
+. 
+. // DGP is saved in a separate .ado file
+. adopath ++ "./sims"
+  [1]              "./sims"
+  [2]  (BASE)      "C:\Program Files (x86)\Stata15\ado\base/"
+  [3]  (SITE)      "C:\Program Files (x86)\Stata15\ado\site/"
+  [4]              "."
+  [5]  (PERSONAL)  "U:\Stata\Ado\personal/"
+  [6]  (PLUS)      "U:\Stata\Ado\plus/"
+  [7]  (OLDPLACE)  "C:\Users\kkranker\Documents\Stata\Ado/"
+  [8]              "U:\Stata\Ado\personal"
+  [9]              "U:\Stata\Ado\plus"
+  [10]             "U:\Stata\Stata-Common-Code"
+  [11]             "C:\Users\kkranker\Documents\Stata\Stata-Common-Code"
+
+. which dgp_ssbgc
+./sims\dgp_ssbgc.ado
+*! $Id: dgp_ssbgc.ado,v 1bd3f7eb3235 2019/02/01 15:47:11 kkranker $
+*! Data generating processe (DGP) senarios A through G from Setoguchi et al. (2008)
+*! By Keith Kranker
+
+. which onerep
+./sims\onerep.ado
+*! $Id: onerep.ado,v 0dd86927acba 2019/02/06 00:16:58 kkranker $
+*! One replication of the Simulations
+*! By Keith Kranker
+
+. which sim_reshape
+./sims\sim_reshape.ado
+*! $Id: sim_reshape.ado,v ae6b62a0b4a6 2019/02/12 23:25:43 kkranker $
+*! Reshapes the outpute from simmulate: from wide to tall
+*! By Keith Kranker
+
+. which elasticregress
+U:\Stata\Ado\plus\e\elasticregress.ado
+*! version 1.2
+
+. which randomforest
+U:\Stata\Ado\plus\r\randomforest.ado
+*! version 1.2  June, 2018
+
+. 
+. // control simulations
+. set seed `sim'  //  1 for simulation 1, 2 for simulation 2, etc.
+
+. local reps  1000
+
+. set matsize 5000
+
+. set maxiter 50
+
+. set scheme mpr
+
+. 
+. // options
+. parallel setclusters `=min(6, c(processors_max)-1)'
+N Clusters: 6
+Stata dir:  C:\Program Files (x86)\Stata15/StataMP-64.exe
+
+. local simopts    expr(_b) reps(\`reps') processors(`=c(processors_max)')
+
+. local commonopts n(50 200 1000) ///
+>                  estimators(raw ipw_true_ps ipw ipwcbps cbps elastic rf) ///
+>          cvtargets(99 98 97 95 93 90 85 80 75 50) ///
+>          ate ///
+>          vce(robust) iter(\`c(maxiter)') cformat(%9.3fc) pformat(%5.3f) sformat(%7.3f) pooledvariance ///
+>          alpha(.5) numfolds(10) ///
+>          iterations(100) depth(12) lsize(5) numvars(4) ///
+>          quietly
+
+. 
+. // ------------------------------------------------------------------------
+. // difference in means
+. // and augmented
+. // ------------------------------------------------------------------------
+. 
+. onerep_ksir, `commonopts' augmented
+(obs 1,000)
+(0 observations deleted)
+
+
+
+--------------------
+A_1
+--------------------
+Scenario: A
+Impact:   0
+N:        1000
+--------------------
+
+
+(800 observations deleted)
+
+
+
+--------------------
+A_2
+--------------------
+Scenario: A
+Impact:   0
+N:        200
+--------------------
+
+
+convergence not achieved
+convergence not achieved
+convergence not achieved
+convergence not achieved
+(150 observations deleted)
+
+
+
+--------------------
+A_3
+--------------------
+Scenario: A
+Impact:   0
+N:        50
+--------------------
+
+
+convergence not achieved
+convergence not achieved
+convergence not achieved
+convergence not achieved
+convergence not achieved
+convergence not achieved
+convergence not achieved
+convergence not achieved
+convergence not achieved
+convergence not achieved
+------------------------------------------------------------------------------------
+                   |      Coef.
+-------------------+----------------------------------------------------------------
+A_1                |
+                 N |  1,000.000
+                Nt |    472.000
+              true |      0.000
+-------------------+----------------------------------------------------------------
+A_1_raw            |
+        impact_est |    -22.863
+          sd_error |      2.211
+              bias |    -22.863
+         error_sqr |    522.737
+     power_zstat_0 |      0.025
+               p_0 |      0.000
+          reject_0 |      1.000
+           covered |      0.000
+-------------------+----------------------------------------------------------------
+A_1_rawaug         |
+        impact_est |     -8.010
+          sd_error |      1.194
+              bias |     -8.010
+         error_sqr |     64.155
+     power_zstat_0 |      0.025
+               p_0 |      0.000
+          reject_0 |      1.000
+           covered |      0.000
+-------------------+----------------------------------------------------------------
+A_1_ipw_true_ps    |
+        impact_est |     -3.106
+          sd_error |      3.158
+              bias |     -3.106
+         error_sqr |      9.646
+     power_zstat_0 |      0.025
+               p_0 |      0.326
+          reject_0 |      0.000
+           covered |      1.000
+-------------------+----------------------------------------------------------------
+A_1_ipw_true_psaug |
+        impact_est |     -2.468
+          sd_error |      1.412
+              bias |     -2.468
+         error_sqr |      6.092
+     power_zstat_0 |      0.025
+               p_0 |      0.081
+          reject_0 |      0.000
+           covered |      1.000
+-------------------+----------------------------------------------------------------
+A_1_elastic        |
+        impact_est |      8.502
+          sd_error |      8.058
+              bias |      8.502
+         error_sqr |     72.290
+     power_zstat_0 |      0.025
+               p_0 |      0.292
+          reject_0 |      0.000
+           covered |      1.000
+-------------------+----------------------------------------------------------------
+A_1_elasticaug     |
+        impact_est |     -4.514
+          sd_error |      1.134
+              bias |     -4.514
+         error_sqr |     20.373
+     power_zstat_0 |      0.025
+               p_0 |      0.000
+          reject_0 |      1.000
+           covered |      0.000
+-------------------+----------------------------------------------------------------
+A_1_rf             |
+        impact_est |    -16.520
+          sd_error |      2.261
+              bias |    -16.520
+         error_sqr |    272.925
+     power_zstat_0 |      0.025
+               p_0 |      0.000
+          reject_0 |      1.000
+           covered |      0.000
+-------------------+----------------------------------------------------------------
+A_1_rfaug          |
+        impact_est |     -5.720
+          sd_error |      1.207
+              bias |     -5.720
+         error_sqr |     32.723
+     power_zstat_0 |      0.025
+               p_0 |      0.000
+          reject_0 |      1.000
+           covered |      0.000
+-------------------+----------------------------------------------------------------
+A_1_ipw            |
+        impact_est |      6.886
+          sd_error |      7.417
+              bias |      6.886
+         error_sqr |     47.418
+     power_zstat_0 |      0.025
+               p_0 |      0.353
+          reject_0 |      0.000
+           covered |      1.000
+       bal_max_asd |      0.573
+      bal_mean_asd |      0.231
+            wgt_sd |      2.500
+            wgt_cv |      2.500
+      wgt_skewness |      0.822
+      wgt_kurtosis |      0.757
+           wgt_max |     74.674
+-------------------+----------------------------------------------------------------
+A_1_ipwaug         |
+        impact_est |     -8.277
+          sd_error |      1.330
+              bias |     -8.277
+         error_sqr |     68.510
+     power_zstat_0 |      0.025
+               p_0 |      0.000
+          reject_0 |      1.000
+           covered |      0.000
+       bal_max_asd |      0.573
+      bal_mean_asd |      0.231
+            wgt_sd |      2.500
+            wgt_cv |      2.500
+      wgt_skewness |      0.822
+      wgt_kurtosis |      0.757
+           wgt_max |     74.674
+-------------------+----------------------------------------------------------------
+A_1_ipwcbps        |
+        impact_est |     -4.650
+          sd_error |      4.586
+              bias |     -4.650
+         error_sqr |     21.624
+     power_zstat_0 |      0.025
+               p_0 |      0.311
+          reject_0 |      0.000
+           covered |      1.000
+       bal_max_asd |      0.160
+      bal_mean_asd |      0.085
+            wgt_sd |      1.102
+            wgt_cv |      1.102
+      wgt_skewness |      0.604
+      wgt_kurtosis |      0.479
+           wgt_max |     29.886
+-------------------+----------------------------------------------------------------
+A_1_ipwcbpsaug     |
+        impact_est |     -8.448
+          sd_error |      1.463
+              bias |     -8.448
+         error_sqr |     71.373
+     power_zstat_0 |      0.025
+               p_0 |      0.000
+          reject_0 |      1.000
+           covered |      0.000
+       bal_max_asd |      0.160
+      bal_mean_asd |      0.085
+            wgt_sd |      1.102
+            wgt_cv |      1.102
+      wgt_skewness |      0.604
+      wgt_kurtosis |      0.479
+           wgt_max |     29.886
+-------------------+----------------------------------------------------------------
+A_1_cbps           |
+        impact_est |     -8.317
+          sd_error |      3.680
+              bias |     -8.317
+         error_sqr |     69.172
+     power_zstat_0 |      0.025
+               p_0 |      0.024
+          reject_0 |      1.000
+           covered |      0.000
+       bal_max_asd |      0.000
+      bal_mean_asd |      0.000
+            wgt_sd |      0.776
+            wgt_cv |      0.776
+      wgt_skewness |      0.345
+      wgt_kurtosis |      0.197
+           wgt_max |     17.137
+-------------------+----------------------------------------------------------------
+A_1_cbpsaug        |
+        impact_est |     -8.317
+          sd_error |      1.488
+              bias |     -8.317
+         error_sqr |     69.172
+     power_zstat_0 |      0.025
+               p_0 |      0.000
+          reject_0 |      1.000
+           covered |      0.000
+       bal_max_asd |      0.000
+      bal_mean_asd |      0.000
+            wgt_sd |      0.776
+            wgt_cv |      0.776
+      wgt_skewness |      0.345
+      wgt_kurtosis |      0.197
+           wgt_max |     17.137
+-------------------+----------------------------------------------------------------
+A_1_cbps99         |
+        impact_est |     -8.338
+          sd_error |      3.673
+              bias |     -8.338
+         error_sqr |     69.515
+     power_zstat_0 |      0.025
+               p_0 |      0.023
+          reject_0 |      1.000
+           covered |      0.000
+       bal_max_asd |      0.002
+      bal_mean_asd |      0.001
+            wgt_sd |      0.774
+            wgt_cv |      0.774
+      wgt_skewness |      0.342
+      wgt_kurtosis |      0.195
+           wgt_max |     17.029
+-------------------+----------------------------------------------------------------
+A_1_cbps99aug      |
+        impact_est |     -8.314
+          sd_error |      1.488
+              bias |     -8.314
+         error_sqr |     69.122
+     power_zstat_0 |      0.025
+               p_0 |      0.000
+          reject_0 |      1.000
+           covered |      0.000
+       bal_max_asd |      0.002
+      bal_mean_asd |      0.001
+            wgt_sd |      0.774
+            wgt_cv |      0.774
+      wgt_skewness |      0.342
+      wgt_kurtosis |      0.195
+           wgt_max |     17.029
+-------------------+----------------------------------------------------------------
+A_1_cbps98         |
+        impact_est |     -8.487
+          sd_error |      3.652
+              bias |     -8.487
+         error_sqr |     72.024
+     power_zstat_0 |      0.025
+               p_0 |      0.020
+          reject_0 |      1.000
+           covered |      0.000
+       bal_max_asd |      0.007
+      bal_mean_asd |      0.002
+            wgt_sd |      0.766
+            wgt_cv |      0.766
+      wgt_skewness |      0.340
+      wgt_kurtosis |      0.193
+           wgt_max |     16.831
+-------------------+----------------------------------------------------------------
+A_1_cbps98aug      |
+        impact_est |     -8.313
+          sd_error |      1.487
+              bias |     -8.313
+         error_sqr |     69.099
+     power_zstat_0 |      0.025
+               p_0 |      0.000
+          reject_0 |      1.000
+           covered |      0.000
+       bal_max_asd |      0.007
+      bal_mean_asd |      0.002
+            wgt_sd |      0.766
+            wgt_cv |      0.766
+      wgt_skewness |      0.340
+      wgt_kurtosis |      0.193
+           wgt_max |     16.831
+-------------------+----------------------------------------------------------------
+A_1_cbps97         |
+        impact_est |     -8.607
+          sd_error |      3.631
+              bias |     -8.607
+         error_sqr |     74.081
+     power_zstat_0 |      0.025
+               p_0 |      0.018
+          reject_0 |      1.000
+           covered |      0.000
+       bal_max_asd |      0.012
+      bal_mean_asd |      0.004
+            wgt_sd |      0.759
+            wgt_cv |      0.759
+      wgt_skewness |      0.337
+      wgt_kurtosis |      0.190
+           wgt_max |     16.616
+-------------------+----------------------------------------------------------------
+A_1_cbps97aug      |
+        impact_est |     -8.309
+          sd_error |      1.487
+              bias |     -8.309
+         error_sqr |     69.046
+     power_zstat_0 |      0.025
+               p_0 |      0.000
+          reject_0 |      1.000
+           covered |      0.000
+       bal_max_asd |      0.012
+      bal_mean_asd |      0.004
+            wgt_sd |      0.759
+            wgt_cv |      0.759
+      wgt_skewness |      0.337
+      wgt_kurtosis |      0.190
+           wgt_max |     16.616
+-------------------+----------------------------------------------------------------
+A_1_cbps95         |
+        impact_est |     -8.857
+          sd_error |      3.590
+              bias |     -8.857
+         error_sqr |     78.449
+     power_zstat_0 |      0.025
+               p_0 |      0.014
+          reject_0 |      1.000
+           covered |      0.000
+       bal_max_asd |      0.022
+      bal_mean_asd |      0.008
+            wgt_sd |      0.744
+            wgt_cv |      0.744
+      wgt_skewness |      0.330
+      wgt_kurtosis |      0.183
+           wgt_max |     16.174
+-------------------+----------------------------------------------------------------
+A_1_cbps95aug      |
+        impact_est |     -8.303
+          sd_error |      1.486
+              bias |     -8.303
+         error_sqr |     68.933
+     power_zstat_0 |      0.025
+               p_0 |      0.000
+          reject_0 |      1.000
+           covered |      0.000
+       bal_max_asd |      0.022
+      bal_mean_asd |      0.008
+            wgt_sd |      0.744
+            wgt_cv |      0.744
+      wgt_skewness |      0.330
+      wgt_kurtosis |      0.183
+           wgt_max |     16.174
+-------------------+----------------------------------------------------------------
+A_1_cbps93         |
+        impact_est |     -9.113
+          sd_error |      3.547
+              bias |     -9.113
+         error_sqr |     83.054
+     power_zstat_0 |      0.025
+               p_0 |      0.010
+          reject_0 |      1.000
+           covered |      0.000
+       bal_max_asd |      0.032
+      bal_mean_asd |      0.011
+            wgt_sd |      0.729
+            wgt_cv |      0.729
+      wgt_skewness |      0.322
+      wgt_kurtosis |      0.177
+           wgt_max |     15.726
+-------------------+----------------------------------------------------------------
+A_1_cbps93aug      |
+        impact_est |     -8.295
+          sd_error |      1.485
+              bias |     -8.295
+         error_sqr |     68.810
+     power_zstat_0 |      0.025
+               p_0 |      0.000
+          reject_0 |      1.000
+           covered |      0.000
+       bal_max_asd |      0.032
+      bal_mean_asd |      0.011
+            wgt_sd |      0.729
+            wgt_cv |      0.729
+      wgt_skewness |      0.322
+      wgt_kurtosis |      0.177
+           wgt_max |     15.726
+-------------------+----------------------------------------------------------------
+A_1_cbps90         |
+        impact_est |     -9.507
+          sd_error |      3.483
+              bias |     -9.507
+         error_sqr |     90.390
+     power_zstat_0 |      0.025
+               p_0 |      0.006
+          reject_0 |      1.000
+           covered |      0.000
+       bal_max_asd |      0.048
+      bal_mean_asd |      0.017
+            wgt_sd |      0.707
+            wgt_cv |      0.707
+      wgt_skewness |      0.311
+      wgt_kurtosis |      0.167
+           wgt_max |     15.049
+-------------------+----------------------------------------------------------------
+A_1_cbps90aug      |
+        impact_est |     -8.283
+          sd_error |      1.484
+              bias |     -8.283
+         error_sqr |     68.612
+     power_zstat_0 |      0.025
+               p_0 |      0.000
+          reject_0 |      1.000
+           covered |      0.000
+       bal_max_asd |      0.048
+      bal_mean_asd |      0.017
+            wgt_sd |      0.707
+            wgt_cv |      0.707
+      wgt_skewness |      0.311
+      wgt_kurtosis |      0.167
+           wgt_max |     15.049
+-------------------+----------------------------------------------------------------
+A_1_cbps85         |
+        impact_est |    -10.184
+          sd_error |      3.376
+              bias |    -10.184
+         error_sqr |    103.713
+     power_zstat_0 |      0.025
+               p_0 |      0.003
+          reject_0 |      1.000
+           covered |      0.000
+       bal_max_asd |      0.076
+      bal_mean_asd |      0.027
+            wgt_sd |      0.669
+            wgt_cv |      0.669
+      wgt_skewness |      0.291
+      wgt_kurtosis |      0.150
+           wgt_max |     13.918
+-------------------+----------------------------------------------------------------
+A_1_cbps85aug      |
+        impact_est |     -8.261
+          sd_error |      1.480
+              bias |     -8.261
+         error_sqr |     68.241
+     power_zstat_0 |      0.025
+               p_0 |      0.000
+          reject_0 |      1.000
+           covered |      0.000
+       bal_max_asd |      0.076
+      bal_mean_asd |      0.027
+            wgt_sd |      0.669
+            wgt_cv |      0.669
+      wgt_skewness |      0.291
+      wgt_kurtosis |      0.150
+           wgt_max |     13.918
+-------------------+----------------------------------------------------------------
+A_1_cbps80         |
+        impact_est |    -10.886
+          sd_error |      3.270
+              bias |    -10.886
+         error_sqr |    118.504
+     power_zstat_0 |      0.025
+               p_0 |      0.001
+          reject_0 |      1.000
+           covered |      0.000
+       bal_max_asd |      0.106
+      bal_mean_asd |      0.037
+            wgt_sd |      0.630
+            wgt_cv |      0.630
+      wgt_skewness |      0.271
+      wgt_kurtosis |      0.133
+           wgt_max |     12.788
+-------------------+----------------------------------------------------------------
+A_1_cbps80aug      |
+        impact_est |     -8.235
+          sd_error |      1.474
+              bias |     -8.235
+         error_sqr |     67.813
+     power_zstat_0 |      0.025
+               p_0 |      0.000
+          reject_0 |      1.000
+           covered |      0.000
+       bal_max_asd |      0.106
+      bal_mean_asd |      0.037
+            wgt_sd |      0.630
+            wgt_cv |      0.630
+      wgt_skewness |      0.271
+      wgt_kurtosis |      0.133
+           wgt_max |     12.788
+-------------------+----------------------------------------------------------------
+A_1_cbps75         |
+        impact_est |    -11.604
+          sd_error |      3.168
+              bias |    -11.604
+         error_sqr |    134.652
+     power_zstat_0 |      0.025
+               p_0 |      0.000
+          reject_0 |      1.000
+           covered |      0.000
+       bal_max_asd |      0.137
+      bal_mean_asd |      0.047
+            wgt_sd |      0.592
+            wgt_cv |      0.592
+      wgt_skewness |      0.250
+      wgt_kurtosis |      0.117
+           wgt_max |     11.678
+-------------------+----------------------------------------------------------------
+A_1_cbps75aug      |
+        impact_est |     -8.202
+          sd_error |      1.467
+              bias |     -8.202
+         error_sqr |     67.281
+     power_zstat_0 |      0.025
+               p_0 |      0.000
+          reject_0 |      1.000
+           covered |      0.000
+       bal_max_asd |      0.137
+      bal_mean_asd |      0.047
+            wgt_sd |      0.592
+            wgt_cv |      0.592
+      wgt_skewness |      0.250
+      wgt_kurtosis |      0.117
+           wgt_max |     11.678
+-------------------+----------------------------------------------------------------
+A_1_cbps50         |
+        impact_est |    -15.597
+          sd_error |      2.682
+              bias |    -15.597
+         error_sqr |    243.258
+     power_zstat_0 |      0.025
+               p_0 |      0.000
+          reject_0 |      1.000
+           covered |      0.000
+       bal_max_asd |      0.325
+      bal_mean_asd |      0.112
+            wgt_sd |      0.400
+            wgt_cv |      0.400
+      wgt_skewness |      0.139
+      wgt_kurtosis |      0.042
+           wgt_max |      6.392
+-------------------+----------------------------------------------------------------
+A_1_cbps50aug      |
+        impact_est |     -7.982
+          sd_error |      1.388
+              bias |     -7.982
+         error_sqr |     63.706
+     power_zstat_0 |      0.025
+               p_0 |      0.000
+          reject_0 |      1.000
+           covered |      0.000
+       bal_max_asd |      0.325
+      bal_mean_asd |      0.112
+            wgt_sd |      0.400
+            wgt_cv |      0.400
+      wgt_skewness |      0.139
+      wgt_kurtosis |      0.042
+           wgt_max |      6.392
+-------------------+----------------------------------------------------------------
+A_2                |
+                 N |    200.000
+                Nt |     84.000
+              true |      0.000
+-------------------+----------------------------------------------------------------
+A_2_raw            |
+        impact_est |    -28.477
+          sd_error |      4.981
+              bias |    -28.477
+         error_sqr |    810.935
+     power_zstat_0 |      0.025
+               p_0 |      0.000
+          reject_0 |      1.000
+           covered |      0.000
+-------------------+----------------------------------------------------------------
+A_2_rawaug         |
+        impact_est |     -9.002
+          sd_error |      2.926
+              bias |     -9.002
+         error_sqr |     81.035
+     power_zstat_0 |      0.025
+               p_0 |      0.002
+          reject_0 |      1.000
+           covered |      0.000
+-------------------+----------------------------------------------------------------
+A_2_ipw_true_ps    |
+        impact_est |    -14.135
+          sd_error |      5.910
+              bias |    -14.135
+         error_sqr |    199.792
+     power_zstat_0 |      0.025
+               p_0 |      0.018
+          reject_0 |      1.000
+           covered |      0.000
+-------------------+----------------------------------------------------------------
+A_2_ipw_true_psaug |
+        impact_est |     -3.294
+          sd_error |      2.600
+              bias |     -3.294
+         error_sqr |     10.849
+     power_zstat_0 |      0.025
+               p_0 |      0.207
+          reject_0 |      0.000
+           covered |      1.000
+-------------------+----------------------------------------------------------------
+A_2_elastic        |
+        impact_est |     62.953
+          sd_error |      3.329
+              bias |     62.953
+         error_sqr |  3,963.040
+     power_zstat_0 |      0.025
+               p_0 |      0.000
+          reject_0 |      1.000
+           covered |      0.000
+-------------------+----------------------------------------------------------------
+A_2_elasticaug     |
+        impact_est |     -9.596
+          sd_error |      3.303
+              bias |     -9.596
+         error_sqr |     92.085
+     power_zstat_0 |      0.025
+               p_0 |      0.004
+          reject_0 |      1.000
+           covered |      0.000
+-------------------+----------------------------------------------------------------
+A_2_rf             |
+        impact_est |    -22.392
+          sd_error |      5.368
+              bias |    -22.392
+         error_sqr |    501.416
+     power_zstat_0 |      0.025
+               p_0 |      0.000
+          reject_0 |      1.000
+           covered |      0.000
+-------------------+----------------------------------------------------------------
+A_2_rfaug          |
+        impact_est |     -7.033
+          sd_error |      2.635
+              bias |     -7.033
+         error_sqr |     49.464
+     power_zstat_0 |      0.025
+               p_0 |      0.008
+          reject_0 |      1.000
+           covered |      0.000
+-------------------+----------------------------------------------------------------
+A_2_ipw            |
+        impact_est |     33.316
+          sd_error |     20.003
+              bias |     33.316
+         error_sqr |  1,109.976
+     power_zstat_0 |      0.025
+               p_0 |      0.097
+          reject_0 |      0.000
+           covered |      1.000
+       bal_max_asd |      1.040
+      bal_mean_asd |      0.402
+            wgt_sd |      3.528
+            wgt_cv |      3.528
+      wgt_skewness |      0.925
+      wgt_kurtosis |      0.898
+           wgt_max |     49.447
+-------------------+----------------------------------------------------------------
+A_2_ipwaug         |
+        impact_est |     -7.577
+          sd_error |      2.149
+              bias |     -7.577
+         error_sqr |     57.414
+     power_zstat_0 |      0.025
+               p_0 |      0.001
+          reject_0 |      1.000
+           covered |      0.000
+       bal_max_asd |      1.040
+      bal_mean_asd |      0.402
+            wgt_sd |      3.528
+            wgt_cv |      3.528
+      wgt_skewness |      0.925
+      wgt_kurtosis |      0.898
+           wgt_max |     49.447
+-------------------+----------------------------------------------------------------
+A_2_ipwcbps        |
+        impact_est |      8.894
+          sd_error |     19.347
+              bias |      8.894
+         error_sqr |     79.098
+     power_zstat_0 |      0.025
+               p_0 |      0.646
+          reject_0 |      0.000
+           covered |      1.000
+       bal_max_asd |      0.449
+      bal_mean_asd |      0.190
+            wgt_sd |      2.020
+            wgt_cv |      2.020
+      wgt_skewness |      0.864
+      wgt_kurtosis |      0.815
+           wgt_max |     28.073
+-------------------+----------------------------------------------------------------
+A_2_ipwcbpsaug     |
+        impact_est |     -7.905
+          sd_error |      2.183
+              bias |     -7.905
+         error_sqr |     62.491
+     power_zstat_0 |      0.025
+               p_0 |      0.000
+          reject_0 |      1.000
+           covered |      0.000
+       bal_max_asd |      0.449
+      bal_mean_asd |      0.190
+            wgt_sd |      2.020
+            wgt_cv |      2.020
+      wgt_skewness |      0.864
+      wgt_kurtosis |      0.815
+           wgt_max |     28.073
+-------------------+----------------------------------------------------------------
+A_2_cbps           |
+        impact_est |     -8.779
+          sd_error |     13.508
+              bias |     -8.779
+         error_sqr |     77.065
+     power_zstat_0 |      0.025
+               p_0 |      0.517
+          reject_0 |      0.000
+           covered |      1.000
+       bal_max_asd |      0.034
+      bal_mean_asd |      0.018
+            wgt_sd |      1.099
+            wgt_cv |      1.099
+      wgt_skewness |      0.664
+      wgt_kurtosis |      0.550
+           wgt_max |     14.313
+-------------------+----------------------------------------------------------------
+A_2_cbpsaug        |
+        impact_est |     -8.019
+          sd_error |      2.252
+              bias |     -8.019
+         error_sqr |     64.304
+     power_zstat_0 |      0.025
+               p_0 |      0.000
+          reject_0 |      1.000
+           covered |      0.000
+       bal_max_asd |      0.034
+      bal_mean_asd |      0.018
+            wgt_sd |      1.099
+            wgt_cv |      1.099
+      wgt_skewness |      0.664
+      wgt_kurtosis |      0.550
+           wgt_max |     14.313
+-------------------+----------------------------------------------------------------
+A_2_cbps99         |
+        impact_est |     -8.733
+          sd_error |     13.501
+              bias |     -8.733
+         error_sqr |     76.263
+     power_zstat_0 |      0.025
+               p_0 |      0.518
+          reject_0 |      0.000
+           covered |      1.000
+       bal_max_asd |      0.032
+      bal_mean_asd |      0.017
+            wgt_sd |      1.099
+            wgt_cv |      1.099
+      wgt_skewness |      0.666
+      wgt_kurtosis |      0.552
+           wgt_max |     14.326
+-------------------+----------------------------------------------------------------
+A_2_cbps99aug      |
+        impact_est |     -8.008
+          sd_error |      2.252
+              bias |     -8.008
+         error_sqr |     64.135
+     power_zstat_0 |      0.025
+               p_0 |      0.000
+          reject_0 |      1.000
+           covered |      0.000
+       bal_max_asd |      0.032
+      bal_mean_asd |      0.017
+            wgt_sd |      1.099
+            wgt_cv |      1.099
+      wgt_skewness |      0.666
+      wgt_kurtosis |      0.552
+           wgt_max |     14.326
+-------------------+----------------------------------------------------------------
+A_2_cbps98         |
+        impact_est |     -8.907
+          sd_error |     13.406
+              bias |     -8.907
+         error_sqr |     79.333
+     power_zstat_0 |      0.025
+               p_0 |      0.507
+          reject_0 |      0.000
+           covered |      1.000
+       bal_max_asd |      0.038
+      bal_mean_asd |      0.017
+            wgt_sd |      1.089
+            wgt_cv |      1.089
+      wgt_skewness |      0.662
+      wgt_kurtosis |      0.547
+           wgt_max |     14.173
+-------------------+----------------------------------------------------------------
+A_2_cbps98aug      |
+        impact_est |     -8.002
+          sd_error |      2.252
+              bias |     -8.002
+         error_sqr |     64.026
+     power_zstat_0 |      0.025
+               p_0 |      0.000
+          reject_0 |      1.000
+           covered |      0.000
+       bal_max_asd |      0.038
+      bal_mean_asd |      0.017
+            wgt_sd |      1.089
+            wgt_cv |      1.089
+      wgt_skewness |      0.662
+      wgt_kurtosis |      0.547
+           wgt_max |     14.173
+-------------------+----------------------------------------------------------------
+A_2_cbps97         |
+        impact_est |     -9.118
+          sd_error |     13.324
+              bias |     -9.118
+         error_sqr |     83.144
+     power_zstat_0 |      0.025
+               p_0 |      0.495
+          reject_0 |      0.000
+           covered |      1.000
+       bal_max_asd |      0.047
+      bal_mean_asd |      0.021
+            wgt_sd |      1.079
+            wgt_cv |      1.079
+      wgt_skewness |      0.659
+      wgt_kurtosis |      0.544
+           wgt_max |     14.026
+-------------------+----------------------------------------------------------------
+A_2_cbps97aug      |
+        impact_est |     -8.013
+          sd_error |      2.254
+              bias |     -8.013
+         error_sqr |     64.201
+     power_zstat_0 |      0.025
+               p_0 |      0.000
+          reject_0 |      1.000
+           covered |      0.000
+       bal_max_asd |      0.047
+      bal_mean_asd |      0.021
+            wgt_sd |      1.079
+            wgt_cv |      1.079
+      wgt_skewness |      0.659
+      wgt_kurtosis |      0.544
+           wgt_max |     14.026
+-------------------+----------------------------------------------------------------
+A_2_cbps95         |
+        impact_est |     -9.488
+          sd_error |     13.147
+              bias |     -9.488
+         error_sqr |     90.026
+     power_zstat_0 |      0.025
+               p_0 |      0.471
+          reject_0 |      0.000
+           covered |      1.000
+       bal_max_asd |      0.063
+      bal_mean_asd |      0.028
+            wgt_sd |      1.057
+            wgt_cv |      1.057
+      wgt_skewness |      0.655
+      wgt_kurtosis |      0.538
+           wgt_max |     13.734
+-------------------+----------------------------------------------------------------
+A_2_cbps95aug      |
+        impact_est |     -8.021
+          sd_error |      2.256
+              bias |     -8.021
+         error_sqr |     64.335
+     power_zstat_0 |      0.025
+               p_0 |      0.000
+          reject_0 |      1.000
+           covered |      0.000
+       bal_max_asd |      0.063
+      bal_mean_asd |      0.028
+            wgt_sd |      1.057
+            wgt_cv |      1.057
+      wgt_skewness |      0.655
+      wgt_kurtosis |      0.538
+           wgt_max |     13.734
+-------------------+----------------------------------------------------------------
+A_2_cbps93         |
+        impact_est |     -9.898
+          sd_error |     12.969
+              bias |     -9.898
+         error_sqr |     97.978
+     power_zstat_0 |      0.025
+               p_0 |      0.446
+          reject_0 |      0.000
+           covered |      1.000
+       bal_max_asd |      0.079
+      bal_mean_asd |      0.035
+            wgt_sd |      1.036
+            wgt_cv |      1.036
+      wgt_skewness |      0.649
+      wgt_kurtosis |      0.530
+           wgt_max |     13.432
+-------------------+----------------------------------------------------------------
+A_2_cbps93aug      |
+        impact_est |     -8.036
+          sd_error |      2.260
+              bias |     -8.036
+         error_sqr |     64.571
+     power_zstat_0 |      0.025
+               p_0 |      0.000
+          reject_0 |      1.000
+           covered |      0.000
+       bal_max_asd |      0.079
+      bal_mean_asd |      0.035
+            wgt_sd |      1.036
+            wgt_cv |      1.036
+      wgt_skewness |      0.649
+      wgt_kurtosis |      0.530
+           wgt_max |     13.432
+-------------------+----------------------------------------------------------------
+A_2_cbps90         |
+        impact_est |    -10.510
+          sd_error |     12.695
+              bias |    -10.510
+         error_sqr |    110.458
+     power_zstat_0 |      0.025
+               p_0 |      0.409
+          reject_0 |      0.000
+           covered |      1.000
+       bal_max_asd |      0.105
+      bal_mean_asd |      0.046
+            wgt_sd |      1.004
+            wgt_cv |      1.004
+      wgt_skewness |      0.639
+      wgt_kurtosis |      0.519
+           wgt_max |     12.975
+-------------------+----------------------------------------------------------------
+A_2_cbps90aug      |
+        impact_est |     -8.057
+          sd_error |      2.265
+              bias |     -8.057
+         error_sqr |     64.920
+     power_zstat_0 |      0.025
+               p_0 |      0.000
+          reject_0 |      1.000
+           covered |      0.000
+       bal_max_asd |      0.105
+      bal_mean_asd |      0.046
+            wgt_sd |      1.004
+            wgt_cv |      1.004
+      wgt_skewness |      0.639
+      wgt_kurtosis |      0.519
+           wgt_max |     12.975
+-------------------+----------------------------------------------------------------
+A_2_cbps85         |
+        impact_est |    -11.557
+          sd_error |     12.219
+              bias |    -11.557
+         error_sqr |    133.558
+     power_zstat_0 |      0.025
+               p_0 |      0.345
+          reject_0 |      0.000
+           covered |      1.000
+       bal_max_asd |      0.148
+      bal_mean_asd |      0.065
+            wgt_sd |      0.950
+            wgt_cv |      0.950
+      wgt_skewness |      0.621
+      wgt_kurtosis |      0.496
+           wgt_max |     12.197
+-------------------+----------------------------------------------------------------
+A_2_cbps85aug      |
+        impact_est |     -8.096
+          sd_error |      2.276
+              bias |     -8.096
+         error_sqr |     65.542
+     power_zstat_0 |      0.025
+               p_0 |      0.000
+          reject_0 |      1.000
+           covered |      0.000
+       bal_max_asd |      0.148
+      bal_mean_asd |      0.065
+            wgt_sd |      0.950
+            wgt_cv |      0.950
+      wgt_skewness |      0.621
+      wgt_kurtosis |      0.496
+           wgt_max |     12.197
+-------------------+----------------------------------------------------------------
+A_2_cbps80         |
+        impact_est |    -12.625
+          sd_error |     11.722
+              bias |    -12.625
+         error_sqr |    159.384
+     power_zstat_0 |      0.025
+               p_0 |      0.283
+          reject_0 |      0.000
+           covered |      1.000
+       bal_max_asd |      0.193
+      bal_mean_asd |      0.084
+            wgt_sd |      0.896
+            wgt_cv |      0.896
+      wgt_skewness |      0.599
+      wgt_kurtosis |      0.469
+           wgt_max |     11.404
+-------------------+----------------------------------------------------------------
+A_2_cbps80aug      |
+        impact_est |     -8.133
+          sd_error |      2.289
+              bias |     -8.133
+         error_sqr |     66.142
+     power_zstat_0 |      0.025
+               p_0 |      0.000
+          reject_0 |      1.000
+           covered |      0.000
+       bal_max_asd |      0.193
+      bal_mean_asd |      0.084
+            wgt_sd |      0.896
+            wgt_cv |      0.896
+      wgt_skewness |      0.599
+      wgt_kurtosis |      0.469
+           wgt_max |     11.404
+-------------------+----------------------------------------------------------------
+A_2_cbps75         |
+        impact_est |    -13.466
+          sd_error |     11.233
+              bias |    -13.466
+         error_sqr |    181.330
+     power_zstat_0 |      0.025
+               p_0 |      0.232
+          reject_0 |      0.000
+           covered |      1.000
+       bal_max_asd |      0.232
+      bal_mean_asd |      0.103
+            wgt_sd |      0.842
+            wgt_cv |      0.842
+      wgt_skewness |      0.587
+      wgt_kurtosis |      0.455
+           wgt_max |     10.711
+-------------------+----------------------------------------------------------------
+A_2_cbps75aug      |
+        impact_est |     -8.143
+          sd_error |      2.298
+              bias |     -8.143
+         error_sqr |     66.303
+     power_zstat_0 |      0.025
+               p_0 |      0.000
+          reject_0 |      1.000
+           covered |      0.000
+       bal_max_asd |      0.232
+      bal_mean_asd |      0.103
+            wgt_sd |      0.842
+            wgt_cv |      0.842
+      wgt_skewness |      0.587
+      wgt_kurtosis |      0.455
+           wgt_max |     10.711
+-------------------+----------------------------------------------------------------
+A_2_cbps50         |
+        impact_est |    -19.738
+          sd_error |      8.426
+              bias |    -19.738
+         error_sqr |    389.582
+     power_zstat_0 |      0.025
+               p_0 |      0.020
+          reject_0 |      1.000
+           covered |      0.000
+       bal_max_asd |      0.506
+      bal_mean_asd |      0.207
+            wgt_sd |      0.570
+            wgt_cv |      0.570
+      wgt_skewness |      0.379
+      wgt_kurtosis |      0.223
+           wgt_max |      6.386
+-------------------+----------------------------------------------------------------
+A_2_cbps50aug      |
+        impact_est |     -8.329
+          sd_error |      2.397
+              bias |     -8.329
+         error_sqr |     69.369
+     power_zstat_0 |      0.025
+               p_0 |      0.001
+          reject_0 |      1.000
+           covered |      0.000
+       bal_max_asd |      0.506
+      bal_mean_asd |      0.207
+            wgt_sd |      0.570
+            wgt_cv |      0.570
+      wgt_skewness |      0.379
+      wgt_kurtosis |      0.223
+           wgt_max |      6.386
+-------------------+----------------------------------------------------------------
+A_3                |
+                 N |     50.000
+                Nt |     18.000
+              true |      0.000
+-------------------+----------------------------------------------------------------
+A_3_raw            |
+        impact_est |    -25.502
+          sd_error |     10.159
+              bias |    -25.502
+         error_sqr |    650.352
+     power_zstat_0 |      0.025
+               p_0 |      0.015
+          reject_0 |      1.000
+           covered |      0.000
+-------------------+----------------------------------------------------------------
+A_3_rawaug         |
+        impact_est |    -10.684
+          sd_error |      5.845
+              bias |    -10.684
+         error_sqr |    114.139
+     power_zstat_0 |      0.025
+               p_0 |      0.074
+          reject_0 |      0.000
+           covered |      1.000
+-------------------+----------------------------------------------------------------
+A_3_ipw_true_ps    |
+        impact_est |    -13.472
+          sd_error |     10.318
+              bias |    -13.472
+         error_sqr |    181.503
+     power_zstat_0 |      0.025
+               p_0 |      0.198
+          reject_0 |      0.000
+           covered |      1.000
+-------------------+----------------------------------------------------------------
+A_3_ipw_true_psaug |
+        impact_est |     -4.594
+          sd_error |      5.837
+              bias |     -4.594
+         error_sqr |     21.105
+     power_zstat_0 |      0.025
+               p_0 |      0.435
+          reject_0 |      0.000
+           covered |      1.000
+-------------------+----------------------------------------------------------------
+A_3_elastic        |
+        impact_est |    -18.912
+          sd_error |     10.616
+              bias |    -18.912
+         error_sqr |    357.660
+     power_zstat_0 |      0.025
+               p_0 |      0.081
+          reject_0 |      0.000
+           covered |      1.000
+-------------------+----------------------------------------------------------------
+A_3_elasticaug     |
+        impact_est |     -7.254
+          sd_error |      5.508
+              bias |     -7.254
+         error_sqr |     52.622
+     power_zstat_0 |      0.025
+               p_0 |      0.195
+          reject_0 |      0.000
+           covered |      1.000
+-------------------+----------------------------------------------------------------
+A_3_rf             |
+        impact_est |    -23.200
+          sd_error |     10.296
+              bias |    -23.200
+         error_sqr |    538.255
+     power_zstat_0 |      0.025
+               p_0 |      0.029
+          reject_0 |      1.000
+           covered |      0.000
+-------------------+----------------------------------------------------------------
+A_3_rfaug          |
+        impact_est |     -7.626
+          sd_error |      6.278
+              bias |     -7.626
+         error_sqr |     58.162
+     power_zstat_0 |      0.025
+               p_0 |      0.231
+          reject_0 |      0.000
+           covered |      1.000
+-------------------+----------------------------------------------------------------
+A_3_ipw            |
+        impact_est |    -11.452
+          sd_error |     12.174
+              bias |    -11.452
+         error_sqr |    131.149
+     power_zstat_0 |      0.025
+               p_0 |      0.352
+          reject_0 |      0.000
+           covered |      1.000
+       bal_max_asd |      0.613
+      bal_mean_asd |      0.402
+            wgt_sd |      0.706
+            wgt_cv |      0.706
+      wgt_skewness |      0.418
+      wgt_kurtosis |      0.240
+           wgt_max |      4.067
+-------------------+----------------------------------------------------------------
+A_3_ipwaug         |
+        impact_est |     -2.755
+          sd_error |      5.568
+              bias |     -2.755
+         error_sqr |      7.591
+     power_zstat_0 |      0.025
+               p_0 |      0.623
+          reject_0 |      0.000
+           covered |      1.000
+       bal_max_asd |      0.613
+      bal_mean_asd |      0.402
+            wgt_sd |      0.706
+            wgt_cv |      0.706
+      wgt_skewness |      0.418
+      wgt_kurtosis |      0.240
+           wgt_max |      4.067
+-------------------+----------------------------------------------------------------
+A_3_ipwcbps        |
+        impact_est |    -11.676
+          sd_error |     12.154
+              bias |    -11.676
+         error_sqr |    136.337
+     power_zstat_0 |      0.025
+               p_0 |      0.342
+          reject_0 |      0.000
+           covered |      1.000
+       bal_max_asd |      0.619
+      bal_mean_asd |      0.404
+            wgt_sd |      0.695
+            wgt_cv |      0.695
+      wgt_skewness |      0.414
+      wgt_kurtosis |      0.237
+           wgt_max |      4.010
+-------------------+----------------------------------------------------------------
+A_3_ipwcbpsaug     |
+        impact_est |     -2.862
+          sd_error |      5.569
+              bias |     -2.862
+         error_sqr |      8.192
+     power_zstat_0 |      0.025
+               p_0 |      0.610
+          reject_0 |      0.000
+           covered |      1.000
+       bal_max_asd |      0.619
+      bal_mean_asd |      0.404
+            wgt_sd |      0.695
+            wgt_cv |      0.695
+      wgt_skewness |      0.414
+      wgt_kurtosis |      0.237
+           wgt_max |      4.010
+-------------------+----------------------------------------------------------------
+A_3_cbps           |
+        impact_est |    -20.773
+          sd_error |     13.930
+              bias |    -20.773
+         error_sqr |    431.500
+     power_zstat_0 |      0.025
+               p_0 |      0.142
+          reject_0 |      0.000
+           covered |      1.000
+       bal_max_asd |      0.775
+      bal_mean_asd |      0.314
+            wgt_sd |      0.711
+            wgt_cv |      0.711
+      wgt_skewness |      0.339
+      wgt_kurtosis |      0.161
+           wgt_max |      3.693
+-------------------+----------------------------------------------------------------
+A_3_cbpsaug        |
+        impact_est |     -5.255
+          sd_error |      5.413
+              bias |     -5.255
+         error_sqr |     27.619
+     power_zstat_0 |      0.025
+               p_0 |      0.337
+          reject_0 |      0.000
+           covered |      1.000
+       bal_max_asd |      0.775
+      bal_mean_asd |      0.314
+            wgt_sd |      0.711
+            wgt_cv |      0.711
+      wgt_skewness |      0.339
+      wgt_kurtosis |      0.161
+           wgt_max |      3.693
+-------------------+----------------------------------------------------------------
+A_3_cbps99         |
+        impact_est |    -18.480
+          sd_error |     13.676
+              bias |    -18.480
+         error_sqr |    341.511
+     power_zstat_0 |      0.025
+               p_0 |      0.183
+          reject_0 |      0.000
+           covered |      1.000
+       bal_max_asd |      0.722
+      bal_mean_asd |      0.323
+            wgt_sd |      0.718
+            wgt_cv |      0.718
+      wgt_skewness |      0.349
+      wgt_kurtosis |      0.174
+           wgt_max |      3.827
+-------------------+----------------------------------------------------------------
+A_3_cbps99aug      |
+        impact_est |     -4.356
+          sd_error |      5.463
+              bias |     -4.356
+         error_sqr |     18.976
+     power_zstat_0 |      0.025
+               p_0 |      0.429
+          reject_0 |      0.000
+           covered |      1.000
+       bal_max_asd |      0.722
+      bal_mean_asd |      0.323
+            wgt_sd |      0.718
+            wgt_cv |      0.718
+      wgt_skewness |      0.349
+      wgt_kurtosis |      0.174
+           wgt_max |      3.827
+-------------------+----------------------------------------------------------------
+A_3_cbps98         |
+        impact_est |    -18.701
+          sd_error |     13.697
+              bias |    -18.701
+         error_sqr |    349.742
+     power_zstat_0 |      0.025
+               p_0 |      0.179
+          reject_0 |      0.000
+           covered |      1.000
+       bal_max_asd |      0.729
+      bal_mean_asd |      0.323
+            wgt_sd |      0.711
+            wgt_cv |      0.711
+      wgt_skewness |      0.346
+      wgt_kurtosis |      0.171
+           wgt_max |      3.772
+-------------------+----------------------------------------------------------------
+A_3_cbps98aug      |
+        impact_est |     -4.415
+          sd_error |      5.469
+              bias |     -4.415
+         error_sqr |     19.495
+     power_zstat_0 |      0.025
+               p_0 |      0.424
+          reject_0 |      0.000
+           covered |      1.000
+       bal_max_asd |      0.729
+      bal_mean_asd |      0.323
+            wgt_sd |      0.711
+            wgt_cv |      0.711
+      wgt_skewness |      0.346
+      wgt_kurtosis |      0.171
+           wgt_max |      3.772
+-------------------+----------------------------------------------------------------
+A_3_cbps97         |
+        impact_est |    -18.571
+          sd_error |     13.703
+              bias |    -18.571
+         error_sqr |    344.887
+     power_zstat_0 |      0.025
+               p_0 |      0.182
+          reject_0 |      0.000
+           covered |      1.000
+       bal_max_asd |      0.731
+      bal_mean_asd |      0.327
+            wgt_sd |      0.704
+            wgt_cv |      0.704
+      wgt_skewness |      0.346
+      wgt_kurtosis |      0.171
+           wgt_max |      3.724
+-------------------+----------------------------------------------------------------
+A_3_cbps97aug      |
+        impact_est |     -4.473
+          sd_error |      5.483
+              bias |     -4.473
+         error_sqr |     20.004
+     power_zstat_0 |      0.025
+               p_0 |      0.419
+          reject_0 |      0.000
+           covered |      1.000
+       bal_max_asd |      0.731
+      bal_mean_asd |      0.327
+            wgt_sd |      0.704
+            wgt_cv |      0.704
+      wgt_skewness |      0.346
+      wgt_kurtosis |      0.171
+           wgt_max |      3.724
+-------------------+----------------------------------------------------------------
+A_3_cbps95         |
+        impact_est |    -19.311
+          sd_error |     13.630
+              bias |    -19.311
+         error_sqr |    372.919
+     power_zstat_0 |      0.025
+               p_0 |      0.163
+          reject_0 |      0.000
+           covered |      1.000
+       bal_max_asd |      0.743
+      bal_mean_asd |      0.325
+            wgt_sd |      0.691
+            wgt_cv |      0.691
+      wgt_skewness |      0.335
+      wgt_kurtosis |      0.162
+           wgt_max |      3.639
+-------------------+----------------------------------------------------------------
+A_3_cbps95aug      |
+        impact_est |     -4.611
+          sd_error |      5.468
+              bias |     -4.611
+         error_sqr |     21.263
+     power_zstat_0 |      0.025
+               p_0 |      0.404
+          reject_0 |      0.000
+           covered |      1.000
+       bal_max_asd |      0.743
+      bal_mean_asd |      0.325
+            wgt_sd |      0.691
+            wgt_cv |      0.691
+      wgt_skewness |      0.335
+      wgt_kurtosis |      0.162
+           wgt_max |      3.639
+-------------------+----------------------------------------------------------------
+A_3_cbps93         |
+        impact_est |    -19.480
+          sd_error |     13.632
+              bias |    -19.480
+         error_sqr |    379.461
+     power_zstat_0 |      0.025
+               p_0 |      0.159
+          reject_0 |      0.000
+           covered |      1.000
+       bal_max_asd |      0.752
+      bal_mean_asd |      0.329
+            wgt_sd |      0.676
+            wgt_cv |      0.676
+      wgt_skewness |      0.331
+      wgt_kurtosis |      0.159
+           wgt_max |      3.536
+-------------------+----------------------------------------------------------------
+A_3_cbps93aug      |
+        impact_est |     -4.734
+          sd_error |      5.483
+              bias |     -4.734
+         error_sqr |     22.408
+     power_zstat_0 |      0.025
+               p_0 |      0.393
+          reject_0 |      0.000
+           covered |      1.000
+       bal_max_asd |      0.752
+      bal_mean_asd |      0.329
+            wgt_sd |      0.676
+            wgt_cv |      0.676
+      wgt_skewness |      0.331
+      wgt_kurtosis |      0.159
+           wgt_max |      3.536
+-------------------+----------------------------------------------------------------
+A_3_cbps90         |
+        impact_est |    -20.061
+          sd_error |     13.596
+              bias |    -20.061
+         error_sqr |    402.445
+     power_zstat_0 |      0.025
+               p_0 |      0.147
+          reject_0 |      0.000
+           covered |      1.000
+       bal_max_asd |      0.768
+      bal_mean_asd |      0.332
+            wgt_sd |      0.655
+            wgt_cv |      0.655
+      wgt_skewness |      0.322
+      wgt_kurtosis |      0.152
+           wgt_max |      3.404
+-------------------+----------------------------------------------------------------
+A_3_cbps90aug      |
+        impact_est |     -5.017
+          sd_error |      5.482
+              bias |     -5.017
+         error_sqr |     25.173
+     power_zstat_0 |      0.025
+               p_0 |      0.365
+          reject_0 |      0.000
+           covered |      1.000
+       bal_max_asd |      0.768
+      bal_mean_asd |      0.332
+            wgt_sd |      0.655
+            wgt_cv |      0.655
+      wgt_skewness |      0.322
+      wgt_kurtosis |      0.152
+           wgt_max |      3.404
+-------------------+----------------------------------------------------------------
+A_3_cbps85         |
+        impact_est |    -20.871
+          sd_error |     13.497
+              bias |    -20.871
+         error_sqr |    435.597
+     power_zstat_0 |      0.025
+               p_0 |      0.129
+          reject_0 |      0.000
+           covered |      1.000
+       bal_max_asd |      0.793
+      bal_mean_asd |      0.340
+            wgt_sd |      0.620
+            wgt_cv |      0.620
+      wgt_skewness |      0.307
+      wgt_kurtosis |      0.140
+           wgt_max |      3.179
+-------------------+----------------------------------------------------------------
+A_3_cbps85aug      |
+        impact_est |     -5.467
+          sd_error |      5.483
+              bias |     -5.467
+         error_sqr |     29.891
+     power_zstat_0 |      0.025
+               p_0 |      0.324
+          reject_0 |      0.000
+           covered |      1.000
+       bal_max_asd |      0.793
+      bal_mean_asd |      0.340
+            wgt_sd |      0.620
+            wgt_cv |      0.620
+      wgt_skewness |      0.307
+      wgt_kurtosis |      0.140
+           wgt_max |      3.179
+-------------------+----------------------------------------------------------------
+A_3_cbps80         |
+        impact_est |    -19.650
+          sd_error |     12.618
+              bias |    -19.650
+         error_sqr |    386.120
+     power_zstat_0 |      0.025
+               p_0 |      0.126
+          reject_0 |      0.000
+           covered |      1.000
+       bal_max_asd |      0.765
+      bal_mean_asd |      0.386
+            wgt_sd |      0.585
+            wgt_cv |      0.585
+      wgt_skewness |      0.298
+      wgt_kurtosis |      0.139
+           wgt_max |      3.148
+-------------------+----------------------------------------------------------------
+A_3_cbps80aug      |
+        impact_est |     -5.921
+          sd_error |      5.378
+              bias |     -5.921
+         error_sqr |     35.059
+     power_zstat_0 |      0.025
+               p_0 |      0.277
+          reject_0 |      0.000
+           covered |      1.000
+       bal_max_asd |      0.765
+      bal_mean_asd |      0.386
+            wgt_sd |      0.585
+            wgt_cv |      0.585
+      wgt_skewness |      0.298
+      wgt_kurtosis |      0.139
+           wgt_max |      3.148
+-------------------+----------------------------------------------------------------
+A_3_cbps75         |
+        impact_est |    -21.590
+          sd_error |     13.117
+              bias |    -21.590
+         error_sqr |    466.131
+     power_zstat_0 |      0.025
+               p_0 |      0.106
+          reject_0 |      0.000
+           covered |      1.000
+       bal_max_asd |      0.820
+      bal_mean_asd |      0.363
+            wgt_sd |      0.551
+            wgt_cv |      0.551
+      wgt_skewness |      0.280
+      wgt_kurtosis |      0.124
+           wgt_max |      2.789
+-------------------+----------------------------------------------------------------
+A_3_cbps75aug      |
+        impact_est |     -6.052
+          sd_error |      5.489
+              bias |     -6.052
+         error_sqr |     36.625
+     power_zstat_0 |      0.025
+               p_0 |      0.276
+          reject_0 |      0.000
+           covered |      1.000
+       bal_max_asd |      0.820
+      bal_mean_asd |      0.363
+            wgt_sd |      0.551
+            wgt_cv |      0.551
+      wgt_skewness |      0.280
+      wgt_kurtosis |      0.124
+           wgt_max |      2.789
+-------------------+----------------------------------------------------------------
+A_3_cbps50         |
+        impact_est |    -12.979
+          sd_error |     10.764
+              bias |    -12.979
+         error_sqr |    168.463
+     power_zstat_0 |      0.025
+               p_0 |      0.234
+          reject_0 |      0.000
+           covered |      1.000
+       bal_max_asd |      0.787
+      bal_mean_asd |      0.569
+            wgt_sd |      0.336
+            wgt_cv |      0.336
+      wgt_skewness |      0.258
+      wgt_kurtosis |      0.187
+           wgt_max |      2.501
+-------------------+----------------------------------------------------------------
+A_3_cbps50aug      |
+        impact_est |     -6.869
+          sd_error |      5.648
+              bias |     -6.869
+         error_sqr |     47.187
+     power_zstat_0 |      0.025
+               p_0 |      0.230
+          reject_0 |      0.000
+           covered |      1.000
+       bal_max_asd |      0.787
+      bal_mean_asd |      0.569
+            wgt_sd |      0.336
+            wgt_cv |      0.336
+      wgt_skewness |      0.258
+      wgt_kurtosis |      0.187
+           wgt_max |      2.501
+------------------------------------------------------------------------------------
+
+. 
+. parallel sim, `simopts': onerep_ksir, `commonopts' augmented
+--------------------------------------------------------------------------------
+Parallel Computing with Stata (by GVY)
+Clusters   : 6
+pll_id     : gbaifd5iz3
+Running at : U:\Stata\Ado\Devel\gmatch
+Randtype   : datetime
+Waiting for the clusters to finish...
+cluster 0001 has exited without error...
+cluster 0002 has exited without error...
+cluster 0005 has exited without error...
+cluster 0006 has exited without error...
+cluster 0004 has exited without error...
+cluster 0003 has exited without error...
+--------------------------------------------------------------------------------
+Enter -parallel printlog #- to checkout logfiles.
+--------------------------------------------------------------------------------
+
+. 
+. sim_reshape
+
+Before reshape:
+
+
+Contains data from C:\Users\KKranker\AppData\Local\Temp\3/__pllgbaifd5iz3_sim_outdta.dta
+  obs:         1,000                          simulate: onerep_ksir
+ vars:         1,371                          13 Feb 2019 06:44
+ size:     5,484,000                          
+Sorted by: 
+3 prefixes:
+_prefixes:      A_1 A_2 A_3
+17 estimators:
+_ests:          raw ipw_true_ps elastic rf ipw ipwcbps cbps cbps99 cbps98 cbps97 cbps95 cbps93 cbps90 cbps85 cbps80 cbps75 cbps50
+(simulate: onerep_ksir)
+(101,898 missing values generated)
+
+After reshape:
+
+
+Contains data from C:\Users\KKranker\AppData\Local\Temp\3\ST_2e8c_000001.tmp
+  obs:       102,000                          simulate: onerep_ksir
+ vars:            25                          13 Feb 2019 06:44
+ size:     8,976,000                          
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+              storage   display    value
+variable name   type    format     label      variable label
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+result          float   %36.0g     result     
+dataset         byte    %10.0g                
+dgp             long    %8.0g      dgp        
+true            byte    %7.4f                 
+N               int     %7.0g                 
+estimator       long    %11.0g     est        
+augmented       float   %13.0g     aug        
+rep             float   %9.0g                 
+Nt              int     %7.0g                 
+impact_est      float   %7.4f                 
+sd_error        float   %7.4f                 
+bias            float   %7.4f                 
+error_sqr       float   %7.4f                 
+power_zstat_0   float   %7.4f                 
+p_0             float   %7.4f                 
+reject_0        byte    %7.0g                 
+covered         byte    %7.0g                 
+bal_max_asd     float   %7.4f                 
+bal_mean_asd    float   %7.4f                 
+wgt_sd          float   %7.4f                 
+wgt_cv          float   %7.4f                 
+wgt_skewness    float   %7.4f                 
+wgt_kurtosis    float   %7.4f                 
+wgt_max         float   %7.1f                 
+impact_est_var  double  %7.4f                 
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Sorted by: result  dataset  dgp  true  N  estimator  augmented  rep
+     Note: Dataset has changed since last saved.
+
+    Variable |        Obs        Mean    Std. Dev.       Min        Max
+-------------+---------------------------------------------------------
+      result |    102,000        51.5    29.44359          1        102
+     dataset |    102,000           2    .8165006          1          3
+         dgp |    102,000           1           0          1          1
+        true |    102,000           0           0          0          0
+           N |    102,000    416.6667    417.0019         50       1000
+   estimator |    102,000    10.76471    5.286295          1         19
+   augmented |    102,000          .5    .5000025          0          1
+         rep |    102,000       500.5    288.6764          1       1000
+          Nt |    102,000    208.6693    209.2541         13        556
+  impact_est |    101,900   -7.437584     9.03139  -50.77228   125.5689
+    sd_error |    101,900    7.048343    3.866102    1.68245    38.0838
+        bias |    101,900   -7.437584     9.03139  -50.77228   125.5689
+   error_sqr |    101,900    136.8829    394.7022   5.65e-08   15767.54
+power_zsta~0 |    101,900        .025           0       .025       .025
+         p_0 |    101,900    .3006814    .2952767          0    .999982
+    reject_0 |    101,900    .2904416    .4539684          0          1
+     covered |    101,900    .7095584    .4539684          0          1
+ bal_max_asd |     77,956    .1167147    .1511086   1.05e-11   1.964548
+bal_mean_asd |     77,956    .0522367     .071328   5.27e-12   1.250317
+      wgt_sd |     77,956    .6466902    .3747735   .0982747   15.56012
+      wgt_cv |     77,956    .6466902    .3747735   .0982747   15.56012
+wgt_skewness |     77,956     .312621    .1505382  -.0491054    .996267
+wgt_kurtosis |     77,956    .1786475    .1480998   .0062227   .9950291
+     wgt_max |     77,956    7.768414    11.24777   1.323179   491.9986
+impact_est~r |        102    50.19939    118.2061   2.527964   829.0895
+
+-----------------------------------
+augmented,    |     true and N     
+dgp and       | ------ 0.0000 -----
+estimator     |    50    200   1000
+--------------+--------------------
+Unadjusted    |
+A             |
+          RAW | 1,000  1,000  1,000
+  IPW_TRUE_PS | 1,000  1,000  1,000
+      ELASTIC | 1,000  1,000  1,000
+           RF | 1,000  1,000  1,000
+      IPWCBPS | 1,000  1,000  1,000
+         CBPS | 1,000  1,000  1,000
+       CBPS99 | 1,000  1,000  1,000
+       CBPS98 | 1,000  1,000  1,000
+       CBPS97 | 1,000  1,000  1,000
+       CBPS95 | 1,000  1,000  1,000
+       CBPS93 | 1,000  1,000  1,000
+       CBPS90 | 1,000  1,000  1,000
+       CBPS85 | 1,000  1,000  1,000
+       CBPS80 | 1,000  1,000  1,000
+       CBPS75 | 1,000  1,000  1,000
+       CBPS50 | 1,000  1,000  1,000
+          IPW | 1,000  1,000  1,000
+--------------+--------------------
+Reg. adjusted |
+A             |
+          RAW | 1,000  1,000  1,000
+  IPW_TRUE_PS | 1,000  1,000  1,000
+      ELASTIC | 1,000  1,000  1,000
+           RF | 1,000  1,000  1,000
+      IPWCBPS | 1,000  1,000  1,000
+         CBPS | 1,000  1,000  1,000
+       CBPS99 | 1,000  1,000  1,000
+       CBPS98 | 1,000  1,000  1,000
+       CBPS97 | 1,000  1,000  1,000
+       CBPS95 | 1,000  1,000  1,000
+       CBPS93 | 1,000  1,000  1,000
+       CBPS90 | 1,000  1,000  1,000
+       CBPS85 | 1,000  1,000  1,000
+       CBPS80 | 1,000  1,000  1,000
+       CBPS75 | 1,000  1,000  1,000
+       CBPS50 | 1,000  1,000  1,000
+          IPW | 1,000  1,000  1,000
+-----------------------------------
+
+. table estimator augmented N, c(count error_sqr)
+
+----------------------------------------------------------------------------------------------------------
+            |                                       N and augmented                                       
+            | ------------ 50 ------------    ------------ 200 -----------    ----------- 1000 -----------
+  estimator |    Unadjusted  Reg. adjusted       Unadjusted  Reg. adjusted       Unadjusted  Reg. adjusted
+------------+---------------------------------------------------------------------------------------------
+        RAW |         1,000          1,000            1,000          1,000            1,000          1,000
+IPW_TRUE_PS |         1,000          1,000            1,000          1,000            1,000          1,000
+    ELASTIC |         1,000          1,000            1,000          1,000            1,000          1,000
+         RF |           999            999              998            998              975            975
+    IPWCBPS |         1,000          1,000            1,000          1,000            1,000          1,000
+       CBPS |         1,000          1,000            1,000          1,000            1,000          1,000
+     CBPS99 |           997            997            1,000          1,000            1,000          1,000
+     CBPS98 |           997            997              999            999            1,000          1,000
+     CBPS97 |           999            999            1,000          1,000            1,000          1,000
+     CBPS95 |           995            995            1,000          1,000            1,000          1,000
+     CBPS93 |           996            996            1,000          1,000            1,000          1,000
+     CBPS90 |           999            999              999            999            1,000          1,000
+     CBPS85 |           999            999            1,000          1,000            1,000          1,000
+     CBPS80 |         1,000          1,000            1,000          1,000            1,000          1,000
+     CBPS75 |           999            999            1,000          1,000            1,000          1,000
+     CBPS50 |         1,000          1,000              999            999            1,000          1,000
+        IPW |         1,000          1,000            1,000          1,000            1,000          1,000
+----------------------------------------------------------------------------------------------------------
+
+. 
+. foreach v of var impact_est-wgt_max impact_est_var {
+  2.   table estimator augmented N, c(mean error_sqr)
+  3.   graph bar (mean) `v', asyvar over(estimator) over(N) legend(col(3)) by(augmented, row(1) yrescale title(`v')) ytitle("") xsize(12) name(`v', replace)
+  4.   graph export "sims/sim`sim'/Figure_`v'.png", replace
+  5. }
+
+----------------------------------------------------------------------------------------------------------
+            |                                       N and augmented                                       
+            | ------------ 50 ------------    ------------ 200 -----------    ----------- 1000 -----------
+  estimator |    Unadjusted  Reg. adjusted       Unadjusted  Reg. adjusted       Unadjusted  Reg. adjusted
+------------+---------------------------------------------------------------------------------------------
+        RAW |      514.3043       514.3043         440.4713       440.4713         409.9909       409.9909
+IPW_TRUE_PS |      185.5907       185.5907          54.1402        54.1402          10.6854        10.6854
+    ELASTIC |      220.3375       220.3375         208.6311       208.6311          1.0e+03        1.0e+03
+         RF |      325.6496       325.6496         254.5423       254.5423         198.8344       198.8344
+    IPWCBPS |      129.1139       129.1139          55.7711        55.7711          30.5920        30.5920
+       CBPS |       83.8911        83.8911          40.9264        40.9264          40.0361        40.0361
+     CBPS99 |       77.4736        77.4736          40.3730        40.3730          40.4454        40.4454
+     CBPS98 |       78.6093        78.6093          41.2911        41.2911          41.9087        41.9087
+     CBPS97 |       79.8793        79.8793          42.3735        42.3735          43.3328        43.3328
+     CBPS95 |       81.3554        81.3554          44.9462        44.9462          46.3910        46.3910
+     CBPS93 |       84.1868        84.1868          47.9228        47.9228          49.6709        49.6709
+     CBPS90 |       89.1825        89.1825          52.7791        52.7791          54.9832        54.9832
+     CBPS85 |       97.8916        97.8916          62.1439        62.1439          64.8914        64.8914
+     CBPS80 |      109.0001       109.0001          73.1599        73.1599          76.1656        76.1656
+     CBPS75 |      121.3359       121.3359          86.3136        86.3136          89.0522        89.0522
+     CBPS50 |      222.9729       222.9729         185.2115       185.2115         188.5450       188.5450
+        IPW |      114.1137       114.1137          82.5591        82.5591         125.2751       125.2751
+----------------------------------------------------------------------------------------------------------
+(note: file sims/sim9/Figure_impact_est.png not found)
+(file sims/sim9/Figure_impact_est.png written in PNG format)
+
+----------------------------------------------------------------------------------------------------------
+            |                                       N and augmented                                       
+            | ------------ 50 ------------    ------------ 200 -----------    ----------- 1000 -----------
+  estimator |    Unadjusted  Reg. adjusted       Unadjusted  Reg. adjusted       Unadjusted  Reg. adjusted
+------------+---------------------------------------------------------------------------------------------
+        RAW |      514.3043       514.3043         440.4713       440.4713         409.9909       409.9909
+IPW_TRUE_PS |      185.5907       185.5907          54.1402        54.1402          10.6854        10.6854
+    ELASTIC |      220.3375       220.3375         208.6311       208.6311          1.0e+03        1.0e+03
+         RF |      325.6496       325.6496         254.5423       254.5423         198.8344       198.8344
+    IPWCBPS |      129.1139       129.1139          55.7711        55.7711          30.5920        30.5920
+       CBPS |       83.8911        83.8911          40.9264        40.9264          40.0361        40.0361
+     CBPS99 |       77.4736        77.4736          40.3730        40.3730          40.4454        40.4454
+     CBPS98 |       78.6093        78.6093          41.2911        41.2911          41.9087        41.9087
+     CBPS97 |       79.8793        79.8793          42.3735        42.3735          43.3328        43.3328
+     CBPS95 |       81.3554        81.3554          44.9462        44.9462          46.3910        46.3910
+     CBPS93 |       84.1868        84.1868          47.9228        47.9228          49.6709        49.6709
+     CBPS90 |       89.1825        89.1825          52.7791        52.7791          54.9832        54.9832
+     CBPS85 |       97.8916        97.8916          62.1439        62.1439          64.8914        64.8914
+     CBPS80 |      109.0001       109.0001          73.1599        73.1599          76.1656        76.1656
+     CBPS75 |      121.3359       121.3359          86.3136        86.3136          89.0522        89.0522
+     CBPS50 |      222.9729       222.9729         185.2115       185.2115         188.5450       188.5450
+        IPW |      114.1137       114.1137          82.5591        82.5591         125.2751       125.2751
+----------------------------------------------------------------------------------------------------------
+(note: file sims/sim9/Figure_sd_error.png not found)
+(file sims/sim9/Figure_sd_error.png written in PNG format)
+
+----------------------------------------------------------------------------------------------------------
+            |                                       N and augmented                                       
+            | ------------ 50 ------------    ------------ 200 -----------    ----------- 1000 -----------
+  estimator |    Unadjusted  Reg. adjusted       Unadjusted  Reg. adjusted       Unadjusted  Reg. adjusted
+------------+---------------------------------------------------------------------------------------------
+        RAW |      514.3043       514.3043         440.4713       440.4713         409.9909       409.9909
+IPW_TRUE_PS |      185.5907       185.5907          54.1402        54.1402          10.6854        10.6854
+    ELASTIC |      220.3375       220.3375         208.6311       208.6311          1.0e+03        1.0e+03
+         RF |      325.6496       325.6496         254.5423       254.5423         198.8344       198.8344
+    IPWCBPS |      129.1139       129.1139          55.7711        55.7711          30.5920        30.5920
+       CBPS |       83.8911        83.8911          40.9264        40.9264          40.0361        40.0361
+     CBPS99 |       77.4736        77.4736          40.3730        40.3730          40.4454        40.4454
+     CBPS98 |       78.6093        78.6093          41.2911        41.2911          41.9087        41.9087
+     CBPS97 |       79.8793        79.8793          42.3735        42.3735          43.3328        43.3328
+     CBPS95 |       81.3554        81.3554          44.9462        44.9462          46.3910        46.3910
+     CBPS93 |       84.1868        84.1868          47.9228        47.9228          49.6709        49.6709
+     CBPS90 |       89.1825        89.1825          52.7791        52.7791          54.9832        54.9832
+     CBPS85 |       97.8916        97.8916          62.1439        62.1439          64.8914        64.8914
+     CBPS80 |      109.0001       109.0001          73.1599        73.1599          76.1656        76.1656
+     CBPS75 |      121.3359       121.3359          86.3136        86.3136          89.0522        89.0522
+     CBPS50 |      222.9729       222.9729         185.2115       185.2115         188.5450       188.5450
+        IPW |      114.1137       114.1137          82.5591        82.5591         125.2751       125.2751
+----------------------------------------------------------------------------------------------------------
+(note: file sims/sim9/Figure_bias.png not found)
+(file sims/sim9/Figure_bias.png written in PNG format)
+
+----------------------------------------------------------------------------------------------------------
+            |                                       N and augmented                                       
+            | ------------ 50 ------------    ------------ 200 -----------    ----------- 1000 -----------
+  estimator |    Unadjusted  Reg. adjusted       Unadjusted  Reg. adjusted       Unadjusted  Reg. adjusted
+------------+---------------------------------------------------------------------------------------------
+        RAW |      514.3043       514.3043         440.4713       440.4713         409.9909       409.9909
+IPW_TRUE_PS |      185.5907       185.5907          54.1402        54.1402          10.6854        10.6854
+    ELASTIC |      220.3375       220.3375         208.6311       208.6311          1.0e+03        1.0e+03
+         RF |      325.6496       325.6496         254.5423       254.5423         198.8344       198.8344
+    IPWCBPS |      129.1139       129.1139          55.7711        55.7711          30.5920        30.5920
+       CBPS |       83.8911        83.8911          40.9264        40.9264          40.0361        40.0361
+     CBPS99 |       77.4736        77.4736          40.3730        40.3730          40.4454        40.4454
+     CBPS98 |       78.6093        78.6093          41.2911        41.2911          41.9087        41.9087
+     CBPS97 |       79.8793        79.8793          42.3735        42.3735          43.3328        43.3328
+     CBPS95 |       81.3554        81.3554          44.9462        44.9462          46.3910        46.3910
+     CBPS93 |       84.1868        84.1868          47.9228        47.9228          49.6709        49.6709
+     CBPS90 |       89.1825        89.1825          52.7791        52.7791          54.9832        54.9832
+     CBPS85 |       97.8916        97.8916          62.1439        62.1439          64.8914        64.8914
+     CBPS80 |      109.0001       109.0001          73.1599        73.1599          76.1656        76.1656
+     CBPS75 |      121.3359       121.3359          86.3136        86.3136          89.0522        89.0522
+     CBPS50 |      222.9729       222.9729         185.2115       185.2115         188.5450       188.5450
+        IPW |      114.1137       114.1137          82.5591        82.5591         125.2751       125.2751
+----------------------------------------------------------------------------------------------------------
+(note: file sims/sim9/Figure_error_sqr.png not found)
+(file sims/sim9/Figure_error_sqr.png written in PNG format)
+
+----------------------------------------------------------------------------------------------------------
+            |                                       N and augmented                                       
+            | ------------ 50 ------------    ------------ 200 -----------    ----------- 1000 -----------
+  estimator |    Unadjusted  Reg. adjusted       Unadjusted  Reg. adjusted       Unadjusted  Reg. adjusted
+------------+---------------------------------------------------------------------------------------------
+        RAW |      514.3043       514.3043         440.4713       440.4713         409.9909       409.9909
+IPW_TRUE_PS |      185.5907       185.5907          54.1402        54.1402          10.6854        10.6854
+    ELASTIC |      220.3375       220.3375         208.6311       208.6311          1.0e+03        1.0e+03
+         RF |      325.6496       325.6496         254.5423       254.5423         198.8344       198.8344
+    IPWCBPS |      129.1139       129.1139          55.7711        55.7711          30.5920        30.5920
+       CBPS |       83.8911        83.8911          40.9264        40.9264          40.0361        40.0361
+     CBPS99 |       77.4736        77.4736          40.3730        40.3730          40.4454        40.4454
+     CBPS98 |       78.6093        78.6093          41.2911        41.2911          41.9087        41.9087
+     CBPS97 |       79.8793        79.8793          42.3735        42.3735          43.3328        43.3328
+     CBPS95 |       81.3554        81.3554          44.9462        44.9462          46.3910        46.3910
+     CBPS93 |       84.1868        84.1868          47.9228        47.9228          49.6709        49.6709
+     CBPS90 |       89.1825        89.1825          52.7791        52.7791          54.9832        54.9832
+     CBPS85 |       97.8916        97.8916          62.1439        62.1439          64.8914        64.8914
+     CBPS80 |      109.0001       109.0001          73.1599        73.1599          76.1656        76.1656
+     CBPS75 |      121.3359       121.3359          86.3136        86.3136          89.0522        89.0522
+     CBPS50 |      222.9729       222.9729         185.2115       185.2115         188.5450       188.5450
+        IPW |      114.1137       114.1137          82.5591        82.5591         125.2751       125.2751
+----------------------------------------------------------------------------------------------------------
+(note: file sims/sim9/Figure_power_zstat_0.png not found)
+(file sims/sim9/Figure_power_zstat_0.png written in PNG format)
+
+----------------------------------------------------------------------------------------------------------
+            |                                       N and augmented                                       
+            | ------------ 50 ------------    ------------ 200 -----------    ----------- 1000 -----------
+  estimator |    Unadjusted  Reg. adjusted       Unadjusted  Reg. adjusted       Unadjusted  Reg. adjusted
+------------+---------------------------------------------------------------------------------------------
+        RAW |      514.3043       514.3043         440.4713       440.4713         409.9909       409.9909
+IPW_TRUE_PS |      185.5907       185.5907          54.1402        54.1402          10.6854        10.6854
+    ELASTIC |      220.3375       220.3375         208.6311       208.6311          1.0e+03        1.0e+03
+         RF |      325.6496       325.6496         254.5423       254.5423         198.8344       198.8344
+    IPWCBPS |      129.1139       129.1139          55.7711        55.7711          30.5920        30.5920
+       CBPS |       83.8911        83.8911          40.9264        40.9264          40.0361        40.0361
+     CBPS99 |       77.4736        77.4736          40.3730        40.3730          40.4454        40.4454
+     CBPS98 |       78.6093        78.6093          41.2911        41.2911          41.9087        41.9087
+     CBPS97 |       79.8793        79.8793          42.3735        42.3735          43.3328        43.3328
+     CBPS95 |       81.3554        81.3554          44.9462        44.9462          46.3910        46.3910
+     CBPS93 |       84.1868        84.1868          47.9228        47.9228          49.6709        49.6709
+     CBPS90 |       89.1825        89.1825          52.7791        52.7791          54.9832        54.9832
+     CBPS85 |       97.8916        97.8916          62.1439        62.1439          64.8914        64.8914
+     CBPS80 |      109.0001       109.0001          73.1599        73.1599          76.1656        76.1656
+     CBPS75 |      121.3359       121.3359          86.3136        86.3136          89.0522        89.0522
+     CBPS50 |      222.9729       222.9729         185.2115       185.2115         188.5450       188.5450
+        IPW |      114.1137       114.1137          82.5591        82.5591         125.2751       125.2751
+----------------------------------------------------------------------------------------------------------
+(note: file sims/sim9/Figure_p_0.png not found)
+(file sims/sim9/Figure_p_0.png written in PNG format)
+
+----------------------------------------------------------------------------------------------------------
+            |                                       N and augmented                                       
+            | ------------ 50 ------------    ------------ 200 -----------    ----------- 1000 -----------
+  estimator |    Unadjusted  Reg. adjusted       Unadjusted  Reg. adjusted       Unadjusted  Reg. adjusted
+------------+---------------------------------------------------------------------------------------------
+        RAW |      514.3043       514.3043         440.4713       440.4713         409.9909       409.9909
+IPW_TRUE_PS |      185.5907       185.5907          54.1402        54.1402          10.6854        10.6854
+    ELASTIC |      220.3375       220.3375         208.6311       208.6311          1.0e+03        1.0e+03
+         RF |      325.6496       325.6496         254.5423       254.5423         198.8344       198.8344
+    IPWCBPS |      129.1139       129.1139          55.7711        55.7711          30.5920        30.5920
+       CBPS |       83.8911        83.8911          40.9264        40.9264          40.0361        40.0361
+     CBPS99 |       77.4736        77.4736          40.3730        40.3730          40.4454        40.4454
+     CBPS98 |       78.6093        78.6093          41.2911        41.2911          41.9087        41.9087
+     CBPS97 |       79.8793        79.8793          42.3735        42.3735          43.3328        43.3328
+     CBPS95 |       81.3554        81.3554          44.9462        44.9462          46.3910        46.3910
+     CBPS93 |       84.1868        84.1868          47.9228        47.9228          49.6709        49.6709
+     CBPS90 |       89.1825        89.1825          52.7791        52.7791          54.9832        54.9832
+     CBPS85 |       97.8916        97.8916          62.1439        62.1439          64.8914        64.8914
+     CBPS80 |      109.0001       109.0001          73.1599        73.1599          76.1656        76.1656
+     CBPS75 |      121.3359       121.3359          86.3136        86.3136          89.0522        89.0522
+     CBPS50 |      222.9729       222.9729         185.2115       185.2115         188.5450       188.5450
+        IPW |      114.1137       114.1137          82.5591        82.5591         125.2751       125.2751
+----------------------------------------------------------------------------------------------------------
+(note: file sims/sim9/Figure_reject_0.png not found)
+(file sims/sim9/Figure_reject_0.png written in PNG format)
+
+----------------------------------------------------------------------------------------------------------
+            |                                       N and augmented                                       
+            | ------------ 50 ------------    ------------ 200 -----------    ----------- 1000 -----------
+  estimator |    Unadjusted  Reg. adjusted       Unadjusted  Reg. adjusted       Unadjusted  Reg. adjusted
+------------+---------------------------------------------------------------------------------------------
+        RAW |      514.3043       514.3043         440.4713       440.4713         409.9909       409.9909
+IPW_TRUE_PS |      185.5907       185.5907          54.1402        54.1402          10.6854        10.6854
+    ELASTIC |      220.3375       220.3375         208.6311       208.6311          1.0e+03        1.0e+03
+         RF |      325.6496       325.6496         254.5423       254.5423         198.8344       198.8344
+    IPWCBPS |      129.1139       129.1139          55.7711        55.7711          30.5920        30.5920
+       CBPS |       83.8911        83.8911          40.9264        40.9264          40.0361        40.0361
+     CBPS99 |       77.4736        77.4736          40.3730        40.3730          40.4454        40.4454
+     CBPS98 |       78.6093        78.6093          41.2911        41.2911          41.9087        41.9087
+     CBPS97 |       79.8793        79.8793          42.3735        42.3735          43.3328        43.3328
+     CBPS95 |       81.3554        81.3554          44.9462        44.9462          46.3910        46.3910
+     CBPS93 |       84.1868        84.1868          47.9228        47.9228          49.6709        49.6709
+     CBPS90 |       89.1825        89.1825          52.7791        52.7791          54.9832        54.9832
+     CBPS85 |       97.8916        97.8916          62.1439        62.1439          64.8914        64.8914
+     CBPS80 |      109.0001       109.0001          73.1599        73.1599          76.1656        76.1656
+     CBPS75 |      121.3359       121.3359          86.3136        86.3136          89.0522        89.0522
+     CBPS50 |      222.9729       222.9729         185.2115       185.2115         188.5450       188.5450
+        IPW |      114.1137       114.1137          82.5591        82.5591         125.2751       125.2751
+----------------------------------------------------------------------------------------------------------
+(note: file sims/sim9/Figure_covered.png not found)
+(file sims/sim9/Figure_covered.png written in PNG format)
+
+----------------------------------------------------------------------------------------------------------
+            |                                       N and augmented                                       
+            | ------------ 50 ------------    ------------ 200 -----------    ----------- 1000 -----------
+  estimator |    Unadjusted  Reg. adjusted       Unadjusted  Reg. adjusted       Unadjusted  Reg. adjusted
+------------+---------------------------------------------------------------------------------------------
+        RAW |      514.3043       514.3043         440.4713       440.4713         409.9909       409.9909
+IPW_TRUE_PS |      185.5907       185.5907          54.1402        54.1402          10.6854        10.6854
+    ELASTIC |      220.3375       220.3375         208.6311       208.6311          1.0e+03        1.0e+03
+         RF |      325.6496       325.6496         254.5423       254.5423         198.8344       198.8344
+    IPWCBPS |      129.1139       129.1139          55.7711        55.7711          30.5920        30.5920
+       CBPS |       83.8911        83.8911          40.9264        40.9264          40.0361        40.0361
+     CBPS99 |       77.4736        77.4736          40.3730        40.3730          40.4454        40.4454
+     CBPS98 |       78.6093        78.6093          41.2911        41.2911          41.9087        41.9087
+     CBPS97 |       79.8793        79.8793          42.3735        42.3735          43.3328        43.3328
+     CBPS95 |       81.3554        81.3554          44.9462        44.9462          46.3910        46.3910
+     CBPS93 |       84.1868        84.1868          47.9228        47.9228          49.6709        49.6709
+     CBPS90 |       89.1825        89.1825          52.7791        52.7791          54.9832        54.9832
+     CBPS85 |       97.8916        97.8916          62.1439        62.1439          64.8914        64.8914
+     CBPS80 |      109.0001       109.0001          73.1599        73.1599          76.1656        76.1656
+     CBPS75 |      121.3359       121.3359          86.3136        86.3136          89.0522        89.0522
+     CBPS50 |      222.9729       222.9729         185.2115       185.2115         188.5450       188.5450
+        IPW |      114.1137       114.1137          82.5591        82.5591         125.2751       125.2751
+----------------------------------------------------------------------------------------------------------
+(note: file sims/sim9/Figure_bal_max_asd.png not found)
+(file sims/sim9/Figure_bal_max_asd.png written in PNG format)
+
+----------------------------------------------------------------------------------------------------------
+            |                                       N and augmented                                       
+            | ------------ 50 ------------    ------------ 200 -----------    ----------- 1000 -----------
+  estimator |    Unadjusted  Reg. adjusted       Unadjusted  Reg. adjusted       Unadjusted  Reg. adjusted
+------------+---------------------------------------------------------------------------------------------
+        RAW |      514.3043       514.3043         440.4713       440.4713         409.9909       409.9909
+IPW_TRUE_PS |      185.5907       185.5907          54.1402        54.1402          10.6854        10.6854
+    ELASTIC |      220.3375       220.3375         208.6311       208.6311          1.0e+03        1.0e+03
+         RF |      325.6496       325.6496         254.5423       254.5423         198.8344       198.8344
+    IPWCBPS |      129.1139       129.1139          55.7711        55.7711          30.5920        30.5920
+       CBPS |       83.8911        83.8911          40.9264        40.9264          40.0361        40.0361
+     CBPS99 |       77.4736        77.4736          40.3730        40.3730          40.4454        40.4454
+     CBPS98 |       78.6093        78.6093          41.2911        41.2911          41.9087        41.9087
+     CBPS97 |       79.8793        79.8793          42.3735        42.3735          43.3328        43.3328
+     CBPS95 |       81.3554        81.3554          44.9462        44.9462          46.3910        46.3910
+     CBPS93 |       84.1868        84.1868          47.9228        47.9228          49.6709        49.6709
+     CBPS90 |       89.1825        89.1825          52.7791        52.7791          54.9832        54.9832
+     CBPS85 |       97.8916        97.8916          62.1439        62.1439          64.8914        64.8914
+     CBPS80 |      109.0001       109.0001          73.1599        73.1599          76.1656        76.1656
+     CBPS75 |      121.3359       121.3359          86.3136        86.3136          89.0522        89.0522
+     CBPS50 |      222.9729       222.9729         185.2115       185.2115         188.5450       188.5450
+        IPW |      114.1137       114.1137          82.5591        82.5591         125.2751       125.2751
+----------------------------------------------------------------------------------------------------------
+(note: file sims/sim9/Figure_bal_mean_asd.png not found)
+(file sims/sim9/Figure_bal_mean_asd.png written in PNG format)
+
+----------------------------------------------------------------------------------------------------------
+            |                                       N and augmented                                       
+            | ------------ 50 ------------    ------------ 200 -----------    ----------- 1000 -----------
+  estimator |    Unadjusted  Reg. adjusted       Unadjusted  Reg. adjusted       Unadjusted  Reg. adjusted
+------------+---------------------------------------------------------------------------------------------
+        RAW |      514.3043       514.3043         440.4713       440.4713         409.9909       409.9909
+IPW_TRUE_PS |      185.5907       185.5907          54.1402        54.1402          10.6854        10.6854
+    ELASTIC |      220.3375       220.3375         208.6311       208.6311          1.0e+03        1.0e+03
+         RF |      325.6496       325.6496         254.5423       254.5423         198.8344       198.8344
+    IPWCBPS |      129.1139       129.1139          55.7711        55.7711          30.5920        30.5920
+       CBPS |       83.8911        83.8911          40.9264        40.9264          40.0361        40.0361
+     CBPS99 |       77.4736        77.4736          40.3730        40.3730          40.4454        40.4454
+     CBPS98 |       78.6093        78.6093          41.2911        41.2911          41.9087        41.9087
+     CBPS97 |       79.8793        79.8793          42.3735        42.3735          43.3328        43.3328
+     CBPS95 |       81.3554        81.3554          44.9462        44.9462          46.3910        46.3910
+     CBPS93 |       84.1868        84.1868          47.9228        47.9228          49.6709        49.6709
+     CBPS90 |       89.1825        89.1825          52.7791        52.7791          54.9832        54.9832
+     CBPS85 |       97.8916        97.8916          62.1439        62.1439          64.8914        64.8914
+     CBPS80 |      109.0001       109.0001          73.1599        73.1599          76.1656        76.1656
+     CBPS75 |      121.3359       121.3359          86.3136        86.3136          89.0522        89.0522
+     CBPS50 |      222.9729       222.9729         185.2115       185.2115         188.5450       188.5450
+        IPW |      114.1137       114.1137          82.5591        82.5591         125.2751       125.2751
+----------------------------------------------------------------------------------------------------------
+(note: file sims/sim9/Figure_wgt_sd.png not found)
+(file sims/sim9/Figure_wgt_sd.png written in PNG format)
+
+----------------------------------------------------------------------------------------------------------
+            |                                       N and augmented                                       
+            | ------------ 50 ------------    ------------ 200 -----------    ----------- 1000 -----------
+  estimator |    Unadjusted  Reg. adjusted       Unadjusted  Reg. adjusted       Unadjusted  Reg. adjusted
+------------+---------------------------------------------------------------------------------------------
+        RAW |      514.3043       514.3043         440.4713       440.4713         409.9909       409.9909
+IPW_TRUE_PS |      185.5907       185.5907          54.1402        54.1402          10.6854        10.6854
+    ELASTIC |      220.3375       220.3375         208.6311       208.6311          1.0e+03        1.0e+03
+         RF |      325.6496       325.6496         254.5423       254.5423         198.8344       198.8344
+    IPWCBPS |      129.1139       129.1139          55.7711        55.7711          30.5920        30.5920
+       CBPS |       83.8911        83.8911          40.9264        40.9264          40.0361        40.0361
+     CBPS99 |       77.4736        77.4736          40.3730        40.3730          40.4454        40.4454
+     CBPS98 |       78.6093        78.6093          41.2911        41.2911          41.9087        41.9087
+     CBPS97 |       79.8793        79.8793          42.3735        42.3735          43.3328        43.3328
+     CBPS95 |       81.3554        81.3554          44.9462        44.9462          46.3910        46.3910
+     CBPS93 |       84.1868        84.1868          47.9228        47.9228          49.6709        49.6709
+     CBPS90 |       89.1825        89.1825          52.7791        52.7791          54.9832        54.9832
+     CBPS85 |       97.8916        97.8916          62.1439        62.1439          64.8914        64.8914
+     CBPS80 |      109.0001       109.0001          73.1599        73.1599          76.1656        76.1656
+     CBPS75 |      121.3359       121.3359          86.3136        86.3136          89.0522        89.0522
+     CBPS50 |      222.9729       222.9729         185.2115       185.2115         188.5450       188.5450
+        IPW |      114.1137       114.1137          82.5591        82.5591         125.2751       125.2751
+----------------------------------------------------------------------------------------------------------
+(note: file sims/sim9/Figure_wgt_cv.png not found)
+(file sims/sim9/Figure_wgt_cv.png written in PNG format)
+
+----------------------------------------------------------------------------------------------------------
+            |                                       N and augmented                                       
+            | ------------ 50 ------------    ------------ 200 -----------    ----------- 1000 -----------
+  estimator |    Unadjusted  Reg. adjusted       Unadjusted  Reg. adjusted       Unadjusted  Reg. adjusted
+------------+---------------------------------------------------------------------------------------------
+        RAW |      514.3043       514.3043         440.4713       440.4713         409.9909       409.9909
+IPW_TRUE_PS |      185.5907       185.5907          54.1402        54.1402          10.6854        10.6854
+    ELASTIC |      220.3375       220.3375         208.6311       208.6311          1.0e+03        1.0e+03
+         RF |      325.6496       325.6496         254.5423       254.5423         198.8344       198.8344
+    IPWCBPS |      129.1139       129.1139          55.7711        55.7711          30.5920        30.5920
+       CBPS |       83.8911        83.8911          40.9264        40.9264          40.0361        40.0361
+     CBPS99 |       77.4736        77.4736          40.3730        40.3730          40.4454        40.4454
+     CBPS98 |       78.6093        78.6093          41.2911        41.2911          41.9087        41.9087
+     CBPS97 |       79.8793        79.8793          42.3735        42.3735          43.3328        43.3328
+     CBPS95 |       81.3554        81.3554          44.9462        44.9462          46.3910        46.3910
+     CBPS93 |       84.1868        84.1868          47.9228        47.9228          49.6709        49.6709
+     CBPS90 |       89.1825        89.1825          52.7791        52.7791          54.9832        54.9832
+     CBPS85 |       97.8916        97.8916          62.1439        62.1439          64.8914        64.8914
+     CBPS80 |      109.0001       109.0001          73.1599        73.1599          76.1656        76.1656
+     CBPS75 |      121.3359       121.3359          86.3136        86.3136          89.0522        89.0522
+     CBPS50 |      222.9729       222.9729         185.2115       185.2115         188.5450       188.5450
+        IPW |      114.1137       114.1137          82.5591        82.5591         125.2751       125.2751
+----------------------------------------------------------------------------------------------------------
+(note: file sims/sim9/Figure_wgt_skewness.png not found)
+(file sims/sim9/Figure_wgt_skewness.png written in PNG format)
+
+----------------------------------------------------------------------------------------------------------
+            |                                       N and augmented                                       
+            | ------------ 50 ------------    ------------ 200 -----------    ----------- 1000 -----------
+  estimator |    Unadjusted  Reg. adjusted       Unadjusted  Reg. adjusted       Unadjusted  Reg. adjusted
+------------+---------------------------------------------------------------------------------------------
+        RAW |      514.3043       514.3043         440.4713       440.4713         409.9909       409.9909
+IPW_TRUE_PS |      185.5907       185.5907          54.1402        54.1402          10.6854        10.6854
+    ELASTIC |      220.3375       220.3375         208.6311       208.6311          1.0e+03        1.0e+03
+         RF |      325.6496       325.6496         254.5423       254.5423         198.8344       198.8344
+    IPWCBPS |      129.1139       129.1139          55.7711        55.7711          30.5920        30.5920
+       CBPS |       83.8911        83.8911          40.9264        40.9264          40.0361        40.0361
+     CBPS99 |       77.4736        77.4736          40.3730        40.3730          40.4454        40.4454
+     CBPS98 |       78.6093        78.6093          41.2911        41.2911          41.9087        41.9087
+     CBPS97 |       79.8793        79.8793          42.3735        42.3735          43.3328        43.3328
+     CBPS95 |       81.3554        81.3554          44.9462        44.9462          46.3910        46.3910
+     CBPS93 |       84.1868        84.1868          47.9228        47.9228          49.6709        49.6709
+     CBPS90 |       89.1825        89.1825          52.7791        52.7791          54.9832        54.9832
+     CBPS85 |       97.8916        97.8916          62.1439        62.1439          64.8914        64.8914
+     CBPS80 |      109.0001       109.0001          73.1599        73.1599          76.1656        76.1656
+     CBPS75 |      121.3359       121.3359          86.3136        86.3136          89.0522        89.0522
+     CBPS50 |      222.9729       222.9729         185.2115       185.2115         188.5450       188.5450
+        IPW |      114.1137       114.1137          82.5591        82.5591         125.2751       125.2751
+----------------------------------------------------------------------------------------------------------
+(note: file sims/sim9/Figure_wgt_kurtosis.png not found)
+(file sims/sim9/Figure_wgt_kurtosis.png written in PNG format)
+
+----------------------------------------------------------------------------------------------------------
+            |                                       N and augmented                                       
+            | ------------ 50 ------------    ------------ 200 -----------    ----------- 1000 -----------
+  estimator |    Unadjusted  Reg. adjusted       Unadjusted  Reg. adjusted       Unadjusted  Reg. adjusted
+------------+---------------------------------------------------------------------------------------------
+        RAW |      514.3043       514.3043         440.4713       440.4713         409.9909       409.9909
+IPW_TRUE_PS |      185.5907       185.5907          54.1402        54.1402          10.6854        10.6854
+    ELASTIC |      220.3375       220.3375         208.6311       208.6311          1.0e+03        1.0e+03
+         RF |      325.6496       325.6496         254.5423       254.5423         198.8344       198.8344
+    IPWCBPS |      129.1139       129.1139          55.7711        55.7711          30.5920        30.5920
+       CBPS |       83.8911        83.8911          40.9264        40.9264          40.0361        40.0361
+     CBPS99 |       77.4736        77.4736          40.3730        40.3730          40.4454        40.4454
+     CBPS98 |       78.6093        78.6093          41.2911        41.2911          41.9087        41.9087
+     CBPS97 |       79.8793        79.8793          42.3735        42.3735          43.3328        43.3328
+     CBPS95 |       81.3554        81.3554          44.9462        44.9462          46.3910        46.3910
+     CBPS93 |       84.1868        84.1868          47.9228        47.9228          49.6709        49.6709
+     CBPS90 |       89.1825        89.1825          52.7791        52.7791          54.9832        54.9832
+     CBPS85 |       97.8916        97.8916          62.1439        62.1439          64.8914        64.8914
+     CBPS80 |      109.0001       109.0001          73.1599        73.1599          76.1656        76.1656
+     CBPS75 |      121.3359       121.3359          86.3136        86.3136          89.0522        89.0522
+     CBPS50 |      222.9729       222.9729         185.2115       185.2115         188.5450       188.5450
+        IPW |      114.1137       114.1137          82.5591        82.5591         125.2751       125.2751
+----------------------------------------------------------------------------------------------------------
+(note: file sims/sim9/Figure_wgt_max.png not found)
+(file sims/sim9/Figure_wgt_max.png written in PNG format)
+
+----------------------------------------------------------------------------------------------------------
+            |                                       N and augmented                                       
+            | ------------ 50 ------------    ------------ 200 -----------    ----------- 1000 -----------
+  estimator |    Unadjusted  Reg. adjusted       Unadjusted  Reg. adjusted       Unadjusted  Reg. adjusted
+------------+---------------------------------------------------------------------------------------------
+        RAW |      514.3043       514.3043         440.4713       440.4713         409.9909       409.9909
+IPW_TRUE_PS |      185.5907       185.5907          54.1402        54.1402          10.6854        10.6854
+    ELASTIC |      220.3375       220.3375         208.6311       208.6311          1.0e+03        1.0e+03
+         RF |      325.6496       325.6496         254.5423       254.5423         198.8344       198.8344
+    IPWCBPS |      129.1139       129.1139          55.7711        55.7711          30.5920        30.5920
+       CBPS |       83.8911        83.8911          40.9264        40.9264          40.0361        40.0361
+     CBPS99 |       77.4736        77.4736          40.3730        40.3730          40.4454        40.4454
+     CBPS98 |       78.6093        78.6093          41.2911        41.2911          41.9087        41.9087
+     CBPS97 |       79.8793        79.8793          42.3735        42.3735          43.3328        43.3328
+     CBPS95 |       81.3554        81.3554          44.9462        44.9462          46.3910        46.3910
+     CBPS93 |       84.1868        84.1868          47.9228        47.9228          49.6709        49.6709
+     CBPS90 |       89.1825        89.1825          52.7791        52.7791          54.9832        54.9832
+     CBPS85 |       97.8916        97.8916          62.1439        62.1439          64.8914        64.8914
+     CBPS80 |      109.0001       109.0001          73.1599        73.1599          76.1656        76.1656
+     CBPS75 |      121.3359       121.3359          86.3136        86.3136          89.0522        89.0522
+     CBPS50 |      222.9729       222.9729         185.2115       185.2115         188.5450       188.5450
+        IPW |      114.1137       114.1137          82.5591        82.5591         125.2751       125.2751
+----------------------------------------------------------------------------------------------------------
+(note: file sims/sim9/Figure_impact_est_var.png not found)
+(file sims/sim9/Figure_impact_est_var.png written in PNG format)
+
+. 
+. log close sim`sim'
+      name:  sim9
+       log:  U:\Stata\Ado\Devel\gmatch\sims/sim9/logfile.log
+  log type:  text
+ closed on:  13 Feb 2019, 06:45:21
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------

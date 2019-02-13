@@ -188,6 +188,7 @@ program define onerep_ksir, eclass
             regress y i.a `omvarlist' [aw=_weight], `vce' noheader `diopts'
             addstats `_b_' 1.a `prefix'_`e'`aug'
           }
+          cap mata: mata drop gmatch_ado_most_recent
         }
 
         // Minimize difference in prognostic scores model (with gmatch.ado)
@@ -202,6 +203,7 @@ program define onerep_ksir, eclass
             regress y i.a `omvarlist' [aw=_weight], `vce' noheader `diopts'
             addstats `_b_' 1.a `prefix'_`e'`aug'
           }
+          cap mata: mata drop gmatch_ado_most_recent
         }
 
         // CBPS overidentified model (with gmatch.ado)
@@ -216,6 +218,7 @@ program define onerep_ksir, eclass
             regress y i.a `omvarlist' [aw=_weight], `vce' noheader `diopts'
             addstats `_b_' 1.a `prefix'_`e'`aug'
           }
+          cap mata: mata drop gmatch_ado_most_recent
         }
 
         // CBPS model (with gmatch.ado)
@@ -235,6 +238,7 @@ program define onerep_ksir, eclass
             regress y i.a `omvarlist' [aw=_weight], `vce' noheader `diopts'
             addstats `_b_' 1.a `prefix'_`e'`aug'
           }
+          cap mata: mata drop gmatch_ado_most_recent
         }
 
         // CBPS model (with gmatch.ado), with CV at X%
@@ -250,13 +254,14 @@ program define onerep_ksir, eclass
                    as txt "CV target: cvtarget(20 " as res %7.4f `cvtarget' as txt " 6)" _n(2)
           `quietly' gmatch a `pscorevarlist', cbps cvtarget(20 `cvtarget' 6) `ate'`atet'`ateu' `fromopt' `options' `diopts'
           `quietly' regress y i.a [aw=_weight], `vce' noheader `diopts'
-          addstats `_b_' 1.a `prefix'_`e'
+          `quietly' addstats `_b_' 1.a `prefix'_`e'
           if ("`aug'"=="aug") {
             `quietly' di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `truepscore' `augmented' `trueoutcome'" _n(2)
             `quietly' regress y i.a `omvarlist' [aw=_weight], `vce' noheader `diopts'
-            addstats `_b_' 1.a `prefix'_`e'`aug'
+            `quietly' addstats `_b_' 1.a `prefix'_`e'`aug'
           }
           }
+          cap mata: mata drop gmatch_ado_most_recent
         }
 
         local --l
@@ -264,6 +269,7 @@ program define onerep_ksir, eclass
       }
 
   ereturn clear
+  cap mata: mata drop gmatch_ado_most_recent
   // mat list `_b_'
   ereturn post `_b_'
   ereturn local cmd "onerep_ksir"
@@ -322,8 +328,6 @@ program define addstats
   matrix coleq `add' = `eqname'
   matrix `matname' = (nullmat(`matname'), `add')
   // mat list `add'
-
-  cap mata: mata drop gmatch_ado_most_recent
 
 end
 
