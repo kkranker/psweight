@@ -33,8 +33,7 @@ program define onerep_ksir, eclass
          AUGmented /// run OLS models to estimate impacts
          HISTogram /// passed to DGP
          vce(passthru) /// e.g., add robust standard errors in outcome models
-         alpha(passthru) numfolds(passthru) /// passed to elasticregress (ignored if this estimator is off)
-         iterations(passthru) depth(passthru) lsize(passthru) numvars(passthru) /// passed to randomforest (ignored if this estimator is off)
+         elasticopts(string) rfopts(string) /// passed to elasticregress and randomforest, respectively
          QUIETly /// supress a lot of the output
          *] // display options passed everywhere; remaining options passed to gmatch.ado (if applicable)
   _get_diopts diopts options, `options'
@@ -70,7 +69,7 @@ program define onerep_ksir, eclass
 
   tempname _b_ add from
   local c = 0
-  local scenario A
+  local scenario I
     local impact = 0
       local L : word count `n'
       dgp_ksir, n(`: word `L' of `n'') `histogram'
@@ -144,7 +143,7 @@ program define onerep_ksir, eclass
         local e "elastic"
         if (`: list e in estimators') cap `quietly' {
           di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `truepscore'" _n(2)
-          elasticregress a c.(`pscorevarlist')##c.(`pscorevarlist'), `alpha' `numfolds'
+          elasticregress a c.(`pscorevarlist')##c.(`pscorevarlist'), `elasticopts'
           tempvar elasticW elasticPS
           predict `elasticPS'
           mkwgt `elasticW' = `elasticPS', `ate' `atet' `ateu' trim
@@ -161,7 +160,7 @@ program define onerep_ksir, eclass
         local e "rf"
         if (`: list e in estimators') cap `quietly' {
           di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `truepscore'" _n(2)
-          randomforest a `pscorevarlist', type(class) `iterations' `depth' `lsize' `numvars'
+          randomforest a `pscorevarlist', type(class) `rfopts'
           tempvar rfW rfPS rfPS0
           predict `rfPS0' `rfPS', pr
           mkwgt `rfW' = `rfPS', `ate' `atet' `ateu'
