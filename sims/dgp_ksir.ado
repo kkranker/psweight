@@ -11,8 +11,6 @@
 *! By Keith Kranker
 // Last updated $Date$
 
-clear all
-
 program define dgp_ksir
   version 15.1
   syntax, n(int)         /// Speficy sample size (T+C)
