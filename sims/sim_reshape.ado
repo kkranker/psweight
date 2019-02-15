@@ -66,7 +66,7 @@ program define sim_reshape
   use "`stack'", clear
 
   // strings to numeric
-  label define dgp 1 "A" 2 "B" 3 "C" 4 "D" 5 "E" 6 "F" 7 "G" 8 "K"
+  label define dgp 1 "A" 2 "B" 3 "C" 4 "D" 5 "E" 6 "F" 7 "G" 8 "I" 9 "K"
   encode dgp_txt, gen(dgp) label(dgp)
   label define est `estdefine'
   qui replace est_txt = upper(est_txt)
