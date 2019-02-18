@@ -93,6 +93,8 @@ program define sim_reshape
   by  result (rep): gen  double impact_est_var = (`MSE' - `mean_bias'^2) * `count' / (`count' - 1) if _n == _N
   format `:format impact_est' impact_est_var
   drop `mean_bias' `MSE' `count'
+  gen double rmse = sqrt(error_sqr)
+  order rmse, after(error_sqr)
 
   // checks, cleanup
   order result dataset dgp true N estimator augmented rep, first
@@ -100,6 +102,7 @@ program define sim_reshape
   foreach v of var _all {
     label var `v'
   }
+  qui compress
 
   // save/summarize
   di _n as txt "After reshape:" _n
