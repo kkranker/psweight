@@ -47,18 +47,18 @@ program define sim_reshape
       foreach aug in "" "AUG" {
         restore, preserve
         // di as res "`prefix'/`est':" _c
-        keep rep `prefix'_b_* `prefix'_`est'_b_*
-        rename `prefix'_* *
-        rename `est'_* *
-        rename  b_* *
-        gen dgp_txt = regexs(1) if regexm("`prefix'", "^([A-Z]*)_([0-9]*)$")
-        gen dataset = regexs(2) if regexm("`prefix'", "^([A-Z]*)_([0-9]*)$")
-        gen augmented = ("`aug'"=="AUG")
-        gen est_txt = "`est'"
-        qui desc, varlist
-        // di as txt =r(varlist)
-        if `++s'>1 qui append using "`stack'"
-        qui save "`stack'", replace
+        cap nois keep rep `prefix'_b_* `prefix'_`est'_b_*
+        if !_rc {
+          rename `prefix'_* *
+          rename `est'_* *
+          rename  b_* *
+          gen dgp_txt = regexs(1) if regexm("`prefix'", "^([A-Z]*)_([0-9]*)$")
+          gen dataset = regexs(2) if regexm("`prefix'", "^([A-Z]*)_([0-9]*)$")
+          gen augmented = ("`aug'"=="AUG")
+          gen est_txt = "`est'"
+          if (`++s'>1) qui append using "`stack'"
+          qui save "`stack'", replace
+        }
       }
     }
   }
