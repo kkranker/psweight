@@ -65,7 +65,7 @@ program define onerep_ksir, eclass
     local aug "aug"
   }
   if ("`quietly'"=="") local quietly noisily
-  set matsize 2000
+  set matsize `c(max_matsize)'
 
   tempname _b_ add from
   local c = 0
