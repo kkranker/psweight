@@ -114,6 +114,13 @@ onerep_ksir, `commonopts' augmented
 
 parallel sim, `simopts': onerep_ksir, `commonopts' augmented
 
+
+// ------------------------------------------------------------------------
+// summarize results
+// ------------------------------------------------------------------------
+
+set linesize 220
+
 sim_reshape
 save sims/sim`sim'/Data.dta, replace
 
