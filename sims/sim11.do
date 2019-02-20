@@ -66,7 +66,7 @@ local bestparams = "depth(5) lsize(20) numvars(4)"
 parallel setclusters `=min(8, c(processors_max)-1)'
 local simopts    expr(_b) reps(\`reps') processors(`=c(processors_max)')
 local commonopts n(`Nrange') ///
-                 estimators(raw ipw_true_ps ipw ipwcbps cbps rf) ///
+                 estimators(raw ipw_true_ps ipw ipwcbps cbps rf stdprogdiff) ///
          cvtargets(99.9 99 98 97 95 93 90 85 80 75 50) ///
          ate ///
          vce(robust) iter(\`c(maxiter)') cformat(%9.3fc) pformat(%5.3f) sformat(%7.3f) pooledvariance ///

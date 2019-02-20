@@ -34,6 +34,7 @@ program define onerep_ksir, eclass
          HISTogram /// passed to DGP
          vce(passthru) /// e.g., add robust standard errors in outcome models
          elasticopts(string) rfopts(string) /// passed to elasticregress and randomforest, respectively
+         ITERate(integer 0) /// number of itations
          QUIETly /// supress a lot of the output
          *] // display options passed everywhere; remaining options passed to gmatch.ado (if applicable)
   _get_diopts diopts options, `options'
@@ -63,6 +64,10 @@ program define onerep_ksir, eclass
   else if ("`augmented'"=="augmented") {
     local omvarlist "x1-x4"
     local aug "aug"
+  }
+  if (`iterate'!=0) {
+    set maxiter `iterate'
+    local options `options' iterate(`iterate')
   }
   if ("`quietly'"=="") local quietly noisily
   set matsize `c(max_matsize)'
@@ -104,7 +109,7 @@ program define onerep_ksir, eclass
           di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `truepscore'" _n(2)
           regress y i.a, `vce' noheader `diopts'
           addstats `_b_' 1.a `prefix'_`e'
-          gmatch a `pscorevarlist', balanceonly `ate'`atet'`ateu' `options' `diopts'
+          qui gmatch a `pscorevarlist', balanceonly `ate'`atet'`ateu' `options' `diopts'
           addstats `_b_' 1.a `prefix'_`e'
           if ("`aug'"=="aug") {
             di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `truepscore' `augmented' `trueoutcome'" _n(2)
@@ -122,7 +127,7 @@ program define onerep_ksir, eclass
           mkwgt `trueW' = ps, `ate' `atet' `ateu'
           regress y i.a [aw=`trueW'], `vce' noheader `diopts'
           addstats `_b_' 1.a `prefix'_`e'
-          gmatch a `pscorevarlist' [iw=`trueW'], balanceonly `ate'`atet'`ateu' `options' `diopts'
+          qui gmatch a `pscorevarlist' [iw=`trueW'], balanceonly `ate'`atet'`ateu' `options' `diopts'
           addstats `_b_' 1.a `prefix'_`e'
           if ("`aug'"=="aug") {
             di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `truepscore' `augmented' `trueoutcome'" _n(2)
@@ -158,7 +163,7 @@ program define onerep_ksir, eclass
           mkwgt `elasticW' = `elasticPS', `ate' `atet' `ateu' trim
           regress y i.a [aw=`elasticW'], `vce' noheader `diopts'
           addstats `_b_' 1.a `prefix'_`e'
-          gmatch a `pscorevarlist' [iw=`elasticW'], balanceonly `ate'`atet'`ateu' `options' `diopts'
+          qui gmatch a `pscorevarlist' [iw=`elasticW'], balanceonly `ate'`atet'`ateu' `options' `diopts'
           addstats `_b_' 1.a `prefix'_`e'
           if ("`aug'"=="aug") {
             di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `truepscore' `augmented' `trueoutcome'" _n(2)
@@ -178,7 +183,7 @@ program define onerep_ksir, eclass
           mkwgt `rfW' = `rfPS', `ate' `atet' `ateu'
           regress y i.a [aw=`rfW'], `vce' noheader `diopts'
           addstats `_b_' 1.a `prefix'_`e'
-          gmatch a `pscorevarlist' [iw=`rfW'], balanceonly `ate'`atet'`ateu' `options' `diopts'
+          qui gmatch a `pscorevarlist' [iw=`rfW'], balanceonly `ate'`atet'`ateu' `options' `diopts'
           addstats `_b_' 1.a `prefix'_`e'
           if ("`aug'"=="aug") {
             di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `truepscore' `augmented' `trueoutcome'" _n(2)
