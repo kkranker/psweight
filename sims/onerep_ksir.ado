@@ -101,12 +101,16 @@ program define onerep_ksir, eclass
           di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `truepscore'" _n(2)
           regress y i.a, `vce' noheader `diopts'
           addstats `_b_' 1.a `prefix'_`e'
+          gmatch a `pscorevarlist', balanceonly `ate'`atet'`ateu' `options' `diopts'
+          addstats `_b_' 1.a `prefix'_`e'
           if ("`aug'"=="aug") {
             di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `truepscore' `augmented' `trueoutcome'" _n(2)
+            addstats `_b_' 1.a `prefix'_`e'`aug'  // balance is the same as above
             regress y i.a `omvarlist', `vce' noheader `diopts'
             addstats `_b_' 1.a `prefix'_`e'`aug'
           }
         }
+        cap mata: mata drop gmatch_ado_most_recent
 
         // Difference in means, weighted using true propensity scores ("true")
         local e "ipw_true_ps"
@@ -116,12 +120,16 @@ program define onerep_ksir, eclass
           mkwgt `trueW' = ps, `ate' `atet' `ateu'
           regress y i.a [aw=`trueW'], `vce' noheader `diopts'
           addstats `_b_' 1.a `prefix'_`e'
+          gmatch a `pscorevarlist' [iw=`trueW'], balanceonly `ate'`atet'`ateu' `options' `diopts'
+          addstats `_b_' 1.a `prefix'_`e'
           if ("`aug'"=="aug") {
             di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `truepscore' `augmented' `trueoutcome'" _n(2)
+            addstats `_b_' 1.a `prefix'_`e'`aug'  // balance is the same as above
             regress y i.a `omvarlist' [aw=`trueW'], `vce' noheader `diopts'
             addstats `_b_' 1.a `prefix'_`e'`aug'
           }
         }
+        cap mata: mata drop gmatch_ado_most_recent
 
         // IPW model (with teffects)
         local e "ipw_te"
@@ -149,12 +157,16 @@ program define onerep_ksir, eclass
           mkwgt `elasticW' = `elasticPS', `ate' `atet' `ateu' trim
           regress y i.a [aw=`elasticW'], `vce' noheader `diopts'
           addstats `_b_' 1.a `prefix'_`e'
+          gmatch a `pscorevarlist' [iw=`elasticW'], balanceonly `ate'`atet'`ateu' `options' `diopts'
+          addstats `_b_' 1.a `prefix'_`e'
           if ("`aug'"=="aug") {
             di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `truepscore' `augmented' `trueoutcome'" _n(2)
+            addstats `_b_' 1.a `prefix'_`e'`aug'  // balance is the same as above
             regress y i.a `omvarlist' [aw=`elasticW'], `vce' noheader `diopts'
             addstats `_b_' 1.a `prefix'_`e'`aug'
           }
         }
+        cap mata: mata drop gmatch_ado_most_recent
 
         // IPW model with randomforest model used to estimate P-scores
         local e "rf"
@@ -166,12 +178,16 @@ program define onerep_ksir, eclass
           mkwgt `rfW' = `rfPS', `ate' `atet' `ateu'
           regress y i.a [aw=`rfW'], `vce' noheader `diopts'
           addstats `_b_' 1.a `prefix'_`e'
+          gmatch a `pscorevarlist' [iw=`rfW'], balanceonly `ate'`atet'`ateu' `options' `diopts'
+          addstats `_b_' 1.a `prefix'_`e'
           if ("`aug'"=="aug") {
             di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `truepscore' `augmented' `trueoutcome'" _n(2)
+            addstats `_b_' 1.a `prefix'_`e'`aug'  // balance is the same as above
             regress y i.a `omvarlist' [aw=`rfW'], `vce' noheader `diopts'
             addstats `_b_' 1.a `prefix'_`e'`aug'
           }
         }
+        cap mata: mata drop gmatch_ado_most_recent
 
         // IPW model (with gmatch.ado)
         local e "ipw"
@@ -187,8 +203,8 @@ program define onerep_ksir, eclass
             regress y i.a `omvarlist' [aw=_weight], `vce' noheader `diopts'
             addstats `_b_' 1.a `prefix'_`e'`aug'
           }
-          cap mata: mata drop gmatch_ado_most_recent
         }
+        cap mata: mata drop gmatch_ado_most_recent
 
         // Minimize difference in prognostic scores model (with gmatch.ado)
         local e "stdprogdiff"
@@ -202,8 +218,8 @@ program define onerep_ksir, eclass
             regress y i.a `omvarlist' [aw=_weight], `vce' noheader `diopts'
             addstats `_b_' 1.a `prefix'_`e'`aug'
           }
-          cap mata: mata drop gmatch_ado_most_recent
         }
+        cap mata: mata drop gmatch_ado_most_recent
 
         // CBPS overidentified model (with gmatch.ado)
         local e "ipwcbps"
@@ -217,8 +233,8 @@ program define onerep_ksir, eclass
             regress y i.a `omvarlist' [aw=_weight], `vce' noheader `diopts'
             addstats `_b_' 1.a `prefix'_`e'`aug'
           }
-          cap mata: mata drop gmatch_ado_most_recent
         }
+        cap mata: mata drop gmatch_ado_most_recent
 
         // CBPS model (with gmatch.ado)
         local e "cbps"
@@ -237,8 +253,8 @@ program define onerep_ksir, eclass
             regress y i.a `omvarlist' [aw=_weight], `vce' noheader `diopts'
             addstats `_b_' 1.a `prefix'_`e'`aug'
           }
-          cap mata: mata drop gmatch_ado_most_recent
         }
+        cap mata: mata drop gmatch_ado_most_recent
 
         // CBPS model (with gmatch.ado), with CV at X%
         foreach cut of local cvtargets {
@@ -285,30 +301,32 @@ program define addstats
   tempname add cell
 
   // impact estimate, standard error, bias, MSE
-  mat `add' = (_b[`coef'], /// beta
-               _se[`coef'], /// standard error
-               (_b[`coef'] - _g1), /// impact estimate - true
-               ((_b[`coef'] - _g1)^2)) // (impact estimate - true)^2
-  mat colnames `add' = impact_est sd_error bias error_sqr
+  cap {
+    mat `add' = (_b[`coef'], /// beta
+                 _se[`coef'], /// standard error
+                 (_b[`coef'] - _g1), /// impact estimate - true
+                 ((_b[`coef'] - _g1)^2)) // (impact estimate - true)^2
+    mat colnames `add' = impact_est sd_error bias error_sqr
+  }
 
   // power to detect true effect given SE
-  cap nois {
+  cap {
     mata: power_zstat(st_matrix("`add'")[2], st_numscalar("_g1"), .05, 2)
     mat `cell' = (r(beta))
     mat colnames `cell' = power_zstat_0
-    mat `add' = (`add', `cell')
+    mat `add' = (nullmat(`add'), `cell')
   }
 
   // Ho: null of effect = 0
   // lincom is just a conventient way to get p-value and CIs.
-  cap nois {
+  cap {
     return clear
     qui lincom _b[`coef']
     mat `cell' = (r(p), /// grab p-value
                   (r(p) <= (1 - c(clevel) / 100)), /// reject null?
                   ((r(lb) <= _g1) & (_g1 <= r(ub)))) // coverage
     mat colnames `cell' = p_0 reject_0 covered
-    mat `add' = (`add', `cell')
+    mat `add' = (nullmat(`add'), `cell')
   }
 
   cap {
@@ -321,12 +339,12 @@ program define addstats
                    r(wgt_kurtosis), /// Kurtosis of matching weights
                    r(wgt_max)) // Maximum matching weight
     mat colnames `cell' = bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt_max //
-    mat `add' = (`add', `cell')
+    mat `add' = (nullmat(`add'), `cell')
   }
 
   matrix coleq `add' = `eqname'
-  matrix `matname' = (nullmat(`matname'), `add')
   // mat list `add'
+  matrix `matname' = (nullmat(`matname'), `add')
 
 end
 
