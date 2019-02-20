@@ -79,6 +79,7 @@ local commonopts n(`Nrange') ///
 // ------------------------------------------------------------------------
 
 onerep_ksir, `commonopts' augmented
+drop _all
 
 parallel sim, `simopts': onerep_ksir, `commonopts' augmented
 
