@@ -105,9 +105,8 @@ program define onerep_ksir, eclass
           addstats `_b_' 1.a `prefix'_`e'
           if ("`aug'"=="aug") {
             di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `truepscore' `augmented' `trueoutcome'" _n(2)
-            addstats `_b_' 1.a `prefix'_`e'`aug'  // balance is the same as above
             regress y i.a `omvarlist', `vce' noheader `diopts'
-            addstats `_b_' 1.a `prefix'_`e'`aug'
+            addstats `_b_' 1.a `prefix'_`e'`aug'  // balance stats inherited from above
           }
         }
         cap mata: mata drop gmatch_ado_most_recent
@@ -124,9 +123,8 @@ program define onerep_ksir, eclass
           addstats `_b_' 1.a `prefix'_`e'
           if ("`aug'"=="aug") {
             di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `truepscore' `augmented' `trueoutcome'" _n(2)
-            addstats `_b_' 1.a `prefix'_`e'`aug'  // balance is the same as above
             regress y i.a `omvarlist' [aw=`trueW'], `vce' noheader `diopts'
-            addstats `_b_' 1.a `prefix'_`e'`aug'
+            addstats `_b_' 1.a `prefix'_`e'`aug' // balance stats inherited from above
           }
         }
         cap mata: mata drop gmatch_ado_most_recent
@@ -161,9 +159,8 @@ program define onerep_ksir, eclass
           addstats `_b_' 1.a `prefix'_`e'
           if ("`aug'"=="aug") {
             di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `truepscore' `augmented' `trueoutcome'" _n(2)
-            addstats `_b_' 1.a `prefix'_`e'`aug'  // balance is the same as above
             regress y i.a `omvarlist' [aw=`elasticW'], `vce' noheader `diopts'
-            addstats `_b_' 1.a `prefix'_`e'`aug'
+            addstats `_b_' 1.a `prefix'_`e'`aug'  // balance stats inherited from above
           }
         }
         cap mata: mata drop gmatch_ado_most_recent
@@ -182,9 +179,8 @@ program define onerep_ksir, eclass
           addstats `_b_' 1.a `prefix'_`e'
           if ("`aug'"=="aug") {
             di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `truepscore' `augmented' `trueoutcome'" _n(2)
-            addstats `_b_' 1.a `prefix'_`e'`aug'  // balance is the same as above
             regress y i.a `omvarlist' [aw=`rfW'], `vce' noheader `diopts'
-            addstats `_b_' 1.a `prefix'_`e'`aug'
+            addstats `_b_' 1.a `prefix'_`e'`aug'  // balance stats inherited from above
           }
         }
         cap mata: mata drop gmatch_ado_most_recent
@@ -298,54 +294,55 @@ end
 program define addstats
   version 15.1
   args matname coef eqname
-  tempname add cell
+  tempname add
 
   // impact estimate, standard error, bias, MSE
-  cap {
-    mat `add' = (_b[`coef'], /// beta
-                 _se[`coef'], /// standard error
-                 (_b[`coef'] - _g1), /// impact estimate - true
-                 ((_b[`coef'] - _g1)^2)) // (impact estimate - true)^2
-    mat colnames `add' = impact_est sd_error bias error_sqr
-  }
+  cap nois {
+    mataddscalar `add' impact_est = _b[`coef']              // beta
+    mataddscalar `add' sd_error   = _se[`coef']             // standard error
+    mataddscalar `add' bias       =  _b[`coef'] - _g1       // impact estimate - true
+    mataddscalar `add' error_sqr  = (_b[`coef'] - _g1)^2    // (impact estimate - true)^2
 
-  // power to detect true effect given SE
-  cap {
-    mata: power_zstat(st_matrix("`add'")[2], st_numscalar("_g1"), .05, 2)
-    mat `cell' = (r(beta))
-    mat colnames `cell' = power_zstat_0
-    mat `add' = (nullmat(`add'), `cell')
+    // power to detect true effect given SE
+    cap nois {
+      mata: power_zstat(st_matrix("`add'")[2], st_numscalar("_g1"), .05, 2)
+      mataddscalar `add' power_zstat_0 = r(beta)
+    }
   }
 
   // Ho: null of effect = 0
   // lincom is just a conventient way to get p-value and CIs.
-  cap {
+  cap nois {
     return clear
     qui lincom _b[`coef']
-    mat `cell' = (r(p), /// grab p-value
-                  (r(p) <= (1 - c(clevel) / 100)), /// reject null?
-                  ((r(lb) <= _g1) & (_g1 <= r(ub)))) // coverage
-    mat colnames `cell' = p_0 reject_0 covered
-    mat `add' = (nullmat(`add'), `cell')
+    mataddscalar `add' p_0      = r(p)                              // grab p-value
+    mataddscalar `add' reject_0 = (r(p) <= (1 - c(clevel) / 100))   // reject null?
+    mataddscalar `add' covered  = ((r(lb) <= _g1) & (_g1 <= r(ub))) // coverage
   }
 
-  cap {
+  cap nois {
     gmatchcall balanceresults()
-    mat `cell'  = (r(max_asd), /// Maximum absolute standardized diff.
-                   r(mean_asd), /// Mean absolute standardized diff.
-                   r(wgt_sd), /// S.D. of matching weights
-                   r(wgt_cv), /// C.V. of matching weights
-                   r(wgt_skewness), /// Skewness of matching weights
-                   r(wgt_kurtosis), /// Kurtosis of matching weights
-                   r(wgt_max)) // Maximum matching weight
-    mat colnames `cell' = bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis wgt_max //
-    mat `add' = (nullmat(`add'), `cell')
+    mataddscalar `add' bal_max_asd  = r(max_asd)       // Maximum absolute standardized diff.
+    mataddscalar `add' bal_mean_asd = r(mean_asd)      // Mean absolute standardized diff.
+    mataddscalar `add' wgt_sd       = r(wgt_sd)        // S.D. of matching weights
+    mataddscalar `add' wgt_cv       = r(wgt_cv)        // C.V. of matching weights
+    mataddscalar `add' wgt_skewness = r(wgt_skewness)  // Skewness of matching weights
+    mataddscalar `add' wgt_kurtosis = r(wgt_kurtosis)  // Kurtosis of matching weights
+    mataddscalar `add' wgt_max      = r(wgt_max)       // Maximum matching weight
   }
 
   matrix coleq `add' = `eqname'
-  // mat list `add'
   matrix `matname' = (nullmat(`matname'), `add')
+end
 
+program define mataddscalar
+  syntax namelist(min=1 max=2) =/exp
+  if (missing((`exp'))) exit
+  gettoken matrix colname: namelist
+  tempname cell
+  mat `cell' = (`exp')
+  if ("`colname'"!="") mat colnames `cell' = `colname'
+  mat `matrix' = (nullmat(`matrix'), `cell')
 end
 
 // converts p-scores into IPW weights
