@@ -94,6 +94,9 @@ program define onerep_ksir, eclass
         matrix colnames `add' = N Nt true
         matrix coleq    `add' = `prefix'
         matrix          `_b_' = (nullmat(`_b_'), `add')
+        ereturn clear
+        return  clear
+        cap mata: mata drop gmatch_ado_most_recent
 
         // Difference in means ("raw")
         local e "raw"
