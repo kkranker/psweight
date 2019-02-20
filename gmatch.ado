@@ -235,6 +235,7 @@ void BalanceOnly()
   if  (wgtvar!="") gmatch_ado_most_recent.set(treatvar, varlist, tousevar, wgtvar)
   else             gmatch_ado_most_recent.set(treatvar, varlist, tousevar)
   if (depvars!="") gmatch_ado_most_recent.set_Y(depvars,tousevar)
+  if  (wgtvar!="") gmatch_ado_most_recent.swapweight()
   temp = gmatch_ado_most_recent.balancetable(denominator)
 }
 
