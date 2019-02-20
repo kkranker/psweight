@@ -35,7 +35,7 @@ which randomforest
 which gridsearchcv
 
 // control simulations
-local reps 2500
+local reps 5000
 local Nrange 25 50 100 200 1000
 local cvreps 100
 local ntrees 250
@@ -63,7 +63,7 @@ local bestparams = "depth(5) lsize(20) numvars(4)"
 // ------------------------------------------------------------------------
 
 // options
-parallel setclusters `=min(6, c(processors_max)-1)'
+parallel setclusters `=min(8, c(processors_max)-1)'
 local simopts    expr(_b) reps(\`reps') processors(`=c(processors_max)')
 local commonopts n(`Nrange') ///
                  estimators(raw ipw_true_ps ipw ipwcbps cbps rf) ///
