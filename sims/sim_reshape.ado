@@ -90,11 +90,13 @@ program define sim_reshape
   bys result (rep): egen double `mean_bias' = mean(bias)
   by  result (rep): egen double `MSE' = mean(error_sqr)
   by  result (rep): egen double `count' = count(impact_est)
+  by  result (rep): gen  double rmse = sqrt(`MSE')  if _n == _N
   by  result (rep): gen  double impact_est_var = (`MSE' - `mean_bias'^2) * `count' / (`count' - 1) if _n == _N
+  format `:format error_sqr' rmse
   format `:format impact_est' impact_est_var
   drop `mean_bias' `MSE' `count'
-  gen double rmse = sqrt(error_sqr)
   order rmse, after(error_sqr)
+  order impact_est_var, after(impact_est)
 
   // checks, cleanup
   order result dataset dgp true N estimator augmented rep, first
