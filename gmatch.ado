@@ -131,6 +131,7 @@ program Estimate, eclass sortpreserve byable(recall)
   // clear existing results  (varnames match those from psmatch2)
   foreach v in _weight _weight_mtch _pscore _treated {
     cap drop `v'
+    if ("`balanceonly'"=="balanceonly") continue
     qui gen double `v' = .
     format %7.3g `v'
   }
