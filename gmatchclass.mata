@@ -176,14 +176,14 @@ void gmatch::reweight(|real colvector newweight, real colvector newpscores)
 // sets this.W appropriately for the balanceonly option in the .ado file
 void gmatch::userweight(| string scalar wgtvarname, string scalar tousevar)
 {
-  if (args()==1) this.reweight()
-  else if (args()==3) {
+  if (args()==0) this.reweight()
+  else if (args()==2) {
     real colvector userweight
     userweight=.
     st_view(userweight, ., wgtvarname, tousevar)
     this.reweight(userweight)
   }
-  else _error("userweight() requires 1 or 3 arguments")
+  else _error("userweight() requires 0 or 2 arguments")
 }
 
 // used to push the resulting weights and propensity scores back into Stata.
