@@ -305,6 +305,9 @@ local varlist : copy local varlist_orig
 summ `treatvar' `varlist' `tousevar' `wgtvar' `depvars'
 
 
+// balance before matching
+gmatch `treatvar' `varlist' if `tousevar' , balanceonly
+
 // * UNWEIGHTED DATA EXAMPLES *
 
 // Replicate CBPS

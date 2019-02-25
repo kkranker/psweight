@@ -39,7 +39,7 @@ program Estimate, eclass sortpreserve byable(recall)
             TREatvariance CONtrolvariance POOledvariance Averagevariance /// to fill in denominator
             cvtarget(numlist min=3 max=3) skewtarget(numlist min=3 max=3) kurttarget(numlist min=3 max=3) maxtarget(numlist min=3 max=3) ///
             from(name) /// starting values for maximization
-            BALanceonly /// just checks balance (skips reweighting)
+            BALanceonly MWeight(varname numeric) /// just checks balance (skips reweighting)
             * ] //  display and ml options are allowed
 
   marksample tousevar
@@ -65,6 +65,13 @@ program Estimate, eclass sortpreserve byable(recall)
     di as err `"The treatment variable (`treatvar') must be a dummy variable with >1 treatment obs and >1 control obs."'
     error 125
   }
+  if ("`balanceonly'"=="" & "`mweight'"!="") {
+    di as err `"The mweight(`treatvar') option is only applicable with balanceonly."'
+    error 198
+  }
+  else if ("`mweight'"!="") {
+    markout `tousevar' `mweight'
+  }
 
   // mark collinear variables
   if ("`balanceonly'"=="balanceonly") _rmcoll `treatvar' `varlist' if `tousevar' `wgtexp', expand
@@ -80,8 +87,7 @@ program Estimate, eclass sortpreserve byable(recall)
 
   // parse the "est" options
   local est "`ate'`atet'`ateu'"
-  if ("`balanceonly'"=="balanceonly" & "`est'"!="") di "`est' ignored"
-  else if ("`est'"=="") local est ate
+  if ("`est'"=="") local est ate
   else if (!inlist("`est'", "ate", "atet", "ateu")) {
     di as err `"Specify one of the following: ate, atet, or ateu"'
     error 198
@@ -229,6 +235,7 @@ void BalanceOnly()
   tousevar    = st_local("tousevar")
   wgtvar      = st_local("wgtvar")
   depvars     = st_local("depvars")
+  mweightvar  = st_local("mweight")
   est         = st_local("est")
   denominator = strtoreal(st_local("denominator"))
 
@@ -236,7 +243,12 @@ void BalanceOnly()
   if  (wgtvar!="") gmatch_ado_most_recent.set(treatvar, varlist, tousevar, wgtvar)
   else             gmatch_ado_most_recent.set(treatvar, varlist, tousevar)
   if (depvars!="") gmatch_ado_most_recent.set_Y(depvars,tousevar)
-  if  (wgtvar!="") gmatch_ado_most_recent.swapweight()
+  if (mweightvar!="") {
+    gmatch_ado_most_recent.userweight(mweightvar, tousevar)
+  }
+  else if (wgtvar!="") {
+    gmatch_ado_most_recent.userweight()
+  }
   temp = gmatch_ado_most_recent.balanceresults(est, denominator)
 }
 

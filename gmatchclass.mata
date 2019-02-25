@@ -34,7 +34,7 @@ class gmatch
     real matrix      cbps_port_stata_wgt_matrix(), cbps_port_stata_gradient(), Ct()
 
   public:
-    void             new(), set(), set_Y(), reweight(), swapweight(), get_scores()
+    void             new(), set(), set_Y(), reweight(), userweight(), get_scores()
     void             cbpseval(), balanceresults()
     real rowvector   gmatch(), ipw(), cbps(), cbpsoid()
     real rowvector   diff(), stddiff(), varratio(), progdiff(), stdprogdiff(), pomean()
@@ -73,7 +73,6 @@ void gmatch::clone(class gmatch scalar src)
   this.wgtvar   = src.wgtvar
   this.depvars  = src.depvars
   this.reweight()
-  this.swapweight()
   this.calcN()
 }
 
@@ -174,12 +173,17 @@ void gmatch::reweight(|real colvector newweight, real colvector newpscores)
   this.covariances0 = this.covariances1 = this.covariancesP = this.covariancesA = J(0,0,.)
 }
 
-// moves the original weights into  this.W and this.W_mtch
-// used by the balanceonly option in the .ado file
-void gmatch::swapweight()
+// sets this.W appropriately for the balanceonly option in the .ado file
+void gmatch::userweight(| string scalar wgtvarname, string scalar tousevar)
 {
-  this.W_mtch = J(rows(this.T),1,1)
-  this.W = this.W_orig :* this.W_mtch
+  if (args()==1) this.reweight()
+  else if (args()==3) {
+    real colvector userweight
+    userweight=.
+    st_view(userweight, ., wgtvarname, tousevar)
+    this.reweight(userweight)
+  }
+  else _error("userweight() requires 1 or 3 arguments")
 }
 
 // used to push the resulting weights and propensity scores back into Stata.
