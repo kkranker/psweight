@@ -229,6 +229,7 @@ void BalanceOnly()
   tousevar    = st_local("tousevar")
   wgtvar      = st_local("wgtvar")
   depvars     = st_local("depvars")
+  est         = st_local("est")
   denominator = strtoreal(st_local("denominator"))
 
   gmatch_ado_most_recent = gmatch()
@@ -236,7 +237,7 @@ void BalanceOnly()
   else             gmatch_ado_most_recent.set(treatvar, varlist, tousevar)
   if (depvars!="") gmatch_ado_most_recent.set_Y(depvars,tousevar)
   if  (wgtvar!="") gmatch_ado_most_recent.swapweight()
-  temp = gmatch_ado_most_recent.balancetable(denominator)
+  temp = gmatch_ado_most_recent.balanceresults(est, denominator)
 }
 
 end

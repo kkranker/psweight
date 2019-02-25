@@ -178,7 +178,8 @@ void gmatch::reweight(|real colvector newweight, real colvector newpscores)
 // used by the balanceonly option in the .ado file
 void gmatch::swapweight()
 {
-  this.W = this.W_mtch = this.W_orig
+  this.W_mtch = J(rows(this.T),1,1)
+  this.W = this.W_orig :* this.W_mtch
 }
 
 // used to push the resulting weights and propensity scores back into Stata.
