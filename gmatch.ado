@@ -187,8 +187,7 @@ end
 
 program define get_matrix_table_options, sclass
   syntax [, formats(passthru) NOOMITted vsquish NOEMPTYcells BASElevels ALLBASElevels NOFVLABel fvwrap(passthru) fvwrapon(passthru) nolstretch *]
-  local opts = strrtrim(stritrim(`"`formats' `noomitted' `vsquish' `noemptycells' `baselevels' `passthru' `allbaselevels' `nofvlabel' `fvwrap' `fvwrapon' `nolstretch'"'))
-  if `"`opts'"'!="" sreturn opts `"`opts'"'
+  sreturn local opts = strrtrim(stritrim(`"`formats' `noomitted' `vsquish' `noemptycells' `baselevels' `passthru' `allbaselevels' `nofvlabel' `fvwrap' `fvwrapon' `nolstretch'"'))
 end
 
 // DEFINE MATA FUNCTIONS
