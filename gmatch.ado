@@ -138,7 +138,7 @@ program Estimate, eclass sortpreserve byable(recall)
     format %7.3g `v'
   }
   if ("`balanceonly'"!="balanceonly") ereturn clear
-  mata: mata drop gmatch_ado_most_recent
+  cap mata: mata drop gmatch_ado_most_recent
   return  clear
 
   // balanceonly option just prints balance and then end the program
