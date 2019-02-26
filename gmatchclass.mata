@@ -239,7 +239,7 @@ real matrix gmatch::balancetable(| real scalar denominator)
 
   tmp=st_tempname()
   stata("matrix "+tmp+"=r(bal)")
-  stata("_matrix_table " + tmp); ""
+  stata("_matrix_table " + tmp + ", " + st_local("matrix_table_options")); ""
   return(table)
 }
 
