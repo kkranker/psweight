@@ -44,6 +44,8 @@ program Estimate, eclass sortpreserve byable(recall)
 
   marksample tousevar
   _get_diopts diopts options, `options'
+  get_matrix_table_options  , `options'
+  local matrix_table_options = s(opts)
   mlopts      mlopts        , `options'  // rest is not specified, so any other options will cause error
   if ("`weight'"!="") {
     tempvar wgtvar
@@ -135,7 +137,7 @@ program Estimate, eclass sortpreserve byable(recall)
     qui gen double `v' = .
     format %7.3g `v'
   }
-  ereturn clear
+  if ("`balanceonly'"!="balanceonly") ereturn clear
   return  clear
 
   // balanceonly option just prints balance and then end the program
@@ -181,6 +183,11 @@ program Estimate, eclass sortpreserve byable(recall)
   tabstat _weight _weight_mtch _pscore if e(sample), by(_treated) c(s) s(N mean sd min p1 p10 p25 p50 p75 p90 p99 max) format
   return clear
 
+end
+
+program define get_matrix_table_options, sclass
+  syntax [, formats(passthru) NOOMITted vsquish NOEMPTYcells BASElevels ALLBASElevels NOFVLABel fvwrap(passthru) fvwrapon(passthru) nolstretch *]
+  sreturn opts `"`formats' `noomitted' `vsquish' `noemptycells' `baselevels' `passthru' `allbaselevels' `nofvlabel' `fvwrap' `fvwrapon' `nolstretch'"'
 end
 
 // DEFINE MATA FUNCTIONS
