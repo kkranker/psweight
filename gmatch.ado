@@ -99,7 +99,7 @@ program Estimate, eclass sortpreserve byable(recall)
   if ("`mean_sd'"=="mean_sd") local mean_sd_sq mean_sd_sq
   if ("`sd'"=="sd")           local sd_sq sd_sq
   local fctn "`ipw'`cbps'`mean_sd_sq'`sd_sq'`stdprogdiff'"
-  if ("`balanceonly'"=="balanceonly" & "`fctn'"!="") di "`fctn' ignored"
+  if ("`balanceonly'"=="balanceonly" & "`fctn'"!="") di as error "`fctn' ignored"
   else if ("`fctn'"=="") local fctn cbps
   else if (!inlist("`fctn'", "ipw", "cbps", "ipwcbps", "mean_sd_sq", "sd_sq","stdprogdiff")) {
     di as err `"Specify a valid combination of options: ipw, cbps, mean_sd, sd, or stdprogdiff."'
@@ -112,7 +112,7 @@ program Estimate, eclass sortpreserve byable(recall)
   if (!mi("`skewtarget'") & mi("`cvtarget'"))   local cvtarget   "0 0 2"
   local cvopt "`cvtarget' `skewtarget' `kurttarget' `maxtarget'"
   local cvopt : list clean cvopt
-  if ("`balanceonly'"=="balanceonly" & "`cvopt'"!="") di "`cvopt' ignored"
+  if ("`balanceonly'"=="balanceonly" & "`cvopt'"!="") di as error "`cvopt' ignored"
   else if (!inlist(`: list sizeof cvopt',0,3,6,9,12)) {
     di as error `"cvopt() requires 3, 6, 9, 12 elements"'
     error 198
@@ -120,7 +120,7 @@ program Estimate, eclass sortpreserve byable(recall)
 
   // parse the "denominator" options
   local denominator "`treatvariance'`controlvariance'`pooledvariance'`averagevariance'"
-  if ("`denominator'"=="")                     local denominator = 1
+  if ("`denominator'"=="")                     local denominator = 2
   else if ("`denominator'"=="controlvariance") local denominator = 0
   else if ("`denominator'"=="treatvariance")   local denominator = 1
   else if ("`denominator'"=="pooledvariance")  local denominator = 2
@@ -138,11 +138,20 @@ program Estimate, eclass sortpreserve byable(recall)
     format %7.3g `v'
   }
   if ("`balanceonly'"!="balanceonly") ereturn clear
+  mata: mata drop gmatch_ado_most_recent
   return  clear
 
   // balanceonly option just prints balance and then end the program
   if ("`balanceonly'"=="balanceonly") {
     mata: BalanceOnly()
+    ereturn local est                       = "`est'"
+    ereturn local depvar                    = "`treatvar'"
+    ereturn local varlist                   = "`varlist'"
+    ereturn local cmd                       = "gmatch"
+    ereturn local cmdline                   = "gmatch `cmdline'"
+    ereturn scalar balanceonly              = 1
+    if ("`weight'"!="") ereturn local wtype = "`weight'"
+    if ("`wexp'"!="")   ereturn local wexp  = "`wexp'"
     exit
   }
 
@@ -172,6 +181,7 @@ program Estimate, eclass sortpreserve byable(recall)
   ereturn local varlist                   = "`varlist'"
   ereturn local cmd                       = "gmatch"
   ereturn local cmdline                   = "gmatch `cmdline'"
+  ereturn scalar balanceonly              = 0
   if ("`weight'"!="") ereturn local wtype = "`weight'"
   if ("`wexp'"!="")   ereturn local wexp  = "`wexp'"
   ereturn scalar denominator              = `denominator'
