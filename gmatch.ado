@@ -44,7 +44,7 @@ program Estimate, eclass sortpreserve byable(recall)
 
   marksample tousevar
   _get_diopts diopts options, `options'
-  get_matrix_table_options  , `options'
+  get_matrix_table_options  , `options' `diopts'
   local matrix_table_options = s(opts)
   mlopts      mlopts        , `options'  // rest is not specified, so any other options will cause error
   if ("`weight'"!="") {
@@ -187,7 +187,8 @@ end
 
 program define get_matrix_table_options, sclass
   syntax [, formats(passthru) NOOMITted vsquish NOEMPTYcells BASElevels ALLBASElevels NOFVLABel fvwrap(passthru) fvwrapon(passthru) nolstretch *]
-  sreturn opts `"`formats' `noomitted' `vsquish' `noemptycells' `baselevels' `passthru' `allbaselevels' `nofvlabel' `fvwrap' `fvwrapon' `nolstretch'"'
+  local opts = strrtrim(stritrim(`"`formats' `noomitted' `vsquish' `noemptycells' `baselevels' `passthru' `allbaselevels' `nofvlabel' `fvwrap' `fvwrapon' `nolstretch'"'))
+  if `"`opts'"'!="" sreturn opts `"`opts'"'
 end
 
 // DEFINE MATA FUNCTIONS
