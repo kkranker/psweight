@@ -181,6 +181,7 @@ void gmatch::userweight(| string scalar wgtvarname, string scalar tousevar)
     real colvector userweight
     userweight=.
     st_view(userweight, ., wgtvarname, tousevar)
+    if (length(userweight)!=length(this.T)) _error("Unexpected dimension for " + wgtvarname)
     this.reweight(userweight)
   }
   else _error("userweight() requires 0 or 2 arguments")
@@ -190,8 +191,7 @@ void gmatch::userweight(| string scalar wgtvarname, string scalar tousevar)
 void gmatch::get_scores(string rowvector newvarnames, string scalar tousevar)
 {
   real matrix thisview
-  newvarnames = tokens(newvarnames)
-  if (length(newvarnames)!=4) _error("gmatch::get_scores() requires four variable names")
+  if (length(tokens(newvarnames))!=4) _error("gmatch::get_scores() requires four numeric variable names")
   st_view(thisview, ., newvarnames, tousevar)
 
   if (rows(thisview)==rows(this.W)) thisview[.,1] = this.W
