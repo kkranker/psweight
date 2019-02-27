@@ -133,7 +133,6 @@ program Estimate, eclass sortpreserve byable(recall)
   // clear existing results  (varnames match those from psmatch2)
   foreach v in _weight _weight_mtch _pscore _treated {
     cap drop `v'
-    if ("`balanceonly'"=="balanceonly") continue
     qui gen double `v' = .
     format %7.3g `v'
   }
@@ -268,6 +267,7 @@ void BalanceOnly()
     gmatch_ado_most_recent.userweight()
   }
   temp = gmatch_ado_most_recent.balanceresults(est, denominator)
+  gmatch_ado_most_recent.get_scores("_weight _weight_mtch _pscore _treated", tousevar)
 }
 
 end
