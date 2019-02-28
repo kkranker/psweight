@@ -238,8 +238,11 @@ real matrix gmatch::balancetable(| real scalar denominator)
   st_matrixrowstripe("r(bal)", (J(length(varlist)  ,1,""), varlist'  ))
 
   tmp=st_tempname()
+  frmts= st_local("matrix_table_options")
+  if (frmts == ".") frmts = J(1,1,"")
+  else              frmts = ", " + frmts
   stata("matrix "+tmp+"=r(bal)")
-  stata("_matrix_table " + tmp + ", " + st_local("matrix_table_options")); ""
+  stata("_matrix_table " + tmp + frmts ); ""
   return(table)
 }
 
@@ -471,7 +474,9 @@ real scalar gmatch::mean_sd_sq(| real scalar denominator)
 {
   real scalar out
   if (args()<1) denominator=1
-  out = mean(this.stddiff(denominator)')^2
+  out = mean(this.stddiff(denominator)')
+  st_numscalar("r(mean_sd)", out)
+  out = out^2
   st_numscalar("r(mean_sd_sq)", out)
   return(out)
 }
