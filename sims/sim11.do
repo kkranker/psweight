@@ -83,6 +83,8 @@ drop _all
 
 parallel sim, `simopts': onerep_ksir, `commonopts' augmented
 
+save sims/sim`sim'/Data_Unprocessed.dta, replace
+
 // ------------------------------------------------------------------------
 // summarize results
 // ------------------------------------------------------------------------
