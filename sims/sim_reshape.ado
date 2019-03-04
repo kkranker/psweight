@@ -44,17 +44,17 @@ program define sim_reshape
   preserve
   foreach prefix of local prefixes {
     foreach est of local ests {
-      foreach aug in "" "AUG" {
+      foreach aug in "" "aug" {
         restore, preserve
         // di as res "`prefix'/`est':" _c
-        cap nois keep rep `prefix'_b_* `prefix'_`est'_b_*
+        cap nois keep rep `prefix'_b_* `prefix'_`est'`aug'_b_*
         if !_rc {
           rename `prefix'_* *
-          rename `est'_* *
+          rename `est'`aug'_* *
           rename  b_* *
           gen dgp_txt = regexs(1) if regexm("`prefix'", "^([A-Z]*)_([0-9]*)$")
           gen dataset = regexs(2) if regexm("`prefix'", "^([A-Z]*)_([0-9]*)$")
-          gen augmented = ("`aug'"=="AUG")
+          gen augmented = ("`aug'"=="aug")
           gen est_txt = "`est'"
           if (`++s'>1) qui append using "`stack'"
           qui save "`stack'", replace
