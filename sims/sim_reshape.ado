@@ -84,19 +84,18 @@ program define sim_reshape
   egen result = group(dataset dgp true N estimator augmented), label missing
   isid rep result
 
-  // claculate variance of impact_est
+  // claculate variance of impact_est and rmse
   // store on the last row
   tempvar mean_bias MSE count
+  assert mi(bias)==mi(error_sqr)
   bys result (rep): egen double `mean_bias' = mean(bias)
   by  result (rep): egen double `MSE' = mean(error_sqr)
-  by  result (rep): egen double `count' = count(impact_est)
+  by  result (rep): egen double `count' = count(bias)
   by  result (rep): gen  double rmse = sqrt(`MSE')  if _n == _N
   by  result (rep): gen  double impact_est_var = (`MSE' - `mean_bias'^2) * `count' / (`count' - 1) if _n == _N
   format `:format error_sqr' rmse
   format `:format impact_est' impact_est_var
   drop `mean_bias' `MSE' `count'
-  order rmse, after(error_sqr)
-  order impact_est_var, after(impact_est)
 
   // checks, cleanup
   order result dataset dgp true N estimator augmented rep, first
@@ -110,5 +109,10 @@ program define sim_reshape
   di _n as txt "After reshape:" _n
   desc
   summ, sep(0)
+  di "Number of rows:"
   table estimator N true, by(augmented dgp) concise
+  di "Number of rows with nonmissing impact_est:"
+  table estimator N true, by(augmented dgp) concise c(count impact_est)
+  di "Number of rows with nonmissing rmse:"
+  table estimator N true, by(augmented dgp) concise c(count rmse)
 end
