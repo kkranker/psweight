@@ -1,0 +1,446 @@
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      name:  sim11_tables
+       log:  C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\sims/sim11/summary_tables.log
+  log type:  text
+ opened on:   4 Mar 2019, 18:09:44
+
+. 
+. *! $Id: sim11.do,v 64e67ca22594 2019/02/20 18:05:19 kkranker $
+. *! BPO CBPS Simulation
+. // Repackage the results from simulation #11 into ready-to-use tables.
+. //
+. *! By Keith Kranker
+. // Last updated $Date: 2019/02/20 18:05:19 $
+. //
+. // Copyright (C) Mathematica Policy Research, Inc.
+. // This code cannot be copied, distributed or used without the express written
+. // permission of Mathematica Policy Research, Inc.
+. 
+. mac list _sim
+_sim:           11
+
+. qui adopath ++ ./sims/
+
+. 
+. // there was a mistake in the old version on sim_reshape.ado; I'm re-running here with the fixed version
+. if 0 {
+.   use using sims/sim`sim'/Data_Unprocessed.dta, clear
+.   sim_reshape
+.   save sims/sim`sim'/Data.dta, replace
+. }
+
+. else {
+.   use sims/sim`sim'/Data.dta, clear
+(simulate: onerep_ksir)
+. }
+
+. 
+. // sort variables into groups
+. unab stats : impact_est-wgt_kurtosis Nt
+
+. unab sumstats : rmse impact_est_var
+
+. unab scenario: result result dataset dgp N estimator augmented true
+
+. unab  allleft : _all
+
+. local allleft : list allleft - stats
+
+. local allleft : list allleft - sumstats
+
+. local allleft : list allleft - scenario
+
+. mac list _allleft
+_allleft:       rep
+
+. assert "`allleft'"=="rep"
+
+. 
+. // update labels
+. label list aug est
+aug:
+           0 Unadjusted
+           1 Reg. adjusted
+est:
+           1 RAW
+           2 IPW_TRUE_PS
+           3 STDPROGDIFF
+           4 IPW_TE
+           5 ELASTIC
+           6 RF
+           7 IPWCBPS
+           8 CBPS
+           9 CBPS99_9
+          10 CBPS99
+          11 CBPS98
+          12 CBPS97
+          13 CBPS95
+          14 CBPS93
+          15 CBPS90
+          16 CBPS85
+          17 CBPS80
+          18 CBPS75
+          19 CBPS50
+          20 IPW
+
+. /*     aug:
+>            0 Unadjusted
+>            1 Reg. adjusted
+>        est:
+>            1 RAW
+>            2 IPW_TRUE_PS
+>            3 STDPROGDIFF
+>            4 IPW_TE
+>            5 ELASTIC
+>            6 RF
+>            7 IPWCBPS
+>            8 CBPS
+>            9 CBPS99_9
+>           10 CBPS99
+>           11 CBPS98
+>           12 CBPS97
+>           13 CBPS95
+>           14 CBPS93
+>           15 CBPS90
+>           16 CBPS85
+>           17 CBPS80
+>           18 CBPS75
+>           19 CBPS50
+>           20 IPW     */
+. 
+. label define aug 0 "IPW" 1 "WLS", modify
+
+. 
+. recode estimator ///
+>            (20 =   1 "Logit") ///
+>            ( 6 =   2 "RF") ///
+>            ( 5 =   3 "ELASTIC") ///
+>            ( 3 =   4 "PROG") ///
+>            ( 7 =   5 "CBPS-O") ///
+>            ( 8 =   6 "CBPS-J") ///
+>            ( 9 =   7 "CBPS-99.9%") ///
+>            (10 =   8 "CBPS-99%") ///
+>            (11 =   9 "CBPS-98%") ///
+>            (12 =  10 "CBPS-97%") ///
+>            (13 =  11 "CBPS-95%") ///
+>            (14 =  12 "CBPS-93%") ///
+>            (15 =  13 "CBPS-90%") ///
+>            (16 =  14 "CBPS-85%") ///
+>            (17 =  15 "CBPS-80%") ///
+>            (18 =  16 "CBPS-75%") ///
+>            (19 =  17 "CBPS-50%") ///
+>            ( 2 =  18 "TRUE") ///
+>            ( 4 =  19 "IPW_TE") ///
+>            ( 1 =  20 "RAW") ///
+>            (else = 999 "something is missing here") ///
+>            , gen(estimator_recode)
+(870000 differences between estimator and estimator_recode)
+
+. recode estimator_ ///
+>              (  6 = 100  ) ///
+>              (  7 =  99.9) ///
+>              (  8 =  99  ) ///
+>              (  9 =  98  ) ///
+>              ( 10 =  97  ) ///
+>              ( 11 =  95  ) ///
+>              ( 12 =  93  ) ///
+>              ( 13 =  90  ) ///
+>              ( 14 =  85  ) ///
+>              ( 15 =  80  ) ///
+>              ( 16 =  75  ) ///
+>              ( 17 =  50  ) ///
+>              (else = 0), ///
+>              gen(cbps_pct)
+(870000 differences between estimator_recode and cbps_pct)
+
+. tablist estimator_ cbps_pct estimator, sep(0) sort(v)
+
+  +---------------------------------------------------------------------------+
+  | estimato~e   cbps_pct     estimator   _Freq_   _Perc_   _CFreq_   _CPerc_ |
+  |---------------------------------------------------------------------------|
+  |      Logit          0           IPW    50000     5.75     50000      5.75 |
+  |         RF          0            RF    50000     5.75    100000     11.49 |
+  |       PROG          0   STDPROGDIFF    20000     2.30    120000     13.79 |
+  |     CBPS-O          0       IPWCBPS    50000     5.75    170000     19.54 |
+  |     CBPS-J        100          CBPS    50000     5.75    220000     25.29 |
+  | CBPS-99.9%       99.9      CBPS99_9    50000     5.75    270000     31.03 |
+  |   CBPS-99%         99        CBPS99    50000     5.75    320000     36.78 |
+  |   CBPS-98%         98        CBPS98    50000     5.75    370000     42.53 |
+  |   CBPS-97%         97        CBPS97    50000     5.75    420000     48.28 |
+  |   CBPS-95%         95        CBPS95    50000     5.75    470000     54.02 |
+  |   CBPS-93%         93        CBPS93    50000     5.75    520000     59.77 |
+  |   CBPS-90%         90        CBPS90    50000     5.75    570000     65.52 |
+  |   CBPS-85%         85        CBPS85    50000     5.75    620000     71.26 |
+  |   CBPS-80%         80        CBPS80    50000     5.75    670000     77.01 |
+  |   CBPS-75%         75        CBPS75    50000     5.75    720000     82.76 |
+  |   CBPS-50%         50        CBPS50    50000     5.75    770000     88.51 |
+  |       TRUE          0   IPW_TRUE_PS    50000     5.75    820000     94.25 |
+  |        RAW          0           RAW    50000     5.75    870000    100.00 |
+  +---------------------------------------------------------------------------+
+
+. assert estimator_recode != 99
+
+. order  estimator_ , after(estimator)
+
+. drop estimator
+
+. rename estimator_ estimator
+
+. local scenario `macval(scenario)' cbps_pct
+
+. 
+. // drop the PROG estimator
+. // the PROG estimator was a disaster -- converged rarely and not at all with 3 of the 5 Ns
+. table  N aug estimator if estimator==4, row col c(count rep count impact_est)
+
+----------------------------------
+          |RECODE of estimator and
+          |       augmented       
+          | -------- PROG --------
+        N |    IPW     WLS   Total
+----------+-----------------------
+       25 |  5,000   5,000  10,000
+          |     23      23      46
+          | 
+      200 |  5,000   5,000  10,000
+          |     95      95     190
+          | 
+    Total | 10,000  10,000  20,000
+          |    118     118     236
+----------------------------------
+
+. drop   if estimator==4
+(20,000 observations deleted)
+
+. 
+. // box plots of impact estimates
+. levelsof N, local(Narray)
+25 50 100 200 1000
+
+. set scheme s2color
+
+. foreach i of local Narray {
+  2.   **graph hbox impact_est if N==`i', over(estimator) by(augmented, compact) nooutsides name(n_`i')
+. }
+
+. 
+. // collapse down to 1 row per scenario/estimator
+. isid rep `scenario'
+
+. collapse (count) n_reps=impact_est n_reps_attempt=rep ///
+>          (mean) `stats' ///
+>          (firstnm) `sumstats' ///
+>          (max) rep ///
+>          , by(result `scenario')
+
+. 
+. // format numbers so tables look good
+. replace reject_0 = reject_0*100
+(170 real changes made)
+
+. replace covered  = covered*100
+(168 real changes made)
+
+. format %7.0fc n_reps*
+
+. format %7.3fc power_zstat_0 p_0 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis
+
+. format %7.2fc impact_est sd_error bias error_sqr rmse impact_est_var
+
+. format %7.1fc reject_0 covered wgt_max
+
+. 
+. local stats rmse // bias  impact_est_var
+
+. 
+. 
+. // wide tables - columns are N's and reg-adjusted
+. foreach v of local stats {
+  2.   di _n(2) as res `"`v'  `:var lab `v''"'
+  3.   tabdisp estimator N augmented, c(`v')
+  4. }
+
+
+rmse  (firstnm) rmse
+
+-----------------------------------------------------------------------------------
+           |                            augmented and N                            
+RECODE of  | -------------- IPW --------------    -------------- WLS --------------
+estimator  |    25     50    100    200   1000       25     50    100    200   1000
+-----------+-----------------------------------------------------------------------
+     Logit | 13.59  10.16   8.57   8.85  10.65     8.82   7.10   6.30   6.09   6.32
+        RF | 24.57  13.18  11.41  10.86   8.03     9.36   6.48   5.00   4.19   2.95
+    CBPS-O | 14.60  10.88   8.83   7.40   5.35     8.83   7.07   6.29   6.06   6.19
+    CBPS-J | 13.01   8.94   7.10   6.33   6.25     9.32   7.35   6.38   6.06   6.15
+CBPS-99.9% | 12.30   8.60   6.91   6.29   6.23     9.23   7.32   6.36   6.05   6.14
+  CBPS-99% | 12.31   8.61   6.93   6.31   6.26     9.22   7.32   6.35   6.05   6.14
+  CBPS-98% | 12.33   8.65   6.98   6.37   6.38     9.24   7.32   6.36   6.06   6.14
+  CBPS-97% | 12.32   8.70   7.04   6.46   6.48     9.23   7.32   6.36   6.06   6.14
+  CBPS-95% | 12.45   8.83   7.19   6.65   6.71     9.22   7.31   6.36   6.06   6.14
+  CBPS-93% | 12.60   8.98   7.37   6.86   6.94     9.19   7.30   6.36   6.06   6.14
+  CBPS-90% | 12.80   9.17   7.66   7.19   7.30     9.18   7.29   6.36   6.07   6.14
+  CBPS-85% | 13.13   9.63   8.18   7.80   7.93     9.14   7.28   6.36   6.08   6.14
+  CBPS-80% | 13.62  10.13   8.79   8.46   8.59     9.12   7.27   6.37   6.09   6.13
+  CBPS-75% | 14.07  10.72   9.47   9.16   9.30     9.10   7.26   6.39   6.10   6.13
+  CBPS-50% | 17.11  14.43  13.62  13.49  13.46     9.03   7.33   6.55   6.25   6.10
+      TRUE | 18.01  13.01   9.62   6.90   3.17     7.91   5.51   4.05   3.00   1.44
+       RAW | 24.57  22.36  21.22  20.61  20.11     9.36   7.73   7.14   6.87   6.62
+-----------------------------------------------------------------------------------
+
+. 
+. // tall tables - columns are N's and reg-adjusted
+. foreach v of local stats {
+  2.   di _n(2) as res `"`v'  `:var lab `v''"'
+  3.   tabdisp augmented N, by(estimator) c(`v')
+  4. }
+
+
+rmse  (firstnm) rmse
+
+----------------------------------------------
+RECODE of  |
+estimator  |
+and        |                 N                
+augmented  |    25     50    100    200   1000
+-----------+----------------------------------
+Logit      |
+       IPW | 13.59  10.16   8.57   8.85  10.65
+       WLS |  8.82   7.10   6.30   6.09   6.32
+-----------+----------------------------------
+RF         |
+       IPW | 24.57  13.18  11.41  10.86   8.03
+       WLS |  9.36   6.48   5.00   4.19   2.95
+-----------+----------------------------------
+CBPS-O     |
+       IPW | 14.60  10.88   8.83   7.40   5.35
+       WLS |  8.83   7.07   6.29   6.06   6.19
+-----------+----------------------------------
+CBPS-J     |
+       IPW | 13.01   8.94   7.10   6.33   6.25
+       WLS |  9.32   7.35   6.38   6.06   6.15
+-----------+----------------------------------
+CBPS-99.9% |
+       IPW | 12.30   8.60   6.91   6.29   6.23
+       WLS |  9.23   7.32   6.36   6.05   6.14
+-----------+----------------------------------
+CBPS-99%   |
+       IPW | 12.31   8.61   6.93   6.31   6.26
+       WLS |  9.22   7.32   6.35   6.05   6.14
+-----------+----------------------------------
+CBPS-98%   |
+       IPW | 12.33   8.65   6.98   6.37   6.38
+       WLS |  9.24   7.32   6.36   6.06   6.14
+-----------+----------------------------------
+CBPS-97%   |
+       IPW | 12.32   8.70   7.04   6.46   6.48
+       WLS |  9.23   7.32   6.36   6.06   6.14
+-----------+----------------------------------
+CBPS-95%   |
+       IPW | 12.45   8.83   7.19   6.65   6.71
+       WLS |  9.22   7.31   6.36   6.06   6.14
+-----------+----------------------------------
+CBPS-93%   |
+       IPW | 12.60   8.98   7.37   6.86   6.94
+       WLS |  9.19   7.30   6.36   6.06   6.14
+-----------+----------------------------------
+CBPS-90%   |
+       IPW | 12.80   9.17   7.66   7.19   7.30
+       WLS |  9.18   7.29   6.36   6.07   6.14
+-----------+----------------------------------
+CBPS-85%   |
+       IPW | 13.13   9.63   8.18   7.80   7.93
+       WLS |  9.14   7.28   6.36   6.08   6.14
+-----------+----------------------------------
+CBPS-80%   |
+       IPW | 13.62  10.13   8.79   8.46   8.59
+       WLS |  9.12   7.27   6.37   6.09   6.13
+-----------+----------------------------------
+CBPS-75%   |
+       IPW | 14.07  10.72   9.47   9.16   9.30
+       WLS |  9.10   7.26   6.39   6.10   6.13
+-----------+----------------------------------
+CBPS-50%   |
+       IPW | 17.11  14.43  13.62  13.49  13.46
+       WLS |  9.03   7.33   6.55   6.25   6.10
+-----------+----------------------------------
+TRUE       |
+       IPW | 18.01  13.01   9.62   6.90   3.17
+       WLS |  7.91   5.51   4.05   3.00   1.44
+-----------+----------------------------------
+RAW        |
+       IPW | 24.57  22.36  21.22  20.61  20.11
+       WLS |  9.36   7.73   7.14   6.87   6.62
+----------------------------------------------
+
+. 
+. // separate tables for aug=0/1
+. foreach v of local stats {
+  2.   di _n(2) as res `"`v'  `:var lab `v''"'
+  3.   bys augmented: tabdisp estimator N, c(`v')
+  4. }
+
+
+rmse  (firstnm) rmse
+
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+-> augmented = IPW
+
+----------------------------------------------
+RECODE of  |                 N                
+estimator  |    25     50    100    200   1000
+-----------+----------------------------------
+     Logit | 13.59  10.16   8.57   8.85  10.65
+        RF | 24.57  13.18  11.41  10.86   8.03
+    CBPS-O | 14.60  10.88   8.83   7.40   5.35
+    CBPS-J | 13.01   8.94   7.10   6.33   6.25
+CBPS-99.9% | 12.30   8.60   6.91   6.29   6.23
+  CBPS-99% | 12.31   8.61   6.93   6.31   6.26
+  CBPS-98% | 12.33   8.65   6.98   6.37   6.38
+  CBPS-97% | 12.32   8.70   7.04   6.46   6.48
+  CBPS-95% | 12.45   8.83   7.19   6.65   6.71
+  CBPS-93% | 12.60   8.98   7.37   6.86   6.94
+  CBPS-90% | 12.80   9.17   7.66   7.19   7.30
+  CBPS-85% | 13.13   9.63   8.18   7.80   7.93
+  CBPS-80% | 13.62  10.13   8.79   8.46   8.59
+  CBPS-75% | 14.07  10.72   9.47   9.16   9.30
+  CBPS-50% | 17.11  14.43  13.62  13.49  13.46
+      TRUE | 18.01  13.01   9.62   6.90   3.17
+       RAW | 24.57  22.36  21.22  20.61  20.11
+----------------------------------------------
+
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+-> augmented = WLS
+
+-----------------------------------------
+RECODE of  |              N              
+estimator  |   25    50   100   200  1000
+-----------+-----------------------------
+     Logit | 8.82  7.10  6.30  6.09  6.32
+        RF | 9.36  6.48  5.00  4.19  2.95
+    CBPS-O | 8.83  7.07  6.29  6.06  6.19
+    CBPS-J | 9.32  7.35  6.38  6.06  6.15
+CBPS-99.9% | 9.23  7.32  6.36  6.05  6.14
+  CBPS-99% | 9.22  7.32  6.35  6.05  6.14
+  CBPS-98% | 9.24  7.32  6.36  6.06  6.14
+  CBPS-97% | 9.23  7.32  6.36  6.06  6.14
+  CBPS-95% | 9.22  7.31  6.36  6.06  6.14
+  CBPS-93% | 9.19  7.30  6.36  6.06  6.14
+  CBPS-90% | 9.18  7.29  6.36  6.07  6.14
+  CBPS-85% | 9.14  7.28  6.36  6.08  6.14
+  CBPS-80% | 9.12  7.27  6.37  6.09  6.13
+  CBPS-75% | 9.10  7.26  6.39  6.10  6.13
+  CBPS-50% | 9.03  7.33  6.55  6.25  6.10
+      TRUE | 7.91  5.51  4.05  3.00  1.44
+       RAW | 9.36  7.73  7.14  6.87  6.62
+-----------------------------------------
+
+
+. 
+. 
+. 
+. log close sim`sim'_tables
+      name:  sim11_tables
+       log:  C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\sims/sim11/summary_tables.log
+  log type:  text
+ closed on:   4 Mar 2019, 18:10:00
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
