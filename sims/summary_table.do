@@ -39,7 +39,7 @@ else {
 // sort variables into groups
 unab stats : impact_est-wgt_kurtosis Nt
 unab sumstats : rmse impact_est_var
-unab scenario: result result dataset dgp N estimator augmented true
+unab scenario: result dataset dgp N estimator augmented true
 unab  allleft : _all
 local allleft : list allleft - stats
 local allleft : list allleft - sumstats
@@ -77,23 +77,23 @@ label list aug est
 label define aug 0 "IPW" 1 "WLS", modify
 
 recode estimator ///
-           (20 =   1 "Logit") ///
+           (20 =   1 "LOGIT") ///
            ( 6 =   2 "RF") ///
            ( 5 =   3 "ELASTIC") ///
            ( 3 =   4 "PROG") ///
            ( 7 =   5 "CBPS-O") ///
            ( 8 =   6 "CBPS-J") ///
-           ( 9 =   7 "CBPS-99.9%") ///
-           (10 =   8 "CBPS-99%") ///
-           (11 =   9 "CBPS-98%") ///
-           (12 =  10 "CBPS-97%") ///
-           (13 =  11 "CBPS-95%") ///
-           (14 =  12 "CBPS-93%") ///
-           (15 =  13 "CBPS-90%") ///
-           (16 =  14 "CBPS-85%") ///
-           (17 =  15 "CBPS-80%") ///
-           (18 =  16 "CBPS-75%") ///
-           (19 =  17 "CBPS-50%") ///
+           ( 9 =   7 "PCBPS-99.9%") ///
+           (10 =   8 "PCBPS-99%") ///
+           (11 =   9 "PCBPS-98%") ///
+           (12 =  10 "PCBPS-97%") ///
+           (13 =  11 "PCBPS-95%") ///
+           (14 =  12 "PCBPS-93%") ///
+           (15 =  13 "PCBPS-90%") ///
+           (16 =  14 "PCBPS-85%") ///
+           (17 =  15 "PCBPS-80%") ///
+           (18 =  16 "PCBPS-75%") ///
+           (19 =  17 "PCBPS-50%") ///
            ( 2 =  18 "TRUE") ///
            ( 4 =  19 "IPW_TE") ///
            ( 1 =  20 "RAW") ///
@@ -121,55 +121,69 @@ drop estimator
 rename estimator_ estimator
 local scenario `macval(scenario)' cbps_pct
 
-// drop the PROG estimator
-// the PROG estimator was a disaster -- converged rarely and not at all with 3 of the 5 Ns
+// below, I'll drop the PROG estimator -- this was a disaster, converging only a fraction of the time!
 table  N aug estimator if estimator==4, row col c(count rep count impact_est)
-drop   if estimator==4
+
+// select cells to show in the final tables
+local ifstmnt !inlist(estimator, 4, 20) &    /// drop "raw" and "prog"
+              !inlist(cbps_pct,99.9,.80,.93) //  all these different targets were overkill
+local 2ns     inlist(N, 50, 1000)
 
 // box plots of impact estimates
 levelsof N, local(Narray)
-set scheme s2color
-foreach i of local Narray {
-  **graph hbox impact_est if N==`i', over(estimator) by(augmented, compact) nooutsides name(n_`i')
-}
+set scheme s2manual_KAK
+graph hbox impact_est if `ifstmnt' & `2ns', over(estimator) /*nooutsides*/ by(N augmented, norescale colfirst iscale(*.6) iylabel title("") note(""))  ytitle("") note("") ysize(6.5) xsize(6.5)
+graph save   sims/sim`sim'/hbox_impact_est.gph, replace
+graph export sims/sim`sim'/hbox_impact_est.emf, replace
+graph export sims/sim`sim'/hbox_impact_est.png, replace
 
 // collapse down to 1 row per scenario/estimator
 isid rep `scenario'
 collapse (count) n_reps=impact_est n_reps_attempt=rep ///
          (mean) `stats' ///
          (firstnm) `sumstats' ///
-         (max) rep ///
-         , by(result `scenario')
+         (max) n_reps_attempt_alt = rep ///
+         , by(`scenario')
+assert n_reps_attempt_alt == n_reps_attempt
+drop   n_reps_attempt_alt
 
 // format numbers so tables look good
 replace reject_0 = reject_0*100
 replace covered  = covered*100
+format %7.1fc reject_0 covered wgt_max
 format %7.0fc n_reps*
 format %7.3fc power_zstat_0 p_0 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis
 format %7.2fc impact_est sd_error bias error_sqr rmse impact_est_var
-format %7.1fc reject_0 covered wgt_max
 
-local stats rmse // bias  impact_est_var
-
-
-// wide tables - columns are N's and reg-adjusted
-foreach v of local stats {
+// wide tables with ALL the results - columns are N's and reg-adjusted
+foreach v of var n_reps* `stats' `sumstats' {
   di _n(2) as res `"`v'  `:var lab `v''"'
-  tabdisp estimator N augmented, c(`v')
-}
-
-// tall tables - columns are N's and reg-adjusted
-foreach v of local stats {
-  di _n(2) as res `"`v'  `:var lab `v''"'
-  tabdisp augmented N, by(estimator) c(`v')
-}
-
-// separate tables for aug=0/1
-foreach v of local stats {
-  di _n(2) as res `"`v'  `:var lab `v''"'
-  bys augmented: tabdisp estimator N, c(`v')
+  tabdisp estimator N augmented, c(`v') format(`:format `v'')
 }
 
 
+di _n(10) "Tables with selected results" _n(10)
+
+// tall table with columns as N's
+foreach v of var rmse bias impact_est_var  {
+  di _n(2) as res `"`v'  `:var lab `v''"'
+  tabdisp estimator N augmented if `ifstmnt', c(`v') format(`:format `v'') cellwidth(6) csep(2)
+}
+
+// table with columns for each statistic
+preserve
+  keep if `ifstmnt' & `2ns'
+  keep estimator N augmented wgt_cv wgt_skewness wgt_max bal_mean_asd bal_max_asd
+  keep if aug==0 // these stats are all identical for aug and non-aug estimators
+  local c=0
+  foreach v of var           wgt_cv wgt_skewness wgt_max bal_mean_asd bal_max_asd {
+    rename `v' stat`++c'
+    local def `macval(def)' `c' "`v'"
+  }
+  qui reshape long stat, i(estimator N augmented)
+  label define statname `def'
+  label val _j statname
+  tabdisp estimator  N _j, by(augmented) c(stat) cellwidth(6) csep(2)
+restore
 
 log close sim`sim'_tables
