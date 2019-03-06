@@ -125,14 +125,13 @@ local scenario `macval(scenario)' cbps_pct
 table  N aug estimator if estimator==4, row col c(count rep count impact_est)
 
 // select cells to show in the final tables
-local ifstmnt !inlist(estimator, 4, 20) &    /// drop "raw" and "prog"
-              !inlist(cbps_pct,99.9,.80,.93) //  all these different targets were overkill
+local ifstmnt !inlist(estimator, 4, 20) & !inlist(cbps_pct, 80, 93) // drop "raw" and "prog";  all these different targets were overkill
 local 2ns     inlist(N, 50, 1000)
 
 // box plots of impact estimates
 levelsof N, local(Narray)
 set scheme s2manual_KAK
-graph hbox impact_est if `ifstmnt' & `2ns', over(estimator) /*nooutsides*/ by(N augmented, norescale colfirst iscale(*.6) iylabel title("") note(""))  ytitle("") note("") ysize(6.5) xsize(6.5)
+graph hbox impact_est if `ifstmnt' & `2ns', over(estimator) nooutsides ytitle("") note("") ysize(6.5) xsize(6.5) ylab(0) by(N augmented, norescale colfirst iscale(*.6) iylabel title("") note("Outside values not shown", size(vsmall)))
 graph save   sims/sim`sim'/hbox_impact_est.gph, replace
 graph export sims/sim`sim'/hbox_impact_est.emf, replace
 graph export sims/sim`sim'/hbox_impact_est.png, replace
@@ -165,7 +164,7 @@ foreach v of var n_reps* `stats' `sumstats' {
 di _n(10) "Tables with selected results" _n(10)
 
 // tall table with columns as N's
-foreach v of var rmse bias impact_est_var  {
+foreach v of var rmse bias impact_est_var {
   di _n(2) as res `"`v'  `:var lab `v''"'
   tabdisp estimator N augmented if `ifstmnt', c(`v') format(`:format `v'') cellwidth(6) csep(2)
 }
