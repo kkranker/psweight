@@ -27,7 +27,7 @@ mac list _sim
 qui adopath ++ ./sims/
 
 // there was a mistake in the old version on sim_reshape.ado; I'm re-running here with the fixed version
-if 0 {
+if 1 {
   use using sims/sim`sim'/Data_Unprocessed.dta, clear
   sim_reshape
   save sims/sim`sim'/Data.dta, replace
@@ -96,7 +96,7 @@ recode estimator ///
            (19 =  17 "PCBPS-50%") ///
            ( 2 =  18 "TRUE") ///
            ( 4 =  19 "IPW_TE") ///
-           ( 1 =  20 "RAW") ///
+           ( 1 =  20 "NONE") ///
            (else = 999 "something is missing here") ///
            , gen(estimator_recode)
 recode estimator_ ///
@@ -125,7 +125,11 @@ local scenario `macval(scenario)' cbps_pct
 table  N aug estimator if estimator==4, row col c(count rep count impact_est)
 
 // select cells to show in the final tables
-local ifstmnt !inlist(estimator, 4, 20) & !inlist(cbps_pct, 80, 93) // drop "raw" and "prog";  all these different targets were overkill
+// drop "raw" and "prog";
+// drop 80 and 93% -- all these different targets were overkill
+// the 99.9 doesn't clearly do anything -- virtually the same as CBPS in many settings
+// in some tables/figures, only show 2 sample sizes
+local ifstmnt !inlist(estimator, 4, 15, 12, 7)
 local 2ns     inlist(N, 50, 1000)
 
 // box plots of impact estimates
@@ -154,10 +158,13 @@ format %7.0fc n_reps*
 format %7.3fc power_zstat_0 p_0 bal_max_asd bal_mean_asd wgt_sd wgt_cv wgt_skewness wgt_kurtosis
 format %7.2fc impact_est sd_error bias error_sqr rmse impact_est_var
 
+// save dataset
+save "sims/sim`sim'/1-row summary.dta", replace
+
 // wide tables with ALL the results - columns are N's and reg-adjusted
 foreach v of var n_reps* `stats' `sumstats' {
   di _n(2) as res `"`v'  `:var lab `v''"'
-  tabdisp estimator N augmented, c(`v') format(`:format `v'')
+  tabdisp estimator N augmented, c(`v') format(`:format `v'') stubwidth(11)
 }
 
 
@@ -166,7 +173,7 @@ di _n(10) "Tables with selected results" _n(10)
 // tall table with columns as N's
 foreach v of var rmse bias impact_est_var {
   di _n(2) as res `"`v'  `:var lab `v''"'
-  tabdisp estimator N augmented if `ifstmnt', c(`v') format(`:format `v'') cellwidth(6) csep(2)
+  tabdisp estimator N augmented if `ifstmnt', c(`v') format(`:format `v'') cellwidth(6) csep(2) stubwidth(11)
 }
 
 // table with columns for each statistic
@@ -182,7 +189,7 @@ preserve
   qui reshape long stat, i(estimator N augmented)
   label define statname `def'
   label val _j statname
-  tabdisp estimator  N _j, by(augmented) c(stat) cellwidth(6) csep(2)
+  tabdisp estimator  N _j, by(augmented) c(stat) cellwidth(6) csep(2) stubwidth(11)
 restore
 
 log close sim`sim'_tables
