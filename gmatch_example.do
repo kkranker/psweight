@@ -509,6 +509,7 @@ rsource, terminator(END_OF_R)
   balance(W_fit_ATET_over);
   q();
 END_OF_R
+erase "C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\testfile.csv"
 
 
 log close gmatch_example_R
