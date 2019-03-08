@@ -2,40 +2,22 @@
       name:  gmatch_example_R
        log:  C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\gmatch_example_R.log
   log type:  text
- opened on:  23 Feb 2018, 00:55:12
+ opened on:   7 Mar 2019, 21:50:55
 
 . 
 . fvrevar `varlist'
 
 . export delimited `treatvar' `r(varlist)' `wgtvar' using "C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\testfile.csv" if `tousevar', replace nolabel
+(note: file C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\testfile.csv not found)
 file C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\testfile.csv saved
 
 . 
 . rsource, terminator(END_OF_R)
 Assumed R program path: "C:\Program Files\Microsoft\R Open\R-3.4.2\bin\x64\Rterm.exe"
 Beginning of R output
-
-R version 3.4.2 (2017-09-28) -- "Short Summer"
-Copyright (C) 2017 The R Foundation for Statistical Computing
-Platform: x86_64-w64-mingw32/x64 (64-bit)
-
-R is free software and comes with ABSOLUTELY NO WARRANTY.
-You are welcome to redistribute it under certain conditions.
-Type 'license()' or 'licence()' for distribution details.
-
-  Natural language support but running in an English locale
-
-R is a collaborative project with many contributors.
-Type 'contributors()' for more information and
-'citation()' on how to cite R or R packages in publications.
-
-Type 'demo()' for some demos, 'help()' for on-line help, or
-'help.start()' for an HTML browser interface to help.
-Type 'q()' to quit R.
-
->   mydata <- read.csv("C:\\Users\\kkranker\\Documents\\Stata\\Ado\\Devel\\gmatch\\testfile.csv", stringsAsFactors = F);
->   library(CBPS);
 End of R output
+
+. erase "C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\testfile.csv"
 
 . 
 . 
@@ -43,5 +25,5 @@ End of R output
       name:  gmatch_example_R
        log:  C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\gmatch_example_R.log
   log type:  text
- closed on:  23 Feb 2018, 00:55:12
+ closed on:   7 Mar 2019, 21:50:56
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
