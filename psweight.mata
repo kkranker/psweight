@@ -823,7 +823,7 @@ real rowvector psweight::psweight(| string scalar est,
   //                      (2) converges more slowly
   //                 - was based on the R implimentation of CBPS on CRAN by Imai et al.
   // In addition, the program looks at Stata local mlopts with instructions for controlling maximization
-  else if (fctn=="ipwcbps") {
+  else if (fctn=="cbpsoid") {
     fctn="cbps"
     oid=1
   }
@@ -874,7 +874,7 @@ real rowvector psweight::psweight(| string scalar est,
 
   // cvopt adds 1 or more elements to the loss function
   // I don't have gradient functions
-  if (length(cvopt) & optimize_init_evaluatortype(S)!="gf0") optimize_init_evaluatortype(S,"gf0")
+  if (length(cvopt)) optimize_init_evaluatortype(S,"gf0")
 
   // for certain methods,
   // -- normalize Xs to mean 0, sd 1, apply SVD
@@ -1060,7 +1060,7 @@ real rowvector psweight::cbpsoid(| string scalar est, real scalar denominator)
 {
   if (args()<1) est="ate"
   if (args()<2) denominator=1
-  return(psweight(est, "ipwcbps", denominator))
+  return(psweight(est, "cbpsoid", denominator))
 }
 
 // Port of the objective function from the Stata verion of CBPS
