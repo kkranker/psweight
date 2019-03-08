@@ -1,6 +1,6 @@
 //****************************************************************************/
 *! $Id$
-*! Generalization of IPW and CBPS estimators
+*! IPW- and CBPS-type propensity score reweighting, with extentions
 *! Stata command to estimate models
 //
 *! By Keith Kranker
@@ -13,35 +13,51 @@
 
 program define psweight, eclass byable(onecall)
   version 15.1
+  if _by() {
+    local BY `"by `_byvars'`_byrc0':"'
+  }
+  local cmdline `"psweight `0'"'
+	local cmdline : list retokenize cmdline
   if replay() {
-    if ("`e(cmd2)'" != "psweight") error 301
+    if ("`e(cmd)'" != "psweight") error 301
     if _by() error 190
     if `"`0'"'=="" local 0 ","
     ereturn display
     exit
   }
-  if _by() {
-    local BY `"by `_byvars'`_byrc0':"'
+  gettoken fctn 0 : 0, parse(" ,")
+  if ("`fctn'"=="call") {
+    if _by() error 190
+    psweightcall `0'
   }
-
-  `BY' Estimate `0'
+  else {
+    `BY' Estimate `fctn' `0'
+  }
+  ereturn local cmd "psweight"
+  ereturn local cmdline `"`cmdline'"'
 end
 
 program Estimate, eclass sortpreserve byable(recall)
   version 15.1
 
+  // first word is the name of the "subroutine"
+  gettoken fctn 0 : 0, parse(" ,")
+  if      ("`fctn'"=="mean_sd") local fctn mean_sd_sq
+  else if ("`fctn'"=="sd")      local fctn sd_sq
+  else if !inlist(`"`fctn'"', "balanceonly", "pcbps", "ipw", "cbps", "cbpsoid", "mean_sd_sq", "sd_sq", "stdprogdiff") {
+    di as error `""`fctn'" subcommand invalid"'
+    error 198
+  }
+
   // standard syntax parsing
-  local cmdline : copy local 0
   syntax varlist(min=2 numeric fv) [if] [in] [fw iw/], ///
           [ DEPvars(varlist numeric) /// outcome variables (if any)
             ate atet ateu /// to fill in est
-            ipw cbps mean_sd sd mean_sd_sq sd_sq STDProgdiff /// to fill in fctn and oid
             TREatvariance CONtrolvariance POOledvariance Averagevariance /// to fill in denominator
             cvtarget(numlist min=3 max=3) skewtarget(numlist min=3 max=3) kurttarget(numlist min=3 max=3) maxtarget(numlist min=3 max=3) ///
             from(name) /// starting values for maximization
-            BALanceonly MWeight(varname numeric) /// just checks balance (skips reweighting)
+            MWeight(varname numeric) /// 'matching weights' for balanceonly option
             * ] //  display and ml options are allowed
-
   marksample tousevar
   _get_diopts diopts options, `options'
   get_matrix_table_options  , `options' `diopts'
@@ -67,7 +83,7 @@ program Estimate, eclass sortpreserve byable(recall)
     di as err `"The treatment variable (`treatvar') must be a dummy variable with >1 treatment obs and >1 control obs."'
     error 125
   }
-  if ("`balanceonly'"=="" & "`mweight'"!="") {
+  if ("`fctn'"!="balanceonly" & "`mweight'"!="") {
     di as err `"The mweight(`treatvar') option is only applicable with balanceonly."'
     error 198
   }
@@ -76,8 +92,8 @@ program Estimate, eclass sortpreserve byable(recall)
   }
 
   // mark collinear variables
-  if ("`balanceonly'"=="balanceonly") _rmcoll `treatvar' `varlist' if `tousevar' `wgtexp', expand
-  else  _rmcoll `treatvar' `varlist' if `tousevar' `wgtexp', expand logit touse(`tousevar')
+  if ("`fctn'"=="balanceonly") _rmcoll `treatvar' `varlist' if `tousevar' `wgtexp', expand
+  else                         _rmcoll `treatvar' `varlist' if `tousevar' `wgtexp', expand logit touse(`tousevar')
   local varlist `r(varlist)'
   gettoken trash varlist : varlist
 
@@ -95,28 +111,25 @@ program Estimate, eclass sortpreserve byable(recall)
     error 198
   }
 
-  // parse the "fctn" and "oid" options
-  if ("`mean_sd'"=="mean_sd") local mean_sd_sq mean_sd_sq
-  if ("`sd'"=="sd")           local sd_sq sd_sq
-  local fctn "`ipw'`cbps'`mean_sd_sq'`sd_sq'`stdprogdiff'"
-  if ("`balanceonly'"=="balanceonly" & "`fctn'"!="") di as error "`fctn' ignored"
-  else if ("`fctn'"=="") local fctn cbps
-  else if (!inlist("`fctn'", "ipw", "cbps", "ipwcbps", "mean_sd_sq", "sd_sq","stdprogdiff")) {
-    di as err `"Specify a valid combination of options: ipw, cbps, mean_sd, sd, or stdprogdiff."'
-    error 198
-  }
-
   // parse the "cvopt" option
   if (!mi("`maxtarget'")  & mi("`kurttarget'")) local kurttarget "0 0 2"
   if (!mi("`kurttarget'") & mi("`skewtarget'")) local skewtarget "0 0 2"
   if (!mi("`skewtarget'") & mi("`cvtarget'"))   local cvtarget   "0 0 2"
   local cvopt "`cvtarget' `skewtarget' `kurttarget' `maxtarget'"
   local cvopt : list clean cvopt
-  if ("`balanceonly'"=="balanceonly" & "`cvopt'"!="") di as error "`cvopt' ignored"
+  if ("`fctn'"=="balanceonly" & "`cvopt'"!="") {
+    di as error "`cvopt' not allowed with `fctn' subcommand"
+    error 198
+  }
+  else if ("`fctn'"=="pcbps" & "`cvopt'"=="") {
+    di as error `"cvtarget(), skewtarget(), or kurttarget() required with pcbps subcommand"'
+    error 198
+  }
   else if (!inlist(`: list sizeof cvopt',0,3,6,9,12)) {
     di as error `"cvopt() requires 3, 6, 9, 12 elements"'
     error 198
   }
+  if ("`fctn'"=="pcbps") local fctn cbps // pcbps is a synonym of cbps with cvopt()
 
   // parse the "denominator" options
   local denominator "`treatvariance'`controlvariance'`pooledvariance'`averagevariance'"
@@ -136,21 +149,22 @@ program Estimate, eclass sortpreserve byable(recall)
     qui gen double `v' = .
     format %7.3g `v'
   }
-  if ("`balanceonly'"!="balanceonly") ereturn clear
-  cap mata: mata drop psweight_ado_most_recent
-  return  clear
+  if ("`fctn'"!="balanceonly") {
+    ereturn clear
+    cap mata: mata drop psweight_ado_most_recent
+  }
+  return clear
 
   // balanceonly option just prints balance and then end the program
-  if ("`balanceonly'"=="balanceonly") {
+  if ("`fctn'"=="balanceonly") {
     mata: BalanceOnly()
     ereturn local est                       = "`est'"
     ereturn local depvar                    = "`treatvar'"
     ereturn local varlist                   = "`varlist'"
-    ereturn local cmd                       = "psweight"
-    ereturn local cmdline                   = "psweight `cmdline'"
     ereturn scalar balanceonly              = 1
     if ("`weight'"!="") ereturn local wtype = "`weight'"
     if ("`wexp'"!="")   ereturn local wexp  = "`wexp'"
+    ereturn local mataobj                   = "psweight_ado_most_recent"
     exit
   }
 
@@ -160,10 +174,10 @@ program Estimate, eclass sortpreserve byable(recall)
   // print results to screen
   di as txt _n "Propensity score model coefficients" _c
   di as txt _col(52) "Number of obs" _col(67) "=" _col(69) as res %10.0fc `psweight_N_out'
-  di as txt "Generalization of IPW/CPBS-type reweigting"
+  di as txt "Propensity score reweigting"
   if      ("`fctn'"=="ipw"        ) di as txt "Loss = IPW" _c
-  else if ("`fctn'"=="cbps"       ) di as txt "Loss = CBPS" _c
-  else if ("`fctn'"=="ipwcbps"    ) di as txt "Loss = CBPS + IPW (overidentified)" _c
+  else if ("`fctn'"=="cbps"       ) di as txt "Loss = CBPS (just identified)" _c
+  else if ("`fctn'"=="cbpsoid"    ) di as txt "Loss = CBPS (over identified)" _c
   else if ("`fctn'"=="mean_sd_sq" ) di as txt "Loss = mean(stddiff())^2" _c
   else if ("`fctn'"=="sd_sq"      ) di as txt "Loss = sum(stddiff()^2)" _c
   else if ("`fctn'"=="stdprogdiff") di as txt "Loss = sum(stdprogdiff()^2)" _c
@@ -178,11 +192,10 @@ program Estimate, eclass sortpreserve byable(recall)
   ereturn local fctn                      = "`fctn'"
   ereturn local depvar                    = "`treatvar'"
   ereturn local varlist                   = "`varlist'"
-  ereturn local cmd                       = "psweight"
-  ereturn local cmdline                   = "psweight `cmdline'"
   ereturn scalar balanceonly              = 0
   if ("`weight'"!="") ereturn local wtype = "`weight'"
   if ("`wexp'"!="")   ereturn local wexp  = "`wexp'"
+  ereturn local mataobj                   = "psweight_ado_most_recent"
   ereturn scalar denominator              = `denominator'
   if ("`cvopt'"!="")  ereturn local cvopt = "`cvopt'"
   _coef_table, `diopts'
@@ -242,7 +255,6 @@ void Estimate()
 
   temp = psweight_ado_most_recent.psweight(est, fctn, denominator, cvopt)
   psweight_ado_most_recent.get_scores("_weight _weight_mtch _pscore _treated", tousevar)
-  st_global("e(mataobj)", "psweight_ado_most_recent")
 }
 
 // helper function to move Stata locals into Mata and call the main function
@@ -274,7 +286,6 @@ void BalanceOnly()
   }
   temp = psweight_ado_most_recent.balanceresults(est, denominator)
   psweight_ado_most_recent.get_scores("_weight _weight_mtch _pscore _treated", tousevar)
-  st_global("e(mataobj)", "psweight_ado_most_recent")
 }
 
 end
