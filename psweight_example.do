@@ -278,7 +278,6 @@ if (depvars!="") DW.set_Y(depvars,tousevar)
   DW.psweight("atet","mean_sd_sq", 1, (1,.75,6))
   DW.balanceresults("atet",1)
 
-
   DW.psweight("atet","mean_sd_sq", 1, (1,.50,6))
   DW.balanceresults("atet",1)
 
@@ -353,7 +352,7 @@ teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' , ate
 di _b[POmean:0.treat]
 tebalance summarize
 tebalance summarize, baseline
-psweight ipw `treatvar' `varlist' if `tousevar' , atet treatvariance `depvaropt'
+psweight ipw `treatvar' `varlist' if `tousevar' , atet averagevariance `depvaropt'
 psweight call balanceresults()
 
 psweight ipw `treatvar' `varlist' if `tousevar' , atet averagevariance `depvaropt'
