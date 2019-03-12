@@ -303,6 +303,8 @@ di as txt "Current user: `c(username)'" _n "Environment: `c(os)' `c(machine_type
 desc, short
 local varlist : copy local varlist_orig
 summ `treatvar' `varlist' `tousevar' `wgtvar' `depvars'
+if (trim("`depvars'") != "") local depvaropt depvars(`depvars')
+
 
 // balance before matching
 psweight balanceonly `treatvar' `varlist' if `tousevar'
@@ -313,21 +315,21 @@ psweight balanceonly `treatvar' `varlist' if `tousevar', mweight(`wgtvar')
 
 // Replicate CBPS
 cbps `treatvar' `varlist' if `tousevar' , ate logit optimization_technique("nr") evaluator_type("gf1")
-psweight cbps `treatvar' `varlist' if `tousevar' , ate pooledvariance
+psweight cbps `treatvar' `varlist' if `tousevar' , ate pooledvariance `depvaropt'
 psweight call balanceresults()
 return list
 psweight // test replay
 
 cbps `treatvar' `varlist' if `tousevar' , ate over logit optimization_technique("nr") evaluator_type("gf1")
-psweight cbpsoid `treatvar' `varlist' if `tousevar' , ate pooledvariance
+psweight cbpsoid `treatvar' `varlist' if `tousevar' , ate pooledvariance  `depvaropt'
 psweight call balanceresults()
 
 cbps `treatvar' `varlist' if `tousevar' , att logit optimization_technique("nr") evaluator_type("gf1")
-psweight cbps `treatvar' `varlist' if `tousevar' , atet pooledvariance
+psweight cbps `treatvar' `varlist' if `tousevar' , atet pooledvariance  `depvaropt'
 psweight call balanceresults()
 
 cbps `treatvar' `varlist' if `tousevar' , att over logit optimization_technique("nr") evaluator_type("gf1")
-psweight cbpsoid `treatvar' `varlist' if `tousevar' , atet pooledvariance
+psweight cbpsoid `treatvar' `varlist' if `tousevar' , atet pooledvariance  `depvaropt'
 psweight call balanceresults()
 
 // After calling psweight, the data is stored in a class instance named psweight_ado_most_recent
@@ -336,13 +338,13 @@ psweight call diff()
 psweight call balancetable()
 
 // Other objective functions
-psweight mean_sd_sq `treatvar' `varlist' if `tousevar' , atet treatvariance difficult nonrtolerance
+psweight mean_sd_sq `treatvar' `varlist' if `tousevar' , atet treatvariance difficult nonrtolerance `depvaropt'
 psweight call balanceresults()
 
-psweight sd_sq `treatvar' `varlist' if `tousevar' , atet treatvariance difficult nonrtolerance
+psweight sd_sq `treatvar' `varlist' if `tousevar' , atet treatvariance difficult nonrtolerance `depvaropt'
 psweight call balanceresults()
 
-psweight stdprogdiff `treatvar' `varlist' if `tousevar' , atet depvars(`depvars') treatvariance difficult nonrtolerance
+psweight stdprogdiff `treatvar' `varlist' if `tousevar' , atet treatvariance difficult nonrtolerance `depvaropt'
 psweight call balanceresults()
 
 
@@ -351,10 +353,10 @@ teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' , ate
 di _b[POmean:0.treat]
 tebalance summarize
 tebalance summarize, baseline
-psweight ipw `treatvar' `varlist' if `tousevar' , atet treatvariance
+psweight ipw `treatvar' `varlist' if `tousevar' , atet treatvariance `depvaropt'
 psweight call balanceresults()
 
-psweight ipw `treatvar' `varlist' if `tousevar' , atet averagevariance
+psweight ipw `treatvar' `varlist' if `tousevar' , atet averagevariance `depvaropt'
 psweight call balanceresults()
 
 teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' , ate aequations
@@ -366,56 +368,56 @@ psweight ipw `treatvar' `varlist' if `tousevar' , ateu treatvariance
 psweight call balanceresults()
 
 // tradeoff between CBPS-like balance and variance in weights
-psweight cbps `treatvar' `varlist' if `tousevar' , atet treatvariance
+psweight cbps `treatvar' `varlist' if `tousevar' , atet treatvariance `depvaropt'
 psweight call balanceresults()
 
-psweight pcbps `treatvar' `varlist' if `tousevar' , atet treatvariance cvtarget(1 .75 6)
+psweight pcbps `treatvar' `varlist' if `tousevar' , atet treatvariance cvtarget(1 .75 6) `depvaropt'
 psweight call balanceresults()
 
-psweight cbps `treatvar' `varlist' if `tousevar' , atet treatvariance cvtarget(1 .50 6) // could say pcbps or cbps
+psweight cbps `treatvar' `varlist' if `tousevar' , atet treatvariance cvtarget(1 .50 6) `depvaropt' // could say pcbps or cbps
 psweight call balanceresults()
 
-psweight mean_sd_sq `treatvar' `varlist' if `tousevar' , atet treatvariance cvtarget(1 .75 6) difficult nonrtolerance
+psweight mean_sd_sq `treatvar' `varlist' if `tousevar' , atet treatvariance cvtarget(1 .75 6) difficult nonrtolerance `depvaropt'
 psweight call balanceresults()
 
-psweight mean_sd_sq `treatvar' `varlist' if `tousevar' , atet treatvariance cvtarget(1 .50 6) difficult nonrtolerance
+psweight mean_sd_sq `treatvar' `varlist' if `tousevar' , atet treatvariance cvtarget(1 .50 6) difficult nonrtolerance `depvaropt'
 psweight call balanceresults()
 
-psweight cbpsoid `treatvar' `varlist' if `tousevar' , atet treatvariance cvtarget(1 .75 6)
+psweight cbpsoid `treatvar' `varlist' if `tousevar' , atet treatvariance cvtarget(1 .75 6) `depvaropt'
 psweight call balanceresults()
 
 // furthermore, you can target skiwness, kurtosis, or max weight
-psweight pcbps `treatvar' `varlist' if `tousevar', atet treatvariance cvtarget(1 .5 6) skewtarget(1 0.07 2)
+psweight pcbps `treatvar' `varlist' if `tousevar', atet treatvariance cvtarget(1 .5 6) skewtarget(1 0.07 2) `depvaropt'
 psweight call balanceresults()
 
 capture nois {
-psweight pcbps `treatvar' `varlist' if `tousevar', atet treatvariance maxtarget(1 10 2) difficult nonrtolerance
+psweight pcbps `treatvar' `varlist' if `tousevar', atet treatvariance maxtarget(1 10 2) difficult nonrtolerance `depvaropt'
 psweight call balanceresults()
 }
 
 // * WEIGHTED DATA EXAMPLES *
 
 // Replicate CBPS
-psweight cbps `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], ate pooledvariance
+psweight cbps `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], ate pooledvariance `depvaropt'
 psweight call balanceresults()
 
-psweight cbpsoid `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], ate pooledvariance
+psweight cbpsoid `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], ate pooledvariance `depvaropt'
 psweight call balanceresults()
 
-psweight cbps `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet pooledvariance
+psweight cbps `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet pooledvariance `depvaropt'
 psweight call balanceresults()
 
-psweight cbpsoid `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet pooledvariance
+psweight cbpsoid `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet pooledvariance `depvaropt'
 psweight call balanceresults()
 
 // Other objective functions
-psweight mean_sd_sq `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet treatvariance difficult nonrtolerance
+psweight mean_sd_sq `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet treatvariance difficult nonrtolerance `depvaropt'
 psweight call balanceresults()
 
-psweight sd_sq `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet treatvariance difficult nonrtolerance
+psweight sd_sq `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet treatvariance difficult nonrtolerance `depvaropt'
 psweight call balanceresults()
 
-psweight stdprogdiff `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet depvars(`depvars') treatvariance difficult nonrtolerance
+psweight stdprogdiff `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet treatvariance difficult nonrtolerance `depvaropt'
 psweight call balanceresults()
 
 // IPW
@@ -424,12 +426,12 @@ di _b[POmean:0.treat]
 tebalance summarize
 tebalance summarize, baseline
 
-psweight ipw `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet treatvariance
+psweight ipw `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet treatvariance `depvaropt'
 psweight call balanceresults()
 psweight call reweight()
 psweight call balanceresults()
 
-psweight ipw `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet averagevariance
+psweight ipw `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet averagevariance `depvaropt'
 psweight call balanceresults()
 
 teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' [iw=`wgtvar'], ate aequations
@@ -437,28 +439,28 @@ psweight ipw `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], ate treatvariance
 psweight call balanceresults()
 
 teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' [iw=`wgtvar'], atet aequations tlevel(0) control(1)
-psweight ipw `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], ateu treatvariance
+psweight ipw `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], ateu treatvariance `depvaropt'
 
 // tradeoff between CBPS-like balance and variance in weights
-psweight cbps `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet  treatvariance
+psweight cbps `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet  treatvariance `depvaropt'
 psweight call balanceresults()
 
-psweight pcbps `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet treatvariance cvtarget(1 .75 6)
+psweight pcbps `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet treatvariance cvtarget(1 .75 6) `depvaropt'
 psweight call balanceresults()
 
-psweight pcbps `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet treatvariance cvtarget(1 .50 6)
+psweight pcbps `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet treatvariance cvtarget(1 .50 6) `depvaropt'
 psweight call balanceresults()
 
-psweight mean_sd_sq `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet treatvariance cvtarget(1 .75 6) difficult nonrtolerance
+psweight mean_sd_sq `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet treatvariance cvtarget(1 .75 6) difficult nonrtolerance `depvaropt'
 psweight call balanceresults()
 
-psweight mean_sd_sq `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet treatvariance cvtarget(1 .50 6) difficult nonrtolerance
+psweight mean_sd_sq `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet treatvariance cvtarget(1 .50 6) difficult nonrtolerance `depvaropt'
 psweight call balanceresults()
 
 // you can also target skiwness, kurtosis, or max weight, but it's finicky
 
 capture nois {
-psweight mean_sd_sq `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet treatvariance maxtarget(1 10 2) difficult nonrtolerance
+psweight mean_sd_sq `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet treatvariance maxtarget(1 10 2) difficult nonrtolerance `depvaropt'
 psweight call balanceresults()
 }
 
