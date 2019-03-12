@@ -472,8 +472,8 @@ log using psweight_example_R.log, name(psweight_example_R) replace
 fvrevar `varlist'
 export delimited `treatvar' `r(varlist)' `wgtvar' using "C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\testfile.csv" if `tousevar', replace nolabel
 
-rsource, terminator(END_OF_R)
-  mydata <- read.csv("C:\\Users\\kkranker\\Documents\\Stata\\Ado\\Devel\\psweight\\testfile.csv", stringsAsFactors = F);
+rsource, terminator(END_OF_R) lsource
+  mydata <- read.csv("C:\\Users\\kkranker\\Documents\\Stata\\Ado\\Devel\\gmatch\\testfile.csv", stringsAsFactors = F);
   library(CBPS);
   fit_ATE       <- CBPS(treat ~ x1 + x1 + X__000000 + X__000001 +x4 + x5 + x6 +x7 +x90 +x91+ x92 +x93 +x94+ x95, data = mydata, ATT = 0, method='exact', standardize=stdall);
   summary(fit_ATE);
