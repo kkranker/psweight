@@ -2,16 +2,16 @@
       name:  psweight_example
        log:  C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\psweight_example.log
   log type:  text
- opened on:   7 Mar 2019, 22:10:19
+ opened on:  12 Mar 2019, 15:56:12
 
 . 
 . // ***************************************************************************
-. *! $Id: psweight_example.do,v e03361461984 2019/03/08 05:09:09 kkranker $
-. *! Generalization of IPW and CBPS estimators
-. *! Example files
+. *! $Id: psweight_example.do,v d67d2cd70525 2019/03/12 21:55:58 kkranker $
+. *! IPW- and CBPS-type propensity score reweighting, with extentions
+. *! Example
 . //
 . *! By Keith Kranker
-. // Last updated $Date: 2019/03/08 05:09:09 $
+. // Last updated $Date: 2019/03/12 21:55:58 $
 . //
 . // Copyright (C) Mathematica Policy Research, Inc.
 . // This code cannot be copied, distributed or used without the express written
@@ -27,24 +27,24 @@
 Current user: KKranker
 Environment: Windows PC (64-bit x86-64) KKRANKER
 Stata: 15.1
-Date:  7 Mar 2019 22:10:19
+Date: 12 Mar 2019 15:56:12
 
 . 
 . which psweight
 .\psweight.ado
-*! $Id: psweight.ado,v e03361461984 2019/03/08 05:09:09 kkranker $
+*! $Id: psweight.ado,v 91441cc74314 2019/03/12 21:29:51 kkranker $
 *! IPW- and CBPS-type propensity score reweighting, with extentions
 *! Stata command to estimate models
 *! By Keith Kranker
 
 . mata: mata describe using lpsweight
-(library contains 54 members)
+(library contains 53 members)
 
 
       # bytes   type                        name and extent
 -------------------------------------------------------------------------------
         2,276   auto void                   optimize_init_mlopts()
-        4,312   auto classdef scalar        psweight()
+        4,256   auto classdef scalar        psweight()
           852   auto real matrix             ::Ct()
           208   auto real rowvector          ::asd()
         1,500   auto void                    ::balanceresults()
@@ -87,7 +87,6 @@ Date:  7 Mar 2019 22:10:19
           852   auto real rowvector          ::stddiff()
         2,052   auto real rowvector          ::stdprogdiff()
           512   auto real colvector          ::trim()
-          636   auto void                    ::userweight()
           168   auto real rowvector          ::varratio()
           288   auto real scalar             ::wgt_cv()
           356   auto real scalar             ::wgt_kurtosis()
@@ -4605,7 +4604,6 @@ Iteration 29:  f(p) =  2.038e-11
   Note: The std_diff column does not account for the standard error of the linear predictions.
 
 : 
-: 
 :   DW.psweight("atet","mean_sd_sq", 1, (1,.50,6))
   Step 1 (initial values from logit model):
 initial:       f(p) = -681.05307
@@ -4903,5 +4901,5 @@ Iteration 4:   f(p) =  1.988e-21
       name:  psweight_example
        log:  C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\psweight_example.log
   log type:  text
- closed on:   7 Mar 2019, 22:12:00
+ closed on:  12 Mar 2019, 15:57:32
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
