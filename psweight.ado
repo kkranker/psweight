@@ -157,7 +157,7 @@ program Estimate, eclass sortpreserve byable(recall)
 
   // balanceonly option just prints balance and then end the program
   if ("`fctn'"=="balanceonly") {
-    mata: BalanceOnly()
+    mata: Estimate(0)
     ereturn local est                       = "`est'"
     ereturn local depvar                    = "`treatvar'"
     ereturn local varlist                   = "`varlist'"
@@ -169,7 +169,7 @@ program Estimate, eclass sortpreserve byable(recall)
   }
 
   // switch over to Mata, helper function runs the main function
-  mata: Estimate()
+  mata: Estimate(1)
 
   // print results to screen
   di as txt _n "Propensity score model coefficients" _c
@@ -224,22 +224,80 @@ mata:
 mata set matastrict on
 mata set matafavor speed
 
-// helper function to move Stata locals into Mata and call the main function
-void Estimate()
+class psweightado extends psweight
 {
-  external class psweight scalar psweight_ado_most_recent
+  protected:
+    string scalar    est
+    string scalar    fctn
+    real   scalar    denominator
+    real   rowvector cvopt
+  public:
+    void   set_opts()
+    void   userweight()
+}
+
+void psweightado::set_opts(string scalar    est_in,
+                           string scalar    fctn_in,
+                           real   scalar    denominator_in,
+                           real   rowvector cvopt_in)
+{
+  this.est = est_in
+  this.fctn = fctn_in
+  this.denominator = denominator_in
+  this.cvopt = cvopt_in
+}
+
+// sets this.W appropriately for the balanceonly option in the .ado file
+void psweightado::userweight(| string scalar wgtvar, string scalar tousevar)
+{
+  if (args()==0 | wgtvar=="") this.reweight()
+  else if (args()==2) {
+    real colvector userweight
+    userweight=.
+    st_view(userweight, ., wgtvar, tousevar)
+    if (length(userweight)!=length(this.T)) _error("Unexpected dimension for " + wgtvar)
+    this.reweight(userweight)
+  }
+  else _error("userweight() requires 0 or 2 arguments")
+}
+
+// these functiosn are just wrappers
+void           psweightado::balanceresults() return(this.super.balanceresults(this.est, this.denominator))
+real rowvector psweightado::psweight()       return(this.super.psweight(this.est, this.fctn, this.denominator, this.cvopt))
+real rowvector psweightado::ipw()            return(this.super.ipw(this.est))
+real rowvector psweightado::cbps()           return(this.super.cbps(this.est, this.denominator))
+real rowvector psweightado::cbpsoid()        return(this.super.cbpsoid(this.est, this.denominator))
+real rowvector psweightado::stddiff()        return(this.super.stddiff(this.denominator))
+real rowvector psweightado::varratio()       return(this.super.varratio(this.denominator))
+real rowvector psweightado::progdiff()       return(this.super.progdiff(this.denominator))
+real rowvector psweightado::stdprogdiff()    return(this.super.stdprogdiff(this.denominator))
+real scalar    psweightado::mean_asd()       return(this.super.mean_asd(this.denominator))
+real scalar    psweightado::max_asd()        return(this.super.max_asd(this.denominator))
+real scalar    psweightado::wgt_cv()         return(this.super.wgt_cv(this.est))
+real scalar    psweightado::wgt_sd()         return(this.super.wgt_sd(this.est))
+real scalar    psweightado::wgt_skewness()   return(this.super.wgt_skewness(this.est))
+real scalar    psweightado::wgt_kurtosis()   return(this.super.wgt_kurtosis(this.est))
+real scalar    psweightado::wgt_max()        return(this.super.wgt_max(this.est))
+real matrix    psweightado::balancetable()   return(this.super.balancetable(this.denominator))
+
+// helper function to move Stata locals into Mata and call the main function
+// reweight == 1: calcualte inverse propensity weights
+//          == 0: just calcuate balance
+void Estimate(real scalar reweight)
+{
+  external class   psweightado scalar psweight_ado_most_recent
   string scalar    treatvar, varlist, tousevar, wgtvar, depvars
-  string scalar    est, fctn
+  string scalar    est, fctn, mweightvar
   real   scalar    denominator
   real   rowvector cvopt
   transmorphic temp
 
+  // access key parameters from Stata locals
   treatvar    = st_local("treatvar")
   varlist     = st_local("varlist")
   tousevar    = st_local("tousevar")
   wgtvar      = st_local("wgtvar")
   depvars     = st_local("depvars")
-
   est         = st_local("est")
   fctn        = st_local("fctn")
   denominator = strtoreal(st_local("denominator"))
@@ -248,43 +306,26 @@ void Estimate()
   }
   else cvopt = J(1,0,.)
 
-  psweight_ado_most_recent = psweight()
+  // initialize class and read in data and parameters
+  psweight_ado_most_recent = psweightado()
   if  (wgtvar!="") psweight_ado_most_recent.set(treatvar, varlist, tousevar, wgtvar)
   else             psweight_ado_most_recent.set(treatvar, varlist, tousevar)
   if (depvars!="") psweight_ado_most_recent.set_Y(depvars,tousevar)
+  psweight_ado_most_recent.set_opts(est, fctn, denominator, cvopt)
 
-  temp = psweight_ado_most_recent.psweight(est, fctn, denominator, cvopt)
-  psweight_ado_most_recent.get_scores("_weight _weight_mtch _pscore _treated", tousevar)
-}
+  // compute invere probabily weights into child class
+  if (reweight) {
+    temp = psweight_ado_most_recent.psweight(est, fctn, denominator, cvopt)
+  }
 
-// helper function to move Stata locals into Mata and call the main function
-void BalanceOnly()
-{
-  external class psweight scalar psweight_ado_most_recent
-  string scalar    treatvar, varlist, tousevar, wgtvar, depvars, mweightvar, est
-  real   scalar    denominator
-  transmorphic temp
-
-  treatvar    = st_local("treatvar")
-  varlist     = st_local("varlist")
-  tousevar    = st_local("tousevar")
-  wgtvar      = st_local("wgtvar")
-  depvars     = st_local("depvars")
-  mweightvar  = st_local("mweight")
-  est         = st_local("est")
-  denominator = strtoreal(st_local("denominator"))
-
-  psweight_ado_most_recent = psweight()
-  if  (wgtvar!="") psweight_ado_most_recent.set(treatvar, varlist, tousevar, wgtvar)
-  else             psweight_ado_most_recent.set(treatvar, varlist, tousevar)
-  if (depvars!="") psweight_ado_most_recent.set_Y(depvars,tousevar)
-  if (mweightvar!="") {
+  // just compute balance
+  else {
+    mweightvar  = st_local("mweight")
     psweight_ado_most_recent.userweight(mweightvar, tousevar)
+    temp = psweight_ado_most_recent.balanceresults(est, denominator)
   }
-  else if (wgtvar!="") {
-    psweight_ado_most_recent.userweight()
-  }
-  temp = psweight_ado_most_recent.balanceresults(est, denominator)
+
+  // stick obs-specific weigths and such into Stata vaiables
   psweight_ado_most_recent.get_scores("_weight _weight_mtch _pscore _treated", tousevar)
 }
 

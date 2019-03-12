@@ -1,6 +1,6 @@
 //****************************************************************************/
 *! $Id$
-*! Generalization of IPW and CBPS estimators
+*! IPW- and CBPS-type propensity score reweighting, with extentions
 *! Class defintion: psweight()
 //
 *! By Keith Kranker
@@ -19,7 +19,7 @@ mata set matafavor speed
 
 class psweight
 {
-  private:
+  protected:
     real colvector   T, W, sel1, sel0, Y0, W_orig, W_mtch, PS_mtch
     real matrix      X, XC, Xstd
     string scalar    treatvar, depvars, wgtvar
@@ -34,7 +34,7 @@ class psweight
     real matrix      cbps_port_stata_wgt_matrix(), cbps_port_stata_gradient(), Ct()
 
   public:
-    void             new(), set(), set_Y(), reweight(), userweight(), get_scores()
+    void             new(), set(), set_Y(), reweight(), get_scores()
     void             cbpseval(), balanceresults()
     real rowvector   psweight(), ipw(), cbps(), cbpsoid()
     real rowvector   diff(), stddiff(), varratio(), progdiff(), stdprogdiff(), pomean()
@@ -171,20 +171,6 @@ void psweight::reweight(|real colvector newweight, real colvector newpscores)
   this.calcN()
   this.means0 = this.means1 = this.meansP = this.variances0 = this.variances1 = this.variancesP = this.variancesA = J(1,0,.)
   this.covariances0 = this.covariances1 = this.covariancesP = this.covariancesA = J(0,0,.)
-}
-
-// sets this.W appropriately for the balanceonly option in the .ado file
-void psweight::userweight(| string scalar wgtvarname, string scalar tousevar)
-{
-  if (args()==0) this.reweight()
-  else if (args()==2) {
-    real colvector userweight
-    userweight=.
-    st_view(userweight, ., wgtvarname, tousevar)
-    if (length(userweight)!=length(this.T)) _error("Unexpected dimension for " + wgtvarname)
-    this.reweight(userweight)
-  }
-  else _error("userweight() requires 0 or 2 arguments")
 }
 
 // used to push the resulting weights and propensity scores back into Stata.
