@@ -224,23 +224,23 @@ mata:
 mata set matastrict on
 mata set matafavor speed
 
-class psweightado extends psweight
-{
-  protected:
+class psweightado extends psweight {
+  private:
     string scalar    est
     string scalar    fctn
     real   scalar    denominator
     real   rowvector cvopt
+
   public:
-    void   set_opts()
-    void   userweight()
+    void set_opts()
+    void userweight()
+    void balanceresults()
+    real rowvector psweight(), ipw(), cbps(), cbpsoid(), stddiff(), varratio(), progdiff(), stdprogdiff()
+    real scalar mean_asd(), max_asd(), wgt_cv(), wgt_sd(), wgt_skewness(), wgt_kurtosis(), wgt_max()
+    real matrix balancetable()
 }
 
-void psweightado::set_opts(string scalar    est_in,
-                           string scalar    fctn_in,
-                           real   scalar    denominator_in,
-                           real   rowvector cvopt_in)
-{
+void psweightado::set_opts(string scalar est_in, string scalar fctn_in, real scalar denominator_in, real rowvector cvopt_in) {
   this.est = est_in
   this.fctn = fctn_in
   this.denominator = denominator_in
@@ -248,8 +248,7 @@ void psweightado::set_opts(string scalar    est_in,
 }
 
 // sets this.W appropriately for the balanceonly option in the .ado file
-void psweightado::userweight(| string scalar wgtvar, string scalar tousevar)
-{
+void psweightado::userweight(| string scalar wgtvar, string scalar tousevar) {
   if (args()==0 | wgtvar=="") this.reweight()
   else if (args()==2) {
     real colvector userweight
@@ -283,8 +282,7 @@ real matrix    psweightado::balancetable()   return(this.super.balancetable(this
 // helper function to move Stata locals into Mata and call the main function
 // reweight == 1: calcualte inverse propensity weights
 //          == 0: just calcuate balance
-void Estimate(real scalar reweight)
-{
+void Estimate(real scalar reweight) {
   external class   psweightado scalar psweight_ado_most_recent
   string scalar    treatvar, varlist, tousevar, wgtvar, depvars
   string scalar    est, fctn, mweightvar
