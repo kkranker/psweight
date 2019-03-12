@@ -224,6 +224,10 @@ mata:
 mata set matastrict on
 mata set matafavor speed
 
+// This class is local to the .ado file. It inherits almost everything from the parent class.
+// The main difference is that est/fnctn/denominator/cvopt are class variables.
+// Therefore, when you, run . psweight call function(),  the arguments given to function()
+// are the same arguments that were given to the previous command that created the class instance.
 class psweightado extends psweight {
   private:
     string scalar    est
@@ -260,7 +264,7 @@ void psweightado::userweight(| string scalar wgtvar, string scalar tousevar) {
   else _error("userweight() requires 0 or 2 arguments")
 }
 
-// these functiosn are just wrappers
+// these functions are just wrappers
 void           psweightado::balanceresults() return(this.super.balanceresults(this.est, this.denominator))
 real rowvector psweightado::psweight()       return(this.super.psweight(this.est, this.fctn, this.denominator, this.cvopt))
 real rowvector psweightado::ipw()            return(this.super.ipw(this.est))
