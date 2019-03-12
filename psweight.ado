@@ -313,14 +313,14 @@ void Estimate(real scalar reweight) {
 
   // compute invere probabily weights into child class
   if (reweight) {
-    temp = psweight_ado_most_recent.psweight(est, fctn, denominator, cvopt)
+    temp = psweight_ado_most_recent.psweight()
   }
 
   // just compute balance
   else {
     mweightvar  = st_local("mweight")
     psweight_ado_most_recent.userweight(mweightvar, tousevar)
-    temp = psweight_ado_most_recent.balanceresults(est, denominator)
+    temp = psweight_ado_most_recent.balanceresults()
   }
 
   // stick obs-specific weigths and such into Stata vaiables
