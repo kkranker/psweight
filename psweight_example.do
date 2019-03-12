@@ -360,11 +360,11 @@ psweight ipw `treatvar' `varlist' if `tousevar' , atet averagevariance `depvarop
 psweight call balanceresults()
 
 teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' , ate aequations
-psweight ipw `treatvar' `varlist' if `tousevar' , ate treatvariance
+psweight ipw `treatvar' `varlist' if `tousevar' , ate pooledvariance
 psweight call balanceresults()
 
 teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' , atet aequations tlevel(0) control(1)
-psweight ipw `treatvar' `varlist' if `tousevar' , ateu treatvariance
+psweight ipw `treatvar' `varlist' if `tousevar' , ateu pooledvariance
 psweight call balanceresults()
 
 // tradeoff between CBPS-like balance and variance in weights
