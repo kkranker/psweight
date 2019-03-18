@@ -11,6 +11,10 @@
 // permission of Mathematica Policy Research, Inc.
 //*****************************************************************************/
 
+// Poential extentions: - using constraints to specify CV exactly
+//                      - add SEs
+//                      - run impacts (multi-equation model)
+
 program define psweight, eclass byable(onecall)
   version 15.1
   if _by() {
