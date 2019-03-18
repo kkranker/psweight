@@ -15,6 +15,7 @@ program define dgp_ksir
   version 15.1
   syntax, n(int)         /// Speficy sample size (T+C)
     [ HISTogram          /// Make a histogram of the propensity scores (requires psmatch2)
+      irtypo             /// use Imai & Ratkovic's formula for X4 instead of of Kang & Schafer's formula
     ]
 
   // true covariates
@@ -29,8 +30,12 @@ program define dgp_ksir
   gen x1 = exp(z1 / 2),
   gen x2 = z2 / (1 + exp(z1)) + 10
   gen x3 = (z1 * z3 / 25 + 0.6)^3
-  gen x4 = (z2 + z4 + 20)^2   // K&S article has  x4 = (z2 + z4 + 20)^2
-                              // I&R article has  x4 = (z1 + z4 + 20)^2
+  if ("`irtypo'"=="irtypo") {
+    gen x4 = (z1 + z4 + 20)^2   // I&R article has  x4 = (z1 + z4 + 20)^2
+  }
+  else {
+    gen x4 = (z2 + z4 + 20)^2   // K&S article has  x4 = (z2 + z4 + 20)^2
+  }
 
   // add labels
   label var z1   "z1: Confounder (not seen by analyst)"
