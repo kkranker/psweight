@@ -31,7 +31,7 @@ program define onerep_ksir, eclass
          TRUEpscore /// use Z, rather than X in p-score model
          TRUEoutcome /// use Z, rather than X in outcome model
          AUGmented /// run OLS models to estimate impacts
-         HISTogram /// passed to DGP
+         HISTogram irtypo /// passed to DGP
          vce(passthru) /// e.g., add robust standard errors in outcome models
          elasticopts(string) rfopts(string) /// passed to elasticregress and randomforest, respectively
          ITERate(integer 0) /// number of itations
@@ -341,6 +341,9 @@ program define addstats
 
   matrix coleq `add' = `eqname'
   matrix `matname' = (nullmat(`matname'), `add')
+  return clear
+  ereturn clear
+
 end
 
 program define mataddscalar
