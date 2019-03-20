@@ -65,6 +65,7 @@ program define onerep_ksir, eclass
     local omvarlist "x1-x4"
     local aug "aug"
   }
+  if ("`aug'"=="aug") local omopt omvarlist(\`omvarlist')
   if (`iterate'!=0) {
     set maxiter `iterate'
     local options `options' iterate(`iterate')
@@ -106,41 +107,27 @@ program define onerep_ksir, eclass
         // Difference in means ("raw")
         local e "raw"
         if (`: list e in estimators') cap `quietly' {
-          di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `truepscore'" _n(2)
-          regress y i.a, `vce' noheader `diopts'
-          addstats `_b_' 1.a `prefix'_`e'
-          qui gmatch a `pscorevarlist', balanceonly `ate'`atet'`ateu' `options' `diopts'
-          addstats `_b_' 1.a `prefix'_`e'
-          if ("`aug'"=="aug") {
-            di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `truepscore' `augmented' `trueoutcome'" _n(2)
-            regress y i.a `omvarlist', `vce' noheader `diopts'
-            addstats `_b_' 1.a `prefix'_`e'`aug'  // balance stats inherited from above
-          }
+          di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `truepscore' `trueoutcome'" _n(2)
+          Estimate `pscorevarlist' [aw=1], bmatrix(`_b_') prefix(`prefix') est(`e') ///
+            `omopt' `vce' `ate'`atet'`ateu' `options' `diopts'
         }
         cap mata: mata drop gmatch_ado_most_recent
 
         // Difference in means, weighted using true propensity scores ("true")
         local e "ipw_true_ps"
         if (`: list e in estimators') cap `quietly' {
-          di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `truepscore'" _n(2)
+          di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `truepscore' `trueoutcome'" _n(2)
           tempvar trueW
           mkwgt `trueW' = ps, `ate' `atet' `ateu'
-          regress y i.a [aw=`trueW'], `vce' noheader `diopts'
-          addstats `_b_' 1.a `prefix'_`e'
-          qui gmatch a `pscorevarlist' [iw=`trueW'], balanceonly `ate'`atet'`ateu' `options' `diopts'
-          addstats `_b_' 1.a `prefix'_`e'
-          if ("`aug'"=="aug") {
-            di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `truepscore' `augmented' `trueoutcome'" _n(2)
-            regress y i.a `omvarlist' [aw=`trueW'], `vce' noheader `diopts'
-            addstats `_b_' 1.a `prefix'_`e'`aug' // balance stats inherited from above
-          }
+          Estimate `pscorevarlist' [aw=`trueW'], bmatrix(`_b_') prefix(`prefix') est(`e') ///
+            `omopt' `vce' `ate'`atet'`ateu' `options' `diopts'
         }
         cap mata: mata drop gmatch_ado_most_recent
 
         // IPW model (with teffects)
         local e "ipw_te"
         if (`: list e in estimators') cap `quietly' {
-          di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `truepscore'" _n(2)
+          di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `truepscore' `trueoutcome'" _n(2)
           teffects ipw (y) (a `pscorevarlist'), `ate'`atet'`ateu' aeq `diopts'
           matrix `from' = e(b)
           matrix `from' = `from'[1, "TME1:"]
@@ -156,107 +143,72 @@ program define onerep_ksir, eclass
         // IPW model with elastic net used to estimate P-scores
         local e "elastic"
         if (`: list e in estimators') cap `quietly' {
-          di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `truepscore'" _n(2)
+          di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `truepscore' `trueoutcome'" _n(2)
           elasticregress a c.(`pscorevarlist')##c.(`pscorevarlist'), `elasticopts'
           tempvar elasticW elasticPS
           predict `elasticPS'
           mkwgt `elasticW' = `elasticPS', `ate' `atet' `ateu' trim
-          regress y i.a [aw=`elasticW'], `vce' noheader `diopts'
-          addstats `_b_' 1.a `prefix'_`e'
-          qui gmatch a `pscorevarlist' [iw=`elasticW'], balanceonly `ate'`atet'`ateu' `options' `diopts'
-          addstats `_b_' 1.a `prefix'_`e'
-          if ("`aug'"=="aug") {
-            di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `truepscore' `augmented' `trueoutcome'" _n(2)
-            regress y i.a `omvarlist' [aw=`elasticW'], `vce' noheader `diopts'
-            addstats `_b_' 1.a `prefix'_`e'`aug'  // balance stats inherited from above
-          }
+          Estimate `pscorevarlist' [aw=`elasticW'], bmatrix(`_b_') prefix(`prefix') est(`e') ///
+            `omopt' `vce' `ate'`atet'`ateu' `options' `diopts'
         }
         cap mata: mata drop gmatch_ado_most_recent
 
         // IPW model with randomforest model used to estimate P-scores
         local e "rf"
         if (`: list e in estimators') cap `quietly' {
-          di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `truepscore'" _n(2)
+          di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `truepscore' `trueoutcome'" _n(2)
           randomforest a `pscorevarlist', type(class) `rfopts'
           tempvar rfW rfPS rfPS0
           predict `rfPS0' `rfPS', pr
           mkwgt `rfW' = `rfPS', `ate' `atet' `ateu'
-          regress y i.a [aw=`rfW'], `vce' noheader `diopts'
-          addstats `_b_' 1.a `prefix'_`e'
-          qui gmatch a `pscorevarlist' [iw=`rfW'], balanceonly `ate'`atet'`ateu' `options' `diopts'
-          addstats `_b_' 1.a `prefix'_`e'
-          if ("`aug'"=="aug") {
-            di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `truepscore' `augmented' `trueoutcome'" _n(2)
-            regress y i.a `omvarlist' [aw=`rfW'], `vce' noheader `diopts'
-            addstats `_b_' 1.a `prefix'_`e'`aug'  // balance stats inherited from above
-          }
+          Estimate `pscorevarlist' [aw=`rfW'], bmatrix(`_b_') prefix(`prefix') est(`e') ///
+            `omopt' `vce' `ate'`atet'`ateu' `options' `diopts'
         }
         cap mata: mata drop gmatch_ado_most_recent
 
         // IPW model (with gmatch.ado)
         local e "ipw"
         if (`: list e in estimators') cap `quietly' {
-          di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `truepscore'" _n(2)
+          di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `truepscore' `trueoutcome'" _n(2)
           gmatch a `pscorevarlist', ipw `ate'`atet'`ateu' `fromopt' `options' `diopts'
           matrix `from' = e(b)
           local fromopt from(`from')
-          regress y i.a [aw=_weight], `vce' noheader `diopts'
-          addstats `_b_' 1.a `prefix'_`e'
-          if ("`aug'"=="aug") {
-            di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `truepscore' `augmented' `trueoutcome'" _n(2)
-            regress y i.a `omvarlist' [aw=_weight], `vce' noheader `diopts'
-            addstats `_b_' 1.a `prefix'_`e'`aug'
-          }
+          Estimate [aw=_weight], bmatrix(`_b_') prefix(`prefix') est(`e') ///
+             `omopt' `vce' `ate'`atet'`ateu' `options' `diopts'
         }
         cap mata: mata drop gmatch_ado_most_recent
 
         // Minimize difference in prognostic scores model (with gmatch.ado)
         local e "stdprogdiff"
         if (`: list e in estimators') cap `quietly' {
-          di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `truepscore'" _n(2)
+          di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `truepscore' `trueoutcome'" _n(2)
           gmatch a `pscorevarlist', stdprogdiff depvar(y) `ate'`atet'`ateu' `fromopt' `options' `diopts'
-          regress y i.a [aw=_weight], `vce' noheader `diopts'
-          addstats `_b_' 1.a `prefix'_`e'
-          if ("`aug'"=="aug") {
-            di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `truepscore' `augmented' `trueoutcome'" _n(2)
-            regress y i.a `omvarlist' [aw=_weight], `vce' noheader `diopts'
-            addstats `_b_' 1.a `prefix'_`e'`aug'
-          }
+          Estimate [aw=_weight], bmatrix(`_b_') prefix(`prefix') est(`e') ///
+             `omopt' `vce' `ate'`atet'`ateu' `options' `diopts'
         }
         cap mata: mata drop gmatch_ado_most_recent
 
         // CBPS overidentified model (with gmatch.ado)
         local e "ipwcbps"
         if (`: list e in estimators') cap `quietly' {
-          di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `truepscore'" _n(2)
+          di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `truepscore' `trueoutcome'" _n(2)
           gmatch a `pscorevarlist', cbps ipw `ate'`atet'`ateu' `fromopt' `options' `diopts'
-          regress y i.a [aw=_weight], `vce' noheader `diopts'
-          addstats `_b_' 1.a `prefix'_`e'
-          if ("`aug'"=="aug") {
-            di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `truepscore' `augmented' `trueoutcome'" _n(2)
-            regress y i.a `omvarlist' [aw=_weight], `vce' noheader `diopts'
-            addstats `_b_' 1.a `prefix'_`e'`aug'
-          }
+          Estimate [aw=_weight], bmatrix(`_b_') prefix(`prefix') est(`e') ///
+             `omopt' `vce' `ate'`atet'`ateu' `options' `diopts'
         }
         cap mata: mata drop gmatch_ado_most_recent
 
         // CBPS model (with gmatch.ado)
         local e "cbps"
         if (`: list e in estimators') cap `quietly' {
-          di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `truepscore'" _n(2)
+          di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `truepscore' `trueoutcome'" _n(2)
           gmatch a `pscorevarlist', cbps `ate'`atet'`ateu' `fromopt' `options' `diopts'
           matrix `from' = e(b)
           local fromopt from(`from')
-          regress y i.a [aw=_weight], `vce' noheader `diopts'
           gmatchcall wgt_cv("`ate'`atet'`ateu'")
           local cvcbps = r(wgt_cv)
-          addstats `_b_' 1.a `prefix'_`e'
-          mac list _cvcbps
-          if ("`aug'"=="aug") {
-            di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `truepscore' `augmented' `trueoutcome'" _n(2)
-            regress y i.a `omvarlist' [aw=_weight], `vce' noheader `diopts'
-            addstats `_b_' 1.a `prefix'_`e'`aug'
-          }
+          Estimate [aw=_weight], bmatrix(`_b_') prefix(`prefix') est(`e') ///
+             `omopt' `vce' `ate'`atet'`ateu' `options' `diopts'
         }
         cap mata: mata drop gmatch_ado_most_recent
 
@@ -269,16 +221,11 @@ program define onerep_ksir, eclass
           if (!`: list confirm in estimators') continue
           if (`cut'==100) continue
           local cvtarget = (`cvcbps'*`cut'/100)
-          `quietly' di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `augmented'" _n ///
+          `quietly' di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `truepscore' `trueoutcome' `augmented'" _n ///
                    as txt "CV target: cvtarget(20 " as res %7.4f `cvtarget' as txt " 6)" _n(2)
           `quietly' gmatch a `pscorevarlist', cbps cvtarget(20 `cvtarget' 6) `ate'`atet'`ateu' `fromopt' `options' `diopts'
-          `quietly' regress y i.a [aw=_weight], `vce' noheader `diopts'
-          `quietly' addstats `_b_' 1.a `prefix'_`e'
-          if ("`aug'"=="aug") {
-            `quietly' di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `truepscore' `augmented' `trueoutcome'" _n(2)
-            `quietly' regress y i.a `omvarlist' [aw=_weight], `vce' noheader `diopts'
-            `quietly' addstats `_b_' 1.a `prefix'_`e'`aug'
-          }
+          Estimate [aw=_weight], bmatrix(`_b_') prefix(`prefix') est(`e') ///
+             `omopt' `vce' `ate'`atet'`ateu' `options' `diopts'
           }
           cap mata: mata drop gmatch_ado_most_recent
         }
@@ -295,6 +242,32 @@ program define onerep_ksir, eclass
   ereturn local cmdline "`cmd'"
   ereturn local title "Simulation results"
   ereturn display, `diopts'
+end
+
+// helper program to estimate mu_ipw and mu_wls, and add them to the main matrix
+program define Estimate
+  syntax [varlist(default=none)] [aw], bmatrix(name) /// name of matrix where stuff gets saved
+                       prefix(string) est(string) /// for naming columns
+                       [vce(passthru) /// passed to regressions
+                       omvarlist(varlist fv ts) /// turns on augmented regressions
+                       ate atet ateu /// passed to balance
+                       *] // passed to balance commands, display options used everywhere
+  _get_diopts diopts options, `options'
+
+  regress y i.a [aw`exp'], `vce' noheader `diopts'
+  addstats `bmatrix' 1.a `prefix'_`est'
+
+  if ("`varlist'"!="") {
+    di _n(2) as txt "Balance for `prefix' with estimator: " as res "`e'"  _n(2)
+    qui gmatch a `varlist' [iw`exp'], balanceonly `ate'`atet'`ateu' `options' `diopts'
+    addstats `bmatrix' 1.a `prefix'_`est'
+  }
+
+  if ("`omvarlist'"!="") {
+    di _n(2) as txt "`prefix' with estimator: " as res "`est' augmented" as txt _n(2)
+    regress y i.a `omvarlist' [aw`exp'], `vce' noheader `diopts'
+    addstats `bmatrix' 1.a `prefix'_`est'aug // balance stats inherited from above
+  }
 end
 
 
