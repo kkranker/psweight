@@ -30,7 +30,7 @@ program define onerep_ksir_means, eclass
          TRUEpscore /// use Z, rather than X in p-score model
          TRUEoutcome /// use Z, rather than X in outcome model
          /// AUGmented /// run OLS models to estimate impacts
-         HISTogram irtypo /// passed to DGP
+         HISTogram irversion /// passed to DGP
          /// vce(passthru) /// e.g., add robust standard errors in outcome models
          elasticopts(string) rfopts(string) /// passed to elasticregress and randomforest, respectively
          ITERate(integer 0) /// number of itations
@@ -75,10 +75,10 @@ program define onerep_ksir_means, eclass
   tempname _b_ add from
   local c = 0
   local scenario I
-    local impact = 0
       local L : word count `n'
-      dgp_ksir, n(`: word `L' of `n'') `histogram'
-      scalar _g1 = 220 // per I-R, this is the truth in this DGP
+      dgp_ksir, n(`: word `L' of `n'') `histogram' `irversion'
+
+      scalar _g1 = 210 // per K-S (page 529) and I-R (page 251), this is the quantity of interest to estimate
 
       local l = `L'
       while (`l' > 0) {
@@ -90,7 +90,7 @@ program define onerep_ksir_means, eclass
                  as txt "`prefix'" _n ///
                  as txt _dup(20) "-" _n ///
                  as txt "Scenario: " as res "`scenario'" _n ///
-                 as txt "Impact:   " as res "`impact'" _n ///
+                 as txt "True mu:  " as res _g1  _n ///
                  as txt "N:        " as res "`thisN'" _n ///
                  as txt _dup(20) "-"  _n(2)
 
@@ -109,7 +109,7 @@ program define onerep_ksir_means, eclass
           di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `truepscore' `trueoutcome'" _n(2)
           summ a, mean
           gen double rawps = r(mean)
-          ir_ipw rawps, `diopts'
+          ipw_pop rawps, `diopts'
           addstats `_b_' 1.a `prefix'_`e'
         }
         cap mata: mata drop gmatch_ado_most_recent
@@ -118,7 +118,7 @@ program define onerep_ksir_means, eclass
         local e "ipw_true_ps"
         if (`: list e in estimators') cap `quietly' {
           di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `truepscore' `trueoutcome'" _n(2)
-          ir_ipw ps, `diopts'
+          ipw_pop ps, `diopts'
           addstats `_b_' 1.a `prefix'_`e'
         }
         cap mata: mata drop gmatch_ado_most_recent
@@ -133,7 +133,7 @@ program define onerep_ksir_means, eclass
           local fromopt from(`from')
           tempvar  ipw_te_ps
           predict `ipw_te_ps', ps tlevel(1)
-          ir_ipw `ipw_te_ps', `diopts'
+          ipw_pop `ipw_te_ps', `diopts'
           addstats `_b_' 1.a `prefix'_`e'
         }
 
@@ -144,7 +144,7 @@ program define onerep_ksir_means, eclass
           elasticregress a c.(`pscorevarlist')##c.(`pscorevarlist'), `elasticopts'
           tempvar elasticW elasticPS
           predict `elasticPS'
-          ir_ipw `elasticPS', `diopts'
+          ipw_pop `elasticPS', `diopts'
           addstats `_b_' 1.a `prefix'_`e'
         }
         cap mata: mata drop gmatch_ado_most_recent
@@ -156,7 +156,7 @@ program define onerep_ksir_means, eclass
           randomforest a `pscorevarlist', type(class) `rfopts'
           tempvar rfW rfPS rfPS0
           predict `rfPS0' `rfPS', pr
-          ir_ipw `rfPS', `diopts'
+          ipw_pop `rfPS', `diopts'
           addstats `_b_' 1.a `prefix'_`e'
         }
         cap mata: mata drop gmatch_ado_most_recent
@@ -168,7 +168,7 @@ program define onerep_ksir_means, eclass
           gmatch a `pscorevarlist', ipw `ate'`atet'`ateu' `fromopt' `options' `diopts'
           matrix `from' = e(b)
           local fromopt from(`from')
-          ir_ipw _ps, `diopts'
+          ipw_pop _ps, `diopts'
           addstats `_b_' 1.a `prefix'_`e'
         }
         cap mata: mata drop gmatch_ado_most_recent
@@ -178,7 +178,7 @@ program define onerep_ksir_means, eclass
         if (`: list e in estimators') cap `quietly' {
           di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `truepscore' `trueoutcome'" _n(2)
           gmatch a `pscorevarlist', stdprogdiff depvar(y) `ate'`atet'`ateu' `fromopt' `options' `diopts'
-          ir_ipw _ps, `diopts'
+          ipw_pop _ps, `diopts'
           addstats `_b_' 1.a `prefix'_`e'
         }
         cap mata: mata drop gmatch_ado_most_recent
@@ -188,7 +188,7 @@ program define onerep_ksir_means, eclass
         if (`: list e in estimators') cap `quietly' {
           di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `truepscore' `trueoutcome'" _n(2)
           gmatch a `pscorevarlist', cbps ipw `ate'`atet'`ateu' `fromopt' `options' `diopts'
-          ir_ipw _ps, `diopts'
+          ipw_pop _ps, `diopts'
           addstats `_b_' 1.a `prefix'_`e'
         }
         cap mata: mata drop gmatch_ado_most_recent
@@ -202,7 +202,7 @@ program define onerep_ksir_means, eclass
           local fromopt from(`from')
           gmatchcall wgt_cv("`ate'`atet'`ateu'")
           local cvcbps = r(wgt_cv)
-          ir_ipw _ps, `diopts'
+          ipw_pop _ps, `diopts'
           addstats `_b_' 1.a `prefix'_`e'
         }
         cap mata: mata drop gmatch_ado_most_recent
@@ -219,7 +219,7 @@ program define onerep_ksir_means, eclass
           `quietly' di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `truepscore' `trueoutcome' `augmented'" _n ///
                    as txt "CV target: cvtarget(20 " as res %7.4f `cvtarget' as txt " 6)" _n(2)
           `quietly' gmatch a `pscorevarlist', cbps cvtarget(20 `cvtarget' 6) `ate'`atet'`ateu' `fromopt' `options' `diopts'
-          ir_ipw _ps, `diopts'
+          ipw_pop _ps, `diopts'
           addstats `_b_' 1.a `prefix'_`e'
           }
           cap mata: mata drop gmatch_ado_most_recent
@@ -240,7 +240,7 @@ program define onerep_ksir_means, eclass
 end
 
 // Imai & Ratkovic's IPW estimator (page 251 of the article)
-program define ir_ipw, eclass
+program define ipw_pop, eclass
   ereturn clear
   syntax varname [,*] // p-score and display options
   tempvar numer denom

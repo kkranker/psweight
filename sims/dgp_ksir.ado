@@ -15,7 +15,7 @@ program define dgp_ksir
   version 15.1
   syntax, n(int)         /// Speficy sample size (T+C)
     [ HISTogram          /// Make a histogram of the propensity scores (requires psmatch2)
-      irtypo             /// use Imai & Ratkovic's formula for X4 instead of of Kang & Schafer's formula
+      irversion          /// use Imai & Ratkovic's formula for X4 instead of of Kang & Schafer's formula
     ]
 
   // true covariates
@@ -30,7 +30,7 @@ program define dgp_ksir
   gen x1 = exp(z1 / 2),
   gen x2 = z2 / (1 + exp(z1)) + 10
   gen x3 = (z1 * z3 / 25 + 0.6)^3
-  if ("`irtypo'"=="irtypo") {
+  if ("`irversion'"=="irversion") {
     gen x4 = (z1 + z4 + 20)^2   // I&R article has  x4 = (z1 + z4 + 20)^2
   }
   else {
@@ -52,6 +52,10 @@ program define dgp_ksir
   gen y  = 210 + 27.4 * z1 + 13.7 * z2 + 13.7 * z3 + 13.7 * z4 + e
   gen ps = invlogit(-z1 + 0.5 * z2 - 0.25 * z3 - 0.1 * z4)
   gen byte a = runiform() < ps
+  if ("`irversion'"=="irversion") {
+    summ y if a
+    replace y = y - r(mean) + 210
+  }
 
   label var ps "ps: True propensity score"
   label var a "a: Treatment assignment"

@@ -25,16 +25,12 @@ mac list _sim
 
 // DGP is saved in a separate .ado file
 adopath ++ "./sims"
-adopath ++ "../gridsearchcv"
-which dgp_ssbgc
-which onerep
+which dgp_ksir
+which onerep_ksir
 which sim_reshape
-which randomforest
-which gridsearchcv
 
 // control simulations
-local reps 1000
-local Nrange 200 1000
+local reps 2500
 
 // other settings
 set seed `sim'  //  1 for simulation 1, 2 for simulation 2, etc.
@@ -49,7 +45,7 @@ set scheme mpr
 // options
 parallel setclusters `=min(8, c(processors_max)-1)'
 local simopts    expr(_b) reps(\`reps') processors(`=c(processors_max)')
-local commonopts n(`Nrange') ///
+local commonopts n(200 1000) ///
                  estimators(ipw_true_ps ipw ipwcbps cbps) augmented ///
                  ate ///
                  iter(\`c(maxiter)') cformat(%9.3fc) pformat(%5.3f) sformat(%7.3f) pooledvariance
@@ -61,15 +57,16 @@ local commonopts n(`Nrange') ///
 // with the I-R definition of X4
 // ------------------------------------------------------------------------
 
-// onerep_ksir, `commonopts' irtypo
+// onerep_ksir, `commonopts' irversion
 // drop _all
 
-parallel sim, `simopts': onerep_ksir, `commonopts' irtypo
+parallel sim, `simopts': onerep_ksir, `commonopts' irversion
 
+qui compress
 save sims/sim`sim'/Data_Unprocessed_1.dta, replace
 
 sim_reshape
-gen irtypo = 1
+gen irversion = 1
 
 tempfile f1
 save "`f1'", replace
@@ -86,10 +83,11 @@ drop _all
 
 parallel sim, `simopts': onerep_ksir, `commonopts'
 
+qui compress
 save sims/sim`sim'/Data_Unprocessed_0.dta, replace
 
 sim_reshape
-gen irtypo = 0
+gen irversion = 0
 
 
 // ------------------------------------------------------------------------
@@ -97,14 +95,17 @@ gen irtypo = 0
 // ------------------------------------------------------------------------
 
 append using "`f1'"
-save sims/sim`sim'/Data.dta, replace
-sort irtypo
+label define irversion 0 "Kang-Shafler" 1 "Ima-Ratkovic"
+label val irversion irversion
+qui compress
 
-by irtypo: table augmented estimator, by(N) c(count bias)
+save sims/sim`sim'/Data.dta, replace
+
+bys irversion: table augmented estimator, by(N) c(count bias)
 
 foreach v of var bias rmse {
   di _n(2) as res `"`v'  `:var lab `v''"'
-  by irtypo: table augmented estimator, by(N) c(mean `v')
+  bys irversion: table augmented estimator, by(N) c(mean `v')
 }
 
 log close sim`sim'
