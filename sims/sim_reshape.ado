@@ -24,7 +24,8 @@ program define sim_reshape
     local ests1: subinstr local ests1 "_b_impact_est" "", all
     local ests : list ests | ests1
   }
-  local ests : subinstr local ests "aug" "", all
+  local have_aug = regexm("`ests'", "aug")
+  if `have_aug' local ests : subinstr local ests "aug" "", all
   local ests : list uniq ests
   di as txt "`: list sizeof ests' estimators:"
   mac list _ests
@@ -34,9 +35,12 @@ program define sim_reshape
     if !regexm(strupper("`est'"), "CBPS[0-9].*") continue
     local estdefine `estdefine' `++ee' `=strupper("`est'")'
   }
-  format %7.4f _all
-  format %7.1f *_wgt_max*
-  format %7.0g *_reject* *covered* *_N* *_Nt*
+  cap format %7.4f _all
+  cap format %7.1f *_wgt_max*
+  cap format %7.0g *_reject*
+  cap format %7.0g *covered*
+  cap format %7.0g *_N*
+  cap format %7.0g *_Nt*
 
   local s = 0
   tempfile stack
@@ -44,7 +48,7 @@ program define sim_reshape
   preserve
   foreach prefix of local prefixes {
     foreach est of local ests {
-      foreach aug in "" "aug" {
+      foreach aug in "" `=cond(`have_aug', `""aug""', "")' {
         restore, preserve
         // di as res "`prefix'/`est':" _c
         cap nois keep rep `prefix'_b_* `prefix'_`est'`aug'_b_*
@@ -86,16 +90,21 @@ program define sim_reshape
 
   // claculate variance of impact_est and rmse
   // store on the last row
-  tempvar mean_bias MSE count
+  tempvar mean_bias MSE count sd
   assert mi(bias)==mi(error_sqr)
   bys result (rep): egen double `mean_bias' = mean(bias)
   by  result (rep): egen double `MSE' = mean(error_sqr)
   by  result (rep): egen double `count' = count(bias)
   by  result (rep): gen  double rmse = sqrt(`MSE')  if _n == _N
   by  result (rep): gen  double impact_est_var = (`MSE' - `mean_bias'^2) * `count' / (`count' - 1) if _n == _N
-  format `:format error_sqr' rmse
+  by  result (rep): egen double mae = median(abs(bias))
+  by  result (rep): replace     mae = . if _n != _N
+  by  result (rep): egen double `sd' = sd(impact_est)
+  by  result (rep): gen  double pct_bias = `mean_bias' / `sd' * 100 if _n == _N
+  format `:format error_sqr' rmse mae
   format `:format impact_est' impact_est_var
-  drop `mean_bias' `MSE' `count'
+  format %6.1f pct_bias
+  drop `mean_bias' `MSE' `count' `sd'
 
   // checks, cleanup
   order result dataset dgp true N estimator augmented rep, first

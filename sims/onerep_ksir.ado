@@ -31,7 +31,7 @@ program define onerep_ksir, eclass
          TRUEpscore /// use Z, rather than X in p-score model
          TRUEoutcome /// use Z, rather than X in outcome model
          AUGmented /// run OLS models to estimate impacts
-         HISTogram irtypo /// passed to DGP
+         HISTogram irversion /// passed to DGP
          vce(passthru) /// e.g., add robust standard errors in outcome models
          elasticopts(string) rfopts(string) /// passed to elasticregress and randomforest, respectively
          ITERate(integer 0) /// number of itations
@@ -78,7 +78,7 @@ program define onerep_ksir, eclass
   local scenario I
     local impact = 0
       local L : word count `n'
-      dgp_ksir, n(`: word `L' of `n'') `histogram'
+      dgp_ksir, n(`: word `L' of `n'') `histogram' `irversion'
       scalar _g1 = `impact'
 
       local l = `L'
