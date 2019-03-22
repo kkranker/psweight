@@ -51,7 +51,8 @@ parallel setclusters `=min(6, c(processors_max)-1)'
 local simopts    expr(_b) reps(\`reps') processors(`=c(processors_max)')
 local commonopts n(`Nrange') ///
                  estimators(ipw_true_ps ipw ipwcbps cbps) ///
-                 iter(`c(maxiter)') cformat(%9.3fc) pformat(%5.3f) sformat(%7.3f)
+                 iter(`c(maxiter)') cformat(%9.3fc) pformat(%5.3f) sformat(%7.3f) ///
+				 quietly
 
 // ------------------------------------------------------------------------
 // multiple matching approaches
@@ -98,9 +99,11 @@ append using "`f1'"
 save sims/sim`sim'/Data.dta, replace
 sort irtypo
 
+gen bias_over_220 = bias / 220
+
 by irtypo: table augmented estimator, by(N) c(count bias)
 
-foreach v of var bias rmse impact_est_var rmse impact_est wgt_cv wgt_skewness wgt_max bal_mean_asd bal_max_asd {
+foreach v of var bias rmse impact_est_var rmse impact_est wgt_cv wgt_skewness wgt_max bal_mean_asd bal_max_asd bias_over_220 {
   di _n(2) as res `"`v'  `:var lab `v''"'
   by irtypo: table augmented estimator, by(N) c(mean `v')
 }
