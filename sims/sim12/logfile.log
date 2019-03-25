@@ -2,15 +2,15 @@
       name:  sim12
        log:  U:\Stata\Ado\Devel\gmatch\sims/sim12/logfile.log
   log type:  text
- opened on:  18 Mar 2019, 18:40:48
+ opened on:  22 Mar 2019, 14:13:43
 
 . 
-. *! $Id$
+. *! $Id: sim12.do,v f66ae0b6262a 2019/03/22 15:59:52 kkranker $
 . *! BPO CBPS Simulation
 . // See if the typo on page 215 of the I-R article explains differences between our and their results.
 . //
 . *! By Keith Kranker
-. // Last updated $Date$
+. // Last updated $Date: 2019/03/22 15:59:52 $
 . //
 . // Copyright (C) Mathematica Policy Research, Inc.
 . // This code cannot be copied, distributed or used without the express written
@@ -34,54 +34,27 @@ _sim:           12
   [10]             "U:\Stata\Stata-Common-Code"
   [11]             "C:\Users\kkranker\Documents\Stata\Stata-Common-Code"
 
-. adopath ++ "../gridsearchcv"
-  [1]              "../gridsearchcv"
-  [2]              "./sims"
-  [3]  (BASE)      "C:\Program Files (x86)\Stata15\ado\base/"
-  [4]  (SITE)      "C:\Program Files (x86)\Stata15\ado\site/"
-  [5]              "."
-  [6]  (PERSONAL)  "U:\Stata\Ado\personal/"
-  [7]  (PLUS)      "U:\Stata\Ado\plus/"
-  [8]  (OLDPLACE)  "C:\Users\kkranker\Documents\Stata\Ado/"
-  [9]              "U:\Stata\Ado\personal"
-  [10]             "U:\Stata\Ado\plus"
-  [11]             "U:\Stata\Stata-Common-Code"
-  [12]             "C:\Users\kkranker\Documents\Stata\Stata-Common-Code"
-
-. which dgp_ssbgc
-./sims\dgp_ssbgc.ado
-*! $Id: dgp_ssbgc.ado,v 1bd3f7eb3235 2019/02/01 15:47:11 kkranker $
-*! Data generating processe (DGP) senarios A through G from Setoguchi et al. (2008)
+. which dgp_ksir
+./sims\dgp_ksir.ado
+*! $Id: dgp_ksir.ado,v f66ae0b6262a 2019/03/22 15:59:52 kkranker $
+*! Data generating processe (DGP) senarios from:
 *! By Keith Kranker
 
-. which onerep
-./sims\onerep.ado
-*! $Id: onerep.ado,v 0dd86927acba 2019/02/06 00:16:58 kkranker $
-*! One replication of the Simulations
+. which onerep_ksir
+./sims\onerep_ksir.ado
+*! $Id: onerep_ksir.ado,v f66ae0b6262a 2019/03/22 15:59:52 kkranker $
+*! One replication of the Simulations with DGP_KSIR.ADO
 *! By Keith Kranker
 
 . which sim_reshape
 ./sims\sim_reshape.ado
-*! $Id: sim_reshape.ado,v 31285d72d38e 2019/03/05 00:29:14 kkranker $
+*! $Id: sim_reshape.ado,v f66ae0b6262a 2019/03/22 15:59:52 kkranker $
 *! Reshapes the outpute from simmulate: from wide to tall
 *! By Keith Kranker
 
-. which randomforest
-U:\Stata\Ado\plus\r\randomforest.ado
-*! version 1.2  June, 2018
-
-. which gridsearchcv
-../gridsearchcv\gridsearchcv.ado
-*! $Id: gridsearchcv.ado,v 68af91001823 2019/02/14 21:58:57 kkranker $
-*! Exhaustive search over specified parameter values for an estimator
-*! By Keith Kranker
-*! $Date: 2019/02/14 21:58:57 $
-
 . 
 . // control simulations
-. local reps 1000
-
-. local Nrange 200 1000
+. local reps 2500
 
 . 
 . // other settings
@@ -105,7 +78,7 @@ Stata dir:  C:\Program Files (x86)\Stata15/StataMP-64.exe
 
 . local simopts    expr(_b) reps(\`reps') processors(`=c(processors_max)')
 
-. local commonopts n(`Nrange') ///
+. local commonopts n(200 1000) ///
 >                  estimators(ipw_true_ps ipw ipwcbps cbps) augmented ///
 >                  ate ///
 >                  iter(\`c(maxiter)') cformat(%9.3fc) pformat(%5.3f) sformat(%7.3f) pooledvariance
@@ -119,33 +92,34 @@ Stata dir:  C:\Program Files (x86)\Stata15/StataMP-64.exe
 . // with the I-R definition of X4
 . // ------------------------------------------------------------------------
 . 
-. // onerep_ksir, `commonopts' irtypo
+. // onerep_ksir, `commonopts' irversion
 . // drop _all
 . 
-. parallel sim, `simopts': onerep_ksir, `commonopts' irtypo
+. parallel sim, `simopts': onerep_ksir, `commonopts' irversion
 Warning: No data loaded.
 --------------------------------------------------------------------------------
 Parallel Computing with Stata
 Clusters   : 8
-pll_id     : tpmeiou9h1
+pll_id     : 7g43tzbcq5
 Running at : U:\Stata\Ado\Devel\gmatch
 Randtype   : datetime
 Waiting for the clusters to finish...
-cluster 0004 has exited without error...
-cluster 0007 has exited without error...
 cluster 0008 has exited without error...
-cluster 0003 has exited without error...
-cluster 0006 has exited without error...
+cluster 0007 has exited without error...
 cluster 0002 has exited without error...
+cluster 0004 has exited without error...
+cluster 0003 has exited without error...
 cluster 0001 has exited without error...
+cluster 0006 has exited without error...
 cluster 0005 has exited without error...
 --------------------------------------------------------------------------------
 Enter -parallel printlog #- to checkout logfiles.
 --------------------------------------------------------------------------------
 
 . 
+. qui compress
+
 . save sims/sim`sim'/Data_Unprocessed_1.dta, replace
-(note: file sims/sim12/Data_Unprocessed_1.dta not found)
 file sims/sim12/Data_Unprocessed_1.dta saved
 
 . 
@@ -155,25 +129,27 @@ Before reshape:
 
 
 Contains data from sims/sim12/Data_Unprocessed_1.dta
-  obs:         1,000                          simulate: onerep_ksir
- vars:           238                          18 Mar 2019 19:09
- size:       952,000                          
+  obs:         2,500                          simulate: onerep_ksir
+ vars:           238                          22 Mar 2019 15:17
+ size:     2,015,000                          
 Sorted by: 
 2 prefixes:
 _prefixes:      I_1 I_2
 4 estimators:
 _ests:          ipw_true_ps ipw ipwcbps cbps
 (simulate: onerep_ksir)
-(15,984 missing values generated)
-(15,984 missing values generated)
+(39,984 missing values generated)
+(39,984 missing values generated)
+(39984 real changes made, 39984 to missing)
+(39,984 missing values generated)
 
 After reshape:
 
 
-Contains data from C:\Users\KKranker\AppData\Local\Temp\26\ST_3d58_000001.tmp
-  obs:        16,000                          simulate: onerep_ksir
- vars:            26                          18 Mar 2019 19:09
- size:     1,312,000                          
+Contains data from D:\TEMP\kkranker\ST_4710_000001.tmp
+  obs:        40,000                          simulate: onerep_ksir
+ vars:            28                          22 Mar 2019 15:17
+ size:     3,760,000                          
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
               storage   display    value
 variable name   type    format     label      variable label
@@ -204,38 +180,42 @@ wgt_kurtosis    float   %7.4f
 wgt_max         float   %7.1f                 
 rmse            double  %7.4f                 
 impact_est_var  double  %7.4f                 
+mae             float   %7.4f                 
+pct_bias        double  %6.1f                 
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 Sorted by: result  dataset  dgp  true  N  estimator  augmented  rep
      Note: Dataset has changed since last saved.
 
     Variable |        Obs        Mean    Std. Dev.       Min        Max
 -------------+---------------------------------------------------------
-      result |     16,000         8.5    4.609916          1         16
-     dataset |     16,000         1.5    .5000156          1          2
-         dgp |     16,000           8           0          8          8
-        true |     16,000           0           0          0          0
-           N |     16,000         600    400.0125        200       1000
-   estimator |     16,000         6.5    2.692667          2          9
-   augmented |     16,000          .5    .5000156          0          1
-         rep |     16,000       500.5     288.684          1       1000
-          Nt |     16,000    299.9535    200.2793         77        547
-  impact_est |     16,000    -3.51996    5.235749  -21.70636   110.5372
-    sd_error |     16,000    2.679656    1.506884   .9098039   7.936375
-        bias |     16,000    -3.51996    5.235749  -21.70636   110.5372
-   error_sqr |     16,000    39.80147     201.718   1.85e-08   12218.47
-power_zsta~0 |     14,000        .025           0       .025       .025
-         p_0 |     16,000    .2197354    .2830592          0   .9999526
-    reject_0 |     16,000      .45875    .4983111          0          1
-     covered |     16,000      .54125    .4983111          0          1
- bal_max_asd |     16,000    .1330985    .1517808   1.46e-10   1.841298
-bal_mean_asd |     14,000    .0644094    .0816541   4.91e-11   1.078789
-      wgt_sd |     16,000    .6095873    .7195706          0   15.03778
-      wgt_cv |     16,000    .6095873    .7195706          0   15.03778
-wgt_skewness |     12,000    .3487965    .1931058   .0215519    .996308
-wgt_kurtosis |     12,000    .2127173    .2076138   .0125194   .9950839
-     wgt_max |     16,000    10.82416    20.97219          1   475.7134
-        rmse |         16    5.946788    2.175545   1.470225   10.43827
-impact_est~r |         16    20.32363    31.08813   2.163698   107.2488
+      result |     40,000         8.5     4.60983          1         16
+     dataset |     40,000         1.5    .5000063          1          2
+         dgp |     40,000           8           0          8          8
+        true |     40,000           0           0          0          0
+           N |     40,000         600     400.005        200       1000
+   estimator |     40,000         6.5    2.692616          2          9
+   augmented |     40,000          .5    .5000063          0          1
+         rep |     40,000      1250.5    721.6968          1       2500
+          Nt |     40,000    300.0642    200.0709         73        557
+  impact_est |     40,000   -2.239737    4.383186  -35.55476   104.8718
+    sd_error |     40,000    2.635698    1.530871   .8745194   7.439111
+        bias |     40,000   -2.239737    4.383186  -35.55476   104.8718
+   error_sqr |     40,000    24.22826    164.1871   3.23e-07    10998.1
+power_zsta~0 |     35,000        .025           0       .025       .025
+         p_0 |     40,000    .2885566    .2981614          0   .9998621
+    reject_0 |     40,000     .323175    .4676948          0          1
+     covered |     40,000     .676825    .4676948          0          1
+ bal_max_asd |     40,000    .1246928    .1384958   2.02e-10   1.980756
+bal_mean_asd |     35,000    .0646523    .0833147   7.55e-11   1.303669
+      wgt_sd |     40,000    .5674743    .5902316          0   15.79576
+      wgt_cv |     40,000    .5674743    .5902316          0   15.79576
+wgt_skewness |     30,000    .3171408    .1784694   .0618295   .9965253
+wgt_kurtosis |     30,000    .1830669    .1873949   .0108145   .9953741
+     wgt_max |     40,000    9.423935    16.38487          1   499.6776
+        rmse |         16    4.547292    1.946044   1.248199   8.393249
+impact_est~r |         16    15.97431    23.23345   1.551929   69.05319
+         mae |         16    3.217896    1.033012   .8301545   5.150162
+    pct_bias |         16   -116.3294    107.1358  -276.1805   16.06395
 Number of rows:
 
 ----------------------------
@@ -245,17 +225,17 @@ estimator     |   200   1000
 --------------+-------------
 Unadjusted    |
 I             |
-  IPW_TRUE_PS | 1,000  1,000
-      IPWCBPS | 1,000  1,000
-         CBPS | 1,000  1,000
-          IPW | 1,000  1,000
+  IPW_TRUE_PS | 2,500  2,500
+      IPWCBPS | 2,500  2,500
+         CBPS | 2,500  2,500
+          IPW | 2,500  2,500
 --------------+-------------
 Reg. adjusted |
 I             |
-  IPW_TRUE_PS | 1,000  1,000
-      IPWCBPS | 1,000  1,000
-         CBPS | 1,000  1,000
-          IPW | 1,000  1,000
+  IPW_TRUE_PS | 2,500  2,500
+      IPWCBPS | 2,500  2,500
+         CBPS | 2,500  2,500
+          IPW | 2,500  2,500
 ----------------------------
 Number of rows with nonmissing impact_est:
 
@@ -266,17 +246,17 @@ estimator     |   200   1000
 --------------+-------------
 Unadjusted    |
 I             |
-  IPW_TRUE_PS | 1,000  1,000
-      IPWCBPS | 1,000  1,000
-         CBPS | 1,000  1,000
-          IPW | 1,000  1,000
+  IPW_TRUE_PS | 2,500  2,500
+      IPWCBPS | 2,500  2,500
+         CBPS | 2,500  2,500
+          IPW | 2,500  2,500
 --------------+-------------
 Reg. adjusted |
 I             |
-  IPW_TRUE_PS | 1,000  1,000
-      IPWCBPS | 1,000  1,000
-         CBPS | 1,000  1,000
-          IPW | 1,000  1,000
+  IPW_TRUE_PS | 2,500  2,500
+      IPWCBPS | 2,500  2,500
+         CBPS | 2,500  2,500
+          IPW | 2,500  2,500
 ----------------------------
 Number of rows with nonmissing rmse:
 
@@ -300,14 +280,14 @@ I             |
           IPW |    1     1
 --------------------------
 
-. gen irtypo = 1
+. gen irversion = 1
 
 . 
 . tempfile f1
 
 . save "`f1'", replace
-(note: file C:\Users\KKranker\AppData\Local\Temp\26\ST_3d58_000001.tmp not found)
-file C:\Users\KKranker\AppData\Local\Temp\26\ST_3d58_000001.tmp saved
+(note: file D:\TEMP\kkranker\ST_4710_000001.tmp not found)
+file D:\TEMP\kkranker\ST_4710_000001.tmp saved
 
 . drop _all
 
@@ -326,25 +306,26 @@ Warning: No data loaded.
 --------------------------------------------------------------------------------
 Parallel Computing with Stata
 Clusters   : 8
-pll_id     : 76ghrwcad3
+pll_id     : j8l2vojg37
 Running at : U:\Stata\Ado\Devel\gmatch
 Randtype   : datetime
 Waiting for the clusters to finish...
-cluster 0003 has exited without error...
-cluster 0002 has exited without error...
-cluster 0006 has exited without error...
-cluster 0007 has exited without error...
-cluster 0005 has exited without error...
-cluster 0008 has exited without error...
-cluster 0001 has exited without error...
 cluster 0004 has exited without error...
+cluster 0001 has exited without error...
+cluster 0005 has exited without error...
+cluster 0006 has exited without error...
+cluster 0008 has exited without error...
+cluster 0003 has exited without error...
+cluster 0007 has exited without error...
+cluster 0002 has exited without error...
 --------------------------------------------------------------------------------
 Enter -parallel printlog #- to checkout logfiles.
 --------------------------------------------------------------------------------
 
 . 
+. qui compress
+
 . save sims/sim`sim'/Data_Unprocessed_0.dta, replace
-(note: file sims/sim12/Data_Unprocessed_0.dta not found)
 file sims/sim12/Data_Unprocessed_0.dta saved
 
 . 
@@ -354,25 +335,27 @@ Before reshape:
 
 
 Contains data from sims/sim12/Data_Unprocessed_0.dta
-  obs:         1,000                          simulate: onerep_ksir
- vars:           238                          18 Mar 2019 19:38
- size:       952,000                          
+  obs:         2,500                          simulate: onerep_ksir
+ vars:           238                          22 Mar 2019 16:21
+ size:     2,015,000                          
 Sorted by: 
 2 prefixes:
 _prefixes:      I_1 I_2
 4 estimators:
 _ests:          ipw_true_ps ipw ipwcbps cbps
 (simulate: onerep_ksir)
-(15,984 missing values generated)
-(15,984 missing values generated)
+(39,984 missing values generated)
+(39,984 missing values generated)
+(39984 real changes made, 39984 to missing)
+(39,984 missing values generated)
 
 After reshape:
 
 
-Contains data from C:\Users\KKranker\AppData\Local\Temp\26\ST_3d58_000002.tmp
-  obs:        16,000                          simulate: onerep_ksir
- vars:            26                          18 Mar 2019 19:38
- size:     1,312,000                          
+Contains data from D:\TEMP\kkranker\ST_4710_000002.tmp
+  obs:        40,000                          simulate: onerep_ksir
+ vars:            28                          22 Mar 2019 16:21
+ size:     3,760,000                          
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
               storage   display    value
 variable name   type    format     label      variable label
@@ -403,38 +386,42 @@ wgt_kurtosis    float   %7.4f
 wgt_max         float   %7.1f                 
 rmse            double  %7.4f                 
 impact_est_var  double  %7.4f                 
+mae             float   %7.4f                 
+pct_bias        double  %6.1f                 
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 Sorted by: result  dataset  dgp  true  N  estimator  augmented  rep
      Note: Dataset has changed since last saved.
 
     Variable |        Obs        Mean    Std. Dev.       Min        Max
 -------------+---------------------------------------------------------
-      result |     16,000         8.5    4.609916          1         16
-     dataset |     16,000         1.5    .5000156          1          2
-         dgp |     16,000           8           0          8          8
-        true |     16,000           0           0          0          0
-           N |     16,000         600    400.0125        200       1000
-   estimator |     16,000         6.5    2.692667          2          9
-   augmented |     16,000          .5    .5000156          0          1
-         rep |     16,000       500.5     288.684          1       1000
-          Nt |     16,000       299.7    200.3763         71        554
-  impact_est |     16,000   -3.587001    5.182727  -40.90751   104.7606
-    sd_error |     16,000    2.680445    1.508898   .9199535   7.696814
-        bias |     16,000   -3.587001    5.182727  -40.90751   104.7606
-   error_sqr |     16,000    39.72556    209.4312   1.07e-09   10974.78
-power_zsta~0 |     14,000        .025           0       .025       .025
-         p_0 |     16,000    .2184843    .2797718          0   .9999777
-    reject_0 |     16,000    .4580625    .4982537          0          1
-     covered |     16,000    .5419375    .4982537          0          1
- bal_max_asd |     16,000    .1317396    .1541395   7.19e-11   1.937163
-bal_mean_asd |     14,000    .0640378    .0841964   3.55e-11   1.301458
-      wgt_sd |     16,000    .6080365     .721067          0   14.99626
-      wgt_cv |     16,000    .6080365     .721067          0   14.99626
-wgt_skewness |     12,000    .3533674    .1948317   .0870215   .9961967
-wgt_kurtosis |     12,000     .217788    .2097196   .0141066   .9949362
-     wgt_max |     16,000     10.8265    20.87827          1   474.3192
-        rmse |         16    5.949209    2.149723   1.405208   10.18622
-impact_est~r |         16    19.94932    29.91264   1.975905   102.8382
+      result |     40,000         8.5     4.60983          1         16
+     dataset |     40,000         1.5    .5000063          1          2
+         dgp |     40,000           8           0          8          8
+        true |     40,000           0           0          0          0
+           N |     40,000         600     400.005        200       1000
+   estimator |     40,000         6.5    2.692616          2          9
+   augmented |     40,000          .5    .5000063          0          1
+         rep |     40,000      1250.5    721.6968          1       2500
+          Nt |     40,000     299.937    200.3871         75        550
+  impact_est |     40,000   -3.639913    5.210483    -60.999    117.487
+    sd_error |     40,000    2.681261     1.50908   .9133461   8.026052
+        bias |     40,000   -3.639913    5.210483    -60.999    117.487
+   error_sqr |     40,000    40.39742    184.0359   3.40e-09    13803.2
+power_zsta~0 |     35,000        .025           0       .025       .025
+         p_0 |     40,000    .2158251    .2793164          0   .9999909
+    reject_0 |     40,000     .461775    .4985429          0          1
+     covered |     40,000     .538225    .4985429          0          1
+ bal_max_asd |     40,000    .1333846    .1567044   1.68e-10   1.947846
+bal_mean_asd |     35,000    .0645641    .0843681   1.25e-10   1.203697
+      wgt_sd |     40,000    .6110472    .7287503          0   15.32826
+      wgt_cv |     40,000    .6110472    .7287503          0   15.32826
+wgt_skewness |     30,000    .3532494     .195036   .0523468    .996239
+wgt_kurtosis |     30,000    .2176901    .2104022    .014522   .9949912
+     wgt_max |     40,000    10.92487    21.16201          1    484.872
+        rmse |         16    6.007261    2.144198   1.451792   10.22908
+impact_est~r |         16     19.9431    29.71419   2.099774   103.1173
+         mae |         16    4.603647    1.646391   .9682341   6.753818
+    pct_bias |         16   -153.1953    133.8117  -340.2748   12.29185
 Number of rows:
 
 ----------------------------
@@ -444,17 +431,17 @@ estimator     |   200   1000
 --------------+-------------
 Unadjusted    |
 I             |
-  IPW_TRUE_PS | 1,000  1,000
-      IPWCBPS | 1,000  1,000
-         CBPS | 1,000  1,000
-          IPW | 1,000  1,000
+  IPW_TRUE_PS | 2,500  2,500
+      IPWCBPS | 2,500  2,500
+         CBPS | 2,500  2,500
+          IPW | 2,500  2,500
 --------------+-------------
 Reg. adjusted |
 I             |
-  IPW_TRUE_PS | 1,000  1,000
-      IPWCBPS | 1,000  1,000
-         CBPS | 1,000  1,000
-          IPW | 1,000  1,000
+  IPW_TRUE_PS | 2,500  2,500
+      IPWCBPS | 2,500  2,500
+         CBPS | 2,500  2,500
+          IPW | 2,500  2,500
 ----------------------------
 Number of rows with nonmissing impact_est:
 
@@ -465,17 +452,17 @@ estimator     |   200   1000
 --------------+-------------
 Unadjusted    |
 I             |
-  IPW_TRUE_PS | 1,000  1,000
-      IPWCBPS | 1,000  1,000
-         CBPS | 1,000  1,000
-          IPW | 1,000  1,000
+  IPW_TRUE_PS | 2,500  2,500
+      IPWCBPS | 2,500  2,500
+         CBPS | 2,500  2,500
+          IPW | 2,500  2,500
 --------------+-------------
 Reg. adjusted |
 I             |
-  IPW_TRUE_PS | 1,000  1,000
-      IPWCBPS | 1,000  1,000
-         CBPS | 1,000  1,000
-          IPW | 1,000  1,000
+  IPW_TRUE_PS | 2,500  2,500
+      IPWCBPS | 2,500  2,500
+         CBPS | 2,500  2,500
+          IPW | 2,500  2,500
 ----------------------------
 Number of rows with nonmissing rmse:
 
@@ -499,7 +486,7 @@ I             |
           IPW |    1     1
 --------------------------
 
-. gen irtypo = 0
+. gen irversion = 0
 
 . 
 . 
@@ -513,121 +500,125 @@ I             |
 (label aug already defined)
 (label result already defined)
 
-. save sims/sim`sim'/Data.dta, replace
-(note: file sims/sim12/Data.dta not found)
-file sims/sim12/Data.dta saved
+. label define irversion 0 "Kang-Shafler" 1 "Ima-Ratkovic"
 
-. sort irtypo
+. label val irversion irversion
+
+. qui compress
 
 . 
-. by irtypo: table augmented estimator, by(N) c(count bias)
+. save sims/sim`sim'/Data.dta, replace
+file sims/sim12/Data.dta saved
+
+. 
+. bys irversion: table augmented estimator, by(N) c(count bias)
 
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
--> irtypo = 0
+-> irversion = Kang-Shafler
 
 ------------------------------------------------------------------
 N and         |                     estimator                     
 augmented     | IPW_TRUE_PS      IPWCBPS         CBPS          IPW
 --------------+---------------------------------------------------
 200           |
-   Unadjusted |       1,000        1,000        1,000        1,000
-Reg. adjusted |       1,000        1,000        1,000        1,000
+   Unadjusted |       2,500        2,500        2,500        2,500
+Reg. adjusted |       2,500        2,500        2,500        2,500
 --------------+---------------------------------------------------
 1000          |
-   Unadjusted |       1,000        1,000        1,000        1,000
-Reg. adjusted |       1,000        1,000        1,000        1,000
+   Unadjusted |       2,500        2,500        2,500        2,500
+Reg. adjusted |       2,500        2,500        2,500        2,500
 ------------------------------------------------------------------
 
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
--> irtypo = 1
+-> irversion = Ima-Ratkovic
 
 ------------------------------------------------------------------
 N and         |                     estimator                     
 augmented     | IPW_TRUE_PS      IPWCBPS         CBPS          IPW
 --------------+---------------------------------------------------
 200           |
-   Unadjusted |       1,000        1,000        1,000        1,000
-Reg. adjusted |       1,000        1,000        1,000        1,000
+   Unadjusted |       2,500        2,500        2,500        2,500
+Reg. adjusted |       2,500        2,500        2,500        2,500
 --------------+---------------------------------------------------
 1000          |
-   Unadjusted |       1,000        1,000        1,000        1,000
-Reg. adjusted |       1,000        1,000        1,000        1,000
+   Unadjusted |       2,500        2,500        2,500        2,500
+Reg. adjusted |       2,500        2,500        2,500        2,500
 ------------------------------------------------------------------
 
 . 
 . foreach v of var bias rmse {
   2.   di _n(2) as res `"`v'  `:var lab `v''"'
-  3.   by irtypo: table augmented estimator, by(N) c(mean `v')
+  3.   bys irversion: table augmented estimator, by(N) c(mean `v')
   4. }
 
 
 bias  
 
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
--> irtypo = 0
+-> irversion = Kang-Shafler
 
 ------------------------------------------------------------------
 N and         |                     estimator                     
 augmented     | IPW_TRUE_PS      IPWCBPS         CBPS          IPW
 --------------+---------------------------------------------------
 200           |
-   Unadjusted |     -0.3195      -6.5054      -5.2170      -2.2086
-Reg. adjusted |     -0.2343      -5.1623      -5.0480      -5.1776
+   Unadjusted |     -0.5111      -6.6999      -5.3191      -2.0106
+Reg. adjusted |     -0.3585      -5.2676      -5.1562      -5.2711
 --------------+---------------------------------------------------
 1000          |
-   Unadjusted |     -0.1120      -4.8042      -5.9147       1.0118
-Reg. adjusted |     -0.0261      -5.8982      -5.8615      -5.9145
+   Unadjusted |     -0.0761      -4.8116      -5.9984       1.2482
+Reg. adjusted |     -0.0936      -5.9822      -5.9458      -5.9851
 ------------------------------------------------------------------
 
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
--> irtypo = 1
+-> irversion = Ima-Ratkovic
 
 ------------------------------------------------------------------
 N and         |                     estimator                     
 augmented     | IPW_TRUE_PS      IPWCBPS         CBPS          IPW
 --------------+---------------------------------------------------
 200           |
-   Unadjusted |     -0.3495      -6.5524      -5.1325      -2.0068
-Reg. adjusted |     -0.1831      -5.0923      -4.9782      -5.0746
+   Unadjusted |     -0.1954      -5.0877      -3.3816      -1.1921
+Reg. adjusted |     -0.2154      -3.2820      -3.2737      -3.2748
 --------------+---------------------------------------------------
 1000          |
-   Unadjusted |     -0.0850      -4.7610      -5.8784       1.3476
-Reg. adjusted |      0.0052      -5.8746      -5.8364      -5.8671
+   Unadjusted |      0.0163      -3.0489      -3.5610       1.3309
+Reg. adjusted |     -0.0818      -3.5262      -3.5389      -3.5235
 ------------------------------------------------------------------
 
 
 rmse  
 
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
--> irtypo = 0
+-> irversion = Kang-Shafler
 
 ------------------------------------------------------------------
 N and         |                     estimator                     
 augmented     | IPW_TRUE_PS      IPWCBPS         CBPS          IPW
 --------------+---------------------------------------------------
 200           |
-   Unadjusted |      6.9650       7.4369       6.1551       9.0929
-Reg. adjusted |      2.9173       5.9370       5.9079       6.1309
+   Unadjusted |      6.8815       7.5464       6.3013       9.0001
+Reg. adjusted |      3.0260       6.0794       6.0602       6.2452
 --------------+---------------------------------------------------
 1000          |
-   Unadjusted |      3.1811       5.2533       6.1792      10.1862
-Reg. adjusted |      1.4052       6.1420       6.0997       6.1977
+   Unadjusted |      3.1049       5.2247       6.2729      10.2291
+Reg. adjusted |      1.4518       6.2393       6.1972       6.2563
 ------------------------------------------------------------------
 
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
--> irtypo = 1
+-> irversion = Ima-Ratkovic
 
 ------------------------------------------------------------------
 N and         |                     estimator                     
 augmented     | IPW_TRUE_PS      IPWCBPS         CBPS          IPW
 --------------+---------------------------------------------------
 200           |
-   Unadjusted |      6.8285       7.4006       6.1668       9.2429
-Reg. adjusted |      2.9870       5.9031       5.9011       5.9566
+   Unadjusted |      6.8229       6.1046       4.3967       8.3932
+Reg. adjusted |      2.6838       4.1978       4.2655       4.2452
 --------------+---------------------------------------------------
 1000          |
-   Unadjusted |      3.2044       5.1873       6.1418      10.4383
-Reg. adjusted |      1.4702       6.1229       6.0783       6.1186
+   Unadjusted |      3.1372       3.7602       3.7922       8.3894
+Reg. adjusted |      1.2482       3.7507       3.7636       3.8053
 ------------------------------------------------------------------
 
 . 
@@ -635,5 +626,5 @@ Reg. adjusted |      1.4702       6.1229       6.0783       6.1186
       name:  sim12
        log:  U:\Stata\Ado\Devel\gmatch\sims/sim12/logfile.log
   log type:  text
- closed on:  18 Mar 2019, 19:38:59
+ closed on:  22 Mar 2019, 16:21:28
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
