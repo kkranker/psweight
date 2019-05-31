@@ -21,7 +21,7 @@
 // 1. Open Stata.  Type "adopath" into the command line.
 //    It will show you were your PERSONAL directory is located.
 //
-// 2. Drop these files into your PERSONAL directory (in a subfolder named /g/)
+// 2. Drop these files into your PERSONAL directory (in a subfolder named p/)
 //      <PERSONAL>/p/psweight.mata
 //      <PERSONAL>/p/psweight.ado
 //      <PERSONAL>/p/psweightcall.ado
@@ -35,6 +35,7 @@
 
 clear mata
 do "C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\psweight.mata"
+// do "`c(sysdir_personal)'/p/psweight.mata"
 lmbuild lpsweight, dir(PERSONAL) replace
 mata: mata describe using lpsweight
 mata: mata mlib index
