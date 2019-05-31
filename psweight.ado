@@ -1,6 +1,6 @@
 //****************************************************************************/
 *! $Id$
-*! IPW- and CBPS-type propensity score reweighting, with extentions
+*! IPW- and CBPS-type propensity score reweighting, with various extentions
 *! Stata command to estimate models
 //
 *! By Keith Kranker
@@ -10,10 +10,6 @@
 // This code cannot be copied, distributed or used without the express written
 // permission of Mathematica Policy Research, Inc.
 //*****************************************************************************/
-
-// Poential extentions: - using constraints to specify CV exactly
-//                      - add SEs
-//                      - run impacts (multi-equation model)
 
 program define psweight, eclass byable(onecall)
   version 15.1
