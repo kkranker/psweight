@@ -17,6 +17,7 @@ mata:
 mata set matastrict on
 mata set matafavor speed
 
+// Define the class
 class psweight {
   protected:
     real colvector   T, W, sel1, sel0, Y0, W_orig, W_mtch, PS_mtch
@@ -188,7 +189,7 @@ void psweight::get_scores(string rowvector newvarnames, string scalar tousevar) 
 
 // This function makes a balance table and prints it to the screen
 // The argument is the same as their definition in stddiff() and varratio()
-// results are also saved in stata in r(bal)
+// results are also saved in Stata in r(bal)
 real matrix psweight::balancetable(| real scalar denominator) {
   real matrix table
   string rowvector colstripe, tmp, frmts

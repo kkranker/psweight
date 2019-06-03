@@ -40,11 +40,12 @@ end
 program Estimate, eclass sortpreserve byable(recall)
   version 15.1
 
-  // first word is the name of the "subroutine"
+  // first word is the name of the "subcommand"
   gettoken fctn 0 : 0, parse(" ,")
   if      ("`fctn'"=="mean_sd") local fctn mean_sd_sq
   else if ("`fctn'"=="sd")      local fctn sd_sq
-  else if !inlist(`"`fctn'"', "balanceonly", "pcbps", "ipw", "cbps", "cbpsoid", "mean_sd_sq", "sd_sq", "stdprogdiff") {
+  else if inlist(`"`fctn'"', "balance", "balanceo", "balanceon", "balanceonl", "balanceonly") local fctn balanceonly
+  else if !inlist(`"`fctn'"', "pcbps", "ipw", "cbps", "cbpsoid", "mean_sd_sq", "sd_sq", "stdprogdiff") {
     di as error `""`fctn'" subcommand invalid"'
     error 198
   }
@@ -54,7 +55,8 @@ program Estimate, eclass sortpreserve byable(recall)
           [ DEPvars(varlist numeric) /// outcome variables (if any)
             ate atet ateu /// to fill in est
             TREatvariance CONtrolvariance POOledvariance Averagevariance /// to fill in denominator
-            cvtarget(numlist min=3 max=3) skewtarget(numlist min=3 max=3) kurttarget(numlist min=3 max=3) maxtarget(numlist min=3 max=3) ///
+            cvtarget(numlist min=3 max=3) skewtarget(numlist min=3 max=3) kurttarget(numlist min=3 max=3) ///
+            maxtarget(numlist min=3 max=3) ///  maxtarget is undocumented since it tends not to converge
             from(name) /// starting values for maximization
             MWeight(varname numeric) /// 'matching weights' for balanceonly option
             * ] //  display and ml options are allowed
@@ -165,6 +167,7 @@ program Estimate, eclass sortpreserve byable(recall)
     if ("`weight'"!="") ereturn local wtype = "`weight'"
     if ("`wexp'"!="")   ereturn local wexp  = "`wexp'"
     ereturn local mataobj                   = "psweight_ado_most_recent"
+    drop _weight _weight_mtch _pscore _treated
     exit
   }
 
@@ -208,8 +211,8 @@ program Estimate, eclass sortpreserve byable(recall)
 end
 
 program define get_matrix_table_options, sclass
-  syntax [, formats(passthru) NOOMITted vsquish NOEMPTYcells BASElevels ALLBASElevels NOFVLABel fvwrap(passthru) fvwrapon(passthru) nolstretch *]
-  sreturn local opts = strrtrim(stritrim(`"`formats' `noomitted' `vsquish' `noemptycells' `baselevels' `passthru' `allbaselevels' `nofvlabel' `fvwrap' `fvwrapon' `nolstretch'"'))
+  syntax [, format(passthru) NOOMITted vsquish NOEMPTYcells BASElevels ALLBASElevels NOFVLABel fvwrap(passthru) fvwrapon(passthru) nolstretch *]
+  sreturn local opts = strrtrim(stritrim(`"`format' `noomitted' `vsquish' `noemptycells' `baselevels' `passthru' `allbaselevels' `nofvlabel' `fvwrap' `fvwrapon' `nolstretch'"'))
 end
 
 program define psweightcall, rclass
