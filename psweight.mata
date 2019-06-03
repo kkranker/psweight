@@ -227,8 +227,8 @@ real matrix psweight::balancetable(| real scalar denominator) {
 
 // This function prints the balance table to the screen
 // The argument is the same as their definition in stddiff() and varratio()
-void psweight::balanceresults(| string scalar est, real scalar denominator) {
-  if (args()<1) est="ate"
+void psweight::balanceresults(| string scalar stat, real scalar denominator) {
+  if (args()<1) stat="ate"
   if (args()<2) denominator=2
   transmorphic temp
   if (all(this.W_mtch:==1)) "Unmatched data"
@@ -237,11 +237,11 @@ void psweight::balanceresults(| string scalar est, real scalar denominator) {
   "Mean standardized diff., squared";    this.mean_sd_sq(denominator)
   "Mean absolute standardized diff.";    this.mean_asd(denominator)
   "Maximum absolute standardized diff."; this.max_asd(denominator)
-  "C.V. of matching weights:";           this.wgt_cv(est)
-  "S.D. of matching weights:";           this.wgt_sd(est)
-  "Skewness of matching weights:";       this.wgt_skewness(est)
-  "Kurtosis of matching weights:";       this.wgt_kurtosis(est)
-  "Maximum matching weight:";            this.wgt_max(est)
+  "C.V. of matching weights:";           this.wgt_cv(stat)
+  "S.D. of matching weights:";           this.wgt_sd(stat)
+  "Skewness of matching weights:";       this.wgt_skewness(stat)
+  "Kurtosis of matching weights:";       this.wgt_kurtosis(stat)
+  "Maximum matching weight:";            this.wgt_max(stat)
   if (this.depvars!="") {
     "Prognostic scores:";                temp = this.progdiff()
   }
@@ -355,14 +355,14 @@ real rowvector psweight::stddiff(| real scalar denominator) {
 }
 
 // The following functions calculate UNWEIGHTED means, variance, CV, SD, skewness, kurtosis, and higher moments of the matching weights
-// As usual, est controls whether we do with with all observations, the treatment group, or the control group
-real rowvector psweight::wgt_moments(real scalar r, string scalar est) {
+// As usual, stat controls whether we do with with all observations, the treatment group, or the control group
+real rowvector psweight::wgt_moments(real scalar r, string scalar stat) {
   real scalar v, m
   real colvector W_sel
-  if      (strlower(est)=="ate" ) W_sel=this.W_mtch
-  else if (strlower(est)=="atet") W_sel=this.W_mtch[this.sel0]
-  else if (strlower(est)=="ateu") W_sel=this.W_mtch[this.sel1]
-  else _error(est + " is an invalid argument for psweight::wgt_moments()")
+  if      (strlower(stat)=="ate" ) W_sel=this.W_mtch
+  else if (strlower(stat)=="atet") W_sel=this.W_mtch[this.sel0]
+  else if (strlower(stat)=="ateu") W_sel=this.W_mtch[this.sel1]
+  else _error(stat + " is an invalid argument for psweight::wgt_moments()")
   m = mean(W_sel)
   if (r==0) { // the only exception is that r==0 gives the sd
     v = sqrt(quadcolsum((W_sel:-m):^2) / (rows(W_sel)-1))
@@ -371,42 +371,42 @@ real rowvector psweight::wgt_moments(real scalar r, string scalar est) {
   return((v,m))
 }
 
-real scalar psweight::wgt_cv(string scalar est) {
+real scalar psweight::wgt_cv(string scalar stat) {
   real rowvector vm
   real scalar cv
-  vm = this.wgt_moments(0,est)
+  vm = this.wgt_moments(0,stat)
   cv = vm[1]/vm[2]
   st_numscalar("r(wgt_cv)",cv)
   return(cv)
 }
 
-real scalar psweight::wgt_sd(string scalar est) {
+real scalar psweight::wgt_sd(string scalar stat) {
   real scalar sd
-  sd = this.wgt_moments(0,est)[1]
+  sd = this.wgt_moments(0,stat)[1]
   st_numscalar("r(wgt_sd)",sd)
   return(sd)
 }
 
-real scalar psweight::wgt_skewness(string scalar est) {
+real scalar psweight::wgt_skewness(string scalar stat) {
   real scalar skew
-  skew = (this.wgt_moments(3,est)[1]) * (this.wgt_moments(2,est)[1])^(-3/2)
+  skew = (this.wgt_moments(3,stat)[1]) * (this.wgt_moments(2,stat)[1])^(-3/2)
   st_numscalar("r(wgt_skewness)",skew)
   return(skew)
 }
 
-real scalar psweight::wgt_kurtosis(string scalar est) {
+real scalar psweight::wgt_kurtosis(string scalar stat) {
   real scalar kurt
-  kurt = (this.wgt_moments(4,est)[1]) * (this.wgt_moments(2,est)[1])^(-2)
+  kurt = (this.wgt_moments(4,stat)[1]) * (this.wgt_moments(2,stat)[1])^(-2)
   st_numscalar("r(wgt_kurtosis)",kurt)
   return(kurt)
 }
 
-real scalar psweight::wgt_max(string scalar est) {
+real scalar psweight::wgt_max(string scalar stat) {
   real scalar mx
-  if      (strlower(est)=="ate" ) mx = max(this.W_mtch)
-  else if (strlower(est)=="atet") mx = max(this.W_mtch[this.sel0])
-  else if (strlower(est)=="ateu") mx = max(this.W_mtch[this.sel1])
-  else _error(est + " is an invalid argument for psweight::wgt_moments()")
+  if      (strlower(stat)=="ate" ) mx = max(this.W_mtch)
+  else if (strlower(stat)=="atet") mx = max(this.W_mtch[this.sel0])
+  else if (strlower(stat)=="ateu") mx = max(this.W_mtch[this.sel1])
+  else _error(stat + " is an invalid argument for psweight::wgt_moments()")
   st_numscalar("r(wgt_max)",mx)
   return(mx)
 }
@@ -569,21 +569,21 @@ real colvector psweight::olspredict(real matrix X, real rowvector beta) {
 
 
 // function that computes  weights (and returns them in this.W_mtch)
-//    est corresponds to the options in psweight::logitweights()
-//    est = "ate"  computes weights for average treatment effect (the default)
-//        = "atet" computes weights for average treatment effect on the treated
-//        = "ateu" computes weights for average treatment effect on the untreated
-real rowvector psweight::ipw(string scalar est) {
+//    stat corresponds to the options in psweight::logitweights()
+//    stat = "ate"  computes weights for average treatment effect (the default)
+//         = "atet" computes weights for average treatment effect on the treated
+//         = "ateu" computes weights for average treatment effect on the untreated
+real rowvector psweight::ipw(string scalar stat) {
   real rowvector beta
   real colvector pscore, ipwwgt
   real matrix Ct
   this.reweight()
-  if (args()<1) est="ate"
+  if (args()<1) stat="ate"
   Ct = this.Ct((this.varlist,"_cons"))
   beta   = this.logitbeta(this.T, this.X, this.W_orig, 1, Ct)
   // /* */ "propensity score (logit) model beta:"; beta
   pscore = this.logitpredict(this.X, beta)
-  ipwwgt = this.logitweights(pscore, est)
+  ipwwgt = this.logitweights(pscore, stat)
   this.postbeta(beta)
   this.reweight(ipwwgt, pscore)
   return(beta)
@@ -621,27 +621,27 @@ real colvector psweight::trim(real colvector x, | real scalar minval, real scala
 // This turns a vector of pscores into IPW weights. this assumes a logit setup.
 // Formulas match the normalized weights in Stata's teffects IPW command
 //    pscore is a vector of propensity scores
-//    est = "ate"  computes weights for average treatment effect (the default)
-//        = "atet" computes weights for average treatment effect on the treated
-//        = "ateu" computes weights for average treatment effect on the untreated
-real colvector psweight::logitweights(real colvector pscore, | string scalar est) {
+//    stat = "ate"  computes weights for average treatment effect (the default)
+//         = "atet" computes weights for average treatment effect on the treated
+//         = "ateu" computes weights for average treatment effect on the untreated
+real colvector psweight::logitweights(real colvector pscore, | string scalar stat) {
   real colvector pm
   real matrix ipwwgt
-  if (args()<2) est="ate"
+  if (args()<2) stat="ate"
 
   if (any(pscore:<=0) | any(pscore:>=1)) _error("Propensity scores need to be greater than 0 and less than 1.")
-//  /* */ if (minmax[1,1]<=0.03 & (strlower(est)=="ate" | strlower(est)=="ateu")) errprintf("Warning: minimum propensity score is %12.0g \n", minmax[1,1])
-//  /* */ if (minmax[1,2]>=0.97 & (strlower(est)=="ate" | strlower(est)=="atet")) errprintf("Warning: maximum propensity score is %12.0g \n", minmax[1,2])
+//  /* */ if (minmax[1,1]<=0.03 & (strlower(stat)=="ate" | strlower(stat)=="ateu")) errprintf("Warning: minimum propensity score is %12.0g \n", minmax[1,1])
+//  /* */ if (minmax[1,2]>=0.97 & (strlower(stat)=="ate" | strlower(stat)=="atet")) errprintf("Warning: maximum propensity score is %12.0g \n", minmax[1,2])
 
   pm = 1 :- (!this.T)
-  if      (strlower(est)=="ate")   ipwwgt = (pm :/pscore) :+ (!pm:/(1:-pscore))
-  else if (strlower(est)=="atet")  ipwwgt =  pm :+ (!pm :* (pscore:/(1:-pscore)))
-  else if (strlower(est)=="ateu")  ipwwgt = !pm :+ ( pm :* ((1:-pscore):/pscore))
-  else _error(est + " is an invalid argument for psweight::logitweights()")
+  if      (strlower(stat)=="ate")   ipwwgt = (pm :/pscore) :+ (!pm:/(1:-pscore))
+  else if (strlower(stat)=="atet")  ipwwgt =  pm :+ (!pm :* (pscore:/(1:-pscore)))
+  else if (strlower(stat)=="ateu")  ipwwgt = !pm :+ ( pm :* ((1:-pscore):/pscore))
+  else _error(stat + " is an invalid argument for psweight::logitweights()")
 
   // normalize the weights to have mean 1 in each group
-  if (strlower(est)=="ate" | strlower(est)=="atet") ipwwgt[this.sel0] = ipwwgt[this.sel0] :/ mean(ipwwgt[this.sel0], this.W_orig[this.sel0])
-  if (strlower(est)=="ate" | strlower(est)=="ateu") ipwwgt[this.sel1] = ipwwgt[this.sel1] :/ mean(ipwwgt[this.sel1], this.W_orig[this.sel1])
+  if (strlower(stat)=="ate" | strlower(stat)=="atet") ipwwgt[this.sel0] = ipwwgt[this.sel0] :/ mean(ipwwgt[this.sel0], this.W_orig[this.sel0])
+  if (strlower(stat)=="ate" | strlower(stat)=="ateu") ipwwgt[this.sel1] = ipwwgt[this.sel1] :/ mean(ipwwgt[this.sel1], this.W_orig[this.sel1])
   return(ipwwgt)
 }
 
@@ -723,7 +723,7 @@ void psweight_logit_eval(transmorphic S, real rowvector beta, real colvector lnf
 }
 
 // function that computes a variety of matching weights schemes, including CBPS weights (and returns them in this.W_mtch)
-//    est corresponds to the options in psweight::logitweights()
+//    stat corresponds to the options in psweight::logitweights()
 //        "ate"  computes weights for average treatment effect (the default)
 //        "atet" computes weights for average treatment effect on the treated
 //        "ateu" computes weights for average treatment effect on the untreated
@@ -747,12 +747,12 @@ void psweight_logit_eval(transmorphic S, real rowvector beta, real colvector lnf
 //         With 12 arguments, cvopt=(a,b,c,d,e,f,g,h,i,j,k,l), the loss function also targets the maximum weight (wgt_max())
 //         Specifically, the loss function is modified as:
 //              loss = ( loss_0 \ a * abs((wgt_cv() - b)^c) \ e * abs((wgt_skewness() - e)^f) \ g * abs((wgt_kurtosis() - h)^i)  \ j * abs((wgt_max() - k)^l))
-real rowvector psweight::psweight(| string scalar est, string scalar fctn, real scalar denominator, real rowvector cvopt) {
+real rowvector psweight::psweight(| string scalar stat, string scalar fctn, real scalar denominator, real rowvector cvopt) {
   real rowvector beta
   real colvector pscore, cbpswgt
   real matrix ww, Ct
   real scalar oid, unnorm
-  if (args()<1) est="ate"
+  if (args()<1) stat="ate"
   if (args()<2) fctn="sd_sq"
   if (args()<3) denominator=1
   if (args()<4) cvopt=J(1,0,.)
@@ -761,7 +761,7 @@ real rowvector psweight::psweight(| string scalar est, string scalar fctn, real 
 
   // If the user is asking for the IPW result, just call my ipw() function
   if (fctn=="ipw") {
-    if (!length(cvopt)) return(this.ipw(est))
+    if (!length(cvopt)) return(this.ipw(stat))
     else _error("IPW does not work with modified loss function")
   }
 
@@ -791,7 +791,7 @@ real rowvector psweight::psweight(| string scalar est, string scalar fctn, real 
   optimize_init_evaluator(S, &psweight_cbps_eval())
   optimize_init_which(S, "min")
   optimize_init_argument(S, 1, this)
-  optimize_init_argument(S, 2, est)
+  optimize_init_argument(S, 2, stat)
   optimize_init_argument(S, 3, fctn)
   optimize_init_argument(S, 4, denominator)
   optimize_init_argument(S, 5, oid)
@@ -876,7 +876,7 @@ real rowvector psweight::psweight(| string scalar est, string scalar fctn, real 
   // It is only calculated once -- not once every time the ojective function is called.
   if (fctn=="cbps_port_stata") {
     // is this just this.covariancesP ?
-    ww = this.cbps_port_stata_wgt_matrix(beta_logit, oid, est)
+    ww = this.cbps_port_stata_wgt_matrix(beta_logit, oid, stat)
     ww = invsym(ww)
     if (!all(this.W_orig:==1)) _error("psweight::cbps_port_stata_moments() does not yet accomodate weighted samples")
   }
@@ -910,7 +910,7 @@ real rowvector psweight::psweight(| string scalar est, string scalar fctn, real 
 
   pscore = this.logitpredict(this.X, beta)
   pscore = this.trim(pscore)
-  cbpswgt = this.logitweights(pscore, est)
+  cbpswgt = this.logitweights(pscore, stat)
 
   this.postbeta(beta)
   this.reweight(cbpswgt, pscore)
@@ -920,15 +920,15 @@ real rowvector psweight::psweight(| string scalar est, string scalar fctn, real 
 // helper function -- note this is not a member of the class
 void psweight_cbps_eval(real todo, real beta,
                       class psweight scalar M,
-                      string est, string fctn, real denominator, real oid, real cvopt, real ww,
+                      string stat, string fctn, real denominator, real oid, real cvopt, real ww,
                       real lnf, real g, real H) {
-  M.cbpseval(todo,beta,est,fctn,denominator,oid,cvopt,ww,lnf,g,H)
+  M.cbpseval(todo,beta,stat,fctn,denominator,oid,cvopt,ww,lnf,g,H)
 }
 
 // specify the function to be called by optimize() to evaluate f(p).
 void psweight::cbpseval( real   scalar    todo,
                        real   rowvector beta,
-                       string scalar    est,
+                       string scalar    stat,
                        string scalar    fctn,
                        real   scalar    denominator,
                        real   scalar    oid,
@@ -938,12 +938,12 @@ void psweight::cbpseval( real   scalar    todo,
                        real   matrix    g,
                        real   matrix    H) {
   real colvector  pscore, cbpswgt
-  if      (fctn=="cbps_port_stata")  this.cbps_port_stata(todo,beta,est,oid,ww,lnf,g,H)
-  else if (fctn=="cbps_port_r")      this.cbps_port_r(todo,beta,est,oid,ww,lnf,g,H)
+  if      (fctn=="cbps_port_stata")  this.cbps_port_stata(todo,beta,stat,oid,ww,lnf,g,H)
+  else if (fctn=="cbps_port_r")      this.cbps_port_r(todo,beta,stat,oid,ww,lnf,g,H)
   else if (fctn=="mean_sd_sq" | fctn=="sd_sq"  | fctn=="stdprogdiff") {
     pscore = this.logitpredict(this.X, beta)
     pscore = this.trim(pscore)
-    cbpswgt = this.logitweights(pscore, est)
+    cbpswgt = this.logitweights(pscore, stat)
     this.reweight(cbpswgt)
     if      (fctn=="mean_sd_sq")      lnf = this.mean_sd_sq(denominator)
     else if (fctn=="sd_sq")           lnf = quadsum(this.sd_sq(denominator))
@@ -959,41 +959,41 @@ void psweight::cbpseval( real   scalar    todo,
     if (fctn=="cbps_port_r") pscore = this.logitpredict(this.Xstd, beta)
     else                     pscore = this.logitpredict(this.X, beta)
     pscore = this.trim(pscore)
-    cbpswgt = this.logitweights(pscore, est)
+    cbpswgt = this.logitweights(pscore, stat)
     this.reweight(cbpswgt)
   }
-  if (cvopt[1,1]) lnf = (lnf \ (cvopt[1,1]:*abs((this.wgt_cv(est):-cvopt[1,2]):^cvopt[1,3])))
+  if (cvopt[1,1]) lnf = (lnf \ (cvopt[1,1]:*abs((this.wgt_cv(stat):-cvopt[1,2]):^cvopt[1,3])))
 
   if (length(cvopt)<6) return
-  if (cvopt[1,4]) lnf = (lnf \ (cvopt[1,4]:*abs((this.wgt_skewness(est):-cvopt[1,5]):^cvopt[1,6])))
+  if (cvopt[1,4]) lnf = (lnf \ (cvopt[1,4]:*abs((this.wgt_skewness(stat):-cvopt[1,5]):^cvopt[1,6])))
 
   if (length(cvopt)<9) return
-  if (cvopt[1,7]) lnf = (lnf \ (cvopt[1,7]:*abs((this.wgt_kurtosis(est):-cvopt[1,8]):^cvopt[1,9])))
+  if (cvopt[1,7]) lnf = (lnf \ (cvopt[1,7]:*abs((this.wgt_kurtosis(stat):-cvopt[1,8]):^cvopt[1,9])))
 
   if (length(cvopt)<12) return
-  if (cvopt[1,10]) lnf = (lnf \ (cvopt[1,10]:*abs((this.wgt_max(est):-cvopt[1,11]):^cvopt[1,12])))
+  if (cvopt[1,10]) lnf = (lnf \ (cvopt[1,10]:*abs((this.wgt_max(stat):-cvopt[1,11]):^cvopt[1,12])))
 }
 
 // Calls CBPS model (not over-identified)
 // This just calls psweight() -- described above.
-real rowvector psweight::cbps(| string scalar est, real scalar denominator) {
-  if (args()<1) est="ate"
+real rowvector psweight::cbps(| string scalar stat, real scalar denominator) {
+  if (args()<1) stat="ate"
   if (args()<2) denominator=1
-  return(psweight(est, "cbps", denominator))
+  return(psweight(stat, "cbps", denominator))
 }
 
 // Calls over-identified CBPS model
 // This just calls psweight() -- described above.
-real rowvector psweight::cbpsoid(| string scalar est, real scalar denominator) {
-  if (args()<1) est="ate"
+real rowvector psweight::cbpsoid(| string scalar stat, real scalar denominator) {
+  if (args()<1) stat="ate"
   if (args()<2) denominator=1
-  return(psweight(est, "cbpsoid", denominator))
+  return(psweight(stat, "cbpsoid", denominator))
 }
 
 // Port of the objective function from the Stata verion of CBPS
 void psweight::cbps_port_stata( real   scalar    todo,
                               real   rowvector beta,
-                              string scalar    est,
+                              string scalar    stat,
                               real   scalar    oid,
                               real   matrix    ww,
                               real   matrix    lnf,
@@ -1004,26 +1004,26 @@ void psweight::cbps_port_stata( real   scalar    todo,
    pscore = this.trim(pscore)
    real matrix dpscore, gg, G
    dpscore = pscore:*(1:-pscore)
-   gg = this.cbps_port_stata_moments(pscore, dpscore, oid, est)
+   gg = this.cbps_port_stata_moments(pscore, dpscore, oid, stat)
    lnf = gg' * ww * gg
    if (todo==0) return
-   G = this.cbps_port_stata_gradient(pscore, oid, est)
+   G = this.cbps_port_stata_gradient(pscore, oid, stat)
    g = G' * ww * gg :* (2:*this.N)
    g = g'
 }
 
 // Port of the moment function from the Stata verion of CBPS
-real colvector psweight::cbps_port_stata_moments(real colvector pscore, real matrix dpscore, real scalar overid, string scalar est) {
+real colvector psweight::cbps_port_stata_moments(real colvector pscore, real matrix dpscore, real scalar overid, string scalar stat) {
   real colvector gg
 
   // this is inefficient
-  if (strlower(est)=="ate") {
+  if (strlower(stat)=="ate") {
       gg=quadcross(this.XC, (this.T-pscore):/pscore:/(1:-pscore)):/this.N_raw
   }
-  else if (strlower(est)=="atet") {
+  else if (strlower(stat)=="atet") {
       gg=quadcross(this.XC, (this.T-pscore):/(1:-pscore)):/this.N1_raw
   }
-  else _error(est + " is invalid with psweight::cbps_port_stata_moments()")
+  else _error(stat + " is invalid with psweight::cbps_port_stata_moments()")
 
   if(overid) {
     gg = (quadcross(this.XC, dpscore:*(this.T-pscore):/pscore:/(1:-pscore)):/this.N_raw \ gg)
@@ -1036,12 +1036,12 @@ real colvector psweight::cbps_port_stata_moments(real colvector pscore, real mat
 
 
 // Port of the gradient function from the Stata verion of CBPS
-real matrix psweight::cbps_port_stata_gradient(real colvector pscore, real scalar overid, string scalar est) {
+real matrix psweight::cbps_port_stata_gradient(real colvector pscore, real scalar overid, string scalar stat) {
   real matrix G, dw
-  if (strlower(est)=="ate") {
+  if (strlower(stat)=="ate") {
     G = -(this.XC:*((this.T:-pscore):^2):/pscore:/(1:-pscore))'this.XC
   }
-  else if (strlower(est)=="atet") {
+  else if (strlower(stat)=="atet") {
     dw=(pscore:*(this.T:-1)):/(1:-pscore):*(this.N_raw/this.N1_raw)
     G = quadcross(this.XC:*dw, this.XC)
   }
@@ -1054,28 +1054,28 @@ real matrix psweight::cbps_port_stata_gradient(real colvector pscore, real scala
 
 
 // Port of the weighting matrix function from the Stata verion of CBPS
-real matrix psweight::cbps_port_stata_wgt_matrix(real rowvector beta, real scalar overid, string scalar est) {
+real matrix psweight::cbps_port_stata_wgt_matrix(real rowvector beta, real scalar overid, string scalar stat) {
   real matrix ww
   real colvector pscore, dpscore
   pscore  = this.logitpredict(this.X, beta)
   pscore  = this.trim(pscore)
   if (!overid) {
-    if (strlower(est)=="ate") {
+    if (strlower(stat)=="ate") {
       ww = quadcross(this.XC:/(pscore:*(1:-pscore)), this.XC)
     }
-    else if (strlower(est)=="atet") {
+    else if (strlower(stat)=="atet") {
       ww = quadcross(this.XC:*(pscore:/(1:-pscore)):*(this.N_raw/this.N1_raw):^2, this.XC)
     }
   }
   else {
     dpscore = pscore:*(1:-pscore)
-    if (strlower(est)=="ate") {
+    if (strlower(stat)=="ate") {
       ww = (       quadcross(this.XC:*(dpscore:^2:/pscore:/(1:-pscore)),this.XC), // this seems inefficint. isn't  pscore:/(1:-pscore) = dpscore:^-1 ?
                    quadcross(this.XC:*(dpscore:/pscore:/(1:-pscore)),this.XC))
       ww = ( ww \ (quadcross(this.XC:*(dpscore:/pscore:/(1:-pscore)),this.XC),
                    quadcross(this.XC:*(1:/pscore:/(1:-pscore)),this.XC)))
     }
-    else if (strlower(est)=="atet") {
+    else if (strlower(stat)=="atet") {
       ww = (       quadcross(this.XC:*(pscore:/(1:-pscore):*dpscore:^2:/pscore:^2),this.XC),
                    quadcross(this.XC:*(pscore:/(1:-pscore):*dpscore:/pscore):*(this.N_raw/this.N1_raw),this.XC))
       ww = ( ww \ (quadcross(this.XC:*(pscore:/(1:-pscore):*dpscore:/pscore):*(this.N_raw/this.N1_raw),this.XC),
@@ -1090,7 +1090,7 @@ real matrix psweight::cbps_port_stata_wgt_matrix(real rowvector beta, real scala
 // Port of the gmm.func() function from CBPS.Binary.R (version 0.17)
 void psweight::cbps_port_r(real   scalar    todo,
                          real   rowvector beta,
-                         string scalar    est,
+                         string scalar    stat,
                          real   scalar    overid,
                          real   matrix    ww,
                          real   matrix    lnf,
@@ -1099,10 +1099,10 @@ void psweight::cbps_port_r(real   scalar    todo,
   real colvector pscore, w_cbps
   pscore = this.logitpredict(this.Xstd, beta)
   pscore = this.trim(pscore)
-  if (strlower(est)=="atet") {
+  if (strlower(stat)=="atet") {
      w_cbps = (this.N/this.N1) :* (this.T:-pscore) :/ (1:-pscore)
   }
-  else if (strlower(est)=="ate") {
+  else if (strlower(stat)=="ate") {
      w_cbps = (pscore:-1:+this.T):^-1
   }
   if (!overid) {
@@ -1113,21 +1113,21 @@ void psweight::cbps_port_r(real   scalar    todo,
     real colvector gbar, wx1, wx2, wx3
     real matrix V
     gbar = (quadcross(this.Xstd, this.W_orig, this.T:-pscore) \ quadcross(this.Xstd, this.W_orig, w_cbps)) :/ this.N
-    if (strlower(est)=="atet") {
+    if (strlower(stat)=="atet") {
       wx1 = this.Xstd:*sqrt((1:-pscore):*pscore)
       wx2 = this.Xstd:*sqrt(pscore:/(1:-pscore))
       wx3 = this.Xstd:*sqrt(pscore)
       V =  (quadcross(wx1, this.W_orig, wx1), quadcross(wx3, this.W_orig, wx3) \
             quadcross(wx3, this.W_orig, wx3), quadcross(wx2, this.W_orig, wx2) :* (this.N:/this.N1_raw)) :/ this.N1_raw
     }
-    else if (strlower(est)=="ate") {
+    else if (strlower(stat)=="ate") {
       wx1 = this.Xstd:*sqrt((1:-pscore):*pscore)
       wx2 = this.Xstd:*((pscore:*(1:-pscore)):^-.5)
       wx3 = this.Xstd
       V = (quadcross(wx1, this.W_orig, wx1), quadcross(wx3, this.W_orig, wx3) \
            quadcross(wx3, this.W_orig, wx3), quadcross(wx2, this.W_orig, wx2)) :/ this.N
     }
-    else _error(est + " is not allowed.")
+    else _error(stat + " is not allowed.")
     lnf = gbar' * invsym(V) * gbar
   }
   if (todo<1) return

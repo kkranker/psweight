@@ -53,7 +53,7 @@ program Estimate, eclass sortpreserve byable(recall)
   // standard syntax parsing
   syntax varlist(min=2 numeric fv) [if] [in] [fw iw/], ///
           [ DEPvars(varlist numeric) /// outcome variables (if any)
-            ate atet ateu /// to fill in est
+            ate atet ateu /// to fill in stat
             TREatvariance CONtrolvariance POOledvariance Averagevariance /// to fill in denominator
             cvtarget(numlist min=3 max=3) skewtarget(numlist min=3 max=3) kurttarget(numlist min=3 max=3) ///
             maxtarget(numlist min=3 max=3) ///  maxtarget is undocumented since it tends not to converge
@@ -105,10 +105,10 @@ program Estimate, eclass sortpreserve byable(recall)
     _fv_check_depvar `v'
   }
 
-  // parse the "est" options
-  local est "`ate'`atet'`ateu'"
-  if ("`est'"=="") local est ate
-  else if (!inlist("`est'", "ate", "atet", "ateu")) {
+  // parse the "stat" options
+  local stat "`ate'`atet'`ateu'"
+  if ("`stat'"=="") local stat ate
+  else if (!inlist("`stat'", "ate", "atet", "ateu")) {
     di as err `"Specify one of the following: ate, atet, or ateu"'
     error 198
   }
@@ -160,7 +160,7 @@ program Estimate, eclass sortpreserve byable(recall)
   // balanceonly option just prints balance and then end the program
   if ("`fctn'"=="balanceonly") {
     mata: Estimate(0)
-    ereturn local est                       = "`est'"
+    ereturn local stat                      = "`stat'"
     ereturn local depvar                    = "`treatvar'"
     ereturn local varlist                   = "`varlist'"
     ereturn scalar balanceonly              = 1
@@ -191,7 +191,7 @@ program Estimate, eclass sortpreserve byable(recall)
   if ("`10'"!="") di as txt   " + `10'*abs(wgt_max()-`11')^`12')" _c
   di ""
   ereturn post `psweight_beta_out' `wgtexp', obs(`psweight_N_out') buildfvinfo esample(`tousevar')
-  ereturn local est                       = "`est'"
+  ereturn local stat                      = "`stat'"
   ereturn local fctn                      = "`fctn'"
   ereturn local depvar                    = "`treatvar'"
   ereturn local varlist                   = "`varlist'"
@@ -228,12 +228,12 @@ mata set matastrict on
 mata set matafavor speed
 
 // This class is local to the .ado file. It inherits almost everything from the parent class.
-// The main difference is that est/fnctn/denominator/cvopt are class variables.
+// The main difference is that stat/fnctn/denominator/cvopt are class variables.
 // Therefore, when you, run . psweight call function(),  the arguments given to function()
 // are the same arguments that were given to the previous command that created the class instance.
 class psweightado extends psweight {
   private:
-    string scalar    est
+    string scalar    stat
     string scalar    fctn
     real   scalar    denominator
     real   rowvector cvopt
@@ -247,8 +247,8 @@ class psweightado extends psweight {
     real matrix balancetable()
 }
 
-void psweightado::set_opts(string scalar est_in, string scalar fctn_in, real scalar denominator_in, real rowvector cvopt_in) {
-  this.est = est_in
+void psweightado::set_opts(string scalar stat_in, string scalar fctn_in, real scalar denominator_in, real rowvector cvopt_in) {
+  this.stat = stat_in
   this.fctn = fctn_in
   this.denominator = denominator_in
   this.cvopt = cvopt_in
@@ -268,22 +268,22 @@ void psweightado::userweight(| string scalar wgtvar, string scalar tousevar) {
 }
 
 // these functions are just wrappers
-void           psweightado::balanceresults() return(this.super.balanceresults(this.est, this.denominator))
-real rowvector psweightado::psweight()       return(this.super.psweight(this.est, this.fctn, this.denominator, this.cvopt))
-real rowvector psweightado::ipw()            return(this.super.ipw(this.est))
-real rowvector psweightado::cbps()           return(this.super.cbps(this.est, this.denominator))
-real rowvector psweightado::cbpsoid()        return(this.super.cbpsoid(this.est, this.denominator))
+void           psweightado::balanceresults() return(this.super.balanceresults(this.stat, this.denominator))
+real rowvector psweightado::psweight()       return(this.super.psweight(this.stat, this.fctn, this.denominator, this.cvopt))
+real rowvector psweightado::ipw()            return(this.super.ipw(this.stat))
+real rowvector psweightado::cbps()           return(this.super.cbps(this.stat, this.denominator))
+real rowvector psweightado::cbpsoid()        return(this.super.cbpsoid(this.stat, this.denominator))
 real rowvector psweightado::stddiff()        return(this.super.stddiff(this.denominator))
 real rowvector psweightado::varratio()       return(this.super.varratio(this.denominator))
 real rowvector psweightado::progdiff()       return(this.super.progdiff(this.denominator))
 real rowvector psweightado::stdprogdiff()    return(this.super.stdprogdiff(this.denominator))
 real scalar    psweightado::mean_asd()       return(this.super.mean_asd(this.denominator))
 real scalar    psweightado::max_asd()        return(this.super.max_asd(this.denominator))
-real scalar    psweightado::wgt_cv()         return(this.super.wgt_cv(this.est))
-real scalar    psweightado::wgt_sd()         return(this.super.wgt_sd(this.est))
-real scalar    psweightado::wgt_skewness()   return(this.super.wgt_skewness(this.est))
-real scalar    psweightado::wgt_kurtosis()   return(this.super.wgt_kurtosis(this.est))
-real scalar    psweightado::wgt_max()        return(this.super.wgt_max(this.est))
+real scalar    psweightado::wgt_cv()         return(this.super.wgt_cv(this.stat))
+real scalar    psweightado::wgt_sd()         return(this.super.wgt_sd(this.stat))
+real scalar    psweightado::wgt_skewness()   return(this.super.wgt_skewness(this.stat))
+real scalar    psweightado::wgt_kurtosis()   return(this.super.wgt_kurtosis(this.stat))
+real scalar    psweightado::wgt_max()        return(this.super.wgt_max(this.stat))
 real matrix    psweightado::balancetable()   return(this.super.balancetable(this.denominator))
 
 // helper function to move Stata locals into Mata and call the main function
@@ -292,7 +292,7 @@ real matrix    psweightado::balancetable()   return(this.super.balancetable(this
 void Estimate(real scalar reweight) {
   external class   psweightado scalar psweight_ado_most_recent
   string scalar    treatvar, varlist, tousevar, wgtvar, depvars
-  string scalar    est, fctn, mweightvar
+  string scalar    stat, fctn, mweightvar
   real   scalar    denominator
   real   rowvector cvopt
   transmorphic temp
@@ -303,7 +303,7 @@ void Estimate(real scalar reweight) {
   tousevar    = st_local("tousevar")
   wgtvar      = st_local("wgtvar")
   depvars     = st_local("depvars")
-  est         = st_local("est")
+  stat        = st_local("stat")
   fctn        = st_local("fctn")
   denominator = strtoreal(st_local("denominator"))
   if  (st_local("cvopt")!="") {
@@ -316,7 +316,7 @@ void Estimate(real scalar reweight) {
   if  (wgtvar!="") psweight_ado_most_recent.set(treatvar, varlist, tousevar, wgtvar)
   else             psweight_ado_most_recent.set(treatvar, varlist, tousevar)
   if (depvars!="") psweight_ado_most_recent.set_Y(depvars,tousevar)
-  psweight_ado_most_recent.set_opts(est, fctn, denominator, cvopt)
+  psweight_ado_most_recent.set_opts(stat, fctn, denominator, cvopt)
 
   // compute invere probabily weights into child class
   if (reweight) {
