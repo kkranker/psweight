@@ -35,6 +35,29 @@ which psweight
 mata: mata describe using lpsweight
 
 ************************************************************************************
+* Example in the help file (psweight.sthlp)
+************************************************************************************
+
+//  Setup
+webuse cattaneo2
+
+//  Balance before reweighting
+psweight balanceonly mbsmoke mmarried mage fbaby medu
+
+//  Estimate the average treatment effect of smoking on birthweight, using a logit model to predict treatment status
+psweight ipw mbsmoke mmarried mage fbaby medu
+psweight call balanceresults()
+
+//  Estimate the average treatment effect on the treated with CBPS
+psweight cbps mbsmoke mmarried mage fbaby medu, atet
+psweight call balanceresults()
+
+//  Estimate the average treatment effect on the treated with Penalized CBPS
+psweight pcbps mbsmoke mmarried mage fbaby medu, atet cvtarget(1 .5 6)
+psweight call balanceresults()
+
+
+************************************************************************************
 * Describe/summarize the example datasets
 ************************************************************************************
 
