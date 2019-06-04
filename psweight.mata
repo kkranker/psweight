@@ -222,6 +222,9 @@ real matrix psweight::balancetable(| real scalar denominator) {
   else              frmts = ", " + frmts
   stata("matrix "+tmp+"=r(bal)")
   stata("_matrix_table " + tmp + frmts ); ""
+  "Mean standardized diff., squared";    this.mean_sd_sq(denominator)
+  "Mean absolute standardized diff.";    this.mean_asd(denominator)
+  "Maximum absolute standardized diff."; this.max_asd(denominator)
   return(table)
 }
 
@@ -234,9 +237,6 @@ void psweight::balanceresults(| string scalar stat, real scalar denominator) {
   if (all(this.W_mtch:==1)) "Unmatched data"
   st_rclear()
   "Balance:";                            temp = this.balancetable(denominator)
-  "Mean standardized diff., squared";    this.mean_sd_sq(denominator)
-  "Mean absolute standardized diff.";    this.mean_asd(denominator)
-  "Maximum absolute standardized diff."; this.max_asd(denominator)
   "C.V. of matching weights:";           this.wgt_cv(stat)
   "S.D. of matching weights:";           this.wgt_sd(stat)
   "Skewness of matching weights:";       this.wgt_skewness(stat)

@@ -85,11 +85,13 @@ program Estimate, eclass sortpreserve byable(recall)
     di as err `"The treatment variable (`treatvar') must be a dummy variable with >1 treatment obs and >1 control obs."'
     error 125
   }
-  if ("`fctn'"!="balanceonly" & "`mweight'"!="") {
-    di as err `"The mweight(`treatvar') option is only applicable with balanceonly."'
-    error 198
-  }
-  else if ("`mweight'"!="") {
+
+  // exclude observations wtih mweight==.
+  if ("`mweight'"!="") {
+    if ("`fctn'"!="balanceonly") {
+      di as err `"The mweight(`treatvar') option is only applicable with balanceonly."'
+      error 198
+    }
     markout `tousevar' `mweight'
   }
 
@@ -107,7 +109,18 @@ program Estimate, eclass sortpreserve byable(recall)
 
   // parse the "stat" options
   local stat "`ate'`atet'`ateu'"
-  if ("`stat'"=="") local stat ate
+  if ("`fctn'"=="balanceonly") {
+    if (`"`mweight'"'!="" & "`stat'"=="") {
+      di as err `"What kind of weights are in mweight(`mweight')?"' _n `"Specify one of the following: ate, atet, or ateu."'
+      error 198
+    }
+    else if ("`mweight'"=="" & "`stat'"!="") {
+      di as error "`stat' not allowed with psweight balance, unless mweight() is also specified."
+      error 198
+    }
+    else if ("`mweight'"=="") local stat "n/a"
+  }
+  else if ("`stat'"=="") local stat ate
   else if (!inlist("`stat'", "ate", "atet", "ateu")) {
     di as err `"Specify one of the following: ate, atet, or ateu"'
     error 198
