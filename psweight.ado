@@ -249,7 +249,7 @@ class psweightado extends psweight {
     void userweight()
     void balanceresults()
     real rowvector psweight(), ipw(), cbps(), cbpsoid(), stddiff(), varratio(), progdiff(), stdprogdiff()
-    real scalar mean_asd(), max_asd(), wgt_cv(), wgt_sd(), wgt_skewness(), wgt_kurtosis(), wgt_max()
+    real scalar mean_sd(), mean_asd(), max_asd(), wgt_cv(), wgt_sd(), wgt_skewness(), wgt_kurtosis(), wgt_max()
     real matrix balancetable()
 }
 
@@ -283,6 +283,7 @@ real rowvector psweightado::stddiff()        return(this.super.stddiff(this.deno
 real rowvector psweightado::varratio()       return(this.super.varratio(this.denominator))
 real rowvector psweightado::progdiff()       return(this.super.progdiff(this.denominator))
 real rowvector psweightado::stdprogdiff()    return(this.super.stdprogdiff(this.denominator))
+real scalar    psweightado::mean_sd()        return(this.super.mean_sd(this.denominator))
 real scalar    psweightado::mean_asd()       return(this.super.mean_asd(this.denominator))
 real scalar    psweightado::max_asd()        return(this.super.max_asd(this.denominator))
 real scalar    psweightado::wgt_cv()         return(this.super.wgt_cv(this.stat))
