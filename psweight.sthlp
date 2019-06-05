@@ -1,6 +1,5 @@
 {smcl}
-{* $Id$}{...}
-{* Copyright (C) Mathematica This code cannot be copied, distributed or used without the express written permission of Mathematica Policy Research, Inc.}{...}
+{* Copyright (C) Mathematica This code cannot be copied, distributed or used without the express written permission of Mathematica , Inc.}{...}
 {vieweralsosee "" "--"}{...}
 {vieweralsosee "[TE] teffects intro" "mansection TE teffectsintro"}{...}
 {vieweralsosee "[TE] teffects ipw" "mansection TE teffectsipw"}{...}
@@ -8,18 +7,18 @@
 {viewerjumpto "Title" "psweight##title"}{...}
 {viewerjumpto "Syntax" "psweight##syntax"}{...}
 {viewerjumpto "Description" "psweight##description"}{...}
-{viewerjumpto "Options" "psweight##options"}{...}
 {viewerjumpto "Remarks" "psweight##remarks"}{...}
-{viewerjumpto "Author" "psweight##author"}{...}
+{viewerjumpto "Options" "psweight##options"}{...}
 {viewerjumpto "Examples" "psweight##examples"}{...}
+{viewerjumpto "Author" "psweight##author"}{...}
 {viewerjumpto "Stored results" "psweight##results"}{...}
 {viewerjumpto "References" "psweight##references"}{...}
 {marker title}{...}
 {title:Title}
 
-{p2colset 1 13 15 2}{...}
-
-{p2col:{bf:psweight} {hline 2}}IPW- and CBPS-type propensity score reweighting, with various extentions{p_end}
+{p2colset 2 14 16 2}{...}
+{p2col:{bf:psweight} {hline 2}}IPW- and CBPS-type propensity score reweighting,
+with various extentions{p_end}
 {p2colreset}{...}
 
 {marker syntax}{...}
@@ -111,11 +110,12 @@ the treatment model.
 {synopthdr}
 {synoptline}
 {synopt :{opth dep:vars(varlist)}}outcome variables{p_end}
-{synopt :{it:{help psweight##display_options:display_options}}}control
-INCLUDE help shortdes-displayoptall
+{synopt :{it:{help psweight##display_options:display_options}}}
+control columns and column formats, row spacing, line width, display of omitted
+variables and base and empty cells, and factor-variable labeling{p_end}
 {synopt :{it:{help psweight##maximize_options:maximize_options}}}control
 the maximization process; seldom used {* includes from()}{p_end}
-INCLUDE help shortdes-coeflegend
+{synopt :{opt coefl:egend}}display legend instead of statistics{p_end}
 {synoptline}
 {p2colreset}{...}
 {p 4 6 2}
@@ -340,7 +340,24 @@ The {it:variance} dictates how the command standardizes the difference in means 
 The data for the treatment group observations are ignored, but the data for the
 the control group are used to compute prognositic scores (see above).
 
-INCLUDE help displayopts_list
+{marker:display_options}
+{phang}
+{it:display_options}:
+
+{phang2}
+The following options control the display of the coefficient tables:
+{opt noomit:ted},
+{opt vsquish},
+{opt noempty:cells},
+{opt base:levels},
+{opt allbase:level}s
+{opt nofvlab:el},
+{opt fvwrap(#)},
+{opt fvwrapon(style)},
+{opt cformat(%fmt)},
+and
+{opt nolstretch}
+see {help estimation options##display_options:[R] estimation options}.{p_end}
 
 {phang2}
 The following options control the display of the balance tables:
@@ -445,27 +462,57 @@ logit model to predict treatment status{p_end}
 {phang}For more examples, see psweight_example.do{p_end}
 
 
-{marker results}{...}
-{title:Stored results}
-
-{pstd}
-{cmd:psweight} stores the following in {cmd:e()}:
-
-{phang}lorem ipsum
-
-
 {marker author}{...}
 {title:Author}
 
 {pstd}By Keith Kranker{break}
-Mathematica Policy Research{p_end}
-
-{pstd}This help file last updated $Date${p_end}
+Mathematica{p_end}
 
 {pstd}My coauthors, Laura Blue and Lauren Vollmer Forrow, were closely involved with the
 developement of the Penalized CBPS methodology,
 and we also received many helpful suggestions from our colleages at Mathematica.
 I thank Liz Potamites for testing early versions of the program and providing helpful feedback.{p_end}
+
+
+{marker results}{...}
+{title:Stored results}
+
+{pstd}
+{cmd:psweight} {it:subcommand} and {cmd:psweight} {cmd:balance}
+store the following in {cmd:e()}:
+
+{synoptset 14 tabbed}{...}
+{p2col 5 14 18 2:Scalars}{p_end}
+{synopt :{cmd:e(N)}}number of observations{p_end}
+
+{p2col 5 14 18 2:Macros}{p_end}
+{synopt :{cmd:e(cmd)}}{cmd:psweight}{p_end}
+{synopt :{cmd:e(cmdline)}}command as typed{p_end}
+{synopt :{cmd:e(properties)}}{opt b}{p_end}
+{synopt :{cmd:e(subcmd)}}specified {it:{help psweight##subcommand:subcommand}}{p_end}
+{synopt :{cmd:e(tvar)}}name of the treatment indicator ({it:tvar}){p_end}
+{synopt :{cmd:e(tmvarlist)}}names of the matching variables ({it:tmvarlist}){p_end}
+{synopt :{cmd:e(variance)}}specified {it:{help psweight##variance:variance}}{p_end}
+{synopt :{cmd:e(wtype)}}weight type{p_end}
+{synopt :{cmd:e(wexp)}}weight expression{p_end}
+
+{pstd}
+In addition, {cmd:psweight} {it:subcommand} stores the following in {cmd:e()}:
+
+{p2col 5 14 18 2:Macros}{p_end}
+{synopt :{cmd:e(stat)}}specified {it:{help psweight##stat:stat}}{p_end}
+
+{p2col 5 14 18 2:Matrices}{p_end}
+{synopt :{cmd:e(b)}}coefficient vector{p_end}
+
+{p2col 5 14 18 2:Functions}{p_end}
+{synopt :{cmd:e(sample)}}marks estimation sample{p_end}
+{p2colreset}{...}
+
+{pstd}
+In addition, {cmd:psweight} {cmd:balance} stores a matrix named {cmd:r(bal)}
+and other output in {cmd:r()};
+see {error:  << link to Mata docs >>}
 
 
 {marker references}{...}
@@ -477,7 +524,7 @@ Fong, C., M. Ratkovic, K. Imai, C. Hazlett, X. Yang, and S. Peng.
 CBPS: Covariate Balancing Propensity Score,
 Package for the R programming langauage,
 {it:The Comprehensive R Archive Network}.
-Available at: https://CRAN.R-project.org/package=CBPS
+Available at: {browse "https://CRAN.R-project.org/package=CBPS"}
 
 {psee}
 Hansen, B. B.
