@@ -2,16 +2,16 @@
       name:  psweight_example
        log:  C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\psweight_example.log
   log type:  text
- opened on:  12 Mar 2019, 15:56:12
+ opened on:   5 Jun 2019, 11:08:41
 
 . 
 . // ***************************************************************************
-. *! $Id: psweight_example.do,v d67d2cd70525 2019/03/12 21:55:58 kkranker $
+. *! $Id: psweight_example.do,v d285fc40f0dc 2019/06/03 22:10:31 kkranker $
 . *! IPW- and CBPS-type propensity score reweighting, with extentions
 . *! Example
 . //
 . *! By Keith Kranker
-. // Last updated $Date: 2019/03/12 21:55:58 $
+. // Last updated $Date: 2019/06/03 22:10:31 $
 . //
 . // Copyright (C) Mathematica Policy Research, Inc.
 . // This code cannot be copied, distributed or used without the express written
@@ -27,28 +27,28 @@
 Current user: KKranker
 Environment: Windows PC (64-bit x86-64) KKRANKER
 Stata: 15.1
-Date: 12 Mar 2019 15:56:12
+Date:  5 Jun 2019 11:08:41
 
 . 
 . which psweight
 .\psweight.ado
-*! $Id: psweight.ado,v 91441cc74314 2019/03/12 21:29:51 kkranker $
-*! IPW- and CBPS-type propensity score reweighting, with extentions
+*! psweight.ado
+*! IPW- and CBPS-type propensity score reweighting, with various extentions
 *! Stata command to estimate models
 *! By Keith Kranker
 
 . mata: mata describe using lpsweight
-(library contains 53 members)
+(library contains 54 members)
 
 
       # bytes   type                        name and extent
 -------------------------------------------------------------------------------
         2,276   auto void                   optimize_init_mlopts()
-        4,256   auto classdef scalar        psweight()
+        4,308   auto classdef scalar        psweight()
           852   auto real matrix             ::Ct()
           208   auto real rowvector          ::asd()
-        1,500   auto void                    ::balanceresults()
-        1,852   auto real matrix             ::balancetable()
+        1,324   auto void                    ::balanceresults()
+        2,276   auto real matrix             ::balancetable()
           628   auto void                    ::calcN()
           816   auto void                    ::calccovariances()
           320   auto void                    ::calcmeans()
@@ -72,6 +72,7 @@ Date: 12 Mar 2019 15:56:12
         1,296   auto real colvector          ::logitweights()
           320   auto real scalar             ::max_asd()
           328   auto real scalar             ::mean_asd()
+          328   auto real scalar             ::mean_sd()
           428   auto real scalar             ::mean_sd_sq()
            96   auto void                    ::new()
           688   auto real rowvector          ::olsbeta()
@@ -100,13 +101,40 @@ Date: 12 Mar 2019 15:56:12
 
 . 
 . ************************************************************************************
+. * Simple examples in the help file (psweight.sthlp)
+. ************************************************************************************
+. 
+. if 0 {
+. 
+. //  Setup
+. webuse cattaneo2
+. 
+. //  Balance before reweighting
+. psweight balanceonly mbsmoke mmarried mage fbaby medu
+. 
+. //  Estimate the average treatment effect of smoking on birthweight, using a logit model to predict treatment status
+. psweight ipw mbsmoke mmarried mage fbaby medu
+. psweight call balanceresults()
+. 
+. //  Estimate the average treatment effect on the treated with CBPS
+. psweight cbps mbsmoke mmarried mage fbaby medu, atet
+. psweight call balanceresults()
+. 
+. //  Estimate the average treatment effect on the treated with Penalized CBPS
+. psweight pcbps mbsmoke mmarried mage fbaby medu, atet cvtarget(1 .5 6)
+. psweight call balanceresults()
+. 
+. } // end of simple examples
+
+. 
+. ************************************************************************************
 . * Describe/summarize the example datasets
 . ************************************************************************************
 . 
 . *** Input data file (simple_cattaneo_data) comes from the program named Make_example_datasets.do (in C:\Users\kkranker\Documents\Stata\Multiple-Equation-Model
 > s)
 . 
-. use "C:\Users\kkranker\Documents\Stata\Multiple-Equation-Models\simple_cattaneo_data.dta"
+. use "C:\Users\kkranker\Documents\Stata\Multiple-Equation-Models\simple_cattaneo_data.dta", clear
 (Cattaneo (2010) study on the effect of maternal smoking on birth weight)
 
 . desc, short
@@ -216,6 +244,8 @@ _dta:
 . // *******************************
 . // * RUN MODELS DIRECTLY IN MATA *
 . // *******************************
+. 
+. if 1 {
 . 
 . mata:
 ------------------------------------------------- mata (type end to exit) --------------------------------------------------------------------------------------
@@ -340,6 +370,9 @@ _dta:
          x95 | -.0807251  -.0658282  -.0148969  -.0162985    .914005   .8285405
 -------------------------------------------------------------------------------
   
+  Mean standardized diff.             = -0.14960
+  Mean absolute standardized diff.    = 0.19771
+  Maximum absolute standardized diff. = 0.80355
 
 : 
 : // Replicate CBPS
@@ -469,28 +502,21 @@ Iteration 39:  f(p) =  2.421e-19
          x95 | -.0859152  -.0859155   2.90e-07   2.97e-07   .9766878   .8347647
 -------------------------------------------------------------------------------
   
-  Mean standardized diff., squared
-  1.19407e-14
-  Mean absolute standardized diff.
-  2.03999e-07
-  Maximum absolute standardized diff.
-  4.47721e-07
-  C.V. of matching weights:
-  .5275372126
-  S.D. of matching weights:
-  .5275372126
-  Skewness of matching weights:
-  .2158746778
-  Kurtosis of matching weights:
-  .0860728677
-  Maximum matching weight:
-  6.906396288
+  Mean standardized diff.             = -0.00000
+  Mean absolute standardized diff.    = 0.00000
+  Maximum absolute standardized diff. = 0.00000
+  C.V. of matching weights:           = 0.52754
+  S.D. of matching weights:           = 0.52754
+  Skewness of matching weights:       = 0.21587
+  Kurtosis of matching weights:       = 0.08607
+  Maximum matching weight:            = 6.90640
+  
   Prognostic scores:
 ------------------------------------------------------------------------
              | mean_yhat_T  mean_yhat_C       diff   std_diff   mean_y_C
 -------------+----------------------------------------------------------
-          y1 |    3444.163     3444.163   .0000629   4.36e-07   3444.163
-   y1_binary |    .9544751     .9544751   2.97e-09   7.35e-08   .9544751
+          y1 |    3444.163     3444.163   .0000629   4.13e-07   3444.163
+   y1_binary |    .9544751     .9544751   2.97e-09   6.57e-08   .9544751
 ------------------------------------------------------------------------
   Note: The std_diff column does not account for the standard error of the linear predictions.
 
@@ -609,28 +635,21 @@ Iteration 27:  f(p) =  5.714e-08
          x95 |  -.095014  -.0715949  -.0234192  -.0239414   .9781896   .8041465
 -------------------------------------------------------------------------------
   
-  Mean standardized diff., squared
-  .0027971537
-  Mean absolute standardized diff.
-  .0719658737
-  Maximum absolute standardized diff.
-  .257616171
-  C.V. of matching weights:
-  .2958977283
-  S.D. of matching weights:
-  .2958977283
-  Skewness of matching weights:
-  .1574499131
-  Kurtosis of matching weights:
-  .0654319377
-  Maximum matching weight:
-  4.204591911
+  Mean standardized diff.             = -0.05289
+  Mean absolute standardized diff.    = 0.07197
+  Maximum absolute standardized diff. = 0.25762
+  C.V. of matching weights:           = 0.29590
+  S.D. of matching weights:           = 0.29590
+  Skewness of matching weights:       = 0.15745
+  Kurtosis of matching weights:       = 0.06543
+  Maximum matching weight:            = 4.20459
+  
   Prognostic scores:
 ------------------------------------------------------------------------
              | mean_yhat_T  mean_yhat_C       diff   std_diff   mean_y_C
 -------------+----------------------------------------------------------
-          y1 |    3443.444     3453.946  -10.50206  -.0797226   3453.946
-   y1_binary |    .9509072     .9588221  -.0079149  -.2079758   .9588221
+          y1 |    3443.444     3453.946  -10.50206  -.0757773   3453.946
+   y1_binary |    .9509072     .9588221  -.0079149  -.1916554   .9588221
 ------------------------------------------------------------------------
   Note: The std_diff column does not account for the standard error of the linear predictions.
 
@@ -749,28 +768,21 @@ Iteration 30:  f(p) =  8.507e-20
          x95 | -.0807251  -.0807251   7.57e-09   7.89e-09   .9586344   .8888005
 -------------------------------------------------------------------------------
   
-  Mean standardized diff., squared
-  8.85595e-17
-  Mean absolute standardized diff.
-  7.87875e-08
-  Maximum absolute standardized diff.
-  2.29714e-07
-  C.V. of matching weights:
-  .9884370736
-  S.D. of matching weights:
-  .9884370736
-  Skewness of matching weights:
-  .1100078155
-  Kurtosis of matching weights:
-  .0225364334
-  Maximum matching weight:
-  7.032259837
+  Mean standardized diff.             = -0.00000
+  Mean absolute standardized diff.    = 0.00000
+  Maximum absolute standardized diff. = 0.00000
+  C.V. of matching weights:           = 0.98844
+  S.D. of matching weights:           = 0.98844
+  Skewness of matching weights:       = 0.11001
+  Kurtosis of matching weights:       = 0.02254
+  Maximum matching weight:            = 7.03226
+  
   Prognostic scores:
 ------------------------------------------------------------------------
              | mean_yhat_T  mean_yhat_C       diff   std_diff   mean_y_C
 -------------+----------------------------------------------------------
-          y1 |    3424.753     3424.753  -.0000267  -1.75e-07   3424.753
-   y1_binary |    .9470393     .9470393  -8.59e-09  -1.64e-07   .9470393
+          y1 |    3424.753     3424.753  -.0000267  -1.61e-07   3424.753
+   y1_binary |    .9470393     .9470393  -8.59e-09  -1.61e-07   .9470393
 ------------------------------------------------------------------------
   Note: The std_diff column does not account for the standard error of the linear predictions.
 
@@ -886,28 +898,21 @@ Iteration 25:  f(p) =  1.211e-07
          x95 | -.0807251  -.0745052  -.0062199  -.0064787   .9600495   .8856706
 -------------------------------------------------------------------------------
   
-  Mean standardized diff., squared
-  7.49043e-07
-  Mean absolute standardized diff.
-  .0164087554
-  Maximum absolute standardized diff.
-  .0498389405
-  C.V. of matching weights:
-  .9155855656
-  S.D. of matching weights:
-  .9155855656
-  Skewness of matching weights:
-  .1040781343
-  Kurtosis of matching weights:
-  .0213436959
-  Maximum matching weight:
-  6.683350183
+  Mean standardized diff.             = -0.00087
+  Mean absolute standardized diff.    = 0.01641
+  Maximum absolute standardized diff. = 0.04984
+  C.V. of matching weights:           = 0.91559
+  S.D. of matching weights:           = 0.91559
+  Skewness of matching weights:       = 0.10408
+  Kurtosis of matching weights:       = 0.02134
+  Maximum matching weight:            = 6.68335
+  
   Prognostic scores:
 ------------------------------------------------------------------------
              | mean_yhat_T  mean_yhat_C       diff   std_diff   mean_y_C
 -------------+----------------------------------------------------------
-          y1 |    3424.722     3428.063  -3.341103  -.0220556   3428.063
-   y1_binary |    .9470466     .9484255  -.0013789  -.0271541   .9484255
+          y1 |    3424.722     3428.063  -3.341103  -.0202642   3428.063
+   y1_binary |    .9470466     .9484255  -.0013789  -.0265328   .9484255
 ------------------------------------------------------------------------
   Note: The std_diff column does not account for the standard error of the linear predictions.
 
@@ -978,22 +983,15 @@ Iteration 4:   f(p) =  2.512e-21
          x95 | -.0807251  -.0886593   .0079342   .0086807    .914005    .892775
 -------------------------------------------------------------------------------
   
-  Mean standardized diff., squared
-  2.51158e-21
-  Mean absolute standardized diff.
-  .0359488717
-  Maximum absolute standardized diff.
-  .1080140263
-  C.V. of matching weights:
-  1.041361438
-  S.D. of matching weights:
-  1.041361438
-  Skewness of matching weights:
-  .1710882109
-  Kurtosis of matching weights:
-  .0624918326
-  Maximum matching weight:
-  11.09499509
+  Mean standardized diff.             = -0.00000
+  Mean absolute standardized diff.    = 0.03595
+  Maximum absolute standardized diff. = 0.10801
+  C.V. of matching weights:           = 1.04136
+  S.D. of matching weights:           = 1.04136
+  Skewness of matching weights:       = 0.17109
+  Kurtosis of matching weights:       = 0.06249
+  Maximum matching weight:            = 11.09500
+  
   Prognostic scores:
 ------------------------------------------------------------------------
              | mean_yhat_T  mean_yhat_C       diff   std_diff   mean_y_C
@@ -1118,22 +1116,15 @@ Iteration 21:  f(p) =  1.597e-07  (backed up)
          x95 | -.0807251  -.0806563  -.0000688  -.0000753    .914005   .8888531
 -------------------------------------------------------------------------------
   
-  Mean standardized diff., squared
-  1.09082e-10
-  Mean absolute standardized diff.
-  .0000746269
-  Maximum absolute standardized diff.
-  .0003230882
-  C.V. of matching weights:
-  .9883930978
-  S.D. of matching weights:
-  .9883930978
-  Skewness of matching weights:
-  .1100109822
-  Kurtosis of matching weights:
-  .0225378377
-  Maximum matching weight:
-  7.031258646
+  Mean standardized diff.             = -0.00001
+  Mean absolute standardized diff.    = 0.00007
+  Maximum absolute standardized diff. = 0.00032
+  C.V. of matching weights:           = 0.98839
+  S.D. of matching weights:           = 0.98839
+  Skewness of matching weights:       = 0.11001
+  Kurtosis of matching weights:       = 0.02254
+  Maximum matching weight:            = 7.03126
+  
   Prognostic scores:
 ------------------------------------------------------------------------
              | mean_yhat_T  mean_yhat_C       diff   std_diff   mean_y_C
@@ -1215,22 +1206,15 @@ Iteration 6:   f(p) =  2.535e-16
          x95 | -.0807251  -.0849593   .0042342   .0046326    .914005   .8909529
 -------------------------------------------------------------------------------
   
-  Mean standardized diff., squared
-  4.11614e-07
-  Mean absolute standardized diff.
-  .0335837223
-  Maximum absolute standardized diff.
-  .0965145126
-  C.V. of matching weights:
-  1.045817005
-  S.D. of matching weights:
-  1.045817005
-  Skewness of matching weights:
-  .1663221078
-  Kurtosis of matching weights:
-  .0587525915
-  Maximum matching weight:
-  10.93728965
+  Mean standardized diff.             = 0.00064
+  Mean absolute standardized diff.    = 0.03358
+  Maximum absolute standardized diff. = 0.09651
+  C.V. of matching weights:           = 1.04582
+  S.D. of matching weights:           = 1.04582
+  Skewness of matching weights:       = 0.16632
+  Kurtosis of matching weights:       = 0.05875
+  Maximum matching weight:            = 10.93729
+  
   Prognostic scores:
 ------------------------------------------------------------------------
              | mean_yhat_T  mean_yhat_C       diff   std_diff   mean_y_C
@@ -1401,28 +1385,21 @@ Iteration 4:   f(p) = -211.17753
          x95 | -.0807251  -.0974964   .0167713   .0175493   .9556712   .8954759
 -------------------------------------------------------------------------------
   
-  Mean standardized diff., squared
-  .0002347319
-  Mean absolute standardized diff.
-  .0259014405
-  Maximum absolute standardized diff.
-  .0877663592
-  C.V. of matching weights:
-  1.041445134
-  S.D. of matching weights:
-  1.041445134
-  Skewness of matching weights:
-  .1334759573
-  Kurtosis of matching weights:
-  .0358990807
-  Maximum matching weight:
-  9.288959251
+  Mean standardized diff.             = 0.01532
+  Mean absolute standardized diff.    = 0.02590
+  Maximum absolute standardized diff. = 0.08777
+  C.V. of matching weights:           = 1.04145
+  S.D. of matching weights:           = 1.04145
+  Skewness of matching weights:       = 0.13348
+  Kurtosis of matching weights:       = 0.03590
+  Maximum matching weight:            = 9.28896
+  
   Prognostic scores:
 ------------------------------------------------------------------------
              | mean_yhat_T  mean_yhat_C       diff   std_diff   mean_y_C
 -------------+----------------------------------------------------------
-          y1 |    3424.454     3417.895   6.559175   .0419488   3417.895
-   y1_binary |    .9470413     .9465176   .0005237    .009748   .9465176
+          y1 |    3424.454     3417.895   6.559175   .0382875   3417.895
+   y1_binary |    .9470413     .9465176   .0005237   .0094247   .9465176
 ------------------------------------------------------------------------
   Note: The std_diff column does not account for the standard error of the linear predictions.
 
@@ -1452,6 +1429,9 @@ Iteration 4:   f(p) = -211.17753
          x95 | -.0807251  -.0974964   .0167713   .0178362   .9402985   .8954759
 -------------------------------------------------------------------------------
   
+  Mean standardized diff.             = 0.01616
+  Mean absolute standardized diff.    = 0.02676
+  Maximum absolute standardized diff. = 0.09515
 
 :   D.reweight()
 
@@ -1481,6 +1461,9 @@ Iteration 4:   f(p) = -211.17753
          x95 | -.0807251  -.0658282  -.0148969  -.0155155   .9601277   .8285405
 -------------------------------------------------------------------------------
   
+  Mean standardized diff.             = -0.13501
+  Mean absolute standardized diff.    = 0.18294
+  Maximum absolute standardized diff. = 0.65427
 
 : 
 :   stata("teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' , ate aequations")
@@ -1570,28 +1553,21 @@ Iteration 4:   f(p) = -211.17753
          x95 | -.0930146  -.0717394  -.0212752  -.0217631   .9775833   .7971968
 -------------------------------------------------------------------------------
   
-  Mean standardized diff., squared
-  .0024703949
-  Mean absolute standardized diff.
-  .0706136183
-  Maximum absolute standardized diff.
-  .2146119669
-  C.V. of matching weights:
-  .3337259557
-  S.D. of matching weights:
-  .3337259557
-  Skewness of matching weights:
-  .184312389
-  Kurtosis of matching weights:
-  .0838509711
-  Maximum matching weight:
-  4.898168754
+  Mean standardized diff.             = -0.04970
+  Mean absolute standardized diff.    = 0.07061
+  Maximum absolute standardized diff. = 0.21461
+  C.V. of matching weights:           = 0.33373
+  S.D. of matching weights:           = 0.33373
+  Skewness of matching weights:       = 0.18431
+  Kurtosis of matching weights:       = 0.08385
+  Maximum matching weight:            = 4.89817
+  
   Prognostic scores:
 ------------------------------------------------------------------------
              | mean_yhat_T  mean_yhat_C       diff   std_diff   mean_y_C
 -------------+----------------------------------------------------------
-          y1 |    3442.587     3452.527  -9.940045  -.0756667   3452.527
-   y1_binary |    .9516224     .9581213  -.0064989  -.1701548   .9581213
+          y1 |    3442.587     3452.527  -9.940045   -.071235   3452.527
+   y1_binary |    .9516224     .9581213  -.0064989  -.1556173   .9581213
 ------------------------------------------------------------------------
   Note: The std_diff column does not account for the standard error of the linear predictions.
 
@@ -1683,28 +1659,21 @@ Iteration 4:   f(p) = -211.17753
          x95 |  -.096076  -.0658282  -.0302478  -.0307892   .9824155   .7755988
 -------------------------------------------------------------------------------
   
-  Mean standardized diff., squared
-  .0040935914
-  Mean absolute standardized diff.
-  .0900339258
-  Maximum absolute standardized diff.
-  .2813566293
-  C.V. of matching weights:
-  .8301616288
-  S.D. of matching weights:
-  .8301616288
-  Skewness of matching weights:
-  .2680619565
-  Kurtosis of matching weights:
-  .1550433582
-  Maximum matching weight:
-  5.869225813
+  Mean standardized diff.             = -0.06398
+  Mean absolute standardized diff.    = 0.09003
+  Maximum absolute standardized diff. = 0.28136
+  C.V. of matching weights:           = 0.83016
+  S.D. of matching weights:           = 0.83016
+  Skewness of matching weights:       = 0.26806
+  Kurtosis of matching weights:       = 0.15504
+  Maximum matching weight:            = 5.86923
+  
   Prognostic scores:
 ------------------------------------------------------------------------
              | mean_yhat_T  mean_yhat_C       diff   std_diff   mean_y_C
 -------------+----------------------------------------------------------
-          y1 |     3447.97     3460.475  -12.50512  -.0958312   3460.475
-   y1_binary |    .9524694     .9607843  -.0083149  -.2347296   .9607843
+          y1 |     3447.97     3460.475  -12.50512  -.0913567   3460.475
+   y1_binary |    .9524694     .9607843  -.0083149   -.208073   .9607843
 ------------------------------------------------------------------------
   Note: The std_diff column does not account for the standard error of the linear predictions.
 
@@ -1789,22 +1758,15 @@ Iteration 30:  f(p) =  8.507e-20
          x95 | -.0807251  -.0807251   7.57e-09   8.28e-09    .914005   .8888005
 -------------------------------------------------------------------------------
   
-  Mean standardized diff., squared
-  2.36461e-16
-  Mean absolute standardized diff.
-  8.43300e-08
-  Maximum absolute standardized diff.
-  2.28691e-07
-  C.V. of matching weights:
-  .9884370736
-  S.D. of matching weights:
-  .9884370736
-  Skewness of matching weights:
-  .1100078155
-  Kurtosis of matching weights:
-  .0225364334
-  Maximum matching weight:
-  7.032259837
+  Mean standardized diff.             = -0.00000
+  Mean absolute standardized diff.    = 0.00000
+  Maximum absolute standardized diff. = 0.00000
+  C.V. of matching weights:           = 0.98844
+  S.D. of matching weights:           = 0.98844
+  Skewness of matching weights:       = 0.11001
+  Kurtosis of matching weights:       = 0.02254
+  Maximum matching weight:            = 7.03226
+  
   Prognostic scores:
 ------------------------------------------------------------------------
              | mean_yhat_T  mean_yhat_C       diff   std_diff   mean_y_C
@@ -1985,22 +1947,15 @@ convergence not achieved
          x95 | -.0807251  -.0887859   .0080608   .0088193    .914005   .8754237
 -------------------------------------------------------------------------------
   
-  Mean standardized diff., squared
-  .0004650287
-  Mean absolute standardized diff.
-  .0339653292
-  Maximum absolute standardized diff.
-  .1232169149
-  C.V. of matching weights:
-  .778078592
-  S.D. of matching weights:
-  .778078592
-  Skewness of matching weights:
-  .0865248149
-  Kurtosis of matching weights:
-  .0155157827
-  Maximum matching weight:
-  4.987644238
+  Mean standardized diff.             = -0.02156
+  Mean absolute standardized diff.    = 0.03397
+  Maximum absolute standardized diff. = 0.12322
+  C.V. of matching weights:           = 0.77808
+  S.D. of matching weights:           = 0.77808
+  Skewness of matching weights:       = 0.08652
+  Kurtosis of matching weights:       = 0.01552
+  Maximum matching weight:            = 4.98764
+  
   Prognostic scores:
 ------------------------------------------------------------------------
              | mean_yhat_T  mean_yhat_C       diff   std_diff   mean_y_C
@@ -2181,22 +2136,15 @@ convergence not achieved
          x95 | -.0807251  -.0932284   .0125033   .0136797    .914005     .86217
 -------------------------------------------------------------------------------
   
-  Mean standardized diff., squared
-  .0029575921
-  Mean absolute standardized diff.
-  .0786438504
-  Maximum absolute standardized diff.
-  .2959160614
-  C.V. of matching weights:
-  .5321577
-  S.D. of matching weights:
-  .5321577
-  Skewness of matching weights:
-  .0630178827
-  Kurtosis of matching weights:
-  .0107803689
-  Maximum matching weight:
-  3.266346648
+  Mean standardized diff.             = -0.05438
+  Mean absolute standardized diff.    = 0.07864
+  Maximum absolute standardized diff. = 0.29592
+  C.V. of matching weights:           = 0.53216
+  S.D. of matching weights:           = 0.53216
+  Skewness of matching weights:       = 0.06302
+  Kurtosis of matching weights:       = 0.01078
+  Maximum matching weight:            = 3.26635
+  
   Prognostic scores:
 ------------------------------------------------------------------------
              | mean_yhat_T  mean_yhat_C       diff   std_diff   mean_y_C
@@ -2332,22 +2280,15 @@ Iteration 24:  f(p) =  1.985e-11
          x95 | -.0807251  -.0878851     .00716   .0078336    .914005   .8758486
 -------------------------------------------------------------------------------
   
-  Mean standardized diff., squared
-  4.04309e-12
-  Mean absolute standardized diff.
-  .063052741
-  Maximum absolute standardized diff.
-  .27035119
-  C.V. of matching weights:
-  .7658421581
-  S.D. of matching weights:
-  .7658421581
-  Skewness of matching weights:
-  .0880496553
-  Kurtosis of matching weights:
-  .0148451646
-  Maximum matching weight:
-  4.315297317
+  Mean standardized diff.             = 0.00000
+  Mean absolute standardized diff.    = 0.06305
+  Maximum absolute standardized diff. = 0.27035
+  C.V. of matching weights:           = 0.76584
+  S.D. of matching weights:           = 0.76584
+  Skewness of matching weights:       = 0.08805
+  Kurtosis of matching weights:       = 0.01485
+  Maximum matching weight:            = 4.31530
+  
   Prognostic scores:
 ------------------------------------------------------------------------
              | mean_yhat_T  mean_yhat_C       diff   std_diff   mean_y_C
@@ -2532,22 +2473,15 @@ Iteration 41:  f(p) =  4.112e-10
          x95 | -.0807251  -.1917338   .1110087    .121453    .914005   .8724406
 -------------------------------------------------------------------------------
   
-  Mean standardized diff., squared
-  4.93609e-13
-  Mean absolute standardized diff.
-  .1561149484
-  Maximum absolute standardized diff.
-  .424453494
-  C.V. of matching weights:
-  .5272638395
-  S.D. of matching weights:
-  .5272638395
-  Skewness of matching weights:
-  .07133884
-  Kurtosis of matching weights:
-  .0142383904
-  Maximum matching weight:
-  3.238925246
+  Mean standardized diff.             = -0.00000
+  Mean absolute standardized diff.    = 0.15611
+  Maximum absolute standardized diff. = 0.42445
+  C.V. of matching weights:           = 0.52726
+  S.D. of matching weights:           = 0.52726
+  Skewness of matching weights:       = 0.07134
+  Kurtosis of matching weights:       = 0.01424
+  Maximum matching weight:            = 3.23893
+  
   Prognostic scores:
 ------------------------------------------------------------------------
              | mean_yhat_T  mean_yhat_C       diff   std_diff   mean_y_C
@@ -2647,22 +2581,15 @@ Iteration 39:  f(p) =  .03891644
          x95 | -.0807251  -.0955472   .0148221   .0162166    .914005   .8693439
 -------------------------------------------------------------------------------
   
-  Mean standardized diff., squared
-  .0111018423
-  Mean absolute standardized diff.
-  .1853850309
-  Maximum absolute standardized diff.
-  .5876748378
-  C.V. of matching weights:
-  .9715245684
-  S.D. of matching weights:
-  .9715245684
-  Skewness of matching weights:
-  .5328905715
-  Kurtosis of matching weights:
-  .4123741838
-  Maximum matching weight:
-  16.67392699
+  Mean standardized diff.             = -0.10537
+  Mean absolute standardized diff.    = 0.18539
+  Maximum absolute standardized diff. = 0.58767
+  C.V. of matching weights:           = 0.97152
+  S.D. of matching weights:           = 0.97152
+  Skewness of matching weights:       = 0.53289
+  Kurtosis of matching weights:       = 0.41237
+  Maximum matching weight:            = 16.67393
+  
   Prognostic scores:
 ------------------------------------------------------------------------
              | mean_yhat_T  mean_yhat_C       diff   std_diff   mean_y_C
@@ -2786,6 +2713,9 @@ Iteration 39:  f(p) =  .03891644
          x95 | -.1044649  -.0695904  -.0348746  -.0384511   .9069849   .8141756
 -------------------------------------------------------------------------------
   
+  Mean standardized diff.             = -0.14590
+  Mean absolute standardized diff.    = 0.19982
+  Maximum absolute standardized diff. = 0.79698
 
 : 
 : // Replicate CBPS
@@ -2917,28 +2847,21 @@ Iteration 73:  f(p) =  7.793e-14
          x95 | -.0894585   -.089459   5.39e-07   5.51e-07   .9789419   .8236875
 -------------------------------------------------------------------------------
   
-  Mean standardized diff., squared
-  7.43885e-13
-  Mean absolute standardized diff.
-  1.59279e-06
-  Maximum absolute standardized diff.
-  4.65080e-06
-  C.V. of matching weights:
-  .5271017371
-  S.D. of matching weights:
-  .5285016261
-  Skewness of matching weights:
-  .2026538297
-  Kurtosis of matching weights:
-  .0762388752
-  Maximum matching weight:
-  6.642347912
+  Mean standardized diff.             = -0.00000
+  Mean absolute standardized diff.    = 0.00000
+  Maximum absolute standardized diff. = 0.00000
+  C.V. of matching weights:           = 0.52710
+  S.D. of matching weights:           = 0.52850
+  Skewness of matching weights:       = 0.20265
+  Kurtosis of matching weights:       = 0.07624
+  Maximum matching weight:            = 6.64235
+  
   Prognostic scores:
 ------------------------------------------------------------------------
              | mean_yhat_T  mean_yhat_C       diff   std_diff   mean_y_C
 -------------+----------------------------------------------------------
-          y1 |    3445.465     3445.465   .0003474   2.36e-06   3445.465
-   y1_binary |    .9569443     .9569441   1.47e-07   3.70e-06   .9569441
+          y1 |    3445.465     3445.465   .0003474   2.24e-06   3445.465
+   y1_binary |    .9569443     .9569441   1.47e-07   3.27e-06   .9569441
 ------------------------------------------------------------------------
   Note: The std_diff column does not account for the standard error of the linear predictions.
 
@@ -3041,28 +2964,21 @@ Iteration 44:  f(p) =  .01777184
          x95 | -.1053625    -.07164  -.0337225  -.0344809   .9780038    .803947
 -------------------------------------------------------------------------------
   
-  Mean standardized diff., squared
-  .0025726843
-  Mean absolute standardized diff.
-  .0771004621
-  Maximum absolute standardized diff.
-  .2533224801
-  C.V. of matching weights:
-  .3236892875
-  S.D. of matching weights:
-  .3244154606
-  Skewness of matching weights:
-  .1499734439
-  Kurtosis of matching weights:
-  .0569706877
-  Maximum matching weight:
-  4.343315815
+  Mean standardized diff.             = -0.05072
+  Mean absolute standardized diff.    = 0.07710
+  Maximum absolute standardized diff. = 0.25332
+  C.V. of matching weights:           = 0.32369
+  S.D. of matching weights:           = 0.32442
+  Skewness of matching weights:       = 0.14997
+  Kurtosis of matching weights:       = 0.05697
+  Maximum matching weight:            = 4.34332
+  
   Prognostic scores:
 ------------------------------------------------------------------------
              | mean_yhat_T  mean_yhat_C       diff   std_diff   mean_y_C
 -------------+----------------------------------------------------------
-          y1 |    3443.873     3455.428  -11.55448  -.0858345   3455.428
-   y1_binary |    .9538356     .9614582  -.0076226  -.2014405   .9614582
+          y1 |    3443.873     3455.428  -11.55448  -.0823173   3455.428
+   y1_binary |    .9538356     .9614582  -.0076226  -.1871522   .9614582
 ------------------------------------------------------------------------
   Note: The std_diff column does not account for the standard error of the linear predictions.
 
@@ -3183,28 +3099,21 @@ Iteration 62:  f(p) =  1.511e-13
          x95 | -.1044649  -.1044664   1.41e-06   1.46e-06   .9627681   .8646446
 -------------------------------------------------------------------------------
   
-  Mean standardized diff., squared
-  4.61593e-12
-  Mean absolute standardized diff.
-  3.36871e-06
-  Maximum absolute standardized diff.
-  9.57718e-06
-  C.V. of matching weights:
-  1.031943603
-  S.D. of matching weights:
-  1.027126741
-  Skewness of matching weights:
-  .1135031637
-  Kurtosis of matching weights:
-  .0229213062
-  Maximum matching weight:
-  7.00792466
+  Mean standardized diff.             = 0.00000
+  Mean absolute standardized diff.    = 0.00000
+  Maximum absolute standardized diff. = 0.00001
+  C.V. of matching weights:           = 1.03194
+  S.D. of matching weights:           = 1.02713
+  Skewness of matching weights:       = 0.11350
+  Kurtosis of matching weights:       = 0.02292
+  Maximum matching weight:            = 7.00792
+  
   Prognostic scores:
 ------------------------------------------------------------------------
              | mean_yhat_T  mean_yhat_C       diff   std_diff   mean_y_C
 -------------+----------------------------------------------------------
-          y1 |    3431.367     3431.366   .0005901   3.70e-06   3431.366
-   y1_binary |    .9509094     .9509091   2.71e-07   5.55e-06   .9509091
+          y1 |    3431.367     3431.366   .0005901   3.44e-06   3431.366
+   y1_binary |    .9509094     .9509091   2.71e-07   5.40e-06   .9509091
 ------------------------------------------------------------------------
   Note: The std_diff column does not account for the standard error of the linear predictions.
 
@@ -3306,28 +3215,21 @@ Iteration 43:  f(p) =  .00017215
          x95 | -.1044649  -.1015495  -.0029155   -.003029   .9625008   .8652191
 -------------------------------------------------------------------------------
   
-  Mean standardized diff., squared
-  3.24224e-06
-  Mean absolute standardized diff.
-  .005796575
-  Maximum absolute standardized diff.
-  .0111275825
-  C.V. of matching weights:
-  1.0190338
-  S.D. of matching weights:
-  1.014129186
-  Skewness of matching weights:
-  .1128933337
-  Kurtosis of matching weights:
-  .0230686592
-  Maximum matching weight:
-  7.109590442
+  Mean standardized diff.             = 0.00180
+  Mean absolute standardized diff.    = 0.00580
+  Maximum absolute standardized diff. = 0.01113
+  C.V. of matching weights:           = 1.01903
+  S.D. of matching weights:           = 1.01413
+  Skewness of matching weights:       = 0.11289
+  Kurtosis of matching weights:       = 0.02307
+  Maximum matching weight:            = 7.10959
+  
   Prognostic scores:
 ------------------------------------------------------------------------
              | mean_yhat_T  mean_yhat_C       diff   std_diff   mean_y_C
 -------------+----------------------------------------------------------
-          y1 |    3431.338     3430.734   .6043149   .0037958   3430.734
-   y1_binary |    .9509085     .9508973   .0000113   .0002306   .9508973
+          y1 |    3431.338     3430.734   .6043149   .0035138   3430.734
+   y1_binary |    .9509085     .9508973   .0000113   .0002232   .9508973
 ------------------------------------------------------------------------
   Note: The std_diff column does not account for the standard error of the linear predictions.
 
@@ -3399,22 +3301,15 @@ Iteration 4:   f(p) =  1.988e-21
          x95 | -.1044649   -.104167  -.0002979  -.0003285   .9069849   .8690485
 -------------------------------------------------------------------------------
   
-  Mean standardized diff., squared
-  1.98817e-21
-  Mean absolute standardized diff.
-  .0326483296
-  Maximum absolute standardized diff.
-  .0906571688
-  C.V. of matching weights:
-  1.06701684
-  S.D. of matching weights:
-  1.064358816
-  Skewness of matching weights:
-  .1583892384
-  Kurtosis of matching weights:
-  .0509012068
-  Maximum matching weight:
-  10.57744036
+  Mean standardized diff.             = -0.00000
+  Mean absolute standardized diff.    = 0.03265
+  Maximum absolute standardized diff. = 0.09066
+  C.V. of matching weights:           = 1.06702
+  S.D. of matching weights:           = 1.06436
+  Skewness of matching weights:       = 0.15839
+  Kurtosis of matching weights:       = 0.05090
+  Maximum matching weight:            = 10.57744
+  
   Prognostic scores:
 ------------------------------------------------------------------------
              | mean_yhat_T  mean_yhat_C       diff   std_diff   mean_y_C
@@ -3543,22 +3438,15 @@ Iteration 22:  f(p) =  2.156e-07  (backed up)
          x95 | -.1044649  -.1044612  -3.73e-06  -4.11e-06   .9069849   .8646937
 -------------------------------------------------------------------------------
   
-  Mean standardized diff., squared
-  9.13253e-13
-  Mean absolute standardized diff.
-  .0000763001
-  Maximum absolute standardized diff.
-  .0003408973
-  C.V. of matching weights:
-  1.031828628
-  S.D. of matching weights:
-  1.027013976
-  Skewness of matching weights:
-  .1135222631
-  Kurtosis of matching weights:
-  .0229324011
-  Maximum matching weight:
-  7.010362717
+  Mean standardized diff.             = 0.00000
+  Mean absolute standardized diff.    = 0.00008
+  Maximum absolute standardized diff. = 0.00034
+  C.V. of matching weights:           = 1.03183
+  S.D. of matching weights:           = 1.02701
+  Skewness of matching weights:       = 0.11352
+  Kurtosis of matching weights:       = 0.02293
+  Maximum matching weight:            = 7.01036
+  
   Prognostic scores:
 ------------------------------------------------------------------------
              | mean_yhat_T  mean_yhat_C       diff   std_diff   mean_y_C
@@ -3641,22 +3529,15 @@ Iteration 6:   f(p) =  8.192e-11  (backed up)
          x95 | -.1044649  -.0999108  -.0045541  -.0050212   .9069849   .8678581
 -------------------------------------------------------------------------------
   
-  Mean standardized diff., squared
-  3.80000e-06
-  Mean absolute standardized diff.
-  .0312468533
-  Maximum absolute standardized diff.
-  .0784253358
-  C.V. of matching weights:
-  1.069659157
-  S.D. of matching weights:
-  1.066612986
-  Skewness of matching weights:
-  .1534175628
-  Kurtosis of matching weights:
-  .0473557619
-  Maximum matching weight:
-  10.35645318
+  Mean standardized diff.             = 0.00195
+  Mean absolute standardized diff.    = 0.03125
+  Maximum absolute standardized diff. = 0.07843
+  C.V. of matching weights:           = 1.06966
+  S.D. of matching weights:           = 1.06661
+  Skewness of matching weights:       = 0.15342
+  Kurtosis of matching weights:       = 0.04736
+  Maximum matching weight:            = 10.35645
+  
   Prognostic scores:
 ------------------------------------------------------------------------
              | mean_yhat_T  mean_yhat_C       diff   std_diff   mean_y_C
@@ -3857,6 +3738,9 @@ Iteration 5:   f(p) = -411.19865
          x95 | -.1044649  -.1114622   .0069973   .0074459   .9397461   .8717687
 -------------------------------------------------------------------------------
   
+  Mean standardized diff.             = 0.01461
+  Mean absolute standardized diff.    = 0.02494
+  Maximum absolute standardized diff. = 0.08855
 
 :   DW.pomean()
                  1             2
@@ -3892,6 +3776,9 @@ Iteration 5:   f(p) = -411.19865
          x95 | -.1044649  -.0695904  -.0348746  -.0364286   .9573389   .8141756
 -------------------------------------------------------------------------------
   
+  Mean standardized diff.             = -0.13302
+  Mean absolute standardized diff.    = 0.18704
+  Maximum absolute standardized diff. = 0.65945
 
 : 
 :   stata("teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' [iw=`wgtvar'], ate aequations")
@@ -4131,22 +4018,15 @@ Iteration 62:  f(p) =  1.511e-13
          x95 | -.1044649  -.1044664   1.41e-06   1.55e-06   .9069849   .8646446
 -------------------------------------------------------------------------------
   
-  Mean standardized diff., squared
-  5.75964e-12
-  Mean absolute standardized diff.
-  3.59851e-06
-  Maximum absolute standardized diff.
-  .0000119129
-  C.V. of matching weights:
-  1.031943603
-  S.D. of matching weights:
-  1.027126741
-  Skewness of matching weights:
-  .1135031637
-  Kurtosis of matching weights:
-  .0229213062
-  Maximum matching weight:
-  7.00792466
+  Mean standardized diff.             = 0.00000
+  Mean absolute standardized diff.    = 0.00000
+  Maximum absolute standardized diff. = 0.00001
+  C.V. of matching weights:           = 1.03194
+  S.D. of matching weights:           = 1.02713
+  Skewness of matching weights:       = 0.11350
+  Kurtosis of matching weights:       = 0.02292
+  Maximum matching weight:            = 7.00792
+  
   Prognostic scores:
 ------------------------------------------------------------------------
              | mean_yhat_T  mean_yhat_C       diff   std_diff   mean_y_C
@@ -4271,22 +4151,15 @@ Iteration 65:  f(p) =  .00001246
          x95 | -.1044649  -.0986898  -.0057751  -.0063674   .9069849   .8554811
 -------------------------------------------------------------------------------
   
-  Mean standardized diff., squared
-  .0003053599
-  Mean absolute standardized diff.
-  .026090974
-  Maximum absolute standardized diff.
-  .097828831
-  C.V. of matching weights:
-  .8670543817
-  S.D. of matching weights:
-  .8635481851
-  Skewness of matching weights:
-  .0962286395
-  Kurtosis of matching weights:
-  .0177408164
-  Maximum matching weight:
-  5.513144372
+  Mean standardized diff.             = -0.01747
+  Mean absolute standardized diff.    = 0.02609
+  Maximum absolute standardized diff. = 0.09783
+  C.V. of matching weights:           = 0.86705
+  S.D. of matching weights:           = 0.86355
+  Skewness of matching weights:       = 0.09623
+  Kurtosis of matching weights:       = 0.01774
+  Maximum matching weight:            = 5.51314
+  
   Prognostic scores:
 ------------------------------------------------------------------------
              | mean_yhat_T  mean_yhat_C       diff   std_diff   mean_y_C
@@ -4411,22 +4284,15 @@ Iteration 65:  f(p) =  .00007967
          x95 | -.1044649  -.0909646  -.0135004  -.0148849   .9069849   .8447606
 -------------------------------------------------------------------------------
   
-  Mean standardized diff., squared
-  .0019585256
-  Mean absolute standardized diff.
-  .0641628423
-  Maximum absolute standardized diff.
-  .243300532
-  C.V. of matching weights:
-  .6486308156
-  S.D. of matching weights:
-  .6465924813
-  Skewness of matching weights:
-  .075272891
-  Kurtosis of matching weights:
-  .0127428766
-  Maximum matching weight:
-  3.883536568
+  Mean standardized diff.             = -0.04426
+  Mean absolute standardized diff.    = 0.06416
+  Maximum absolute standardized diff. = 0.24330
+  C.V. of matching weights:           = 0.64863
+  S.D. of matching weights:           = 0.64659
+  Skewness of matching weights:       = 0.07527
+  Kurtosis of matching weights:       = 0.01274
+  Maximum matching weight:            = 3.88354
+  
   Prognostic scores:
 ------------------------------------------------------------------------
              | mean_yhat_T  mean_yhat_C       diff   std_diff   mean_y_C
@@ -4578,22 +4444,15 @@ Iteration 29:  f(p) =  2.038e-11
          x95 | -.1044649  -.1133624   .0088975   .0098099   .9069849   .8531474
 -------------------------------------------------------------------------------
   
-  Mean standardized diff., squared
-  1.95398e-13
-  Mean absolute standardized diff.
-  .1001475077
-  Maximum absolute standardized diff.
-  .4380997181
-  C.V. of matching weights:
-  .7665013328
-  S.D. of matching weights:
-  .764942466
-  Skewness of matching weights:
-  .1049590387
-  Kurtosis of matching weights:
-  .0204808115
-  Maximum matching weight:
-  5.312906803
+  Mean standardized diff.             = -0.00000
+  Mean absolute standardized diff.    = 0.10015
+  Maximum absolute standardized diff. = 0.43810
+  C.V. of matching weights:           = 0.76650
+  S.D. of matching weights:           = 0.76494
+  Skewness of matching weights:       = 0.10496
+  Kurtosis of matching weights:       = 0.02048
+  Maximum matching weight:            = 5.31291
+  
   Prognostic scores:
 ------------------------------------------------------------------------
              | mean_yhat_T  mean_yhat_C       diff   std_diff   mean_y_C
@@ -4773,22 +4632,15 @@ Iteration 39:  f(p) =  2.322e-11
          x95 | -.1044649  -.2273282   .1228633   .1354634   .9069849   .8445254
 -------------------------------------------------------------------------------
   
-  Mean standardized diff., squared
-  8.84689e-13
-  Mean absolute standardized diff.
-  .1617776917
-  Maximum absolute standardized diff.
-  .5024333327
-  C.V. of matching weights:
-  .5167814151
-  S.D. of matching weights:
-  .5161926947
-  Skewness of matching weights:
-  .0687147553
-  Kurtosis of matching weights:
-  .0139619518
-  Maximum matching weight:
-  3.306047969
+  Mean standardized diff.             = 0.00000
+  Mean absolute standardized diff.    = 0.16178
+  Maximum absolute standardized diff. = 0.50243
+  C.V. of matching weights:           = 0.51678
+  S.D. of matching weights:           = 0.51619
+  Skewness of matching weights:       = 0.06871
+  Kurtosis of matching weights:       = 0.01396
+  Maximum matching weight:            = 3.30605
+  
   Prognostic scores:
 ------------------------------------------------------------------------
              | mean_yhat_T  mean_yhat_C       diff   std_diff   mean_y_C
@@ -4863,22 +4715,15 @@ Iteration 4:   f(p) =  1.988e-21
          x95 | -.1044649   -.104167  -.0002979  -.0003285   .9069849   .8690485
 -------------------------------------------------------------------------------
   
-  Mean standardized diff., squared
-  1.98817e-21
-  Mean absolute standardized diff.
-  .0326483296
-  Maximum absolute standardized diff.
-  .0906571688
-  C.V. of matching weights:
-  1.06701684
-  S.D. of matching weights:
-  1.064358816
-  Skewness of matching weights:
-  .1583892384
-  Kurtosis of matching weights:
-  .0509012068
-  Maximum matching weight:
-  10.57744036
+  Mean standardized diff.             = -0.00000
+  Mean absolute standardized diff.    = 0.03265
+  Maximum absolute standardized diff. = 0.09066
+  C.V. of matching weights:           = 1.06702
+  S.D. of matching weights:           = 1.06436
+  Skewness of matching weights:       = 0.15839
+  Kurtosis of matching weights:       = 0.05090
+  Maximum matching weight:            = 10.57744
+  
   Prognostic scores:
 ------------------------------------------------------------------------
              | mean_yhat_T  mean_yhat_C       diff   std_diff   mean_y_C
@@ -4895,11 +4740,13 @@ Iteration 4:   f(p) =  1.988e-21
 : 
 : end  // end of Mata block
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
+. 
+. } // end of Mata examples
 
 . 
 . log close psweight_example
       name:  psweight_example
        log:  C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\psweight_example.log
   log type:  text
- closed on:  12 Mar 2019, 15:57:32
+ closed on:   5 Jun 2019, 11:09:44
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------

@@ -2,16 +2,14 @@
       name:  psweight_example_ado
        log:  C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\psweight_example_ado.log
   log type:  text
- opened on:  12 Mar 2019, 15:57:32
-
+ opened on:   5 Jun 2019, 11:09:44
 . 
 . di as txt "Current user: `c(username)'" _n "Environment: `c(os)' `c(machine_type)' `: environment computername'" _n "Stata: `c(stata_version)'" cond(c(stata_v
 > ersion)==c(version),""," (set to version `c(version)')") _n "Date: " c(current_date) " " c(current_time)
 Current user: KKranker
 Environment: Windows PC (64-bit x86-64) KKRANKER
 Stata: 15.1
-Date: 12 Mar 2019 15:57:32
-
+Date:  5 Jun 2019 11:09:44
 . desc, short
 
 Contains data from C:\Users\kkranker\Documents\Stata\Multiple-Equation-Models\simple_cattaneo_data.dta
@@ -20,9 +18,7 @@ Contains data from C:\Users\kkranker\Documents\Stata\Multiple-Equation-Models\si
  size:       357,434                          
 Sorted by: 
      Note: Dataset has changed since last saved.
-
 . local varlist : copy local varlist_orig
-
 . summ `treatvar' `varlist' `tousevar' `wgtvar' `depvars'
 
     Variable |        Obs        Mean    Std. Dev.       Min        Max
@@ -48,18 +44,15 @@ Sorted by:
          wgt |      4,642    1.993316    .4062602   .6638338   3.540576
           y1 |      4,642     3361.68    578.8196        340       5500
    y1_binary |      4,642    .9396812    .2381022          0          1
-
 . if (trim("`depvars'") != "") local depvaropt depvars(`depvars')
-
-. 
+. ereturn clear
+.  return clear
 . 
 . // balance before matching
 . psweight balanceonly `treatvar' `varlist' if `tousevar'
   408 control obs
   92 treatment obs
   (Data are unweighted.)
-  Unmatched data
-  Balance:
 -------------------------------------------------------------------------------
              |    mean_T     mean_C       diff   std_diff    sd_pool  var_ratio
 -------------+-----------------------------------------------------------------
@@ -85,28 +78,34 @@ Sorted by:
          x95 | -.0807251  -.0658282  -.0148969  -.0150884   .9873048   .8285405
 -------------------------------------------------------------------------------
   
-  Mean standardized diff., squared
-  .0162675551
-  Mean absolute standardized diff.
-  .1753994534
-  Maximum absolute standardized diff.
-  .6149214017
-  C.V. of matching weights:
-  0
-  S.D. of matching weights:
-  0
-  Skewness of matching weights:
-  .
-  Kurtosis of matching weights:
-  .
-  Maximum matching weight:
-  1
+  Mean standardized diff.             = -0.12754
+  Mean absolute standardized diff.    = 0.17540
+  Maximum absolute standardized diff. = 0.61492
+. ereturn list
 
+macros:
+                e(cmd) : "psweight"
+            e(cmdline) : "psweight balanceonly treat x1 i.x2 i.x3 x4 x5 x6 x7 x9* if touse"
+             e(subcmd) : "balanceonly"
+          e(tmvarlist) : "x1 0b.x2 1.x2 0b.x3 1.x3 x4 x5 x6 x7 x90 x91 x92 x93 x94 x95"
+               e(tvar) : "treat"
+.  return list
+
+scalars:
+            r(mean_sd) =  -.1275443258377829
+           r(mean_asd) =  .1753994534212237
+            r(max_asd) =  .6149214017045797
+          r(k_omitted) =  2
+
+macros:
+            r(varlist) : "treat x1 0b.x2 1.x2 0b.x3 1.x3 x4 x5 x6 x7 x90 x91 x92 x93 x94 x95"
+
+matrices:
+                r(bal) :  15 x 6
+. 
 . psweight balanceonly `treatvar' `varlist' if `tousevar' [iw=`wgtvar']
   408 control obs (sum of weights = 802.3793)
   92 treatment obs (sum of weights = 180.1725)
-  Unmatched data
-  Balance:
 -------------------------------------------------------------------------------
              |    mean_T     mean_C       diff   std_diff    sd_pool  var_ratio
 -------------+-----------------------------------------------------------------
@@ -132,24 +131,10 @@ Sorted by:
          x95 | -.1044649  -.0695904  -.0348746  -.0353142   .9875497   .8141756
 -------------------------------------------------------------------------------
   
-  Mean standardized diff., squared
-  .0157932936
-  Mean absolute standardized diff.
-  .179778437
-  Maximum absolute standardized diff.
-  .6408852663
-  C.V. of matching weights:
-  0
-  S.D. of matching weights:
-  0
-  Skewness of matching weights:
-  .
-  Kurtosis of matching weights:
-  .
-  Maximum matching weight:
-  1
-
-. psweight balanceonly `treatvar' `varlist' if `tousevar', mweight(`wgtvar')
+  Mean standardized diff.             = -0.12567
+  Mean absolute standardized diff.    = 0.17978
+  Maximum absolute standardized diff. = 0.64089
+. psweight balanceonly `treatvar' `varlist' if `tousevar', mweight(`wgtvar') ate
   408 control obs
   92 treatment obs
   (Data are unweighted.)
@@ -179,23 +164,14 @@ Sorted by:
          x95 | -.1044649  -.0695904  -.0348746  -.0353142   .9875497   .8141756
 -------------------------------------------------------------------------------
   
-  Mean standardized diff., squared
-  .0157932936
-  Mean absolute standardized diff.
-  .179778437
-  Maximum absolute standardized diff.
-  .6408852663
-  C.V. of matching weights:
-  .2018034045
-  S.D. of matching weights:
-  .3965646294
-  Skewness of matching weights:
-  .0020961033
-  Kurtosis of matching weights:
-  .0054893945
-  Maximum matching weight:
-  3.23664204
-
+  Mean standardized diff.             = -0.12567
+  Mean absolute standardized diff.    = 0.17978
+  Maximum absolute standardized diff. = 0.64089
+  C.V. of matching weights:           = 0.20180
+  S.D. of matching weights:           = 0.39656
+  Skewness of matching weights:       = 0.00210
+  Kurtosis of matching weights:       = 0.00549
+  Maximum matching weight:            = 3.23664
 . 
 . // * UNWEIGHTED DATA EXAMPLES *
 . 
@@ -227,7 +203,9 @@ treat        |
          x95 |  -.0080118   .2531324    -0.03   0.975    -.5041423    .4881187
        _cons |   3.127763   1.826429     1.71   0.087    -.4519713    6.707497
 ------------------------------------------------------------------------------
-
+. ereturn clear
+.  return clear
+. 
 . psweight cbps `treatvar' `varlist' if `tousevar' , ate pooledvariance `depvaropt'
 
   408 control obs
@@ -326,7 +304,29 @@ _treated |         N      mean        sd       min        p1       p10       p25
          |       500         1      .528      .189      .285      .763        .8       .86      1.04      1.46      3.09      6.91
          |       500      .185      .179    .00228    .00648     .0207     .0485       .12      .268      .461      .712      .928
 ----------------------------------------------------------------------------------------------------------------------------------
+. ereturn list
 
+scalars:
+                  e(N) =  500
+
+macros:
+                e(cmd) : "psweight"
+            e(cmdline) : "psweight cbps treat x1 i.x2 i.x3 x4 x5 x6 x7 x9* if touse , ate pooledvariance depvars(y1 y1_binary)"
+             e(subcmd) : "cbps"
+           e(variance) : "pooledvariance"
+          e(tmvarlist) : "x1 0b.x2 1.x2 0b.x3 1.x3 x4 x5 x6 x7 x90 x91 x92 x93 x94 x95"
+               e(tvar) : "treat"
+               e(stat) : "ate"
+         e(properties) : "b"
+             e(depvar) : "treat"
+
+matrices:
+                  e(b) :  1 x 16
+
+functions:
+             e(sample)   
+.  return list
+. 
 . psweight call balanceresults()
   Balance:
 -------------------------------------------------------------------------------
@@ -354,31 +354,44 @@ _treated |         N      mean        sd       min        p1       p10       p25
          x95 | -.0859152  -.0859155   2.90e-07   2.97e-07   .9766878   .8347647
 -------------------------------------------------------------------------------
   
-  Mean standardized diff., squared
-  1.19407e-14
-  Mean absolute standardized diff.
-  2.03999e-07
-  Maximum absolute standardized diff.
-  4.47721e-07
-  C.V. of matching weights:
-  .5275372126
-  S.D. of matching weights:
-  .5275372126
-  Skewness of matching weights:
-  .2158746778
-  Kurtosis of matching weights:
-  .0860728677
-  Maximum matching weight:
-  6.906396288
+  Mean standardized diff.             = -0.00000
+  Mean absolute standardized diff.    = 0.00000
+  Maximum absolute standardized diff. = 0.00000
+  C.V. of matching weights:           = 0.52754
+  S.D. of matching weights:           = 0.52754
+  Skewness of matching weights:       = 0.21587
+  Kurtosis of matching weights:       = 0.08607
+  Maximum matching weight:            = 6.90640
+  
   Prognostic scores:
 ------------------------------------------------------------------------
              | mean_yhat_T  mean_yhat_C       diff   std_diff   mean_y_C
 -------------+----------------------------------------------------------
-          y1 |    3444.163     3444.163   .0000629   4.36e-07   3444.163
-   y1_binary |    .9544751     .9544751   2.97e-09   7.35e-08   .9544751
+          y1 |    3444.163     3444.163   .0000629   4.13e-07   3444.163
+   y1_binary |    .9544751     .9544751   2.97e-09   6.57e-08   .9544751
 ------------------------------------------------------------------------
   Note: The std_diff column does not account for the standard error of the linear predictions.
+. ereturn list
 
+scalars:
+                  e(N) =  500
+
+macros:
+                e(cmd) : "psweight"
+            e(cmdline) : "psweight call balanceresults()"
+             e(subcmd) : "call"
+           e(variance) : "pooledvariance"
+          e(tmvarlist) : "x1 0b.x2 1.x2 0b.x3 1.x3 x4 x5 x6 x7 x90 x91 x92 x93 x94 x95"
+               e(tvar) : "treat"
+               e(stat) : "ate"
+         e(properties) : "b"
+             e(depvar) : "treat"
+
+matrices:
+                  e(b) :  1 x 16
+
+functions:
+             e(sample)   
 . return list
 
 scalars:
@@ -389,13 +402,11 @@ scalars:
              r(wgt_cv) =  .5275372125889477
             r(max_asd) =  4.47721406461e-07
            r(mean_asd) =  2.03999405829e-07
-         r(mean_sd_sq) =  1.19406587870e-14
             r(mean_sd) =  -1.09273321479e-07
 
 matrices:
                r(prog) :  2 x 5
                 r(bal) :  15 x 6
-
 . psweight // test replay
 ------------------------------------------------------------------------------
        treat |      Coef.
@@ -415,7 +426,6 @@ matrices:
          x95 |  -.0080121
        _cons |   3.127762
 ------------------------------------------------------------------------------
-
 . 
 . cbps `treatvar' `varlist' if `tousevar' , ate over logit optimization_technique("nr") evaluator_type("gf1")
 Iteration 0:   f(p) =  .02441999  (not concave)
@@ -445,7 +455,6 @@ treat        |
        _cons |   1.206345   .6074599     1.99   0.047      .015746    2.396945
 ------------------------------------------------------------------------------
 J test for overidentifying restrictions: P(chisq>7.142, 14) = 0.929
-
 . psweight cbpsoid `treatvar' `varlist' if `tousevar' , ate pooledvariance  `depvaropt'
 
   408 control obs
@@ -532,7 +541,6 @@ _treated |         N      mean        sd       min        p1       p10       p25
          |       500         1      .296      .317      .452      .822      .872      .936      1.08      1.33      2.05       4.2
          |       500      .191      .123     .0142     .0339     .0609     .0967      .153      .263      .381       .55      .673
 ----------------------------------------------------------------------------------------------------------------------------------
-
 . psweight call balanceresults()
   Balance:
 -------------------------------------------------------------------------------
@@ -560,31 +568,23 @@ _treated |         N      mean        sd       min        p1       p10       p25
          x95 |  -.095014  -.0715949  -.0234192  -.0239414   .9781896   .8041465
 -------------------------------------------------------------------------------
   
-  Mean standardized diff., squared
-  .0027971537
-  Mean absolute standardized diff.
-  .0719658737
-  Maximum absolute standardized diff.
-  .257616171
-  C.V. of matching weights:
-  .2958977283
-  S.D. of matching weights:
-  .2958977283
-  Skewness of matching weights:
-  .1574499131
-  Kurtosis of matching weights:
-  .0654319377
-  Maximum matching weight:
-  4.204591911
+  Mean standardized diff.             = -0.05289
+  Mean absolute standardized diff.    = 0.07197
+  Maximum absolute standardized diff. = 0.25762
+  C.V. of matching weights:           = 0.29590
+  S.D. of matching weights:           = 0.29590
+  Skewness of matching weights:       = 0.15745
+  Kurtosis of matching weights:       = 0.06543
+  Maximum matching weight:            = 4.20459
+  
   Prognostic scores:
 ------------------------------------------------------------------------
              | mean_yhat_T  mean_yhat_C       diff   std_diff   mean_y_C
 -------------+----------------------------------------------------------
-          y1 |    3443.444     3453.946  -10.50206  -.0797226   3453.946
-   y1_binary |    .9509072     .9588221  -.0079149  -.2079758   .9588221
+          y1 |    3443.444     3453.946  -10.50206  -.0757773   3453.946
+   y1_binary |    .9509072     .9588221  -.0079149  -.1916554   .9588221
 ------------------------------------------------------------------------
   Note: The std_diff column does not account for the standard error of the linear predictions.
-
 . 
 . cbps `treatvar' `varlist' if `tousevar' , att logit optimization_technique("nr") evaluator_type("gf1")
 Iteration 0:   f(p) =  .00197031  
@@ -611,7 +611,6 @@ treat        |
          x95 |    .011505   .1383574     0.08   0.934    -.2596705    .2826805
        _cons |    .782858    .962964     0.81   0.416    -1.104517    2.670233
 ------------------------------------------------------------------------------
-
 . psweight cbps `treatvar' `varlist' if `tousevar' , atet pooledvariance  `depvaropt'
 
   408 control obs
@@ -701,7 +700,6 @@ _treated |         N      mean        sd       min        p1       p10       p25
          |       500         1      .893     .0568      .126      .247      .433      .808      1.05      2.06      4.53      7.03
          |       500      .183      .131     .0127     .0276     .0522     .0876      .141      .256      .389      .587      .687
 ----------------------------------------------------------------------------------------------------------------------------------
-
 . psweight call balanceresults()
   Balance:
 -------------------------------------------------------------------------------
@@ -729,31 +727,23 @@ _treated |         N      mean        sd       min        p1       p10       p25
          x95 | -.0807251  -.0807251   7.57e-09   7.89e-09   .9586344   .8888005
 -------------------------------------------------------------------------------
   
-  Mean standardized diff., squared
-  8.85595e-17
-  Mean absolute standardized diff.
-  7.87875e-08
-  Maximum absolute standardized diff.
-  2.29714e-07
-  C.V. of matching weights:
-  .9884370736
-  S.D. of matching weights:
-  .9884370736
-  Skewness of matching weights:
-  .1100078155
-  Kurtosis of matching weights:
-  .0225364334
-  Maximum matching weight:
-  7.032259837
+  Mean standardized diff.             = -0.00000
+  Mean absolute standardized diff.    = 0.00000
+  Maximum absolute standardized diff. = 0.00000
+  C.V. of matching weights:           = 0.98844
+  S.D. of matching weights:           = 0.98844
+  Skewness of matching weights:       = 0.11001
+  Kurtosis of matching weights:       = 0.02254
+  Maximum matching weight:            = 7.03226
+  
   Prognostic scores:
 ------------------------------------------------------------------------
              | mean_yhat_T  mean_yhat_C       diff   std_diff   mean_y_C
 -------------+----------------------------------------------------------
-          y1 |    3424.753     3424.753  -.0000267  -1.75e-07   3424.753
-   y1_binary |    .9470393     .9470393  -8.59e-09  -1.64e-07   .9470393
+          y1 |    3424.753     3424.753  -.0000267  -1.61e-07   3424.753
+   y1_binary |    .9470393     .9470393  -8.59e-09  -1.61e-07   .9470393
 ------------------------------------------------------------------------
   Note: The std_diff column does not account for the standard error of the linear predictions.
-
 . 
 . cbps `treatvar' `varlist' if `tousevar' , att over logit optimization_technique("nr") evaluator_type("gf1")
 Iteration 0:   f(p) =  .04521356  
@@ -782,7 +772,6 @@ treat        |
        _cons |   .9132207   .6048419     1.51   0.131    -.2722476    2.098689
 ------------------------------------------------------------------------------
 J test for overidentifying restrictions: P(chisq>15.137, 14) = 0.369
-
 . psweight cbpsoid `treatvar' `varlist' if `tousevar' , atet pooledvariance  `depvaropt'
 
   408 control obs
@@ -867,7 +856,6 @@ _treated |         N      mean        sd       min        p1       p10       p25
          |       500         1      .827     .0457      .138      .276      .454      .871      1.06      2.01      3.95      6.68
          |       500      .183      .122     .0101     .0298     .0577     .0913      .147      .253      .376      .555      .666
 ----------------------------------------------------------------------------------------------------------------------------------
-
 . psweight call balanceresults()
   Balance:
 -------------------------------------------------------------------------------
@@ -895,31 +883,23 @@ _treated |         N      mean        sd       min        p1       p10       p25
          x95 | -.0807251  -.0745052  -.0062199  -.0064787   .9600495   .8856706
 -------------------------------------------------------------------------------
   
-  Mean standardized diff., squared
-  7.49043e-07
-  Mean absolute standardized diff.
-  .0164087554
-  Maximum absolute standardized diff.
-  .0498389405
-  C.V. of matching weights:
-  .9155855656
-  S.D. of matching weights:
-  .9155855656
-  Skewness of matching weights:
-  .1040781343
-  Kurtosis of matching weights:
-  .0213436959
-  Maximum matching weight:
-  6.683350183
+  Mean standardized diff.             = -0.00087
+  Mean absolute standardized diff.    = 0.01641
+  Maximum absolute standardized diff. = 0.04984
+  C.V. of matching weights:           = 0.91559
+  S.D. of matching weights:           = 0.91559
+  Skewness of matching weights:       = 0.10408
+  Kurtosis of matching weights:       = 0.02134
+  Maximum matching weight:            = 6.68335
+  
   Prognostic scores:
 ------------------------------------------------------------------------
              | mean_yhat_T  mean_yhat_C       diff   std_diff   mean_y_C
 -------------+----------------------------------------------------------
-          y1 |    3424.722     3428.063  -3.341103  -.0220556   3428.063
-   y1_binary |    .9470466     .9484255  -.0013789  -.0271541   .9484255
+          y1 |    3424.722     3428.063  -3.341103  -.0202642   3428.063
+   y1_binary |    .9470466     .9484255  -.0013789  -.0265328   .9484255
 ------------------------------------------------------------------------
   Note: The std_diff column does not account for the standard error of the linear predictions.
-
 . 
 . // After calling psweight, the data is stored in a class instance named psweight_ado_most_recent
 . // You can print any of the public functions or variables to the screen with psweight call. For example:
@@ -932,7 +912,6 @@ _treated |         N      mean        sd       min        p1       p10       p25
      ----------------------------------------------------------------------------+
   1    -.0218964965    .0218654598    .0016330378    .0040501656   -.0062199103  |
      ----------------------------------------------------------------------------+
-
 . psweight call balancetable()
 -------------------------------------------------------------------------------
              |    mean_T     mean_C       diff   std_diff    sd_pool  var_ratio
@@ -959,6 +938,9 @@ _treated |         N      mean        sd       min        p1       p10       p25
          x95 | -.0807251  -.0745052  -.0062199  -.0064787   .9600495   .8856706
 -------------------------------------------------------------------------------
   
+  Mean standardized diff.             = -0.00087
+  Mean absolute standardized diff.    = 0.01641
+  Maximum absolute standardized diff. = 0.04984
                    1              2              3              4              5              6
      +-------------------------------------------------------------------------------------------+
    1 |   .4673913043    .4923282315   -.0249369271   -.0498389405    .5003502665    1.004458062  |
@@ -977,7 +959,6 @@ _treated |         N      mean        sd       min        p1       p10       p25
   14 |  -.1299172593   -.1339674249    .0040501656    .0039553198      1.0239793    .7815571151  |
   15 |  -.0807250915   -.0745051812   -.0062199103   -.0064787391    .9600495164    .8856705714  |
      +-------------------------------------------------------------------------------------------+
-
 . 
 . // Other objective functions
 . psweight mean_sd_sq `treatvar' `varlist' if `tousevar' , atet treatvariance difficult nonrtolerance `depvaropt'
@@ -1053,7 +1034,6 @@ _treated |         N      mean        sd       min        p1       p10       p25
          |       500         1       .94     .0503      .115       .25      .426      .845      1.07      1.96      4.24      11.1
          |       500      .257      .158     .0183     .0409     .0838      .136      .216       .35      .497      .687      .804
 ----------------------------------------------------------------------------------------------------------------------------------
-
 . psweight call balanceresults()
   Balance:
 -------------------------------------------------------------------------------
@@ -1081,22 +1061,15 @@ _treated |         N      mean        sd       min        p1       p10       p25
          x95 | -.0807251  -.0886593   .0079342   .0086807    .914005    .892775
 -------------------------------------------------------------------------------
   
-  Mean standardized diff., squared
-  2.51158e-21
-  Mean absolute standardized diff.
-  .0359488717
-  Maximum absolute standardized diff.
-  .1080140263
-  C.V. of matching weights:
-  1.041361438
-  S.D. of matching weights:
-  1.041361438
-  Skewness of matching weights:
-  .1710882109
-  Kurtosis of matching weights:
-  .0624918326
-  Maximum matching weight:
-  11.09499509
+  Mean standardized diff.             = -0.00000
+  Mean absolute standardized diff.    = 0.03595
+  Maximum absolute standardized diff. = 0.10801
+  C.V. of matching weights:           = 1.04136
+  S.D. of matching weights:           = 1.04136
+  Skewness of matching weights:       = 0.17109
+  Kurtosis of matching weights:       = 0.06249
+  Maximum matching weight:            = 11.09500
+  
   Prognostic scores:
 ------------------------------------------------------------------------
              | mean_yhat_T  mean_yhat_C       diff   std_diff   mean_y_C
@@ -1105,7 +1078,6 @@ _treated |         N      mean        sd       min        p1       p10       p25
    y1_binary |    .9468831     .9481476  -.0012646  -.0236201   .9481476
 ------------------------------------------------------------------------
   Note: The std_diff column does not account for the standard error of the linear predictions.
-
 . 
 . psweight sd_sq `treatvar' `varlist' if `tousevar' , atet treatvariance difficult nonrtolerance `depvaropt'
 
@@ -1231,7 +1203,6 @@ _treated |         N      mean        sd       min        p1       p10       p25
          |       500         1      .893      .057      .126      .247      .433      .808      1.05      2.06      4.53      7.03
          |       500       .28      .168     .0236     .0505     .0938      .153      .236      .392      .545      .727      .805
 ----------------------------------------------------------------------------------------------------------------------------------
-
 . psweight call balanceresults()
   Balance:
 -------------------------------------------------------------------------------
@@ -1259,22 +1230,15 @@ _treated |         N      mean        sd       min        p1       p10       p25
          x95 | -.0807251  -.0806563  -.0000688  -.0000753    .914005   .8888531
 -------------------------------------------------------------------------------
   
-  Mean standardized diff., squared
-  1.09082e-10
-  Mean absolute standardized diff.
-  .0000746269
-  Maximum absolute standardized diff.
-  .0003230882
-  C.V. of matching weights:
-  .9883930978
-  S.D. of matching weights:
-  .9883930978
-  Skewness of matching weights:
-  .1100109822
-  Kurtosis of matching weights:
-  .0225378377
-  Maximum matching weight:
-  7.031258646
+  Mean standardized diff.             = -0.00001
+  Mean absolute standardized diff.    = 0.00007
+  Maximum absolute standardized diff. = 0.00032
+  C.V. of matching weights:           = 0.98839
+  S.D. of matching weights:           = 0.98839
+  Skewness of matching weights:       = 0.11001
+  Kurtosis of matching weights:       = 0.02254
+  Maximum matching weight:            = 7.03126
+  
   Prognostic scores:
 ------------------------------------------------------------------------
              | mean_yhat_T  mean_yhat_C       diff   std_diff   mean_y_C
@@ -1283,7 +1247,6 @@ _treated |         N      mean        sd       min        p1       p10       p25
    y1_binary |    .9470393     .9470403  -1.04e-06  -.0000198   .9470403
 ------------------------------------------------------------------------
   Note: The std_diff column does not account for the standard error of the linear predictions.
-
 . 
 . psweight stdprogdiff `treatvar' `varlist' if `tousevar' , atet treatvariance difficult nonrtolerance `depvaropt'
 
@@ -1364,7 +1327,6 @@ _treated |         N      mean        sd       min        p1       p10       p25
          |       500         1      .945     .0496      .115      .246      .423      .845      1.08         2      4.32      10.9
          |       500      .255      .158     .0179     .0405      .082      .134      .213      .347      .496      .689      .805
 ----------------------------------------------------------------------------------------------------------------------------------
-
 . psweight call balanceresults()
   Balance:
 -------------------------------------------------------------------------------
@@ -1392,22 +1354,15 @@ _treated |         N      mean        sd       min        p1       p10       p25
          x95 | -.0807251  -.0849593   .0042342   .0046326    .914005   .8909529
 -------------------------------------------------------------------------------
   
-  Mean standardized diff., squared
-  4.11614e-07
-  Mean absolute standardized diff.
-  .0335837223
-  Maximum absolute standardized diff.
-  .0965145126
-  C.V. of matching weights:
-  1.045817005
-  S.D. of matching weights:
-  1.045817005
-  Skewness of matching weights:
-  .1663221078
-  Kurtosis of matching weights:
-  .0587525915
-  Maximum matching weight:
-  10.93728965
+  Mean standardized diff.             = 0.00064
+  Mean absolute standardized diff.    = 0.03358
+  Maximum absolute standardized diff. = 0.09651
+  C.V. of matching weights:           = 1.04582
+  S.D. of matching weights:           = 1.04582
+  Skewness of matching weights:       = 0.16632
+  Kurtosis of matching weights:       = 0.05875
+  Maximum matching weight:            = 10.93729
+  
   Prognostic scores:
 ------------------------------------------------------------------------
              | mean_yhat_T  mean_yhat_C       diff   std_diff   mean_y_C
@@ -1416,7 +1371,6 @@ _treated |         N      mean        sd       min        p1       p10       p25
    y1_binary |    .9469116     .9469116   2.49e-10   4.59e-09   .9469116
 ------------------------------------------------------------------------
   Note: The std_diff column does not account for the standard error of the linear predictions.
-
 . 
 . 
 . // IPW
@@ -1461,10 +1415,8 @@ TME1                    |
                     x95 |    .017776   .1254901     0.14   0.887    -.2281801     .263732
                   _cons |   1.379538   .9297905     1.48   0.138    -.4428177    3.201894
 -----------------------------------------------------------------------------------------
-
 . di _b[POmean:0.treat]
 3417.8947
-
 . tebalance summarize
 
   Covariate balance summary
@@ -1498,7 +1450,6 @@ TME1                    |
               x94 |  -.1521926    .0562648      .8686432   .7583723
               x95 |  -.0155155     .017858      .8285405   .8879817
   -----------------------------------------------------------------
-
 . tebalance summarize, baseline
 
   Covariate balance summary
@@ -1532,7 +1483,6 @@ TME1                    |
               x94 |   .0160559   -.1299173      .9846065   .8552718
               x95 |  -.0658282   -.0807251      1.008285   .8354051
   -----------------------------------------------------------------
-
 . psweight ipw `treatvar' `varlist' if `tousevar' , atet averagevariance `depvaropt'
 
   408 control obs
@@ -1588,7 +1538,6 @@ _treated |         N      mean        sd       min        p1       p10       p25
          |       500         1      .941     .0533      .112      .231      .403      .811      1.02      2.04      4.56      9.29
          |       500      .184      .132     .0121      .025     .0493     .0845      .145      .258       .39      .579      .721
 ----------------------------------------------------------------------------------------------------------------------------------
-
 . psweight call balanceresults()
   Balance:
 -------------------------------------------------------------------------------
@@ -1616,31 +1565,23 @@ _treated |         N      mean        sd       min        p1       p10       p25
          x95 | -.0807251  -.0974964   .0167713   .0178362   .9402985   .8954759
 -------------------------------------------------------------------------------
   
-  Mean standardized diff., squared
-  .0002611355
-  Mean absolute standardized diff.
-  .0267560031
-  Maximum absolute standardized diff.
-  .0951549387
-  C.V. of matching weights:
-  1.041445134
-  S.D. of matching weights:
-  1.041445134
-  Skewness of matching weights:
-  .1334759573
-  Kurtosis of matching weights:
-  .0358990807
-  Maximum matching weight:
-  9.288959251
+  Mean standardized diff.             = 0.01616
+  Mean absolute standardized diff.    = 0.02676
+  Maximum absolute standardized diff. = 0.09515
+  C.V. of matching weights:           = 1.04145
+  S.D. of matching weights:           = 1.04145
+  Skewness of matching weights:       = 0.13348
+  Kurtosis of matching weights:       = 0.03590
+  Maximum matching weight:            = 9.28896
+  
   Prognostic scores:
 ------------------------------------------------------------------------
              | mean_yhat_T  mean_yhat_C       diff   std_diff   mean_y_C
 -------------+----------------------------------------------------------
-          y1 |    3424.454     3417.895   6.559175   .0419488   3417.895
-   y1_binary |    .9470413     .9465176   .0005237    .009748   .9465176
+          y1 |    3424.454     3417.895   6.559175   .0395688   3417.895
+   y1_binary |    .9470413     .9465176   .0005237   .0095404   .9465176
 ------------------------------------------------------------------------
   Note: The std_diff column does not account for the standard error of the linear predictions.
-
 . 
 . psweight ipw `treatvar' `varlist' if `tousevar' , atet averagevariance `depvaropt'
 
@@ -1697,7 +1638,6 @@ _treated |         N      mean        sd       min        p1       p10       p25
          |       500         1      .941     .0533      .112      .231      .403      .811      1.02      2.04      4.56      9.29
          |       500      .184      .132     .0121      .025     .0493     .0845      .145      .258       .39      .579      .721
 ----------------------------------------------------------------------------------------------------------------------------------
-
 . psweight call balanceresults()
   Balance:
 -------------------------------------------------------------------------------
@@ -1725,31 +1665,23 @@ _treated |         N      mean        sd       min        p1       p10       p25
          x95 | -.0807251  -.0974964   .0167713   .0178362   .9402985   .8954759
 -------------------------------------------------------------------------------
   
-  Mean standardized diff., squared
-  .0002611355
-  Mean absolute standardized diff.
-  .0267560031
-  Maximum absolute standardized diff.
-  .0951549387
-  C.V. of matching weights:
-  1.041445134
-  S.D. of matching weights:
-  1.041445134
-  Skewness of matching weights:
-  .1334759573
-  Kurtosis of matching weights:
-  .0358990807
-  Maximum matching weight:
-  9.288959251
+  Mean standardized diff.             = 0.01616
+  Mean absolute standardized diff.    = 0.02676
+  Maximum absolute standardized diff. = 0.09515
+  C.V. of matching weights:           = 1.04145
+  S.D. of matching weights:           = 1.04145
+  Skewness of matching weights:       = 0.13348
+  Kurtosis of matching weights:       = 0.03590
+  Maximum matching weight:            = 9.28896
+  
   Prognostic scores:
 ------------------------------------------------------------------------
              | mean_yhat_T  mean_yhat_C       diff   std_diff   mean_y_C
 -------------+----------------------------------------------------------
-          y1 |    3424.454     3417.895   6.559175   .0419488   3417.895
-   y1_binary |    .9470413     .9465176   .0005237    .009748   .9465176
+          y1 |    3424.454     3417.895   6.559175   .0395688   3417.895
+   y1_binary |    .9470413     .9465176   .0005237   .0095404   .9465176
 ------------------------------------------------------------------------
   Note: The std_diff column does not account for the standard error of the linear predictions.
-
 . 
 . teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' , ate aequations
 
@@ -1792,7 +1724,6 @@ TME1                    |
                     x95 |    .017776   .1254901     0.14   0.887    -.2281801     .263732
                   _cons |   1.379538   .9297905     1.48   0.138    -.4428177    3.201894
 -----------------------------------------------------------------------------------------
-
 . psweight ipw `treatvar' `varlist' if `tousevar' , ate pooledvariance
 
   408 control obs
@@ -1848,7 +1779,6 @@ _treated |         N      mean        sd       min        p1       p10       p25
          |       500         1      .334      .277      .414      .818      .867       .93      1.07      1.35      2.21       4.9
          |       500      .184      .132     .0121      .025     .0493     .0845      .145      .258       .39      .579      .721
 ----------------------------------------------------------------------------------------------------------------------------------
-
 . psweight call balanceresults()
   Balance:
 -------------------------------------------------------------------------------
@@ -1876,23 +1806,14 @@ _treated |         N      mean        sd       min        p1       p10       p25
          x95 | -.0930146  -.0717394  -.0212752  -.0217631   .9775833   .7971968
 -------------------------------------------------------------------------------
   
-  Mean standardized diff., squared
-  .0024703949
-  Mean absolute standardized diff.
-  .0706136183
-  Maximum absolute standardized diff.
-  .2146119669
-  C.V. of matching weights:
-  .3337259557
-  S.D. of matching weights:
-  .3337259557
-  Skewness of matching weights:
-  .184312389
-  Kurtosis of matching weights:
-  .0838509711
-  Maximum matching weight:
-  4.898168754
-
+  Mean standardized diff.             = -0.04970
+  Mean absolute standardized diff.    = 0.07061
+  Maximum absolute standardized diff. = 0.21461
+  C.V. of matching weights:           = 0.33373
+  S.D. of matching weights:           = 0.33373
+  Skewness of matching weights:       = 0.18431
+  Kurtosis of matching weights:       = 0.08385
+  Maximum matching weight:            = 4.89817
 . 
 . teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' , atet aequations tlevel(0) control(1)
 
@@ -1935,7 +1856,6 @@ TME0                    |
                     x95 |   -.017776   .1254901    -0.14   0.887     -.263732    .2281801
                   _cons |  -1.379538   .9297905    -1.48   0.138    -3.201894    .4428177
 -----------------------------------------------------------------------------------------
-
 . psweight ipw `treatvar' `varlist' if `tousevar' , ateu pooledvariance
 
   408 control obs
@@ -1991,7 +1911,6 @@ _treated |         N      mean        sd       min        p1       p10       p25
          |       500         1      .355     .0964      .268      .804         1         1         1         1      2.29      5.87
          |       500      .184      .132     .0121      .025     .0493     .0845      .145      .258       .39      .579      .721
 ----------------------------------------------------------------------------------------------------------------------------------
-
 . psweight call balanceresults()
   Balance:
 -------------------------------------------------------------------------------
@@ -2019,23 +1938,14 @@ _treated |         N      mean        sd       min        p1       p10       p25
          x95 |  -.096076  -.0658282  -.0302478  -.0307892   .9824155   .7755988
 -------------------------------------------------------------------------------
   
-  Mean standardized diff., squared
-  .0040935914
-  Mean absolute standardized diff.
-  .0900339258
-  Maximum absolute standardized diff.
-  .2813566293
-  C.V. of matching weights:
-  .8301616288
-  S.D. of matching weights:
-  .8301616288
-  Skewness of matching weights:
-  .2680619565
-  Kurtosis of matching weights:
-  .1550433582
-  Maximum matching weight:
-  5.869225813
-
+  Mean standardized diff.             = -0.06398
+  Mean absolute standardized diff.    = 0.09003
+  Maximum absolute standardized diff. = 0.28136
+  C.V. of matching weights:           = 0.83016
+  S.D. of matching weights:           = 0.83016
+  Skewness of matching weights:       = 0.26806
+  Kurtosis of matching weights:       = 0.15504
+  Maximum matching weight:            = 5.86923
 . 
 . // tradeoff between CBPS-like balance and variance in weights
 . psweight cbps `treatvar' `varlist' if `tousevar' , atet treatvariance `depvaropt'
@@ -2127,7 +2037,6 @@ _treated |         N      mean        sd       min        p1       p10       p25
          |       500         1      .893     .0568      .126      .247      .433      .808      1.05      2.06      4.53      7.03
          |       500      .183      .131     .0127     .0276     .0522     .0876      .141      .256      .389      .587      .687
 ----------------------------------------------------------------------------------------------------------------------------------
-
 . psweight call balanceresults()
   Balance:
 -------------------------------------------------------------------------------
@@ -2155,22 +2064,15 @@ _treated |         N      mean        sd       min        p1       p10       p25
          x95 | -.0807251  -.0807251   7.57e-09   8.28e-09    .914005   .8888005
 -------------------------------------------------------------------------------
   
-  Mean standardized diff., squared
-  2.36461e-16
-  Mean absolute standardized diff.
-  8.43300e-08
-  Maximum absolute standardized diff.
-  2.28691e-07
-  C.V. of matching weights:
-  .9884370736
-  S.D. of matching weights:
-  .9884370736
-  Skewness of matching weights:
-  .1100078155
-  Kurtosis of matching weights:
-  .0225364334
-  Maximum matching weight:
-  7.032259837
+  Mean standardized diff.             = -0.00000
+  Mean absolute standardized diff.    = 0.00000
+  Maximum absolute standardized diff. = 0.00000
+  C.V. of matching weights:           = 0.98844
+  S.D. of matching weights:           = 0.98844
+  Skewness of matching weights:       = 0.11001
+  Kurtosis of matching weights:       = 0.02254
+  Maximum matching weight:            = 7.03226
+  
   Prognostic scores:
 ------------------------------------------------------------------------
              | mean_yhat_T  mean_yhat_C       diff   std_diff   mean_y_C
@@ -2179,7 +2081,6 @@ _treated |         N      mean        sd       min        p1       p10       p25
    y1_binary |    .9470393     .9470393  -8.59e-09  -1.64e-07   .9470393
 ------------------------------------------------------------------------
   Note: The std_diff column does not account for the standard error of the linear predictions.
-
 . 
 . psweight pcbps `treatvar' `varlist' if `tousevar' , atet treatvariance cvtarget(1 .75 6) `depvaropt'
 
@@ -2361,7 +2262,6 @@ _treated |         N      mean        sd       min        p1       p10       p25
          |       500         1      .703     .0931      .197      .344      .531      .904      1.07      1.94       3.5      4.99
          |       500      .179      .106     .0195     .0403     .0678        .1      .148      .239      .344      .496      .584
 ----------------------------------------------------------------------------------------------------------------------------------
-
 . psweight call balanceresults()
   Balance:
 -------------------------------------------------------------------------------
@@ -2389,22 +2289,15 @@ _treated |         N      mean        sd       min        p1       p10       p25
          x95 | -.0807251  -.0887859   .0080608   .0088193    .914005   .8754237
 -------------------------------------------------------------------------------
   
-  Mean standardized diff., squared
-  .0004650287
-  Mean absolute standardized diff.
-  .0339653292
-  Maximum absolute standardized diff.
-  .1232169149
-  C.V. of matching weights:
-  .778078592
-  S.D. of matching weights:
-  .778078592
-  Skewness of matching weights:
-  .0865248149
-  Kurtosis of matching weights:
-  .0155157827
-  Maximum matching weight:
-  4.987644238
+  Mean standardized diff.             = -0.02156
+  Mean absolute standardized diff.    = 0.03397
+  Maximum absolute standardized diff. = 0.12322
+  C.V. of matching weights:           = 0.77808
+  S.D. of matching weights:           = 0.77808
+  Skewness of matching weights:       = 0.08652
+  Kurtosis of matching weights:       = 0.01552
+  Maximum matching weight:            = 4.98764
+  
   Prognostic scores:
 ------------------------------------------------------------------------
              | mean_yhat_T  mean_yhat_C       diff   std_diff   mean_y_C
@@ -2413,7 +2306,6 @@ _treated |         N      mean        sd       min        p1       p10       p25
    y1_binary |    .9471279     .9495997  -.0024718  -.0513101   .9495997
 ------------------------------------------------------------------------
   Note: The std_diff column does not account for the standard error of the linear predictions.
-
 . 
 . psweight cbps `treatvar' `varlist' if `tousevar' , atet treatvariance cvtarget(1 .50 6) `depvaropt' // could say pcbps or cbps
 
@@ -2595,7 +2487,6 @@ _treated |         N      mean        sd       min        p1       p10       p25
          |       500         1      .481      .186      .334      .496      .672      .996      1.11      1.69      2.58      3.27
          |       500      .164      .071      .034     .0593     .0851      .112      .148      .205      .274      .368      .428
 ----------------------------------------------------------------------------------------------------------------------------------
-
 . psweight call balanceresults()
   Balance:
 -------------------------------------------------------------------------------
@@ -2623,22 +2514,15 @@ _treated |         N      mean        sd       min        p1       p10       p25
          x95 | -.0807251  -.0932284   .0125033   .0136797    .914005     .86217
 -------------------------------------------------------------------------------
   
-  Mean standardized diff., squared
-  .0029575921
-  Mean absolute standardized diff.
-  .0786438504
-  Maximum absolute standardized diff.
-  .2959160614
-  C.V. of matching weights:
-  .5321577
-  S.D. of matching weights:
-  .5321577
-  Skewness of matching weights:
-  .0630178827
-  Kurtosis of matching weights:
-  .0107803689
-  Maximum matching weight:
-  3.266346648
+  Mean standardized diff.             = -0.05438
+  Mean absolute standardized diff.    = 0.07864
+  Maximum absolute standardized diff. = 0.29592
+  C.V. of matching weights:           = 0.53216
+  S.D. of matching weights:           = 0.53216
+  Skewness of matching weights:       = 0.06302
+  Kurtosis of matching weights:       = 0.01078
+  Maximum matching weight:            = 3.26635
+  
   Prognostic scores:
 ------------------------------------------------------------------------
              | mean_yhat_T  mean_yhat_C       diff   std_diff   mean_y_C
@@ -2647,7 +2531,6 @@ _treated |         N      mean        sd       min        p1       p10       p25
    y1_binary |     .947451     .9529074  -.0054564  -.1239468   .9529074
 ------------------------------------------------------------------------
   Note: The std_diff column does not account for the standard error of the linear predictions.
-
 . 
 . psweight mean_sd_sq `treatvar' `varlist' if `tousevar' , atet treatvariance cvtarget(1 .75 6) difficult nonrtolerance `depvaropt'
 
@@ -2782,7 +2665,6 @@ _treated |         N      mean        sd       min        p1       p10       p25
          |       500         1      .692      .102      .222      .419      .537      .828         1      2.04       3.6      4.32
          |       500      .363       .15     .0592       .12      .205      .247      .321      .482      .593       .71      .727
 ----------------------------------------------------------------------------------------------------------------------------------
-
 . psweight call balanceresults()
   Balance:
 -------------------------------------------------------------------------------
@@ -2810,22 +2692,15 @@ _treated |         N      mean        sd       min        p1       p10       p25
          x95 | -.0807251  -.0878851     .00716   .0078336    .914005   .8758486
 -------------------------------------------------------------------------------
   
-  Mean standardized diff., squared
-  4.04309e-12
-  Mean absolute standardized diff.
-  .063052741
-  Maximum absolute standardized diff.
-  .27035119
-  C.V. of matching weights:
-  .7658421581
-  S.D. of matching weights:
-  .7658421581
-  Skewness of matching weights:
-  .0880496553
-  Kurtosis of matching weights:
-  .0148451646
-  Maximum matching weight:
-  4.315297317
+  Mean standardized diff.             = 0.00000
+  Mean absolute standardized diff.    = 0.06305
+  Maximum absolute standardized diff. = 0.27035
+  C.V. of matching weights:           = 0.76584
+  S.D. of matching weights:           = 0.76584
+  Skewness of matching weights:       = 0.08805
+  Kurtosis of matching weights:       = 0.01485
+  Maximum matching weight:            = 4.31530
+  
   Prognostic scores:
 ------------------------------------------------------------------------
              | mean_yhat_T  mean_yhat_C       diff   std_diff   mean_y_C
@@ -2834,7 +2709,6 @@ _treated |         N      mean        sd       min        p1       p10       p25
    y1_binary |    .9477352     .9592501  -.0115149  -.2660966   .9592501
 ------------------------------------------------------------------------
   Note: The std_diff column does not account for the standard error of the linear predictions.
-
 . 
 . psweight mean_sd_sq `treatvar' `varlist' if `tousevar' , atet treatvariance cvtarget(1 .50 6) difficult nonrtolerance `depvaropt'
 
@@ -3020,7 +2894,6 @@ _treated |         N      mean        sd       min        p1       p10       p25
          |       500         1      .476      .113      .197      .498      .713         1      1.14      1.56      2.87      3.24
          |       500      .433      .119     .0846      .132      .287      .353      .433      .507      .586      .702       .73
 ----------------------------------------------------------------------------------------------------------------------------------
-
 . psweight call balanceresults()
   Balance:
 -------------------------------------------------------------------------------
@@ -3048,22 +2921,15 @@ _treated |         N      mean        sd       min        p1       p10       p25
          x95 | -.0807251  -.1917338   .1110087    .121453    .914005   .8724406
 -------------------------------------------------------------------------------
   
-  Mean standardized diff., squared
-  4.93609e-13
-  Mean absolute standardized diff.
-  .1561149484
-  Maximum absolute standardized diff.
-  .424453494
-  C.V. of matching weights:
-  .5272638395
-  S.D. of matching weights:
-  .5272638395
-  Skewness of matching weights:
-  .07133884
-  Kurtosis of matching weights:
-  .0142383904
-  Maximum matching weight:
-  3.238925246
+  Mean standardized diff.             = -0.00000
+  Mean absolute standardized diff.    = 0.15611
+  Maximum absolute standardized diff. = 0.42445
+  C.V. of matching weights:           = 0.52726
+  S.D. of matching weights:           = 0.52726
+  Skewness of matching weights:       = 0.07134
+  Kurtosis of matching weights:       = 0.01424
+  Maximum matching weight:            = 3.23893
+  
   Prognostic scores:
 ------------------------------------------------------------------------
              | mean_yhat_T  mean_yhat_C       diff   std_diff   mean_y_C
@@ -3072,7 +2938,6 @@ _treated |         N      mean        sd       min        p1       p10       p25
    y1_binary |    .9488568     .9570393  -.0081825  -.1914123   .9570393
 ------------------------------------------------------------------------
   Note: The std_diff column does not account for the standard error of the linear predictions.
-
 . 
 . psweight cbpsoid `treatvar' `varlist' if `tousevar' , atet treatvariance cvtarget(1 .75 6) `depvaropt'
 
@@ -3231,7 +3096,6 @@ _treated |         N      mean        sd       min        p1       p10       p25
          |       500         1      .717     .0894      .192      .331      .524      .906      1.07      1.93      3.49      5.44
          |       500      .189      .111       .02     .0421     .0698      .105      .158      .255      .363      .521      .613
 ----------------------------------------------------------------------------------------------------------------------------------
-
 . psweight call balanceresults()
   Balance:
 -------------------------------------------------------------------------------
@@ -3259,22 +3123,15 @@ _treated |         N      mean        sd       min        p1       p10       p25
          x95 | -.0807251  -.0823446   .0016195   .0017719    .914005   .8768564
 -------------------------------------------------------------------------------
   
-  Mean standardized diff., squared
-  .0003830421
-  Mean absolute standardized diff.
-  .0317662882
-  Maximum absolute standardized diff.
-  .1024012396
-  C.V. of matching weights:
-  .7933798559
-  S.D. of matching weights:
-  .7933798559
-  Skewness of matching weights:
-  .0906557412
-  Kurtosis of matching weights:
-  .0171324353
-  Maximum matching weight:
-  5.442006665
+  Mean standardized diff.             = -0.01957
+  Mean absolute standardized diff.    = 0.03177
+  Maximum absolute standardized diff. = 0.10240
+  C.V. of matching weights:           = 0.79338
+  S.D. of matching weights:           = 0.79338
+  Skewness of matching weights:       = 0.09066
+  Kurtosis of matching weights:       = 0.01713
+  Maximum matching weight:            = 5.44201
+  
   Prognostic scores:
 ------------------------------------------------------------------------
              | mean_yhat_T  mean_yhat_C       diff   std_diff   mean_y_C
@@ -3283,7 +3140,6 @@ _treated |         N      mean        sd       min        p1       p10       p25
    y1_binary |    .9471559     .9496655  -.0025096  -.0515552   .9496655
 ------------------------------------------------------------------------
   Note: The std_diff column does not account for the standard error of the linear predictions.
-
 . 
 . // furthermore, you can target skiwness, kurtosis, or max weight
 . psweight pcbps `treatvar' `varlist' if `tousevar', atet treatvariance cvtarget(1 .5 6) skewtarget(1 0.07 2) `depvaropt'
@@ -3466,7 +3322,6 @@ _treated |         N      mean        sd       min        p1       p10       p25
          |       500         1      .491      .102      .215      .424      .641         1      1.23      1.52       2.9      4.04
          |       500      .162     .0691     .0189      .039     .0734      .107      .159      .207      .245      .357      .435
 ----------------------------------------------------------------------------------------------------------------------------------
-
 . psweight call balanceresults()
   Balance:
 -------------------------------------------------------------------------------
@@ -3494,22 +3349,15 @@ _treated |         N      mean        sd       min        p1       p10       p25
          x95 | -.0807251  -.1459512   .0652261    .071363    .914005   .8809705
 -------------------------------------------------------------------------------
   
-  Mean standardized diff., squared
-  .0010648029
-  Mean absolute standardized diff.
-  .0968435263
-  Maximum absolute standardized diff.
-  .4122826186
-  C.V. of matching weights:
-  .5439619422
-  S.D. of matching weights:
-  .5439619422
-  Skewness of matching weights:
-  .0700264608
-  Kurtosis of matching weights:
-  .0167061679
-  Maximum matching weight:
-  4.040394628
+  Mean standardized diff.             = -0.03263
+  Mean absolute standardized diff.    = 0.09684
+  Maximum absolute standardized diff. = 0.41228
+  C.V. of matching weights:           = 0.54396
+  S.D. of matching weights:           = 0.54396
+  Skewness of matching weights:       = 0.07003
+  Kurtosis of matching weights:       = 0.01671
+  Maximum matching weight:            = 4.04039
+  
   Prognostic scores:
 ------------------------------------------------------------------------
              | mean_yhat_T  mean_yhat_C       diff   std_diff   mean_y_C
@@ -3518,7 +3366,6 @@ _treated |         N      mean        sd       min        p1       p10       p25
    y1_binary |    .9477666     .9545437  -.0067771   -.155058   .9545437
 ------------------------------------------------------------------------
   Note: The std_diff column does not account for the standard error of the linear predictions.
-
 . 
 . capture nois {
 . psweight pcbps `treatvar' `varlist' if `tousevar', atet treatvariance maxtarget(1 10 2) difficult nonrtolerance `depvaropt'
@@ -3732,22 +3579,15 @@ _treated |         N      mean        sd       min        p1       p10       p25
          x95 | -.0807251  -.0355482  -.0451769  -.0494274    .914005    .913678
 -------------------------------------------------------------------------------
   
-  Mean standardized diff., squared
-  1.51415e-06
-  Mean absolute standardized diff.
-  .0491718161
-  Maximum absolute standardized diff.
-  .1173337948
-  C.V. of matching weights:
-  1.042889944
-  S.D. of matching weights:
-  1.042889944
-  Skewness of matching weights:
-  .1525720695
-  Kurtosis of matching weights:
-  .0463651889
-  Maximum matching weight:
-  10.00000603
+  Mean standardized diff.             = -0.00123
+  Mean absolute standardized diff.    = 0.04917
+  Maximum absolute standardized diff. = 0.11733
+  C.V. of matching weights:           = 1.04289
+  S.D. of matching weights:           = 1.04289
+  Skewness of matching weights:       = 0.15257
+  Kurtosis of matching weights:       = 0.04637
+  Maximum matching weight:            = 10.00001
+  
   Prognostic scores:
 ------------------------------------------------------------------------
              | mean_yhat_T  mean_yhat_C       diff   std_diff   mean_y_C
@@ -3757,7 +3597,6 @@ _treated |         N      mean        sd       min        p1       p10       p25
 ------------------------------------------------------------------------
   Note: The std_diff column does not account for the standard error of the linear predictions.
 . }
-
 . 
 . // * WEIGHTED DATA EXAMPLES *
 . 
@@ -3893,7 +3732,6 @@ _treated |         N      mean        sd       min        p1       p10       p25
          |       500         1      .529      .188      .273      .782      .799      .859      1.05      1.49       2.9      6.64
          |       500      .183       .18     .0019    .00715       .02     .0472      .117      .263      .446      .717      .931
 ----------------------------------------------------------------------------------------------------------------------------------
-
 . psweight call balanceresults()
   Balance:
 -------------------------------------------------------------------------------
@@ -3921,31 +3759,23 @@ _treated |         N      mean        sd       min        p1       p10       p25
          x95 | -.0894585   -.089459   5.39e-07   5.51e-07   .9789419   .8236875
 -------------------------------------------------------------------------------
   
-  Mean standardized diff., squared
-  7.43885e-13
-  Mean absolute standardized diff.
-  1.59279e-06
-  Maximum absolute standardized diff.
-  4.65080e-06
-  C.V. of matching weights:
-  .5271017371
-  S.D. of matching weights:
-  .5285016261
-  Skewness of matching weights:
-  .2026538297
-  Kurtosis of matching weights:
-  .0762388752
-  Maximum matching weight:
-  6.642347912
+  Mean standardized diff.             = -0.00000
+  Mean absolute standardized diff.    = 0.00000
+  Maximum absolute standardized diff. = 0.00000
+  C.V. of matching weights:           = 0.52710
+  S.D. of matching weights:           = 0.52850
+  Skewness of matching weights:       = 0.20265
+  Kurtosis of matching weights:       = 0.07624
+  Maximum matching weight:            = 6.64235
+  
   Prognostic scores:
 ------------------------------------------------------------------------
              | mean_yhat_T  mean_yhat_C       diff   std_diff   mean_y_C
 -------------+----------------------------------------------------------
-          y1 |    3445.465     3445.465   .0003474   2.36e-06   3445.465
-   y1_binary |    .9569443     .9569441   1.47e-07   3.70e-06   .9569441
+          y1 |    3445.465     3445.465   .0003474   2.24e-06   3445.465
+   y1_binary |    .9569443     .9569441   1.47e-07   3.27e-06   .9569441
 ------------------------------------------------------------------------
   Note: The std_diff column does not account for the standard error of the linear predictions.
-
 . 
 . psweight cbpsoid `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], ate pooledvariance `depvaropt'
 
@@ -4049,7 +3879,6 @@ _treated |         N      mean        sd       min        p1       p10       p25
          |       500         1      .324      .297      .426      .821      .864      .931      1.07      1.35      2.08      4.34
          |       500       .19      .131     .0115     .0257     .0544     .0922      .151      .268      .394      .595      .702
 ----------------------------------------------------------------------------------------------------------------------------------
-
 . psweight call balanceresults()
   Balance:
 -------------------------------------------------------------------------------
@@ -4077,31 +3906,23 @@ _treated |         N      mean        sd       min        p1       p10       p25
          x95 | -.1053625    -.07164  -.0337225  -.0344809   .9780038    .803947
 -------------------------------------------------------------------------------
   
-  Mean standardized diff., squared
-  .0025726843
-  Mean absolute standardized diff.
-  .0771004621
-  Maximum absolute standardized diff.
-  .2533224801
-  C.V. of matching weights:
-  .3236892875
-  S.D. of matching weights:
-  .3244154606
-  Skewness of matching weights:
-  .1499734439
-  Kurtosis of matching weights:
-  .0569706877
-  Maximum matching weight:
-  4.343315815
+  Mean standardized diff.             = -0.05072
+  Mean absolute standardized diff.    = 0.07710
+  Maximum absolute standardized diff. = 0.25332
+  C.V. of matching weights:           = 0.32369
+  S.D. of matching weights:           = 0.32442
+  Skewness of matching weights:       = 0.14997
+  Kurtosis of matching weights:       = 0.05697
+  Maximum matching weight:            = 4.34332
+  
   Prognostic scores:
 ------------------------------------------------------------------------
              | mean_yhat_T  mean_yhat_C       diff   std_diff   mean_y_C
 -------------+----------------------------------------------------------
-          y1 |    3443.873     3455.428  -11.55448  -.0858345   3455.428
-   y1_binary |    .9538356     .9614582  -.0076226  -.2014405   .9614582
+          y1 |    3443.873     3455.428  -11.55448  -.0823173   3455.428
+   y1_binary |    .9538356     .9614582  -.0076226  -.1871522   .9614582
 ------------------------------------------------------------------------
   Note: The std_diff column does not account for the standard error of the linear predictions.
-
 . 
 . psweight cbps `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet pooledvariance `depvaropt'
 
@@ -4223,7 +4044,6 @@ _treated |         N      mean        sd       min        p1       p10       p25
          |       500      .996      .928      .043      .119      .228      .398      .809      1.04      2.05      4.72      7.01
          |       500      .182      .135    .00957     .0261     .0485     .0816      .134      .247      .392      .597      .692
 ----------------------------------------------------------------------------------------------------------------------------------
-
 . psweight call balanceresults()
   Balance:
 -------------------------------------------------------------------------------
@@ -4251,31 +4071,23 @@ _treated |         N      mean        sd       min        p1       p10       p25
          x95 | -.1044649  -.1044664   1.41e-06   1.46e-06   .9627681   .8646446
 -------------------------------------------------------------------------------
   
-  Mean standardized diff., squared
-  4.61593e-12
-  Mean absolute standardized diff.
-  3.36871e-06
-  Maximum absolute standardized diff.
-  9.57718e-06
-  C.V. of matching weights:
-  1.031943603
-  S.D. of matching weights:
-  1.027126741
-  Skewness of matching weights:
-  .1135031637
-  Kurtosis of matching weights:
-  .0229213062
-  Maximum matching weight:
-  7.00792466
+  Mean standardized diff.             = 0.00000
+  Mean absolute standardized diff.    = 0.00000
+  Maximum absolute standardized diff. = 0.00001
+  C.V. of matching weights:           = 1.03194
+  S.D. of matching weights:           = 1.02713
+  Skewness of matching weights:       = 0.11350
+  Kurtosis of matching weights:       = 0.02292
+  Maximum matching weight:            = 7.00792
+  
   Prognostic scores:
 ------------------------------------------------------------------------
              | mean_yhat_T  mean_yhat_C       diff   std_diff   mean_y_C
 -------------+----------------------------------------------------------
-          y1 |    3431.367     3431.366   .0005901   3.70e-06   3431.366
-   y1_binary |    .9509094     .9509091   2.71e-07   5.55e-06   .9509091
+          y1 |    3431.367     3431.366   .0005901   3.44e-06   3431.366
+   y1_binary |    .9509094     .9509091   2.71e-07   5.40e-06   .9509091
 ------------------------------------------------------------------------
   Note: The std_diff column does not account for the standard error of the linear predictions.
-
 . 
 . psweight cbpsoid `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet pooledvariance `depvaropt'
 
@@ -4378,7 +4190,6 @@ _treated |         N      mean        sd       min        p1       p10       p25
          |       500      .996      .916     .0445      .124      .228      .404       .82      1.04      2.07      4.54      7.11
          |       500      .181      .133    .00985     .0269     .0484     .0819      .137      .247       .39      .596      .695
 ----------------------------------------------------------------------------------------------------------------------------------
-
 . psweight call balanceresults()
   Balance:
 -------------------------------------------------------------------------------
@@ -4406,31 +4217,23 @@ _treated |         N      mean        sd       min        p1       p10       p25
          x95 | -.1044649  -.1015495  -.0029155   -.003029   .9625008   .8652191
 -------------------------------------------------------------------------------
   
-  Mean standardized diff., squared
-  3.24224e-06
-  Mean absolute standardized diff.
-  .005796575
-  Maximum absolute standardized diff.
-  .0111275825
-  C.V. of matching weights:
-  1.0190338
-  S.D. of matching weights:
-  1.014129186
-  Skewness of matching weights:
-  .1128933337
-  Kurtosis of matching weights:
-  .0230686592
-  Maximum matching weight:
-  7.109590442
+  Mean standardized diff.             = 0.00180
+  Mean absolute standardized diff.    = 0.00580
+  Maximum absolute standardized diff. = 0.01113
+  C.V. of matching weights:           = 1.01903
+  S.D. of matching weights:           = 1.01413
+  Skewness of matching weights:       = 0.11289
+  Kurtosis of matching weights:       = 0.02307
+  Maximum matching weight:            = 7.10959
+  
   Prognostic scores:
 ------------------------------------------------------------------------
              | mean_yhat_T  mean_yhat_C       diff   std_diff   mean_y_C
 -------------+----------------------------------------------------------
-          y1 |    3431.338     3430.734   .6043149   .0037958   3430.734
-   y1_binary |    .9509085     .9508973   .0000113   .0002306   .9508973
+          y1 |    3431.338     3430.734   .6043149   .0035138   3430.734
+   y1_binary |    .9509085     .9508973   .0000113   .0002232   .9508973
 ------------------------------------------------------------------------
   Note: The std_diff column does not account for the standard error of the linear predictions.
-
 . 
 . // Other objective functions
 . psweight mean_sd_sq `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet treatvariance difficult nonrtolerance `depvaropt'
@@ -4506,7 +4309,6 @@ _treated |         N      mean        sd       min        p1       p10       p25
          |       500      .998      .961     .0408      .117      .226      .402      .852      1.07      1.96      4.35      10.6
          |       500      .244      .158     .0139      .039     .0719      .119      .203      .332      .494      .685       .79
 ----------------------------------------------------------------------------------------------------------------------------------
-
 . psweight call balanceresults()
   Balance:
 -------------------------------------------------------------------------------
@@ -4534,22 +4336,15 @@ _treated |         N      mean        sd       min        p1       p10       p25
          x95 | -.1044649   -.104167  -.0002979  -.0003285   .9069849   .8690485
 -------------------------------------------------------------------------------
   
-  Mean standardized diff., squared
-  1.98817e-21
-  Mean absolute standardized diff.
-  .0326483296
-  Maximum absolute standardized diff.
-  .0906571688
-  C.V. of matching weights:
-  1.06701684
-  S.D. of matching weights:
-  1.064358816
-  Skewness of matching weights:
-  .1583892384
-  Kurtosis of matching weights:
-  .0509012068
-  Maximum matching weight:
-  10.57744036
+  Mean standardized diff.             = -0.00000
+  Mean absolute standardized diff.    = 0.03265
+  Maximum absolute standardized diff. = 0.09066
+  C.V. of matching weights:           = 1.06702
+  S.D. of matching weights:           = 1.06436
+  Skewness of matching weights:       = 0.15839
+  Kurtosis of matching weights:       = 0.05090
+  Maximum matching weight:            = 10.57744
+  
   Prognostic scores:
 ------------------------------------------------------------------------
              | mean_yhat_T  mean_yhat_C       diff   std_diff   mean_y_C
@@ -4558,7 +4353,6 @@ _treated |         N      mean        sd       min        p1       p10       p25
    y1_binary |    .9507734     .9518109  -.0010374  -.0207557   .9518109
 ------------------------------------------------------------------------
   Note: The std_diff column does not account for the standard error of the linear predictions.
-
 . 
 . psweight sd_sq `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet treatvariance difficult nonrtolerance `depvaropt'
 
@@ -4687,7 +4481,6 @@ _treated |         N      mean        sd       min        p1       p10       p25
          |       500      .996      .928     .0432      .119      .228      .398      .809      1.04      2.05      4.72      7.01
          |       500      .293      .177     .0196     .0523      .095      .155      .242      .404      .571      .753      .822
 ----------------------------------------------------------------------------------------------------------------------------------
-
 . psweight call balanceresults()
   Balance:
 -------------------------------------------------------------------------------
@@ -4715,22 +4508,15 @@ _treated |         N      mean        sd       min        p1       p10       p25
          x95 | -.1044649  -.1044612  -3.73e-06  -4.11e-06   .9069849   .8646937
 -------------------------------------------------------------------------------
   
-  Mean standardized diff., squared
-  9.13253e-13
-  Mean absolute standardized diff.
-  .0000763001
-  Maximum absolute standardized diff.
-  .0003408973
-  C.V. of matching weights:
-  1.031828628
-  S.D. of matching weights:
-  1.027013976
-  Skewness of matching weights:
-  .1135222631
-  Kurtosis of matching weights:
-  .0229324011
-  Maximum matching weight:
-  7.010362717
+  Mean standardized diff.             = 0.00000
+  Mean absolute standardized diff.    = 0.00008
+  Maximum absolute standardized diff. = 0.00034
+  C.V. of matching weights:           = 1.03183
+  S.D. of matching weights:           = 1.02701
+  Skewness of matching weights:       = 0.11352
+  Kurtosis of matching weights:       = 0.02293
+  Maximum matching weight:            = 7.01036
+  
   Prognostic scores:
 ------------------------------------------------------------------------
              | mean_yhat_T  mean_yhat_C       diff   std_diff   mean_y_C
@@ -4739,7 +4525,6 @@ _treated |         N      mean        sd       min        p1       p10       p25
    y1_binary |    .9509094     .9509116  -2.24e-06  -.0000459   .9509116
 ------------------------------------------------------------------------
   Note: The std_diff column does not account for the standard error of the linear predictions.
-
 . 
 . psweight stdprogdiff `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet treatvariance difficult nonrtolerance `depvaropt'
 
@@ -4820,7 +4605,6 @@ _treated |         N      mean        sd       min        p1       p10       p25
          |       500      .998      .963     .0402      .116      .223      .396      .841      1.07      1.98      4.39      10.4
          |       500      .239      .157     .0134     .0375     .0695      .116      .196      .324      .483      .682      .795
 ----------------------------------------------------------------------------------------------------------------------------------
-
 . psweight call balanceresults()
   Balance:
 -------------------------------------------------------------------------------
@@ -4848,22 +4632,15 @@ _treated |         N      mean        sd       min        p1       p10       p25
          x95 | -.1044649  -.0999108  -.0045541  -.0050212   .9069849   .8678581
 -------------------------------------------------------------------------------
   
-  Mean standardized diff., squared
-  3.80000e-06
-  Mean absolute standardized diff.
-  .0312468533
-  Maximum absolute standardized diff.
-  .0784253358
-  C.V. of matching weights:
-  1.069659157
-  S.D. of matching weights:
-  1.066612986
-  Skewness of matching weights:
-  .1534175628
-  Kurtosis of matching weights:
-  .0473557619
-  Maximum matching weight:
-  10.35645318
+  Mean standardized diff.             = 0.00195
+  Mean absolute standardized diff.    = 0.03125
+  Maximum absolute standardized diff. = 0.07843
+  C.V. of matching weights:           = 1.06966
+  S.D. of matching weights:           = 1.06661
+  Skewness of matching weights:       = 0.15342
+  Kurtosis of matching weights:       = 0.04736
+  Maximum matching weight:            = 10.35645
+  
   Prognostic scores:
 ------------------------------------------------------------------------
              | mean_yhat_T  mean_yhat_C       diff   std_diff   mean_y_C
@@ -4872,7 +4649,6 @@ _treated |         N      mean        sd       min        p1       p10       p25
    y1_binary |    .9507806     .9507803   2.82e-07   5.58e-06   .9507803
 ------------------------------------------------------------------------
   Note: The std_diff column does not account for the standard error of the linear predictions.
-
 . 
 . // IPW
 . teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' [iw=`wgtvar'], atet aequations
@@ -4916,10 +4692,8 @@ TME1                    |
                     x95 |  -.0212452   .0898768    -0.24   0.813    -.1974006    .1549102
                   _cons |    1.24872   .6712769     1.86   0.063    -.0669587    2.564399
 -----------------------------------------------------------------------------------------
-
 . di _b[POmean:0.treat]
 3424.8791
-
 . tebalance summarize
 
   Covariate balance summary
@@ -4953,7 +4727,6 @@ TME1                    |
               x94 |  -.1521926    .0315996      .8686432   .7548902
               x95 |  -.0155155    .0398234      .8285405   .8815991
   -----------------------------------------------------------------
-
 . tebalance summarize, baseline
 
   Covariate balance summary
@@ -4987,7 +4760,6 @@ TME1                    |
               x94 |   .0160559   -.1299173      .9846065   .8552718
               x95 |  -.0658282   -.0807251      1.008285   .8354051
   -----------------------------------------------------------------
-
 . 
 . psweight ipw `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet treatvariance `depvaropt'
 
@@ -5044,7 +4816,6 @@ _treated |         N      mean        sd       min        p1       p10       p25
          |       500      .996      .954      .043      .116      .216      .395       .81      1.01      2.09      4.37      9.04
          |       500      .182      .134    .00968     .0257     .0468     .0819      .141      .249      .395       .59      .722
 ----------------------------------------------------------------------------------------------------------------------------------
-
 . psweight call balanceresults()
   Balance:
 -------------------------------------------------------------------------------
@@ -5072,22 +4843,15 @@ _treated |         N      mean        sd       min        p1       p10       p25
          x95 | -.1044649  -.1114622   .0069973   .0077149   .9069849   .8717687
 -------------------------------------------------------------------------------
   
-  Mean standardized diff., squared
-  .0002630856
-  Mean absolute standardized diff.
-  .0265629657
-  Maximum absolute standardized diff.
-  .1023310562
-  C.V. of matching weights:
-  1.061919066
-  S.D. of matching weights:
-  1.056554014
-  Skewness of matching weights:
-  .1301107828
-  Kurtosis of matching weights:
-  .0329288584
-  Maximum matching weight:
-  9.036805568
+  Mean standardized diff.             = 0.01622
+  Mean absolute standardized diff.    = 0.02656
+  Maximum absolute standardized diff. = 0.10233
+  C.V. of matching weights:           = 1.06192
+  S.D. of matching weights:           = 1.05655
+  Skewness of matching weights:       = 0.13011
+  Kurtosis of matching weights:       = 0.03293
+  Maximum matching weight:            = 9.03681
+  
   Prognostic scores:
 ------------------------------------------------------------------------
              | mean_yhat_T  mean_yhat_C       diff   std_diff   mean_y_C
@@ -5096,9 +4860,7 @@ _treated |         N      mean        sd       min        p1       p10       p25
    y1_binary |    .9509319     .9506406   .0002913   .0058276   .9506406
 ------------------------------------------------------------------------
   Note: The std_diff column does not account for the standard error of the linear predictions.
-
 . psweight call reweight()
-
 . psweight call balanceresults()
   Unmatched data
   Balance:
@@ -5127,22 +4889,15 @@ _treated |         N      mean        sd       min        p1       p10       p25
          x95 | -.0807251  -.1181964   .0374713   .0409968    .914005   .8890772
 -------------------------------------------------------------------------------
   
-  Mean standardized diff., squared
-  .0001444769
-  Mean absolute standardized diff.
-  .0283341849
-  Maximum absolute standardized diff.
-  .1111160516
-  C.V. of matching weights:
-  0
-  S.D. of matching weights:
-  0
-  Skewness of matching weights:
-  .
-  Kurtosis of matching weights:
-  .
-  Maximum matching weight:
-  1
+  Mean standardized diff.             = 0.01202
+  Mean absolute standardized diff.    = 0.02833
+  Maximum absolute standardized diff. = 0.11112
+  C.V. of matching weights:           = 0.00000
+  S.D. of matching weights:           = 0.00000
+  Skewness of matching weights:       = .
+  Kurtosis of matching weights:       = .
+  Maximum matching weight:            = 1.00000
+  
   Prognostic scores:
 ------------------------------------------------------------------------
              | mean_yhat_T  mean_yhat_C       diff   std_diff   mean_y_C
@@ -5151,7 +4906,6 @@ _treated |         N      mean        sd       min        p1       p10       p25
    y1_binary |    .9470976      .946147   .0009506   .0176756    .946147
 ------------------------------------------------------------------------
   Note: The std_diff column does not account for the standard error of the linear predictions.
-
 . 
 . psweight ipw `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet averagevariance `depvaropt'
 
@@ -5208,7 +4962,6 @@ _treated |         N      mean        sd       min        p1       p10       p25
          |       500      .996      .954      .043      .116      .216      .395       .81      1.01      2.09      4.37      9.04
          |       500      .182      .134    .00968     .0257     .0468     .0819      .141      .249      .395       .59      .722
 ----------------------------------------------------------------------------------------------------------------------------------
-
 . psweight call balanceresults()
   Balance:
 -------------------------------------------------------------------------------
@@ -5236,31 +4989,23 @@ _treated |         N      mean        sd       min        p1       p10       p25
          x95 | -.1044649  -.1114622   .0069973   .0074459   .9397461   .8717687
 -------------------------------------------------------------------------------
   
-  Mean standardized diff., squared
-  .0002133716
-  Mean absolute standardized diff.
-  .0249399134
-  Maximum absolute standardized diff.
-  .0885486663
-  C.V. of matching weights:
-  1.061919066
-  S.D. of matching weights:
-  1.056554014
-  Skewness of matching weights:
-  .1301107828
-  Kurtosis of matching weights:
-  .0329288584
-  Maximum matching weight:
-  9.036805568
+  Mean standardized diff.             = 0.01461
+  Mean absolute standardized diff.    = 0.02494
+  Maximum absolute standardized diff. = 0.08855
+  C.V. of matching weights:           = 1.06192
+  S.D. of matching weights:           = 1.05655
+  Skewness of matching weights:       = 0.13011
+  Kurtosis of matching weights:       = 0.03293
+  Maximum matching weight:            = 9.03681
+  
   Prognostic scores:
 ------------------------------------------------------------------------
              | mean_yhat_T  mean_yhat_C       diff   std_diff   mean_y_C
 -------------+----------------------------------------------------------
-          y1 |     3430.94     3424.879   6.060627    .037449   3424.879
-   y1_binary |    .9509319     .9506406   .0002913   .0058276   .9506406
+          y1 |     3430.94     3424.879   6.060627   .0355366   3424.879
+   y1_binary |    .9509319     .9506406   .0002913   .0056545   .9506406
 ------------------------------------------------------------------------
   Note: The std_diff column does not account for the standard error of the linear predictions.
-
 . 
 . teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' [iw=`wgtvar'], ate aequations
 
@@ -5303,7 +5048,6 @@ TME1                    |
                     x95 |  -.0212452   .0898768    -0.24   0.813    -.1974006    .1549102
                   _cons |    1.24872   .6712769     1.86   0.063    -.0669587    2.564399
 -----------------------------------------------------------------------------------------
-
 . psweight ipw `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], ate treatvariance
 
   408 control obs (sum of weights = 802.3793)
@@ -5359,7 +5103,6 @@ _treated |         N      mean        sd       min        p1       p10       p25
          |       500         1      .341      .274      .398      .832      .866      .925      1.06      1.39      2.29      4.73
          |       500      .182      .134    .00968     .0257     .0468     .0819      .141      .249      .395       .59      .722
 ----------------------------------------------------------------------------------------------------------------------------------
-
 . psweight call balanceresults()
   Balance:
 -------------------------------------------------------------------------------
@@ -5387,23 +5130,14 @@ _treated |         N      mean        sd       min        p1       p10       p25
          x95 | -.0857581  -.0773517  -.0084064  -.0094126   .8931054   .7990227
 -------------------------------------------------------------------------------
   
-  Mean standardized diff., squared
-  .0037058594
-  Mean absolute standardized diff.
-  .0763700883
-  Maximum absolute standardized diff.
-  .2828651754
-  C.V. of matching weights:
-  .3403902484
-  S.D. of matching weights:
-  .3414490721
-  Skewness of matching weights:
-  .1624622214
-  Kurtosis of matching weights:
-  .0662787313
-  Maximum matching weight:
-  4.725180198
-
+  Mean standardized diff.             = -0.06088
+  Mean absolute standardized diff.    = 0.07637
+  Maximum absolute standardized diff. = 0.28287
+  C.V. of matching weights:           = 0.34039
+  S.D. of matching weights:           = 0.34145
+  Skewness of matching weights:       = 0.16246
+  Kurtosis of matching weights:       = 0.06628
+  Maximum matching weight:            = 4.72518
 . 
 . teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' [iw=`wgtvar'], atet aequations tlevel(0) control(1)
 
@@ -5446,7 +5180,6 @@ TME0                    |
                     x95 |   .0212452   .0898768     0.24   0.813    -.1549102    .1974006
                   _cons |   -1.24872   .6712769    -1.86   0.063    -2.564399    .0669587
 -----------------------------------------------------------------------------------------
-
 . psweight ipw `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], ateu treatvariance `depvaropt'
 
   408 control obs (sum of weights = 802.3793)
@@ -5502,7 +5235,6 @@ _treated |         N      mean        sd       min        p1       p10       p25
          |       500         1      .364     .0953       .25      .813         1         1         1         1      2.54      5.65
          |       500      .182      .134    .00968     .0257     .0468     .0819      .141      .249      .395       .59      .722
 ----------------------------------------------------------------------------------------------------------------------------------
-
 . 
 . // tradeoff between CBPS-like balance and variance in weights
 . psweight cbps `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet  treatvariance `depvaropt'
@@ -5625,7 +5357,6 @@ _treated |         N      mean        sd       min        p1       p10       p25
          |       500      .996      .928      .043      .119      .228      .398      .809      1.04      2.05      4.72      7.01
          |       500      .182      .135    .00957     .0261     .0485     .0816      .134      .247      .392      .597      .692
 ----------------------------------------------------------------------------------------------------------------------------------
-
 . psweight call balanceresults()
   Balance:
 -------------------------------------------------------------------------------
@@ -5653,22 +5384,15 @@ _treated |         N      mean        sd       min        p1       p10       p25
          x95 | -.1044649  -.1044664   1.41e-06   1.55e-06   .9069849   .8646446
 -------------------------------------------------------------------------------
   
-  Mean standardized diff., squared
-  5.75964e-12
-  Mean absolute standardized diff.
-  3.59851e-06
-  Maximum absolute standardized diff.
-  .0000119129
-  C.V. of matching weights:
-  1.031943603
-  S.D. of matching weights:
-  1.027126741
-  Skewness of matching weights:
-  .1135031637
-  Kurtosis of matching weights:
-  .0229213062
-  Maximum matching weight:
-  7.00792466
+  Mean standardized diff.             = 0.00000
+  Mean absolute standardized diff.    = 0.00000
+  Maximum absolute standardized diff. = 0.00001
+  C.V. of matching weights:           = 1.03194
+  S.D. of matching weights:           = 1.02713
+  Skewness of matching weights:       = 0.11350
+  Kurtosis of matching weights:       = 0.02292
+  Maximum matching weight:            = 7.00792
+  
   Prognostic scores:
 ------------------------------------------------------------------------
              | mean_yhat_T  mean_yhat_C       diff   std_diff   mean_y_C
@@ -5677,7 +5401,6 @@ _treated |         N      mean        sd       min        p1       p10       p25
    y1_binary |    .9509094     .9509091   2.71e-07   5.55e-06   .9509091
 ------------------------------------------------------------------------
   Note: The std_diff column does not account for the standard error of the linear predictions.
-
 . 
 . psweight pcbps `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet treatvariance cvtarget(1 .75 6) `depvaropt'
 
@@ -5802,7 +5525,6 @@ _treated |         N      mean        sd       min        p1       p10       p25
          |       500      .997       .78     .0724      .171      .297      .476      .864      1.06      1.98      3.95      5.51
          |       500      .191      .122     .0168     .0388     .0653        .1      .152      .255      .382      .553      .641
 ----------------------------------------------------------------------------------------------------------------------------------
-
 . psweight call balanceresults()
   Balance:
 -------------------------------------------------------------------------------
@@ -5830,22 +5552,15 @@ _treated |         N      mean        sd       min        p1       p10       p25
          x95 | -.1044649  -.0986898  -.0057751  -.0063674   .9069849   .8554811
 -------------------------------------------------------------------------------
   
-  Mean standardized diff., squared
-  .0003053599
-  Mean absolute standardized diff.
-  .026090974
-  Maximum absolute standardized diff.
-  .097828831
-  C.V. of matching weights:
-  .8670543817
-  S.D. of matching weights:
-  .8635481851
-  Skewness of matching weights:
-  .0962286395
-  Kurtosis of matching weights:
-  .0177408164
-  Maximum matching weight:
-  5.513144372
+  Mean standardized diff.             = -0.01747
+  Mean absolute standardized diff.    = 0.02609
+  Maximum absolute standardized diff. = 0.09783
+  C.V. of matching weights:           = 0.86705
+  S.D. of matching weights:           = 0.86355
+  Skewness of matching weights:       = 0.09623
+  Kurtosis of matching weights:       = 0.01774
+  Maximum matching weight:            = 5.51314
+  
   Prognostic scores:
 ------------------------------------------------------------------------
              | mean_yhat_T  mean_yhat_C       diff   std_diff   mean_y_C
@@ -5854,7 +5569,6 @@ _treated |         N      mean        sd       min        p1       p10       p25
    y1_binary |    .9509266     .9524272  -.0015006  -.0323358   .9524272
 ------------------------------------------------------------------------
   Note: The std_diff column does not account for the standard error of the linear predictions.
-
 . 
 . psweight pcbps `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet treatvariance cvtarget(1 .50 6) `depvaropt'
 
@@ -5979,7 +5693,6 @@ _treated |         N      mean        sd       min        p1       p10       p25
          |       500      .997      .584      .144      .275      .418      .597      .937      1.08      1.82      3.03      3.88
          |       500      .202      .099     .0345     .0637     .0933      .127      .174      .264      .355       .48      .555
 ----------------------------------------------------------------------------------------------------------------------------------
-
 . psweight call balanceresults()
   Balance:
 -------------------------------------------------------------------------------
@@ -6007,22 +5720,15 @@ _treated |         N      mean        sd       min        p1       p10       p25
          x95 | -.1044649  -.0909646  -.0135004  -.0148849   .9069849   .8447606
 -------------------------------------------------------------------------------
   
-  Mean standardized diff., squared
-  .0019585256
-  Mean absolute standardized diff.
-  .0641628423
-  Maximum absolute standardized diff.
-  .243300532
-  C.V. of matching weights:
-  .6486308156
-  S.D. of matching weights:
-  .6465924813
-  Skewness of matching weights:
-  .075272891
-  Kurtosis of matching weights:
-  .0127428766
-  Maximum matching weight:
-  3.883536568
+  Mean standardized diff.             = -0.04426
+  Mean absolute standardized diff.    = 0.06416
+  Maximum absolute standardized diff. = 0.24330
+  C.V. of matching weights:           = 0.64863
+  S.D. of matching weights:           = 0.64659
+  Skewness of matching weights:       = 0.07527
+  Kurtosis of matching weights:       = 0.01274
+  Maximum matching weight:            = 3.88354
+  
   Prognostic scores:
 ------------------------------------------------------------------------
              | mean_yhat_T  mean_yhat_C       diff   std_diff   mean_y_C
@@ -6031,7 +5737,6 @@ _treated |         N      mean        sd       min        p1       p10       p25
    y1_binary |     .950974     .9546103  -.0036363  -.0831634   .9546103
 ------------------------------------------------------------------------
   Note: The std_diff column does not account for the standard error of the linear predictions.
-
 . 
 . psweight mean_sd_sq `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet treatvariance cvtarget(1 .75 6) difficult nonrtolerance `depvaropt'
 
@@ -6181,7 +5886,6 @@ _treated |         N      mean        sd       min        p1       p10       p25
          |       500      .998      .691     .0801      .287      .426      .561      .865      1.03      1.88      3.71      5.31
          |       500      .427      .151     .0631      .194       .26      .308      .395      .536      .651      .779      .817
 ----------------------------------------------------------------------------------------------------------------------------------
-
 . psweight call balanceresults()
   Balance:
 -------------------------------------------------------------------------------
@@ -6209,22 +5913,15 @@ _treated |         N      mean        sd       min        p1       p10       p25
          x95 | -.1044649  -.1133624   .0088975   .0098099   .9069849   .8531474
 -------------------------------------------------------------------------------
   
-  Mean standardized diff., squared
-  1.95398e-13
-  Mean absolute standardized diff.
-  .1001475077
-  Maximum absolute standardized diff.
-  .4380997181
-  C.V. of matching weights:
-  .7665013328
-  S.D. of matching weights:
-  .764942466
-  Skewness of matching weights:
-  .1049590387
-  Kurtosis of matching weights:
-  .0204808115
-  Maximum matching weight:
-  5.312906803
+  Mean standardized diff.             = -0.00000
+  Mean absolute standardized diff.    = 0.10015
+  Maximum absolute standardized diff. = 0.43810
+  C.V. of matching weights:           = 0.76650
+  S.D. of matching weights:           = 0.76494
+  Skewness of matching weights:       = 0.10496
+  Kurtosis of matching weights:       = 0.02048
+  Maximum matching weight:            = 5.31291
+  
   Prognostic scores:
 ------------------------------------------------------------------------
              | mean_yhat_T  mean_yhat_C       diff   std_diff   mean_y_C
@@ -6233,7 +5930,6 @@ _treated |         N      mean        sd       min        p1       p10       p25
    y1_binary |    .9527962     .9689016  -.0161054  -.4468055   .9689016
 ------------------------------------------------------------------------
   Note: The std_diff column does not account for the standard error of the linear predictions.
-
 . 
 . psweight mean_sd_sq `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet treatvariance cvtarget(1 .50 6) difficult nonrtolerance `depvaropt'
 
@@ -6413,7 +6109,6 @@ _treated |         N      mean        sd       min        p1       p10       p25
          |       500      .999      .466      .115      .218      .504      .703         1      1.13      1.59      2.65      3.31
          |       500      .493      .121      .108      .185      .341      .413      .494      .575      .647      .756      .778
 ----------------------------------------------------------------------------------------------------------------------------------
-
 . psweight call balanceresults()
   Balance:
 -------------------------------------------------------------------------------
@@ -6441,22 +6136,15 @@ _treated |         N      mean        sd       min        p1       p10       p25
          x95 | -.1044649  -.2273282   .1228633   .1354634   .9069849   .8445254
 -------------------------------------------------------------------------------
   
-  Mean standardized diff., squared
-  8.84689e-13
-  Mean absolute standardized diff.
-  .1617776917
-  Maximum absolute standardized diff.
-  .5024333327
-  C.V. of matching weights:
-  .5167814151
-  S.D. of matching weights:
-  .5161926947
-  Skewness of matching weights:
-  .0687147553
-  Kurtosis of matching weights:
-  .0139619518
-  Maximum matching weight:
-  3.306047969
+  Mean standardized diff.             = 0.00000
+  Mean absolute standardized diff.    = 0.16178
+  Maximum absolute standardized diff. = 0.50243
+  C.V. of matching weights:           = 0.51678
+  S.D. of matching weights:           = 0.51619
+  Skewness of matching weights:       = 0.06871
+  Kurtosis of matching weights:       = 0.01396
+  Maximum matching weight:            = 3.30605
+  
   Prognostic scores:
 ------------------------------------------------------------------------
              | mean_yhat_T  mean_yhat_C       diff   std_diff   mean_y_C
@@ -6465,7 +6153,6 @@ _treated |         N      mean        sd       min        p1       p10       p25
    y1_binary |    .9516739     .9624371  -.0107632   -.263479   .9624371
 ------------------------------------------------------------------------
   Note: The std_diff column does not account for the standard error of the linear predictions.
-
 . 
 . // you can also target skiwness, kurtosis, or max weight, but it's finicky
 . 
@@ -6621,22 +6308,15 @@ _treated |         N      mean        sd       min        p1       p10       p25
          x95 | -.1044649  -.1175579   .0130929   .0144356   .9069849   .8552252
 -------------------------------------------------------------------------------
   
-  Mean standardized diff., squared
-  5.91141e-07
-  Mean absolute standardized diff.
-  .0669061882
-  Maximum absolute standardized diff.
-  .210366527
-  C.V. of matching weights:
-  1.03272795
-  S.D. of matching weights:
-  1.032420293
-  Skewness of matching weights:
-  .1577462527
-  Kurtosis of matching weights:
-  .0481540022
-  Maximum matching weight:
-  9.994851052
+  Mean standardized diff.             = 0.00077
+  Mean absolute standardized diff.    = 0.06691
+  Maximum absolute standardized diff. = 0.21037
+  C.V. of matching weights:           = 1.03273
+  S.D. of matching weights:           = 1.03242
+  Skewness of matching weights:       = 0.15775
+  Kurtosis of matching weights:       = 0.04815
+  Maximum matching weight:            = 9.99485
+  
   Prognostic scores:
 ------------------------------------------------------------------------
              | mean_yhat_T  mean_yhat_C       diff   std_diff   mean_y_C
@@ -6646,11 +6326,10 @@ _treated |         N      mean        sd       min        p1       p10       p25
 ------------------------------------------------------------------------
   Note: The std_diff column does not account for the standard error of the linear predictions.
 . }
-
 . 
 . log close psweight_example_ado
       name:  psweight_example_ado
        log:  C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\psweight_example_ado.log
   log type:  text
- closed on:  12 Mar 2019, 15:58:51
+ closed on:   5 Jun 2019, 11:10:58
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
