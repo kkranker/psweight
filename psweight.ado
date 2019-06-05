@@ -1,14 +1,12 @@
 //****************************************************************************/
-*! $Id$
+*! psweight.ado
 *! IPW- and CBPS-type propensity score reweighting, with various extentions
 *! Stata command to estimate models
 //
 *! By Keith Kranker
-// Last updated $Date$
 //
-// Copyright (C) Mathematica Policy Research, Inc.
-// This code cannot be copied, distributed or used without the express written
-// permission of Mathematica Policy Research, Inc.
+// Copyright (C) Mathematica, Inc. This code cannot be copied, distributed
+// or used without the express written permission of Mathematica, Inc.
 //*****************************************************************************/
 
 program define psweight, eclass byable(onecall)
@@ -33,8 +31,9 @@ program define psweight, eclass byable(onecall)
   else {
     `BY' Estimate `fctn' `0'
   }
-  ereturn local cmd "psweight"
+  ereturn local subcmd "`fctn'"
   ereturn local cmdline `"`cmdline'"'
+  ereturn local cmd "psweight"
 end
 
 program Estimate, eclass sortpreserve byable(recall)
@@ -147,12 +146,12 @@ program Estimate, eclass sortpreserve byable(recall)
   if ("`fctn'"=="pcbps") local fctn cbps // pcbps is a synonym of cbps with cvopt()
 
   // parse the "denominator" options
-  local denominator "`treatvariance'`controlvariance'`pooledvariance'`averagevariance'"
-  if ("`denominator'"=="")                     local denominator = 2
-  else if ("`denominator'"=="controlvariance") local denominator = 0
-  else if ("`denominator'"=="treatvariance")   local denominator = 1
-  else if ("`denominator'"=="pooledvariance")  local denominator = 2
-  else if ("`denominator'"=="averagevariance") local denominator = 3
+  local variance "`treatvariance'`controlvariance'`pooledvariance'`averagevariance'"
+  if ("`variance'"=="")                     local denominator = 2
+  else if ("`variance'"=="controlvariance") local denominator = 0
+  else if ("`variance'"=="treatvariance")   local denominator = 1
+  else if ("`variance'"=="pooledvariance")  local denominator = 2
+  else if ("`variance'"=="averagevariance") local denominator = 3
   else {
     di as err `"Specify one of the following: controlvariance, treatvariance, pooledvariance, or averagevariance"'
     error 198
@@ -173,14 +172,11 @@ program Estimate, eclass sortpreserve byable(recall)
   // balanceonly option just prints balance and then end the program
   if ("`fctn'"=="balanceonly") {
     mata: Estimate(0)
-    ereturn local stat                      = "`stat'"
-    ereturn local depvar                    = "`treatvar'"
-    ereturn local varlist                   = "`varlist'"
-    ereturn scalar balanceonly              = 1
+    ereturn local tvar                      = strtrim("`treatvar'")
+    ereturn local tmvarlist                 = strtrim("`varlist'")
+    ereturn local variance                  = "`variance'"
     if ("`weight'"!="") ereturn local wtype = "`weight'"
     if ("`wexp'"!="")   ereturn local wexp  = "`wexp'"
-    ereturn local mataobj                   = "psweight_ado_most_recent"
-    drop _weight _weight_mtch _pscore _treated
     exit
   }
 
@@ -203,16 +199,13 @@ program Estimate, eclass sortpreserve byable(recall)
   if ("`7'"!="")  di as txt   " + `7'*abs(wgt_kurtosis()-`8')^`9')" _c
   if ("`10'"!="") di as txt   " + `10'*abs(wgt_max()-`11')^`12')" _c
   di ""
-  ereturn post `psweight_beta_out' `wgtexp', obs(`psweight_N_out') buildfvinfo esample(`tousevar')
+  ereturn post `psweight_beta_out' `wgtexp', obs(`psweight_N_out') buildfvinfo esample(`tousevar') depname("`treatvar'")
   ereturn local stat                      = "`stat'"
-  ereturn local fctn                      = "`fctn'"
-  ereturn local depvar                    = "`treatvar'"
-  ereturn local varlist                   = "`varlist'"
-  ereturn scalar balanceonly              = 0
+  ereturn local tvar                      = strtrim("`treatvar'")
+  ereturn local tmvarlist                 = strtrim("`varlist'")
+  ereturn local variance                  = "`variance'"
   if ("`weight'"!="") ereturn local wtype = "`weight'"
   if ("`wexp'"!="")   ereturn local wexp  = "`wexp'"
-  ereturn local mataobj                   = "psweight_ado_most_recent"
-  ereturn scalar denominator              = `denominator'
   if ("`cvopt'"!="")  ereturn local cvopt = "`cvopt'"
   _coef_table, `diopts'
 
@@ -229,7 +222,7 @@ program define get_matrix_table_options, sclass
 end
 
 program define psweightcall, rclass
-  mata: `e(mataobj)'.`0'
+  mata: psweight_ado_most_recent.`0'
   return add
 end
 
@@ -331,7 +324,7 @@ void Estimate(real scalar reweight) {
   if (depvars!="") psweight_ado_most_recent.set_Y(depvars,tousevar)
   psweight_ado_most_recent.set_opts(stat, fctn, denominator, cvopt)
 
-  // compute invere probabily weights into child class
+  // compute invere probabily weights
   if (reweight) {
     temp = psweight_ado_most_recent.psweight()
   }
@@ -339,8 +332,13 @@ void Estimate(real scalar reweight) {
   // just compute balance
   else {
     mweightvar  = st_local("mweight")
-    psweight_ado_most_recent.userweight(mweightvar, tousevar)
-    temp = psweight_ado_most_recent.balanceresults()
+    if (mweightvar!="") {
+      psweight_ado_most_recent.userweight(mweightvar, tousevar)
+      temp = psweight_ado_most_recent.balanceresults()
+    }
+    else {
+      temp = psweight_ado_most_recent.balancetable()
+    }
   }
 
   // stick obs-specific weigths and such into Stata vaiables
