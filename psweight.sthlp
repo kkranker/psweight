@@ -46,19 +46,20 @@ with various extentions{p_end}
                       {it:{help psweight##options_table:options}}]
 
 {p 8 12 2}
-. {cmd:psweight} {opt call} {it:classfunction()}
+. {cmd:psweight} {opt call} [{it:classfunction()} | {it:classvariable}]
 
-
-{phang}
+{phang2}
 {it:tvar} must contain values 0 or 1, representing the treatment (1) and comparison (0) groups.
 
-{phang}
+{phang2}
 {it:tmvarlist} specifies the variables that predict treatment assignment in
 the treatment model.
 
-{phang}
-{it:classfunction()} is a function of the psweight Mata class. Functions may take arguments.
-{error:  << link to Mata docs >>}
+{phang2}
+{it:classfunction()} is a function of the psweight Mata class
+(the functions may take arguments) and
+{it:classvariable} is a member variable;
+see details {help psweight##call:below}.
 
 
 {marker subcommand}{...}
@@ -130,7 +131,7 @@ the maximization process; seldom used {* includes from()}{p_end}
 {title:Description}
 
 {pstd}
-{cmd:psweight} computes inverse-probability weighting (IPW) weights for average treatment effect,
+{cmd:psweight} {it:subcommand} computes inverse-probability weighting (IPW) weights for average treatment effect,
 average treatment effect on the treated, and average treatment effect estimators for observational data.
 IPW estimators use estimated probability weights to correct for the missing data on the potential outcomes).
 Probabilties of treatment--propensity scores--are computed for each observation with one of variety of methods, including
@@ -141,22 +142,146 @@ prognostic score balancing propensity scores, and
 other methods.
 
 {pstd}
-{cmd:psweight} constructs several variables:{p_end}
-{phang2}(1) The propensity scores are returned in {it:_pscore}.{p_end}
-{phang2}(2) The treatment indicator is returned in {it:_treated}.}.{p_end}
-{phang2}(3) The IPW weights, computed from the propensity scores, are returned in {it:_weight_mtch}.{p_end}
-{phang2}(4) The final weights--the product of _weight_mtch and the sample weights--are returned in {it:_weight}.{p_end}
-{pstd}If these variables exist before running {cmd:psweight}, they will be replaced.{p_end}
+{cmd:psweight} {cmd:balance} constructs a balance table instead of computing IPW weights.
+The most common use case is when users wish to construct a balance table for the unweighted sample.
+However users can also construct a balance table with
+{help psweight##mweight_opt:user-supplied weights}.
 
 {pstd}
-You can also use {cmd:psweight balance} to produce balanced tables to compare the treated and untreated observations
-after (or before) reweighting.
+After running {psweight} you can apply class functions
+to your data or access results through {cmd:psweight call};
+see details {help psweight##call:below}
+
+{title:Remarks}
 
 {pstd}
-This Stata command is a "wrapper" around the psweight Mata class.
+{cmd:psweight} {it:subcommand} constructs several variables:
+{it:_pscore}, {it:_treated}, {it:_weight_mtch}, and {it:_weight}.
+If these variables exist before running {cmd:psweight}, they will be replaced.{p_end}
+
+{pstd}
+{cmd:psweight} {it:subcommand} solves for propensity score model coefficients, propensity scores,
+and IPW weights as follows:
+
+{pmore}
+The first step involves computing coefficients, {it:b}, for the propensity score model.
+The propensity score model takes the form of a logit regression model.
+Specifically, the propensity score for each row in the data is defined as {p_end}
+
+{center:p = {help mf_logit:invlogit}({it:X} {help [M-2] op_arith:*} {it:b}')}
+
+{pmore} where {it:X} is the vector of matching variables ({it:tmvarlist}) for the respective row.
+
+{pmore}
+Users specify a {it:{help psweight##subcommand:subcommand}} to controls how the vector {it:b} is computed
+in the internal numerical optimization problem.
+As discussed in Kranker, Blue, and Vollmer Forrow (2019), we can set up optimazation problems to solve for
+the {it:b} that produces the best fit in the propensity score model,
+the {it:b} that produces best balance on matching variables,
+the {it:b} that produces the best balance on prognostic scores, or something else.
+The {it:subcommand} also determines how the term "best balance" is defined in the previous sentance.
+That is, for a given {it:subcommand}, we can generically define {it:b} as the vector that solves the problem: {p_end}
+
+{center:{it:b} = argmin {it:L(X,T,W)}}
+
+{pmore} where {it:L(X,T,W)} is a "loss function" that corresponds to the specified {it:subcommand}
+(e.g., logit regression or CBPS),
+given the data ({it:(X,T)} and vector of weights {it:W}.
+(The weights are computed using the propensity scores, as we describe below.
+The propensity scores are calculated using {b}, the data, and formula given above.)
+The available {it:subcommand}s are listed below.
+
+{pmore}
+In Kranker, Blue, and Vollmer Forrow (2019), we proposed adding a "penalty" to the loss function
+that lets users to effectively prespecify the variance (or higher-order moments) of the IPW weight distribution.
+By constraining the distribution of the weights, we let users choose among alternative sets of matching weights,
+some of which produce better balance and others which yield higher statistical power.
+The penalized method solves for {it:b} in:{p_end}
+
+{center:{it:b} = argmin {it:L(X,T,W)} + {it:f(W)}}
+
+{pmore}
+where {it:f(W)} is smooth, flexible function that increases as the vector of observation weights (W) becomes more variable.
+The {it:{help psweight##penalty:penalty}} options control the functional form of {it:f(W)}; see details below.
+
+{pmore}
+Once the {it:b} is estimated, we can compute propensity scores ({it:p}) for each observation
+with the formula given above and the observation's matching variables ({it:tmvarlist}).
+The propensity scores are returned in a variable named {it:_pscore}.
+
+{pmore}
+Once propensity scores are computed for each observation, we can compute IPW "matching weights"
+for each observation.
+The formulas for the IPW weights depend on whether the users requests weights for estimating
+the average treatment effect ({opt ate}),
+the average treatment effect on the treated  ({opt atet}), or
+the average treatment effect on the untreated  ({opt ateu}).
+First we compute unnormalized weights as follows:
+
+{phang3}
+- The unnormalized {opt ate} weights are
+1/{it:p} for treatment group observations and
+1/(1-{it:p}) for control group observations.
+
+{phang3}
+- The unnormalized {opt atet} weights are
+1 for treatment group observations and
+{it:p}/(1-{it:p}) for control group observations.
+
+{phang3}
+- The unnormalized {opt ateu} weights are
+(1-{it:p})/{it:p}  for treatment group observations and
+1 for control group observations.
+
+{pmore}
+Next, the weights are normalzied to have mean equal to 1 in each group,
+and returned in the variable named {it:_weight_mtch}.
+
+{pmore}
+Finally, the final weights (a variable named {it:_weight}) are set equalt to:{p_end}
+
+{center:{it:_weight} = {it:W} {help [M-2] op_colon::*} {it:_weight_mtch}}
+
+{pmore} where {it:W} are the {it:{help psweight##weight:sample weights}}.
+(The variable {it:_weight} equals {it:_weight_mtch} if no sample weights are provided.
+If sample weights are provided, the weights are normalized so the weighted mean equals 1.)
+For convenience, (a copy of) the treatment group indicator variable is
+returned in a variable named {it:_treated}.
+
+{pstd}
+After estimation, {cmd:psweight} {it:subcommand} will display the model coefficients {it:b}
+and a summary of the newly constructed variables.
+
+
+{marker call}
+{pstd}
+Postestimation commands: {cmd:psweight call}
+
+{pmore}
+The {cmd:psweight} {it:subcommand}
+and {cmd:psweight} {cmd:balance} Stata commands are "wrappers" around the
+{cmd:psweight} Mata {mansection M-2 class:class}.
 {error:  << link to Mata docs >>}
-After running the command you can access apply any of the class functions
-to your data or results through {cmd:psweight call}.
+When either command is run, it constructs an instance of the class, and this instance
+remains accessible to {cmd:psweight call} afterward.
+
+{pmore}
+Specifically, {cmd:psweight call} can be used to access the class functions or member variables.
+A list of available functions ({it:classfunction()}) and member variables ({it:classvariable})
+are available at:
+{error:  << link to Mata docs >>}
+
+{pmore}
+For example, the following code would calculate traditional IPW weights and then contruct
+a balance table for the reweighted sample:{p_end}
+{phang2}{cmd:. psweight ipw mbsmoke mmarried mage fbaby medu, treatvariance}{p_end}
+{phang2}{cmd:. psweight call balanceresults()}{p_end}
+
+{pmore}
+Note that any default options that were overridden when {cmd:psweight} {it:subcommand} was called
+will continue to be applied with {cmd:psweight call}.
+In the example above, the balance table will use the treatment group's variance
+to calculate standardized differences (rather than the default variance).
 
 
 {marker options}{...}
@@ -166,14 +291,7 @@ to your data or results through {cmd:psweight call}.
 
 {pstd}
 The {it:subcommand} specifies which method is used to compute coefficients, {it:b}, for the
-propensity score model.
-In all cases, propensity score for each row in the data is defined as {p_end}
-
-{center:p = {help mf_logit:invlogit}({it:X} {help [M-2] op_arith:*} {it:b}')}
-
-{pstd} where {it:X} is the vector of matching variables ({it:tmvarlist}) for the respective row.
-The {it:subcommand} controls how the vector {it:b} is computed.
-The seven available estimation methods are:
+propensity score model. The seven available estimation methods are:
 
 {pmore}
 The {opt ipw} subcommand fits a {help logit:logit regression model} by maximim likelihood.
@@ -244,53 +362,21 @@ IPW "matching weights" (the variable named {it:_weight_mtch}).
 {pmore}
 {opt ate} specifies that the average treatment effect be estimated.
 
-{pmore2}
-The unnormalized {opt ate} weights are
-1/{it:p} for treatment group observations and
-1/(1-{it:p}) for control group observations.
-The weights are then normalzied to have mean=1 in each group.
-
 {pmore}
 {opt atet} specifies that the average treatment effect on the treated be estimated.
-
-{pmore2}
-The unnormalized {opt atet} weights are
-1 for treatment group observations and
-{it:p}/(1-{it:p}) for control group observations.
-The weights are then normalzied to have mean=1 in the control group.
 
 {pmore}
 {opt ateu} specifies that the average treatment effect on the untreated be estimated.
 
-{pmore2}
-The unnormalized {opt ateu} weights are
-(1-{it:p})/{it:p}  for treatment group observations and
-1 for control group observations.
-The weights are then normalzied to have mean=1 in the treatment group.
-
-{pstd}
-Once the matching weights ({it:_weight_mtch}) are available,
-the final weights ({it:_weight}) are set equalt to:{p_end}
-{center:{it:_weight} = {it:W} {help [M-2] op_colon::*} {it:_weight_mtch}}
-{pstd} where {it:W} are the {it:{help psweight##weight:sample weights}}.
-The variable {it:_weight} equals {it:_weight_mtch} if no sample weights are provided.
+{pstd}The formulas used for computing IPW weights are described above.
 
 
 {dlgtab:Penalty}
 
 {pstd}
-The {it:penalty} options modify the "loss function"
-used to solve for the propensity score model coefficents ({it:b}).
-Let the nonpenalized method for a given {it:subcommand} be written as: {p_end}
-{center:{it:b} = argmin {it:L(X,T,W)}}
-{pstd} where {it:L(X,T,W)} is the loss function that corresponds to the specified {it:subcommand}
-(e.g., logit regression or CBPS),
-given the data ({it:(X,T)} and vector of weights {it:W}.
-(The weights are computed using the propensity scores,and the propensity scores
-are calcullated usign the ceofficents and data using the formulas given above.)
-Then the penalized method would be written as:{p_end}
-{center:{it:b} = argmin {it:L(X,T,W)} + {it:f(W)}}
-{pstd} where {it:f(W)} is smooth, flexible function that increases as the vector of observation weights (W) becomes more variable. Specifically:
+The {it:penalty} options determine the function, {it:f(W)},
+that we use to modify the loss function ({it:L(X,T,W)}).
+If none of these options are specified, {it:f(W)}=0.
 
 {phang2}{opt cvtarget(# # #)} applies a penalty using the coefficient of variation of the weight distribution.
 If {opt cvopt(a, b, c)} is specified, then the loss function is modified as:{p_end}
@@ -309,7 +395,7 @@ If {opt kurttarget(g, h, i)} is specified, then the loss function is modified as
 {center:{it:L'(X,T,W) = L(X,T,W) + g* abs((wgt_kurtosis() - h)^i)}}
 {error:  << link to Mata docs >>}
 {phang3}The default is no penalty: kurttarget(0 0 2).{p_end}
-
+{...}
 {* maxtarget option is undocumented}{...}
 
 
@@ -319,6 +405,8 @@ If {opt kurttarget(g, h, i)} is specified, then the loss function is modified as
 {it:variance} is one of three statistics: {opt pooledvariance}, {opt controlvariance}, {opt treatvariance}, or {opt averagevariance}.
 {opt pooledvariance} is the default.
 The {it:variance} dictates how the command standardizes the difference in means between the treatment and control groups.
+Standardized differences are used to compute the loss function for some {it:{help psweight##subcommand:subcommands}}
+and for computing balance tables.
 
 {phang2}
 {opt pooledvariance} uses the pooled (treatment plus control) sample's variances to calculate standardized differences; the default
@@ -340,7 +428,7 @@ The {it:variance} dictates how the command standardizes the difference in means 
 The data for the treatment group observations are ignored, but the data for the
 the control group are used to compute prognositic scores (see above).
 
-{marker:display_options}
+{marker display_options}
 {phang}
 {it:display_options}:
 
@@ -401,38 +489,18 @@ For a description of these options, see {manhelp maximize R} and
 
 {dlgtab:psweight balance}
 
-{pstd}
-{cmd:psweight} {cmd:balanceonly} constructs a balance table instead of computing IPW weights.
-If {opth mweight(varname)} is not specified, the balance table is constructed with "unweighted" data.
-(Only the {it:{help psweight##weight:sample weights}} are applied.)
-If the option is specified, then teh reweighted data are used to construct the balance table.
-
-{phang2}
+{marker mweight_opt}
+{phang}
 {opth mweight(varname)} is a variable containing user-specified "matching" weights.
 This variable is the analogue to the _weight_mtch variable;
 it should not be multiplied with the {it:{help psweight##weight:sample weights}}.
 
-{pstd}
-As explained in the {help psweight##syntax:syntax}, {cmd:psweight} {cmd:balanceonly} also allows many of the options listed above.
+{phang2}
+If {opth mweight(varname)} is not specified, the balance table is constructed with "unweighted" data.
+(Only the {it:{help psweight##weight:sample weights}} are applied.)
 
-
-{dlgtab:pweight call}
-
-{pstd}
-The {cmd:psweight} {it:subcommand} program is a "wrapper" around the psweight Mata {mansection M-2 class:class}.
-{error:  << link to Mata docs >>}
-When the command is run, it constructs an instance of the class, and this instance
-remains accessible afterward the command has finished.
-Your can access any of the class functions through {cmd:psweight call}.
-
-{pmore}
-Note that any default options that were overridden when {cmd:psweight} {it:subcommand} was called
-will continue to be applied with {cmd:psweight call}.
-
-{pmore}For exmaple, supposed you wrote:{p_end}
-{phang2}{cmd:. psweight ipw mbsmoke mmarried mage fbaby medu, treatvariance}{p_end}
-{phang2}{cmd:. psweight call balanceresults()}{p_end}
-{pmore}Then the balanced table will use the treatment group's variance to calculate standardized differences.
+{phang}
+As explained in the {help psweight##syntax:syntax}, {cmd:psweight} {cmd:balance} also allows many of the options listed above.
 
 
 {marker examples}{...}
@@ -443,7 +511,7 @@ will continue to be applied with {cmd:psweight call}.
 
 {pstd}
 Balance before reweighting{p_end}
-{phang2}{cmd:. psweight balanceonly mbsmoke mmarried mage fbaby medu}{p_end}
+{phang2}{cmd:. psweight balance mbsmoke mmarried mage fbaby medu}{p_end}
 
 {pstd}
 Estimate the average treatment effect of smoking on birthweight, using a
