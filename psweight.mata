@@ -1,14 +1,12 @@
 //****************************************************************************/
-*! $Id$
+*! psweight.mata
 *! IPW- and CBPS-type propensity score reweighting, with extentions
 *! Class defintion: psweight()
 //
 *! By Keith Kranker
-// Last updated $Date$
 //
-// Copyright (C) Mathematica Policy Research, Inc.
-// This code cannot be copied, distributed or used without the express written
-// permission of Mathematica Policy Research, Inc.
+// Copyright (C) Mathematica, Inc. This code cannot be copied, distributed
+// or used without the express written permission of Mathematica, Inc.
 //*****************************************************************************/
 
 version 15.1
@@ -38,7 +36,7 @@ class psweight {
     void             cbpseval(), balanceresults()
     real rowvector   psweight(), ipw(), cbps(), cbpsoid()
     real rowvector   diff(), stddiff(), varratio(), progdiff(), stdprogdiff(), pomean()
-    real scalar      mean_asd(), max_asd(), wgt_cv(), wgt_sd(), wgt_skewness(), wgt_kurtosis(), wgt_max()
+    real scalar      mean_sd(), mean_asd(), max_asd(), wgt_cv(), wgt_sd(), wgt_skewness(), wgt_kurtosis(), wgt_max()
     real matrix      balancetable()
 }
 
@@ -222,9 +220,9 @@ real matrix psweight::balancetable(| real scalar denominator) {
   else              frmts = ", " + frmts
   stata("matrix "+tmp+"=r(bal)")
   stata("_matrix_table " + tmp + frmts ); ""
-  "Mean standardized diff., squared";    this.mean_sd_sq(denominator)
-  "Mean absolute standardized diff.";    this.mean_asd(denominator)
-  "Maximum absolute standardized diff."; this.max_asd(denominator)
+  "Mean standardized diff.             = " + strofreal(this.mean_sd(denominator), "%9.5f")
+  "Mean absolute standardized diff.    = " + strofreal(this.mean_asd(denominator), "%9.5f")
+  "Maximum absolute standardized diff. = " + strofreal(this.max_asd(denominator), "%9.5f")
   return(table)
 }
 
@@ -236,14 +234,16 @@ void psweight::balanceresults(| string scalar stat, real scalar denominator) {
   transmorphic temp
   if (all(this.W_mtch:==1)) "Unmatched data"
   st_rclear()
-  "Balance:";                            temp = this.balancetable(denominator)
-  "C.V. of matching weights:";           this.wgt_cv(stat)
-  "S.D. of matching weights:";           this.wgt_sd(stat)
-  "Skewness of matching weights:";       this.wgt_skewness(stat)
-  "Kurtosis of matching weights:";       this.wgt_kurtosis(stat)
-  "Maximum matching weight:";            this.wgt_max(stat)
+  "Balance:"
+  temp = this.balancetable(denominator)
+  "C.V. of matching weights:           = " + strofreal(this.wgt_cv(stat), "%9.5f")
+  "S.D. of matching weights:           = " + strofreal(this.wgt_sd(stat), "%9.5f")
+  "Skewness of matching weights:       = " + strofreal(this.wgt_skewness(stat), "%9.5f")
+  "Kurtosis of matching weights:       = " + strofreal(this.wgt_kurtosis(stat), "%9.5f")
+  "Maximum matching weight:            = " + strofreal(this.wgt_max(stat), "%9.5f")
   if (this.depvars!="") {
-    "Prognostic scores:";                temp = this.progdiff()
+    ""; "Prognostic scores:"
+    temp = this.progdiff(denominator)
   }
 }
 
@@ -421,6 +421,14 @@ real rowvector psweight::asd(| real scalar denominator) {
 real rowvector psweight::sd_sq(| real scalar denominator) {
   if (args()<1) denominator=1
   return(this.stddiff(denominator):^2)
+}
+
+real scalar psweight::mean_sd(| real scalar denominator) {
+  real scalar out
+  if (args()<1) denominator=1
+  out = mean(this.stddiff(denominator)')
+  st_numscalar("r(mean_sd)",out)
+  return(out)
 }
 
 real scalar psweight::mean_asd(| real scalar denominator) {

@@ -10,7 +10,7 @@ cap log close psweight_example_R
 local makegraphs = 01
 cd "C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\"
 
-do C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\psweight_one_time_setup.do
+do C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\_build_mlib.do
 
 log using psweight_example.log, name(psweight_example) replace
 
@@ -35,8 +35,10 @@ which psweight
 mata: mata describe using lpsweight
 
 ************************************************************************************
-* Example in the help file (psweight.sthlp)
+* Simple examples in the help file (psweight.sthlp)
 ************************************************************************************
+
+if 0 {
 
 //  Setup
 webuse cattaneo2
@@ -56,6 +58,7 @@ psweight call balanceresults()
 psweight pcbps mbsmoke mmarried mage fbaby medu, atet cvtarget(1 .5 6)
 psweight call balanceresults()
 
+} // end of simple examples
 
 ************************************************************************************
 * Describe/summarize the example datasets
@@ -63,7 +66,7 @@ psweight call balanceresults()
 
 *** Input data file (simple_cattaneo_data) comes from the program named Make_example_datasets.do (in C:\Users\kkranker\Documents\Stata\Multiple-Equation-Models)
 
-use "C:\Users\kkranker\Documents\Stata\Multiple-Equation-Models\simple_cattaneo_data.dta"
+use "C:\Users\kkranker\Documents\Stata\Multiple-Equation-Models\simple_cattaneo_data.dta", clear
 desc, short
 notes _dta
 summ, sep(0)
@@ -101,6 +104,8 @@ gettoken trash varlist : varlist
 // *******************************
 // * RUN MODELS DIRECTLY IN MATA *
 // *******************************
+
+if 1 {
 
 mata:
 
@@ -312,12 +317,16 @@ if (depvars!="") DW.set_Y(depvars,tousevar)
 
 end  // end of Mata block
 
+} // end of Mata examples
+
 log close psweight_example
 
 
 // *************************************
 // * NOW RE-RUN WITH .ADO FILE VERSION *
 // *************************************
+
+if 1 {
 
 log using psweight_example_ado.log, name(psweight_example_ado) replace
 
@@ -326,19 +335,30 @@ desc, short
 local varlist : copy local varlist_orig
 summ `treatvar' `varlist' `tousevar' `wgtvar' `depvars'
 if (trim("`depvars'") != "") local depvaropt depvars(`depvars')
-
+ereturn clear
+ return clear
 
 // balance before matching
 psweight balanceonly `treatvar' `varlist' if `tousevar'
+ereturn list
+ return list
+
 psweight balanceonly `treatvar' `varlist' if `tousevar' [iw=`wgtvar']
-psweight balanceonly `treatvar' `varlist' if `tousevar', mweight(`wgtvar')
+psweight balanceonly `treatvar' `varlist' if `tousevar', mweight(`wgtvar') ate
 
 // * UNWEIGHTED DATA EXAMPLES *
 
 // Replicate CBPS
 cbps `treatvar' `varlist' if `tousevar' , ate logit optimization_technique("nr") evaluator_type("gf1")
+ereturn clear
+ return clear
+
 psweight cbps `treatvar' `varlist' if `tousevar' , ate pooledvariance `depvaropt'
+ereturn list
+ return list
+
 psweight call balanceresults()
+ereturn list
 return list
 psweight // test replay
 
@@ -488,10 +508,13 @@ psweight call balanceresults()
 
 log close psweight_example_ado
 
+} // end of ado examples
 
 // *******************************
 // * BENCHMARK A FEW MODELS IN R *
 // *******************************
+
+if 0 {
 
 log using psweight_example_R.log, name(psweight_example_R) replace
 
@@ -539,7 +562,8 @@ rsource, terminator(END_OF_R) lsource
 END_OF_R
 erase "C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\testfile.csv"
 
-
 log close psweight_example_R
+
+} // end of R benchmarks
 
 cap nois beep

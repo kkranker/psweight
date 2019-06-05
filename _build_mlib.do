@@ -1,14 +1,13 @@
 //****************************************************************************/
-*! $Id$
+*! _build_mlib.do
 *! Generalization of IPW and CBPS estimators
 *! Compile psweight() class definition
 //
 *! By Keith Kranker
-// Last updated $Date$
 //
-// Copyright (C) Mathematica Policy Research, Inc.
+// Copyright (C) Mathematica, Inc.
 // This code cannot be copied, distributed or used without the express written
-// permission of Mathematica Policy Research, Inc.
+// permission of Mathematica, Inc.
 //*****************************************************************************/
 
 // psweight.ado relies heavily on a Mata class named psweight().  Stata offers two options for using Mata code:
@@ -36,6 +35,6 @@
 clear mata
 do "C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\psweight.mata"
 // do "`c(sysdir_personal)'/p/psweight.mata"
-lmbuild lpsweight, dir(PERSONAL) replace
+lmbuild lpsweight, dir(C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\) replace
 mata: mata describe using lpsweight
 mata: mata mlib index
