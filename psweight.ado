@@ -23,15 +23,16 @@ program define psweight, eclass byable(onecall)
     ereturn display
     exit
   }
-  gettoken fctn 0 : 0, parse(" ,")
-  if ("`fctn'"=="call") {
+  gettoken subcmd 0 : 0, parse(" ,")
+  if ("`subcmd'"=="call") {
     if _by() error 190
-    psweightcall `0'
+    if (strtrim(`"`0'"')=="") exit
+    mata: psweight_ado_most_recent.`0'
   }
   else {
-    `BY' Estimate `fctn' `0'
+    `BY' Estimate `subcmd' `0'
   }
-  ereturn local subcmd "`fctn'"
+  ereturn local subcmd "`subcmd'"
   ereturn local cmdline `"`cmdline'"'
   ereturn local cmd "psweight"
 end
@@ -40,12 +41,15 @@ program Estimate, eclass sortpreserve byable(recall)
   version 15.1
 
   // first word is the name of the "subcommand"
-  gettoken fctn 0 : 0, parse(" ,")
-  if      ("`fctn'"=="mean_sd") local fctn mean_sd_sq
-  else if ("`fctn'"=="sd")      local fctn sd_sq
-  else if inlist(`"`fctn'"', "balance", "balanceo", "balanceon", "balanceonl", "balanceonly") local fctn balanceonly
-  else if !inlist(`"`fctn'"', "pcbps", "ipw", "cbps", "cbpsoid", "mean_sd_sq", "sd_sq", "stdprogdiff") {
-    di as error `""`fctn'" subcommand invalid"'
+  gettoken subcmd 0 : 0, parse(" ,")
+  if      ("`subcmd'"=="mean_sd") ///
+    local subcmd mean_sd_sq
+  else if ("`subcmd'"=="sd")      ///
+    local subcmd sd_sq
+  else if (inlist(`"`subcmd'"', "balance", "balanceo", "balanceon", "balanceonl", "balanceonly")) ///
+    local subcmd balanceonly
+  else if (!inlist(`"`subcmd'"', "pcbps", "ipw", "cbps", "cbpsoid", "mean_sd_sq", "sd_sq", "stdprogdiff")) {
+    di as error `""`subcmd'" subcommand invalid"'
     error 198
   }
 
@@ -71,32 +75,32 @@ program Estimate, eclass sortpreserve byable(recall)
   }
 
   // check treatment variable
-  gettoken treatvar varlist: varlist
-  _fv_check_depvar `treatvar'
-  cap assert inlist(`treatvar',0,1) if `tousevar'
+  gettoken tvar varlist: varlist
+  _fv_check_depvar `tvar'
+  cap assert inlist(`tvar',0,1) if `tousevar'
   if _rc {
-    di as err `"The treatment variable (`treatvar') must be a dummy variable."'
+    di as err `"The treatment variable (`tvar') must be a dummy variable."'
     error 125
   }
-  sum `treatvar' if `tousevar', mean
+  sum `tvar' if `tousevar', mean
   cap assert 0<r(mean) & r(mean) <1
   if _rc {
-    di as err `"The treatment variable (`treatvar') must be a dummy variable with >1 treatment obs and >1 control obs."'
+    di as err `"The treatment variable (`tvar') must be a dummy variable with >1 treatment obs and >1 control obs."'
     error 125
   }
 
   // exclude observations wtih mweight==.
   if ("`mweight'"!="") {
-    if ("`fctn'"!="balanceonly") {
-      di as err `"The mweight(`treatvar') option is only applicable with balanceonly."'
+    if ("`subcmd'"!="balanceonly") {
+      di as err `"The mweight(`tvar') option is only applicable with balanceonly."'
       error 198
     }
     markout `tousevar' `mweight'
   }
 
   // mark collinear variables
-  if ("`fctn'"=="balanceonly") _rmcoll `treatvar' `varlist' if `tousevar' `wgtexp', expand
-  else                         _rmcoll `treatvar' `varlist' if `tousevar' `wgtexp', expand logit touse(`tousevar')
+  if ("`subcmd'"=="balanceonly") _rmcoll `tvar' `varlist' if `tousevar' `wgtexp', expand
+  else                           _rmcoll `tvar' `varlist' if `tousevar' `wgtexp', expand logit touse(`tousevar')
   local varlist `r(varlist)'
   gettoken trash varlist : varlist
 
@@ -108,7 +112,7 @@ program Estimate, eclass sortpreserve byable(recall)
 
   // parse the "stat" options
   local stat "`ate'`atet'`ateu'"
-  if ("`fctn'"=="balanceonly") {
+  if ("`subcmd'"=="balanceonly") {
     if (`"`mweight'"'!="" & "`stat'"=="") {
       di as err `"What kind of weights are in mweight(`mweight')?"' _n `"Specify one of the following: ate, atet, or ateu."'
       error 198
@@ -131,11 +135,11 @@ program Estimate, eclass sortpreserve byable(recall)
   if (!mi("`skewtarget'") & mi("`cvtarget'"))   local cvtarget   "0 0 2"
   local cvopt "`cvtarget' `skewtarget' `kurttarget' `maxtarget'"
   local cvopt : list clean cvopt
-  if ("`fctn'"=="balanceonly" & "`cvopt'"!="") {
-    di as error "`cvopt' not allowed with `fctn' subcommand"
+  if ("`subcmd'"=="balanceonly" & "`cvopt'"!="") {
+    di as error "`cvopt' not allowed with `subcmd' subcommand"
     error 198
   }
-  else if ("`fctn'"=="pcbps" & "`cvopt'"=="") {
+  else if ("`subcmd'"=="pcbps" & "`cvopt'"=="") {
     di as error `"cvtarget(), skewtarget(), or kurttarget() required with pcbps subcommand"'
     error 198
   }
@@ -143,7 +147,7 @@ program Estimate, eclass sortpreserve byable(recall)
     di as error `"cvopt() requires 3, 6, 9, 12 elements"'
     error 198
   }
-  if ("`fctn'"=="pcbps") local fctn cbps // pcbps is a synonym of cbps with cvopt()
+  if ("`subcmd'"=="pcbps") local subcmd cbps // pcbps is a synonym of cbps with cvopt()
 
   // parse the "denominator" options
   local variance "`treatvariance'`controlvariance'`pooledvariance'`averagevariance'"
@@ -163,16 +167,16 @@ program Estimate, eclass sortpreserve byable(recall)
     qui gen double `v' = .
     format %7.3g `v'
   }
-  if ("`fctn'"!="balanceonly") {
+  if ("`subcmd'"!="balanceonly") {
     ereturn clear
     cap mata: mata drop psweight_ado_most_recent
   }
   return clear
 
   // balanceonly option just prints balance and then end the program
-  if ("`fctn'"=="balanceonly") {
+  if ("`subcmd'"=="balanceonly") {
     mata: Estimate(0)
-    ereturn local tvar                      = strtrim("`treatvar'")
+    ereturn local tvar                      = strtrim("`tvar'")
     ereturn local tmvarlist                 = strtrim("`varlist'")
     ereturn local variance                  = "`variance'"
     if ("`weight'"!="") ereturn local wtype = "`weight'"
@@ -187,21 +191,21 @@ program Estimate, eclass sortpreserve byable(recall)
   di as txt _n "Propensity score model coefficients" _c
   di as txt _col(52) "Number of obs" _col(67) "=" _col(69) as res %10.0fc `psweight_N_out'
   di as txt "Propensity score reweigting"
-  if      ("`fctn'"=="ipw"        ) di as txt "Loss = IPW" _c
-  else if ("`fctn'"=="cbps"       ) di as txt "Loss = CBPS (just identified)" _c
-  else if ("`fctn'"=="cbpsoid"    ) di as txt "Loss = CBPS (over identified)" _c
-  else if ("`fctn'"=="mean_sd_sq" ) di as txt "Loss = mean(stddiff())^2" _c
-  else if ("`fctn'"=="sd_sq"      ) di as txt "Loss = sum(stddiff()^2)" _c
-  else if ("`fctn'"=="stdprogdiff") di as txt "Loss = sum(stdprogdiff()^2)" _c
+  if      ("`subcmd'"=="ipw"        ) di as txt "Loss = IPW" _c
+  else if ("`subcmd'"=="cbps"       ) di as txt "Loss = CBPS (just identified)" _c
+  else if ("`subcmd'"=="cbpsoid"    ) di as txt "Loss = CBPS (over identified)" _c
+  else if ("`subcmd'"=="mean_sd_sq" ) di as txt "Loss = mean(stddiff())^2" _c
+  else if ("`subcmd'"=="sd_sq"      ) di as txt "Loss = sum(stddiff()^2)" _c
+  else if ("`subcmd'"=="stdprogdiff") di as txt "Loss = sum(stdprogdiff()^2)" _c
   tokenize `cvopt'
   if ("`1'"!="")  di as txt   " + `1'*abs(wgt_cv()-`2')^`3')" _c
   if ("`4'"!="")  di as txt   " + `4'*abs(wgt_skewness()-`5')^`6')" _c
   if ("`7'"!="")  di as txt   " + `7'*abs(wgt_kurtosis()-`8')^`9')" _c
   if ("`10'"!="") di as txt   " + `10'*abs(wgt_max()-`11')^`12')" _c
   di ""
-  ereturn post `psweight_beta_out' `wgtexp', obs(`psweight_N_out') buildfvinfo esample(`tousevar') depname("`treatvar'")
+  ereturn post `psweight_beta_out' `wgtexp', obs(`psweight_N_out') buildfvinfo esample(`tousevar') depname("`tvar'")
   ereturn local stat                      = "`stat'"
-  ereturn local tvar                      = strtrim("`treatvar'")
+  ereturn local tvar                      = strtrim("`tvar'")
   ereturn local tmvarlist                 = strtrim("`varlist'")
   ereturn local variance                  = "`variance'"
   if ("`weight'"!="") ereturn local wtype = "`weight'"
@@ -221,11 +225,6 @@ program define get_matrix_table_options, sclass
   sreturn local opts = strrtrim(stritrim(`"`format' `noomitted' `vsquish' `noemptycells' `baselevels' `passthru' `allbaselevels' `nofvlabel' `fvwrap' `fvwrapon' `nolstretch'"'))
 end
 
-program define psweightcall, rclass
-  mata: psweight_ado_most_recent.`0'
-  return add
-end
-
 
 // DEFINE MATA FUNCTIONS
 version 15.1
@@ -240,7 +239,7 @@ mata set matafavor speed
 class psweightado extends psweight {
   private:
     string scalar    stat
-    string scalar    fctn
+    string scalar    subcmd
     real   scalar    denominator
     real   rowvector cvopt
 
@@ -253,9 +252,9 @@ class psweightado extends psweight {
     real matrix balancetable()
 }
 
-void psweightado::set_opts(string scalar stat_in, string scalar fctn_in, real scalar denominator_in, real rowvector cvopt_in) {
+void psweightado::set_opts(string scalar stat_in, string scalar subcmd_in, real scalar denominator_in, real rowvector cvopt_in) {
   this.stat = stat_in
-  this.fctn = fctn_in
+  this.subcmd = subcmd_in
   this.denominator = denominator_in
   this.cvopt = cvopt_in
 }
@@ -275,7 +274,7 @@ void psweightado::userweight(| string scalar wgtvar, string scalar tousevar) {
 
 // these functions are just wrappers
 void           psweightado::balanceresults() return(this.super.balanceresults(this.stat, this.denominator))
-real rowvector psweightado::psweight()       return(this.super.psweight(this.stat, this.fctn, this.denominator, this.cvopt))
+real rowvector psweightado::psweight()       return(this.super.psweight(this.stat, this.subcmd, this.denominator, this.cvopt))
 real rowvector psweightado::ipw()            return(this.super.ipw(this.stat))
 real rowvector psweightado::cbps()           return(this.super.cbps(this.stat, this.denominator))
 real rowvector psweightado::cbpsoid()        return(this.super.cbpsoid(this.stat, this.denominator))
@@ -298,20 +297,20 @@ real matrix    psweightado::balancetable()   return(this.super.balancetable(this
 //          == 0: just calcuate balance
 void Estimate(real scalar reweight) {
   external class   psweightado scalar psweight_ado_most_recent
-  string scalar    treatvar, varlist, tousevar, wgtvar, depvars
-  string scalar    stat, fctn, mweightvar
+  string scalar    tvar, varlist, tousevar, wgtvar, depvars
+  string scalar    stat, subcmd, mweightvar
   real   scalar    denominator
   real   rowvector cvopt
   transmorphic temp
 
   // access key parameters from Stata locals
-  treatvar    = st_local("treatvar")
+  tvar        = st_local("tvar")
   varlist     = st_local("varlist")
   tousevar    = st_local("tousevar")
   wgtvar      = st_local("wgtvar")
   depvars     = st_local("depvars")
   stat        = st_local("stat")
-  fctn        = st_local("fctn")
+  subcmd      = st_local("subcmd")
   denominator = strtoreal(st_local("denominator"))
   if  (st_local("cvopt")!="") {
     cvopt       = strtoreal(tokens(st_local("cvopt")))
@@ -320,10 +319,10 @@ void Estimate(real scalar reweight) {
 
   // initialize class and read in data and parameters
   psweight_ado_most_recent = psweightado()
-  if  (wgtvar!="") psweight_ado_most_recent.set(treatvar, varlist, tousevar, wgtvar)
-  else             psweight_ado_most_recent.set(treatvar, varlist, tousevar)
-  if (depvars!="") psweight_ado_most_recent.set_Y(depvars,tousevar)
-  psweight_ado_most_recent.set_opts(stat, fctn, denominator, cvopt)
+  if  (wgtvar!="") psweight_ado_most_recent.st_set(tvar, varlist, tousevar, wgtvar)
+  else             psweight_ado_most_recent.st_set(tvar, varlist, tousevar)
+  if (depvars!="") psweight_ado_most_recent.st_set_depvar(depvars,tousevar)
+  psweight_ado_most_recent.set_opts(stat, subcmd, denominator, cvopt)
 
   // compute invere probabily weights
   if (reweight) {
