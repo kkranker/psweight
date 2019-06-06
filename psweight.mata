@@ -9,7 +9,7 @@
 // or used without the express written permission of Mathematica, Inc.
 //*****************************************************************************/
 
-version 15.1
+version 15.1f
 mata:
 
 mata set matastrict on
@@ -21,13 +21,13 @@ class psweight {
     real colvector   T, W, sel1, sel0, Y0, W_orig, W_mtch, PS_mtch
     real matrix      X, XC, Xstd
     string scalar    tvar, depvars, wgtvar
-    string rowvector varlist
+    string rowvector tmvarlist
     real rowvector   means1, means0, meansP, variances0, variances1, variancesP, variancesA
     real matrix      covariances0, covariances1, covariancesP, covariancesA
     void             clone(), calcmeans(), calcvariances(), calcN(), calccovariances(), cbps_port_stata(), cbps_port_r(), postbeta()
     real scalar      K, N1, N0, N, N1_raw, N0_raw, N_raw
     real scalar      mean_sd_sq(),  entropydistance()
-    real rowvector   olsbeta(), diagvariance(), logitbeta(), sd_sq(), asd(), wgt_moments()
+    real rowvector   olsbeta(), diagvariance(), logitbeta(), sd_sq(), wgt_moments(), stdprogdiff()
     real colvector   olspredict(), logitpredict(), logitweights(), cbps_port_stata_moments(), trim()
     real matrix      cbps_port_stata_wgt_matrix(), cbps_port_stata_gradient(), Ct()
 
@@ -35,7 +35,7 @@ class psweight {
     void             new(), set(), set_depvar(), st_set(), st_set_depvar(), reweight(), get_scores()
     void             cbpseval(), balanceresults()
     real rowvector   psweight(), ipw(), cbps(), cbpsoid()
-    real rowvector   diff(), stddiff(), varratio(), progdiff(), stdprogdiff(), pomean()
+    real rowvector   diff(), stddiff(), varratio(), progdiff(), pomean()
     real scalar      mean_sd(), mean_asd(), max_asd(), wgt_cv(), wgt_sd(), wgt_skewness(), wgt_kurtosis(), wgt_max()
     real matrix      balancetable()
 }
@@ -65,7 +65,7 @@ void psweight::clone(class psweight scalar src) {
   this.W_orig   = src.W_orig
   this.Y0       = src.Y0
   this.tvar     = src.tvar
-  this.varlist  = src.varlist
+  this.tmvarlist= src.tmvarlist
   this.wgtvar   = src.wgtvar
   this.depvars  = src.depvars
   this.reweight()
@@ -80,10 +80,10 @@ void psweight::st_set(string scalar tvar, string scalar tmvarlist, string scalar
   // /* */  "T is " + strofreal(rows(this.T)) + " by " + strofreal(cols(this.T))
 
   // Define covariates
-  this.varlist  = tokens(tmvarlist)
-  st_view(this.X , ., this.varlist, tousevar)
+  this.tmvarlist  = tokens(tmvarlist)
+  st_view(this.X , ., this.tmvarlist, tousevar)
   this.K = cols(this.X)
-  // /* */  "X contains" ; this.varlist
+  // /* */  "X contains" ; this.tmvarlist
   // /* */  "X is " + strofreal(rows(this.X)) + " by " + strofreal(cols(this.X))
 
   // Define weights
@@ -158,13 +158,13 @@ void psweight::set(real colvector t, real matrix x, | real colvector w) {
   this.T = (t:!=0)
 
   // Define covariates
-  this.varlist = J(1, cols(x), "mata_x")
+  this.tmvarlist = J(1, cols(x), "mata_x")
   if (rows(t)==rows(x)) {
     this.X = x
   }
   else _error("x needs to have same number of rows as t")
   this.K = cols(this.X)
-  // /* */  "X contains" ; this.varlist
+  // /* */  "X contains" ; this.tmvarlist
   // /* */  "X is " + strofreal(rows(this.X)) + " by " + strofreal(cols(this.X))
 
   // Define weights
@@ -280,7 +280,7 @@ real matrix psweight::balancetable(| real scalar denominator) {
 
   st_matrix("r(bal)", table)
   st_matrixcolstripe("r(bal)", (J(length(colstripe),1,""), colstripe'))
-  st_matrixrowstripe("r(bal)", (J(length(varlist)  ,1,""), varlist'  ))
+  st_matrixrowstripe("r(bal)", (J(length(tmvarlist)  ,1,""), tmvarlist'  ))
 
   tmp=st_tempname()
   frmts= st_local("matrix_table_options")
@@ -304,11 +304,14 @@ void psweight::balanceresults(| string scalar stat, real scalar denominator) {
   st_rclear()
   "Balance:"
   temp = this.balancetable(denominator)
-  "C.V. of matching weights:           = " + strofreal(this.wgt_cv(stat), "%9.5f")
-  "S.D. of matching weights:           = " + strofreal(this.wgt_sd(stat), "%9.5f")
-  "Skewness of matching weights:       = " + strofreal(this.wgt_skewness(stat), "%9.5f")
-  "Kurtosis of matching weights:       = " + strofreal(this.wgt_kurtosis(stat), "%9.5f")
-  "Maximum matching weight:            = " + strofreal(this.wgt_max(stat), "%9.5f")
+  if any(this.W_mtch:!=1)) {
+    "C.V. of matching weights:           = " + strofreal(this.wgt_cv(stat), "%9.5f")
+    "S.D. of matching weights:           = " + strofreal(this.wgt_sd(stat), "%9.5f")
+    "Skewness of matching weights:       = " + strofreal(this.wgt_skewness(stat), "%9.5f")
+    "Kurtosis of matching weights:       = " + strofreal(this.wgt_kurtosis(stat), "%9.5f")
+    "Maximum matching weight:            = " + strofreal(this.wgt_max(stat), "%9.5f")
+  }
+  else ("Weights equal 1")
   if (this.depvars!="") {
     ""; "Prognostic scores:"
     temp = this.progdiff(denominator)
@@ -328,8 +331,13 @@ void psweight::calcmeans() {
 
 // This function calculates the difference in means between the T and C groups
 real rowvector psweight::diff() {
+  real rowvector diff
   if (!length(this.means1)) this.calcmeans()
-  return(this.means1 :- this.means0)
+  diff = this.means1 :- this.means0
+
+  st_matrix("r(diff)", diff)
+  st_matrixcolstripe("r(diff)", (J(length(tmvarlist)  ,1,""), tmvarlist'))
+  return(diff)
 }
 
 
@@ -419,6 +427,9 @@ real rowvector psweight::stddiff(| real scalar denominator) {
   else if (denominator==2) stddiff = (this.diff() :/ sqrt(this.variancesP))
   else if (denominator==3) stddiff = (this.diff() :/ sqrt(this.variancesA))
   else _error(strofreal(denominator)+ " is an invalid argument for psweight::stddiff()")
+
+  st_matrix("r(stddiff)", stddiff)
+  st_matrixcolstripe("r(stddiff)", (J(length(tmvarlist)  ,1,""), tmvarlist'  ))
   return(stddiff)
 }
 
@@ -479,13 +490,6 @@ real scalar psweight::wgt_max(string scalar stat) {
   return(mx)
 }
 
-
-// functions to return mean/max absolute standardized differences
-real rowvector psweight::asd(| real scalar denominator) {
-  if (args()<1) denominator=1
-  return(abs(this.stddiff(denominator)))
-}
-
 real rowvector psweight::sd_sq(| real scalar denominator) {
   if (args()<1) denominator=1
   return(this.stddiff(denominator):^2)
@@ -502,7 +506,7 @@ real scalar psweight::mean_sd(| real scalar denominator) {
 real scalar psweight::mean_asd(| real scalar denominator) {
   real scalar out
   if (args()<1) denominator=1
-  out = mean(this.asd(denominator)')
+  out = mean(abs(this.stddiff(denominator))')
   st_numscalar("r(mean_asd)",out)
   return(out)
 }
@@ -510,7 +514,7 @@ real scalar psweight::mean_asd(| real scalar denominator) {
 real scalar psweight::max_asd(| real scalar denominator) {
   real scalar out
   if (args()<1) denominator=1
-  out = max(this.asd(denominator))
+  out = max(abs(this.stddiff(denominator))')
   st_numscalar("r(max_asd)", out)
   return(out)
 }
@@ -528,10 +532,14 @@ real scalar psweight::mean_sd_sq(| real scalar denominator) {
 
 // This function calculates ratio of variances between the T and C groups
 real rowvector psweight::varratio() {
+  real rowvector varratio
   if  (!length(this.variances1)) this.calcvariances()
-  return((this.variances1 :/ this.variances0))
-}
+  varratio = this.variances1 :/ this.variances0
 
+  st_matrix("r(varratio)", varratio)
+  st_matrixcolstripe("r(varratio)", (J(length(tmvarlist)  ,1,""), tmvarlist'  ))
+  return(varratio)
+}
 
 // function that returns difference in y_hat, where y_hat is generated using a
 // OLS regression of y on X using the control group data
@@ -565,12 +573,12 @@ real rowvector psweight::progdiff(| real scalar denominator) {
                "std_diff",
                "mean_y_C")
 
-  st_matrix("r(prog)", table)
-  st_matrixcolstripe("r(prog)", (J(length(colstripe),1,""), colstripe'))
-  st_matrixrowstripe("r(prog)", (J(length(depvars)  ,1,""), depvars'  ))
+  st_matrix("r(progdiff)", table)
+  st_matrixcolstripe("r(progdiff)", (J(length(colstripe),1,""), colstripe'))
+  st_matrixrowstripe("r(progdiff)", (J(length(depvars)  ,1,""), depvars'  ))
 
   tmp=st_tempname()
-  stata("matrix "+tmp+"=r(prog)")
+  stata("matrix "+tmp+"=r(progdiff)")
   stata("_matrix_table "+tmp+","+st_local("diopts"))
   "Note: The std_diff column does not account for the standard error of the linear predictions."
 
@@ -655,7 +663,7 @@ real rowvector psweight::ipw(string scalar stat) {
   real matrix Ct
   this.reweight()
   if (args()<1) stat="ate"
-  Ct = this.Ct((this.varlist,"_cons"))
+  Ct = this.Ct((this.tmvarlist,"_cons"))
   beta   = this.logitbeta(this.T, this.X, this.W_orig, 1, Ct)
   // /* */ "propensity score (logit) model beta:"; beta
   pscore = this.logitpredict(this.X, beta)
@@ -750,13 +758,13 @@ real rowvector psweight::logitbeta(real colvector Ymat, real matrix Xmat, | real
 
 // builds a constraint matrix for optimization commands
 // largly based on Dave Drukker's post: https://blog.stata.com/2016/02/09/programming-an-estimation-command-in-stata-handling-factor-variables-in-optimize/
-real matrix psweight::Ct(string rowvector varlist) {
+real matrix psweight::Ct(string rowvector tmvarlist) {
   string scalar tempmat
   real scalar ko, p, j
   real matrix Ct, mo
   tempmat = st_tempname()
-  st_matrix(tempmat,J(1,length(varlist),0))
-  stata("matrix colnames " +  tempmat + " = " + invtokens(varlist))
+  st_matrix(tempmat,J(1,length(tmvarlist),0))
+  stata("matrix colnames " +  tempmat + " = " + invtokens(tmvarlist))
   stata("_ms_omit_info   " +  tempmat)
   mo = st_matrix("r(omit)")
   ko = sum(mo)
@@ -779,8 +787,8 @@ void psweight::postbeta(real rowvector beta) {
   tempmatname=st_tempname()
   st_matrix(tempmatname,beta)
   st_local("psweight_beta_out",tempmatname)
-  if      ((this.K==cols(beta)  ) & cols(beta)) st_matrixcolstripe(tempmatname, (J(cols(beta),1,""),this.varlist'))
-  else if ((this.K==cols(beta)-1) & cols(beta)) st_matrixcolstripe(tempmatname, (J(cols(beta),1,""),(this.varlist' \ "_cons")))
+  if      ((this.K==cols(beta)  ) & cols(beta)) st_matrixcolstripe(tempmatname, (J(cols(beta),1,""),this.tmvarlist'))
+  else if ((this.K==cols(beta)-1) & cols(beta)) st_matrixcolstripe(tempmatname, (J(cols(beta),1,""),(this.tmvarlist' \ "_cons")))
   else                                                      _error("beta does not have the expected dimensions.")
   st_local("psweight_N_out",strofreal(this.N))
 }
@@ -926,8 +934,8 @@ real rowvector psweight::psweight(| string scalar stat, string scalar subcmd, re
   else unnorm=0
 
   // constraint matrix
-  if (subcmd=="cbps_port_r") Ct = this.Ct((this.varlist[sel],"_cons"))
-  else                     Ct = this.Ct((this.varlist,"_cons"))
+  if (subcmd=="cbps_port_r") Ct = this.Ct((this.tmvarlist[sel],"_cons"))
+  else                     Ct = this.Ct((this.tmvarlist,"_cons"))
   optimize_init_constraints(S, Ct)
 
   // initial values
@@ -981,7 +989,7 @@ real rowvector psweight::psweight(| string scalar stat, string scalar subcmd, re
     }
     beta[sel] = (beta[sel] :/ sdP_orig[sel])
     beta[this.K+1] = beta[this.K+1] :- meansP_orig[sel] * beta[sel]'
-    // /* */ "CBPS beta after undoing the normalization"; ((this.varlist,"_cons")', strofreal(beta)')
+    // /* */ "CBPS beta after undoing the normalization"; ((this.tmvarlist,"_cons")', strofreal(beta)')
   }
 
   pscore = this.logitpredict(this.X, beta)
