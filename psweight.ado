@@ -27,6 +27,7 @@ program define psweight, eclass byable(onecall)
   if ("`subcmd'"=="call") {
     if _by() error 190
     if (strtrim(`"`0'"')=="") exit
+    return clear
     mata: psweight_ado_most_recent.`0'
   }
   else {
@@ -247,7 +248,7 @@ class psweightado extends psweight {
     void set_opts()
     void userweight()
     void balanceresults()
-    real rowvector psweight(), ipw(), cbps(), cbpsoid(), stddiff(), varratio(), progdiff(), stdprogdiff()
+    real rowvector solve(), ipw(), cbps(), cbpsoid(), stddiff(), varratio(), progdiff(), stdprogdiff()
     real scalar mean_sd(), mean_asd(), max_asd(), wgt_cv(), wgt_sd(), wgt_skewness(), wgt_kurtosis(), wgt_max()
     real matrix balancetable()
 }
@@ -274,7 +275,7 @@ void psweightado::userweight(| string scalar wgtvar, string scalar tousevar) {
 
 // these functions are just wrappers
 void           psweightado::balanceresults() return(this.super.balanceresults(this.stat, this.denominator))
-real rowvector psweightado::psweight()       return(this.super.psweight(this.stat, this.subcmd, this.denominator, this.cvopt))
+real rowvector psweightado::solve()          return(this.super.solve(this.stat, this.subcmd, this.denominator, this.cvopt))
 real rowvector psweightado::ipw()            return(this.super.ipw(this.stat))
 real rowvector psweightado::cbps()           return(this.super.cbps(this.stat, this.denominator))
 real rowvector psweightado::cbpsoid()        return(this.super.cbpsoid(this.stat, this.denominator))
@@ -326,7 +327,7 @@ void Estimate(real scalar reweight) {
 
   // compute invere probabily weights
   if (reweight) {
-    temp = psweight_ado_most_recent.psweight()
+    temp = psweight_ado_most_recent.solve()
   }
 
   // just compute balance
