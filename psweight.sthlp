@@ -4,6 +4,7 @@
 {vieweralsosee "[TE] teffects intro" "mansection TE teffectsintro"}{...}
 {vieweralsosee "[TE] teffects ipw" "mansection TE teffectsipw"}{...}
 {vieweralsosee "[R] logit" "mansection R logit"}{...}
+{vieweralsosee "[M-2] class" "mansection M-2 class"}{...}
 {viewerjumpto "Title" "psweight##title"}{...}
 {viewerjumpto "Syntax" "psweight##syntax"}{...}
 {viewerjumpto "Description" "psweight##description"}{...}
@@ -18,14 +19,14 @@
 
 {p2colset 2 14 16 2}{...}
 {p2col:{bf:psweight} {hline 2}}IPW- and CBPS-type propensity score reweighting,
-with various extentions{p_end}
+with various extensions{p_end}
 {p2colreset}{...}
 
-{marker syntax}{...}
+{marker syntax}
 {title:Syntax}
 
 {p 8 12 2}
-. {cmd:psweight} {it:{help psweight##subcommand:subcommand}}
+. {cmd:psweight} {it:{help psweight##subcmd:subcmd}}
                       {it:{help varname:tvar}} {it:{help varlist:tmvarlist}}
                       {ifin}
                       [{it:{help psweight##weight:weight}}]
@@ -46,7 +47,7 @@ with various extentions{p_end}
                       {it:{help psweight##options_table:options}}]
 
 {p 8 12 2}
-. {cmd:psweight} {opt call} [{it:classfunction()} | {it:classvariable}]
+. {cmd:psweight} {opt call} [v = ] [{it:classfunction()} | {it:classvariable}]
 
 {phang2}
 {it:tvar} must contain values 0 or 1, representing the treatment (1) and comparison (0) groups.
@@ -57,42 +58,45 @@ the treatment model.
 
 {phang2}
 {it:classfunction()} is a function of the psweight Mata class
-(the functions may take arguments) and
-{it:classvariable} is a member variable;
+(the functions may take arguments),
+{it:classvariable} is a member variable,
+and {it:v} is a new Mata variable;
 see details {help psweight##call:below}.
 
 
-{marker subcommand}{...}
+{marker subcmd}{...}
 {synoptset 16}{...}
-{synopthdr:subcommand}
+{synopthdr:subcmd}
 {synoptline}
-{synopt :{opt ipw}}logit regression{p_end}
-{synopt :{opt cbps}}just identified covariate-balancing propensity score{p_end}
-{synopt :{opt cbpsoid}}over identified covariate-balancing propensity score {p_end}
-{synopt :{opt pcbps}}penalized covariate-balancing propensity score{p_end}
-{synopt :{opt mean_sd_sq}}minimize mean(stddiff())^2{p_end}
-{synopt :{opt sd_sq}}minimize sum(stddiff()^2){p_end}
-{synopt :{opt stdprogdiff}}minimize sum(stdprogdiff()^2){p_end}
-{synopt :{opt mean_sd}}synonym for {it:mean_sd_sq}{p_end}
-{synopt :{opt sd}}synonym for {it:sd_sq}{p_end}
+{synopt: {opt ipw}}logit regression{p_end}
+{synopt: {opt cbps}}just-identified covariate-balancing propensity score{p_end}
+{synopt: {opt cbpsoid}}over-identified covariate-balancing propensity score{p_end}
+{synopt: {opt pcbps}}penalized covariate-balancing propensity score{p_end}
+{synopt: {opt mean_sd_sq}}minimize mean(stddiff())^2{p_end}
+{synopt: {opt sd_sq}}minimize sum(stddiff()^2){p_end}
+{synopt: {opt stdprogdiff}}minimize sum(stdprogdiff()^2){p_end}
+{synopt: {opt mean_sd}}synonym for {it:mean_sd_sq}{p_end}
+{synopt: {opt sd}}synonym for {it:sd_sq}{p_end}
 {synoptline}
+{p 4 6 2}Only one {it:subcmd} may be specified.{p_end}
 
 
 {marker stat}{...}
 {synopthdr:stat}
 {synoptline}
-{synopt :{opt ate}}estimate average treatment effect in population; the default{p_end}
-{synopt :{opt atet}}estimate average treatment effect on the treated{p_end}
-{synopt :{opt ateu}}estimate average treatment effect on the untreated{p_end}
+{synopt: {opt ate}}estimate average treatment effect in population; the default{p_end}
+{synopt: {opt atet}}estimate average treatment effect on the treated{p_end}
+{synopt: {opt ateu}}estimate average treatment effect on the untreated{p_end}
 {synoptline}
+{p 4 6 2}Only one {it:stat} may be specified.{p_end}
 
 
 {marker penalty}{...}
 {synopthdr:penalty}
 {synoptline}
-{synopt :{opt cvtarget(# # #)}}applies penalty using the coefficient of variation of the weight distribution; default is no penalty: cvtarget(0 0 2){p_end}
-{synopt :{opt skewtarget(# # #)}}applies penalty using the skewness of the weight distribution; default no penalty: skewtarget (0 0 2){p_end}
-{synopt :{opt kurttarget(# # #)}}applies penalty using the excess kurtosis of the weight distribution; default no penalty: kurttarget(0 0 2){p_end}
+{synopt: {opt cvtarget(# # #)}}applies penalty using the coefficient of variation of the weight distribution; default is no penalty: cvtarget(0 0 2){p_end}
+{synopt: {opt skewtarget(# # #)}}applies penalty using the skewness of the weight distribution; default no penalty: skewtarget (0 0 2){p_end}
+{synopt: {opt kurttarget(# # #)}}applies penalty using the excess kurtosis of the weight distribution; default no penalty: kurttarget(0 0 2){p_end}
 {synoptline}
 {p 4 6 2}One or more penalty options may be specified.{p_end}
 
@@ -100,23 +104,24 @@ see details {help psweight##call:below}.
 {marker variance}{...}
 {synopthdr:variance}
 {synoptline}
-{synopt :{opt pool:edvariance}}uses the pooled (treatment plus control) sample's variances to calculate standardized differences; the default{p_end}
-{synopt :{opt con:trolvariance}}uses the control groups' variances to calculate standardized differences{p_end}
-{synopt :{opt tre:atvariance}}uses the treatment groups' variances to calculate standardized difference{p_end}
-{synopt :{opt a:veragevariance}}uses (the control groups' variances + treatment groups' variances)/2 to calculate standardized differences{p_end}
+{synopt: {opt pool:edvariance}}uses the pooled (treatment plus control) sample's variances to calculate standardized differences; the default{p_end}
+{synopt: {opt con:trolvariance}}uses the control groups' variances to calculate standardized differences{p_end}
+{synopt: {opt tre:atvariance}}uses the treatment groups' variances to calculate standardized difference{p_end}
+{synopt: {opt a:veragevariance}}uses (the control groups' variances + treatment groups' variances)/2 to calculate standardized differences{p_end}
 {synoptline}
+{p 4 6 2}Only one {it:variance} may be specified.{p_end}
 
 
 {marker options_table}{...}
 {synopthdr}
 {synoptline}
-{synopt :{opth dep:vars(varlist)}}outcome variables{p_end}
-{synopt :{it:{help psweight##display_options:display_options}}}
+{synopt: {opth dep:vars(varlist)}}outcome variables{p_end}
+{synopt: {it:{help psweight##display_options:display_options}}}
 control columns and column formats, row spacing, line width, display of omitted
 variables and base and empty cells, and factor-variable labeling{p_end}
-{synopt :{it:{help psweight##maximize_options:maximize_options}}}control
+{synopt: {it:{help psweight##maximize_options:maximize_options}}}control
 the maximization process; seldom used {* includes from()}{p_end}
-{synopt :{opt coefl:egend}}display legend instead of statistics{p_end}
+{synopt: {opt coefl:egend}}display legend instead of statistics{p_end}
 {synoptline}
 {p2colreset}{...}
 {p 4 6 2}
@@ -131,11 +136,15 @@ the maximization process; seldom used {* includes from()}{p_end}
 {title:Description}
 
 {pstd}
-{cmd:psweight} {it:subcommand} computes inverse-probability weighting (IPW) weights for average treatment effect,
+{cmd:psweight} is a Stata command that offers Stata users easy access
+to the {helpb psweight class:psweight Mata class}.
+
+{pstd}
+{cmd:psweight} {it:subcmd} computes inverse-probability weighting (IPW) weights for average treatment effect,
 average treatment effect on the treated, and average treatment effect estimators for observational data.
 IPW estimators use estimated probability weights to correct for the missing data on the potential outcomes).
-Probabilties of treatment--propensity scores--are computed for each observation with one of variety of methods, including
-logistic regresson (traditional IPW),
+Probabilities of treatment--propensity scores--are computed for each observation with one of variety of methods, including
+logistic regression (traditional IPW),
 covariate balance propensity scores (CBPS),
 penalized balance propensity scores (PCBPS)
 prognostic score balancing propensity scores, and
@@ -143,24 +152,25 @@ other methods.
 
 {pstd}
 {cmd:psweight} {cmd:balance} constructs a balance table instead of computing IPW weights.
-The most common use case is when users wish to construct a balance table for the unweighted sample.
-However users can also construct a balance table with
+The most common use case is when you wish to construct a balance table for the unweighted sample.
+However you can also construct a balance table with
 {help psweight##mweight_opt:user-supplied weights}.
 
 {pstd}
-After running {psweight} you can apply class functions
+After running {cmd:psweight} you can apply class functions
 to your data or access results through {cmd:psweight call};
 see details {help psweight##call:below}
+
 
 {title:Remarks}
 
 {pstd}
-{cmd:psweight} {it:subcommand} constructs several variables:
+{cmd:psweight} {it:subcmd} constructs several variables:
 {it:_pscore}, {it:_treated}, {it:_weight_mtch}, and {it:_weight}.
 If these variables exist before running {cmd:psweight}, they will be replaced.{p_end}
 
 {pstd}
-{cmd:psweight} {it:subcommand} solves for propensity score model coefficients, propensity scores,
+{cmd:psweight} {it:subcmd} solves for propensity score model coefficients, propensity scores,
 and IPW weights as follows:
 
 {pmore}
@@ -173,28 +183,28 @@ Specifically, the propensity score for each row in the data is defined as {p_end
 {pmore} where {it:X} is the vector of matching variables ({it:tmvarlist}) for the respective row.
 
 {pmore}
-Users specify a {it:{help psweight##subcommand:subcommand}} to controls how the vector {it:b} is computed
+You specify a {it:{help psweight##subcmd:subcmd}} to controls how the vector {it:b} is computed
 in the internal numerical optimization problem.
-As discussed in Kranker, Blue, and Vollmer Forrow (2019), we can set up optimazation problems to solve for
+As discussed in Kranker, Blue, and Vollmer Forrow (2019), we can set up optimization problems to solve for
 the {it:b} that produces the best fit in the propensity score model,
 the {it:b} that produces best balance on matching variables,
 the {it:b} that produces the best balance on prognostic scores, or something else.
-The {it:subcommand} also determines how the term "best balance" is defined in the previous sentance.
-That is, for a given {it:subcommand}, we can generically define {it:b} as the vector that solves the problem: {p_end}
+The {it:subcmd} also determines how the term "best balance" is defined in the previous sentence.
+That is, for a given {it:subcmd}, we can generically define {it:b} as the vector that solves the problem: {p_end}
 
 {center:{it:b} = argmin {it:L(X,T,W)}}
 
-{pmore} where {it:L(X,T,W)} is a "loss function" that corresponds to the specified {it:subcommand}
+{pmore} where {it:L(X,T,W)} is a "loss function" that corresponds to the specified {it:subcmd}
 (e.g., logit regression or CBPS),
 given the data ({it:(X,T)} and vector of weights {it:W}.
 (The weights are computed using the propensity scores, as we describe below.
-The propensity scores are calculated using {b}, the data, and formula given above.)
-The available {it:subcommand}s are listed below.
+The propensity scores are calculated using {it:b}, the data, and formula given above.)
+The available {it:subcmd}s are listed below.
 
 {pmore}
 In Kranker, Blue, and Vollmer Forrow (2019), we proposed adding a "penalty" to the loss function
-that lets users to effectively prespecify the variance (or higher-order moments) of the IPW weight distribution.
-By constraining the distribution of the weights, we let users choose among alternative sets of matching weights,
+that lets you to effectively prespecify the variance (or higher-order moments) of the IPW weight distribution.
+By constraining the distribution of the weights, you can choose among alternative sets of matching weights,
 some of which produce better balance and others which yield higher statistical power.
 The penalized method solves for {it:b} in:{p_end}
 
@@ -212,7 +222,7 @@ The propensity scores are returned in a variable named {it:_pscore}.
 {pmore}
 Once propensity scores are computed for each observation, we can compute IPW "matching weights"
 for each observation.
-The formulas for the IPW weights depend on whether the users requests weights for estimating
+The formulas for the IPW weights depend on whether you request weights for estimating
 the average treatment effect ({opt ate}),
 the average treatment effect on the treated  ({opt atet}), or
 the average treatment effect on the untreated  ({opt ateu}).
@@ -249,7 +259,7 @@ For convenience, (a copy of) the treatment group indicator variable is
 returned in a variable named {it:_treated}.
 
 {pstd}
-After estimation, {cmd:psweight} {it:subcommand} will display the model coefficients {it:b}
+After estimation, {cmd:psweight} {it:subcmd} will display the model coefficients {it:b}
 and a summary of the newly constructed variables.
 
 
@@ -258,43 +268,51 @@ and a summary of the newly constructed variables.
 Postestimation commands: {cmd:psweight call}
 
 {pmore}
-The {cmd:psweight} {it:subcommand}
+The {cmd:psweight} {it:subcmd}
 and {cmd:psweight} {cmd:balance} Stata commands are "wrappers" around the
-{cmd:psweight} Mata {mansection M-2 class:class}.
-{error:  << link to Mata docs >>}
+{helpb psweight class:psweight Mata class}.
 When either command is run, it constructs an instance of the class, and this instance
 remains accessible to {cmd:psweight call} afterward.
 
 {pmore}
 Specifically, {cmd:psweight call} can be used to access the class functions or member variables.
 A list of available functions ({it:classfunction()}) and member variables ({it:classvariable})
-are available at:
-{error:  << link to Mata docs >>}
+are available at: {helpb psweight class}
 
 {pmore}
 For example, the following code would calculate traditional IPW weights and then contruct
 a balance table for the reweighted sample:{p_end}
-{phang2}{cmd:. psweight ipw mbsmoke mmarried mage fbaby medu, treatvariance}{p_end}
-{phang2}{cmd:. psweight call balanceresults()}{p_end}
+{phang3}{cmd:. psweight ipw mbsmoke mmarried mage fbaby medu, treatvariance}{p_end}
+{phang3}{cmd:. psweight call balanceresults()}{p_end}
 
 {pmore}
-Note that any default options that were overridden when {cmd:psweight} {it:subcommand} was called
+You can also save the results of the function to a Mata variable, for exmaple:{p_end}
+{phang3}{cmd:. psweight call mynewvar = stddiff()}{p_end}
+
+{pmore}
+Note that any default options that were overridden when {cmd:psweight} {it:subcmd} was called
 will continue to be applied with {cmd:psweight call}.
 In the example above, the balance table will use the treatment group's variance
 to calculate standardized differences (rather than the default variance).
+In general, I tried to use {help mf_st_view:views} rather than Mata variables to store data;
+you could run into problems if you add, drop, or sort your data before using {cmd:psweight call}.
+
+{pmore}
+After you finish using the instance of the class, it can be deleted with:{p_end}
+{phang3}{cmd:. mata: mata drop psweight_ado_most_recent}{p_end}
 
 
 {marker options}{...}
 {title:Options}
 
-{dlgtab:Subcommand}
+{dlgtab:subcmd}
 
 {pstd}
-The {it:subcommand} specifies which method is used to compute coefficients, {it:b}, for the
+The {it:subcmd} specifies which method is used to compute coefficients, {it:b}, for the
 propensity score model. The seven available estimation methods are:
 
 {pmore}
-The {opt ipw} subcommand fits a {help logit:logit regression model} by maximim likelihood.
+The {opt ipw} {it:subcmd} fits a {help logit:logit regression model} by maximim likelihood.
 
 {pmore2}
 The logit regression solves for {it:b} in the model:
@@ -302,53 +320,50 @@ The logit regression solves for {it:b} in the model:
 {center:Prob({it:tvar} = 1 | {it:X}) = {help mf_logit:invlogit}({it:X} {help [M-2] op_arith:*} {it:b})}
 
 {pmore}
-The {opt cbps} subcommand computes just identified covariate-balancing propensity scores
+The {opt cbps} {it:subcmd} computes just identified covariate-balancing propensity scores
 (Imai and Ratkovic 2014).
 
 {pmore}
-The {opt cbpsoid} subcommand computes over identified covariate-balancing propensity scores .
+The {opt cbpsoid} {it:subcmd} computes over identified covariate-balancing propensity scores .
 (Imai and Ratkovic 2014).
 
 {pmore}
-The {opt pcbps} subcommand impliments penalized covariate-balancing propensity score (Kranker, Blue, and Vollmer Forrow 2019).
-The {opt pcbps} subcommand requires at least one
+The {opt pcbps} {it:subcmd} implements penalized covariate-balancing propensity score (Kranker, Blue, and Vollmer Forrow 2019).
+The {opt pcbps} {it:subcmd} requires at least one
 {it:{help psweight##penalty:penalty}} option be specified.
-This is a synonym for the {it:cbps} subcommand when one or
+This is a synonym for the {it:cbps} {it:subcmd} when one or
 more of the {it:{help psweight##penalty:penalty}} option is included.
 
 {pmore}
-The {opt mean_sd_sq} or {opt mean_sd} subcommands find the model coefficients that minimize the quantity:
-mean(stddiff())^2.
-{error:  << link to Mata docs >>}
-That is, the weights mimizize the mean standardized difference, squared.
+The {opt mean_sd_sq} or {opt mean_sd} {it:subcmd}s find the model coefficients that minimize the quantity:
+mean({help psweight class:stddiff()})^2.
+That is, the weights minimize the mean standardized difference, squared.
 
 {pmore}
-The {opt sd_sq} or {opt sd} subcommands find the model coefficients that minimize the quantity:
-sum(stddiff()^2).
-{error:  << link to Mata docs >>}
-That is, the weights mimizize the squared (standardized) differences
+The {opt sd_sq} or {opt sd} {it:subcmd}s find the model coefficients that minimize the quantity:
+sum({help psweight class:stddiff()}:^2).
+That is, the weights minimize the squared (standardized) differences
 in means of {it:tmvarlist} between the treatment and control groups.
 If you have more than one variable in {it:tmvarlist},
-the squared (standardized) differences in prognositic scores are summed.
+the squared (standardized) differences in prognostic scores are summed.
 
 {pmore}
-The {opt stdprogdiff} subcommand finds the model coefficients that minimize the quantity:
-sum(stdprogdiff()^2).
-{error:  << link to Mata docs >>}
-That is, the weights mimizize the squared (standardized) differences
-in mean prognositic scores between the treatment and control groups.
+The {opt stdprogdiff} {it:subcmd} finds the model coefficients that minimize the quantity:
+sum({help psweight class:stdprogdiff()}:^2).
+That is, the weights minimize the squared (standardized) differences
+in mean prognostic scores between the treatment and control groups.
 If you have more than one outcome variable,
-the squared (standardized) differences in prognositic scores are summed.
+the squared (standardized) differences in prognostic scores are summed.
 
 {pmore2}
-The {it:stdprogdiff} subcommand requires that dependent
+The {it:stdprogdiff} {it:subcmd} requires that dependent
 variables be specified (through the {opt depvar}() option).
 
 {pmore2}
-Prognoistic scores are computed by fitting a linear regression model
+Prognostic scores are computed by fitting a linear regression model
 of the {it:tmvarlist} on the dependent variable(s) by ordinary least squares using only
-control group observationsy, and then computing predicted values (for the whole sample).
-This method of computing prognositic scores follows Hansen (2008) and Stuart, Lee, and Leacy (2013).
+control group observations, and then computing predicted values (for the whole sample).
+This method of computing prognostic scores follows Hansen (2008) and Stuart, Lee, and Leacy (2013).
 
 
 {dlgtab:Stat}
@@ -380,20 +395,17 @@ If none of these options are specified, {it:f(W)}=0.
 
 {phang2}{opt cvtarget(# # #)} applies a penalty using the coefficient of variation of the weight distribution.
 If {opt cvopt(a, b, c)} is specified, then the loss function is modified as:{p_end}
-{center:{it:L'(X,T,W) = L(X,T,W) + a * abs((wgt_cv() - b)^c)}}
-{error:  << link to Mata docs >>}
+{center:{it:L'(X,T,W) = L(X,T,W) + a * abs(({help psweight class:wgt_cv()} - b)^c)}}
 {phang3}The default is no penalty: cvtarget(0 0 2).
 
 {phang2}{opt skewtarget(# # #)} applies a penalty using the skewness of the weight distribution.
 If {opt skewtarget(d, e, f)} is specified, then the loss function is modified as:{p_end}
-{center:{it:L'(X,T,W) = L(X,T,W) + e * abs((wgt_skewness() - e)^f)}}
-{error:  << link to Mata docs >>}
+{center:{it:L'(X,T,W) = L(X,T,W) + e * abs(({help psweight class:wgt_skewness()} - e)^f)}}
 {phang3}The default is no penalty: skewtarget(0 0 2).{p_end}
 
 {phang2}{opt kurttarget(# # #)} applies a penalty using the excess kurtosis of the weight distribution.
 If {opt kurttarget(g, h, i)} is specified, then the loss function is modified as:{p_end}
-{center:{it:L'(X,T,W) = L(X,T,W) + g* abs((wgt_kurtosis() - h)^i)}}
-{error:  << link to Mata docs >>}
+{center:{it:L'(X,T,W) = L(X,T,W) + g* abs(({help psweight class:wgt_kurtosis()} - h)^i)}}
 {phang3}The default is no penalty: kurttarget(0 0 2).{p_end}
 {...}
 {* maxtarget option is undocumented}{...}
@@ -405,7 +417,7 @@ If {opt kurttarget(g, h, i)} is specified, then the loss function is modified as
 {it:variance} is one of three statistics: {opt pooledvariance}, {opt controlvariance}, {opt treatvariance}, or {opt averagevariance}.
 {opt pooledvariance} is the default.
 The {it:variance} dictates how the command standardizes the difference in means between the treatment and control groups.
-Standardized differences are used to compute the loss function for some {it:{help psweight##subcommand:subcommands}}
+Standardized differences are used to compute the loss function for some {it:{help psweight##subcmd:subcmds}}
 and for computing balance tables.
 
 {phang2}
@@ -426,7 +438,7 @@ and for computing balance tables.
 {phang}
 {opth depvars(varlist)} specificies dependent variables (outcome variables).
 The data for the treatment group observations are ignored, but the data for the
-the control group are used to compute prognositic scores (see above).
+the control group are used to compute prognostic scores (see above).
 
 {marker display_options}
 {phang}
@@ -536,51 +548,60 @@ logit model to predict treatment status{p_end}
 {pstd}By Keith Kranker{break}
 Mathematica{p_end}
 
-{pstd}My coauthors, Laura Blue and Lauren Vollmer Forrow, were closely involved with the
+
+{title:Acknowledgements}
+
+{pstd}
+My coauthors, Laura Blue and Lauren Vollmer Forrow, were closely involved with the
 developement of the Penalized CBPS methodology,
-and we also received many helpful suggestions from our colleages at Mathematica.
-I thank Liz Potamites for testing early versions of the program and providing helpful feedback.{p_end}
+We received many helpful suggestions from our colleages at Mathematica,
+especially those on the Comprehensive Primary Care Evaluation team.
+Of note, I thank Liz Potamites for testing early versions of the program and providing helpful feedback.{p_end}
+
+{pstd}
+The code for implementing the CBPS method is based on work by Fong et al. (2018), namely the CBPS package for R.
+I also reviewed the Stata CBPS implementation by Filip Premik.
 
 
 {marker results}{...}
 {title:Stored results}
 
 {pstd}
-{cmd:psweight} {it:subcommand} and {cmd:psweight} {cmd:balance}
+{cmd:psweight} {it:subcmd} and {cmd:psweight} {cmd:balance}
 store the following in {cmd:e()}:
 
 {synoptset 14 tabbed}{...}
 {p2col 5 14 18 2:Scalars}{p_end}
-{synopt :{cmd:e(N)}}number of observations{p_end}
+{synopt: {cmd:e(N)}}number of observations{p_end}
 
 {p2col 5 14 18 2:Macros}{p_end}
-{synopt :{cmd:e(cmd)}}{cmd:psweight}{p_end}
-{synopt :{cmd:e(cmdline)}}command as typed{p_end}
-{synopt :{cmd:e(properties)}}{opt b}{p_end}
-{synopt :{cmd:e(subcmd)}}specified {it:{help psweight##subcommand:subcommand}}{p_end}
-{synopt :{cmd:e(tvar)}}name of the treatment indicator ({it:tvar}){p_end}
-{synopt :{cmd:e(tmvarlist)}}names of the matching variables ({it:tmvarlist}){p_end}
-{synopt :{cmd:e(variance)}}specified {it:{help psweight##variance:variance}}{p_end}
-{synopt :{cmd:e(wtype)}}weight type{p_end}
-{synopt :{cmd:e(wexp)}}weight expression{p_end}
+{synopt: {cmd:e(cmd)}}{cmd:psweight}{p_end}
+{synopt: {cmd:e(cmdline)}}command as typed{p_end}
+{synopt: {cmd:e(properties)}}{opt b}{p_end}
+{synopt: {cmd:e(subcmd)}}specified {it:{help psweight##subcmd:subcmd}}{p_end}
+{synopt: {cmd:e(tvar)}}name of the treatment indicator ({it:tvar}){p_end}
+{synopt: {cmd:e(tmvarlist)}}names of the matching variables ({it:tmvarlist}){p_end}
+{synopt: {cmd:e(variance)}}specified {it:{help psweight##variance:variance}}{p_end}
+{synopt: {cmd:e(wtype)}}weight type{p_end}
+{synopt: {cmd:e(wexp)}}weight expression{p_end}
 
 {pstd}
-In addition, {cmd:psweight} {it:subcommand} stores the following in {cmd:e()}:
+In addition, {cmd:psweight} {it:subcmd} stores the following in {cmd:e()}:
 
 {p2col 5 14 18 2:Macros}{p_end}
-{synopt :{cmd:e(stat)}}specified {it:{help psweight##stat:stat}}{p_end}
+{synopt: {cmd:e(stat)}}specified {it:{help psweight##stat:stat}}{p_end}
 
 {p2col 5 14 18 2:Matrices}{p_end}
-{synopt :{cmd:e(b)}}coefficient vector{p_end}
+{synopt: {cmd:e(b)}}coefficient vector{p_end}
 
 {p2col 5 14 18 2:Functions}{p_end}
-{synopt :{cmd:e(sample)}}marks estimation sample{p_end}
+{synopt: {cmd:e(sample)}}marks estimation sample{p_end}
 {p2colreset}{...}
 
 {pstd}
 In addition, {cmd:psweight} {cmd:balance} stores a matrix named {cmd:r(bal)}
 and other output in {cmd:r()};
-see {error:  << link to Mata docs >>}
+see {helpb psweight class}
 
 
 {marker references}{...}
