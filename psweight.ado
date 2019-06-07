@@ -27,8 +27,12 @@ program define psweight, eclass byable(onecall)
   if ("`subcmd'"=="call") {
     if _by() error 190
     if (strtrim(`"`0'"')=="") exit
+    if regexm(`"`0'"',"=") {
+      gettoken vr 0 : 0, parse("=")
+      gettoken eq 0 : 0, parse("=")
+    }
     return clear
-    mata: psweight_ado_most_recent.`0'
+    mata: `vr' `eq' psweight_ado_most_recent.`0'
   }
   else {
     `BY' Estimate `subcmd' `0'
