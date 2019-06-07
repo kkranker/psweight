@@ -10,7 +10,7 @@ cap log close psweight_example_R
 local makegraphs = 01
 cd "C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\"
 
-do C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\_build_mlib.do
+do C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\_build.do
 
 log using psweight_example.log, name(psweight_example) replace
 
@@ -34,11 +34,11 @@ di as txt "Current user: `c(username)'" _n "Environment: `c(os)' `c(machine_type
 which psweight
 mata: mata describe using lpsweight
 
+if 1 {
+
 ************************************************************************************
 * Simple examples in the help file (psweight.sthlp)
 ************************************************************************************
-
-if 0 {
 
 //  Setup
 webuse cattaneo2
@@ -58,7 +58,39 @@ psweight call balanceresults()
 psweight pcbps mbsmoke mmarried mage fbaby medu, atet cvtarget(1 .5 6)
 psweight call balanceresults()
 
+
+************************************************************************************
+* Examples in the help file (psweight_class.sthlp)
+************************************************************************************
+
+
+//  Setup
+webuse cattaneo2, clear
+gen byte touse=1
+
+mata:
+P = psweight()
+P.st_set("mbsmoke", "mmarried mage fbaby medu", "touse")
+
+//  Balance before reweighting
+P.balancetable(2)
+
+//  Estimate the average treatment effect of smoking on birthweight, using a logit model to predict treatment status
+P.ipw()
+P.balanceresults("ate", 1)
+
+//  Estimate the average treatment effect on the treated with CBPS
+P.cbps("atet")
+P.balanceresults("atet", 1)
+
+//  Estimate the average treatment effect on the treated with Penalized CBPS
+P.solve("atet", "cbps", 2, (1, .5, 6))
+P.balanceresults("atet", 1)
+
+end // end of Mata
+
 } // end of simple examples
+
 
 ************************************************************************************
 * Describe/summarize the example datasets
@@ -75,7 +107,7 @@ corr treat y1 y1_binary
 
 local if if _n<=500
 set seed 1
-gen wgt = max(.1,rnormal(2,.4))
+gen wgt = max(.1, rnormal(2,.4))
 gen fwgt = round(rnormal(2,.4))
 // forvalues i = 20/200 {
 forvalues i = 90/95 {
@@ -109,26 +141,27 @@ if 1 {
 
 mata:
 
-depvars  = st_local("depvars" )
+depvars  = st_local("depvars")
 treatvar = st_local("treatvar")
-wgtvar   = st_local("wgtvar"  )
-varlist  = st_local("varlist" )
+wgtvar   = st_local("wgtvar")
+varlist  = st_local("varlist")
 tousevar = st_local("tousevar")
 estimate = st_local("estimate")
 // * UNWEIGHTED DATA EXAMPLES *
 
 D = psweight()
 D.st_set(treatvar, varlist, tousevar)
-if (depvars!="") D.st_set_depvar(depvars,tousevar)
+if (depvars!="") D.st_set_depvar(depvars, tousevar)
 
 // Misc balance measures
   D.diff()
   D.stddiff()
-  D.mean_asd()
+  D.stddiff(1)
+  D.mean_asd(1)
   D.stddiff(1)
   D.stddiff(0)
   D.varratio()
-  D.progdiff()
+  D.progdiff(1)
 
   "Balance table before matching"
   table = D.balancetable(1)
@@ -139,37 +172,37 @@ if (depvars!="") D.st_set_depvar(depvars,tousevar)
     stata(`"cbps `treatvar' `varlist' if `tousevar' , ate      logit optimization_technique("nr") evaluator_type("gf1")"')
     stata(`"cbps_imbalance"')
     D.cbps("ate", 2)
-    D.balanceresults("ate",2)
+    D.balanceresults("ate", 2)
 
   "--- ATE overidentified ---"; ""; ""
     stata(`"cbps `treatvar' `varlist' if `tousevar' , ate over logit optimization_technique("nr") evaluator_type("gf1")"')
     stata(`"cbps_imbalance"')
     D.cbpsoid("ate", 2)
-    D.balanceresults("ate",2)
+    D.balanceresults("ate", 2)
 
   "--- ATET (not overidentified) ---"; ""; ""
     stata(`"cbps `treatvar' `varlist' if `tousevar' , att      logit optimization_technique("nr") evaluator_type("gf1")"')
     stata(`"cbps_imbalance"')
     D.cbps("atet", 2)
-    D.balanceresults("atet",2)
+    D.balanceresults("atet", 2)
 
   "--- ATET overidentified ---"; ""; ""
     stata(`"cbps `treatvar' `varlist' if `tousevar' , att over logit optimization_technique("nr") evaluator_type("gf1")"')
     stata(`"cbps_imbalance"')
     D.cbpsoid("atet", 2)
-    D.balanceresults("atet",2)
+    D.balanceresults("atet", 2)
 
 // Other objective functions
   st_local("mlopts", "difficult nonrtolerance")
-  D.solve("atet","mean_sd_sq",1)
-  D.balanceresults("atet",1)
+  D.solve("atet","mean_sd_sq", 1)
+  D.balanceresults("atet", 1)
 
-  D.solve("atet","sd_sq",1)
-  D.balanceresults("atet",1)
+  D.solve("atet","sd_sq", 1)
+  D.balanceresults("atet", 1)
 
   if (depvars!="") {
-    D.solve("atet","stdprogdiff",1)
-    D.balanceresults("atet",1)
+    D.solve("atet","stdprogdiff", 1)
+    D.balanceresults("atet", 1)
   }
   st_local("mlopts", "")
 
@@ -180,39 +213,39 @@ if (depvars!="") D.st_set_depvar(depvars,tousevar)
   stata("tebalance summarize, baseline")
 
   D.ipw("atet")
-  D.balanceresults("atet")
+  D.balanceresults("atet", 1)
   table = D.balancetable(3)
   D.reweight()
   table = D.balancetable(3)
 
   stata("teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' , ate aequations")
   D.ipw("ate")
-  D.balanceresults("ate")
+  D.balanceresults("ate", 1)
 
   stata("teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' , atet aequations tlevel(0) control(1)")
   D.ipw("ateu")
-  D.balanceresults("ateu")
+  D.balanceresults("ateu", 1)
 
 // tradeoff between CBPS-like balance and variance in weights
   D.cbps("atet", 1)
-  D.balanceresults("atet",1)
+  D.balanceresults("atet", 1)
 
-  D.solve("atet","cbps", 1, (1,.75,6))
-  D.balanceresults("atet",1)
+  D.solve("atet","cbps", 1, (1,.75, 6))
+  D.balanceresults("atet", 1)
 
-  D.solve("atet","cbps", 1, (1,.50,6))
-  D.balanceresults("atet",1)
+  D.solve("atet","cbps", 1, (1,.50, 6))
+  D.balanceresults("atet", 1)
 
   st_local("mlopts", "difficult nonrtolerance")
-  D.solve("atet","mean_sd_sq", 1, (1,.75,6))
-  D.balanceresults("atet",1)
+  D.solve("atet","mean_sd_sq", 1, (1,.75, 6))
+  D.balanceresults("atet", 1)
 
-  D.solve("atet","mean_sd_sq", 1, (1,.50,6))
-  D.balanceresults("atet",1)
+  D.solve("atet","mean_sd_sq", 1, (1,.50, 6))
+  D.balanceresults("atet", 1)
 
 // furthermore, you can target skiwness, kurtosis, or max weight
-  D.solve("atet","cbps", 1, (1,.50,6,1,0.7,2))
-  D.balanceresults("atet",1)
+  D.solve("atet","cbps", 1, (1,.50, 6, 1, 0.7, 2))
+  D.balanceresults("atet", 1)
   st_local("mlopts", "")
 
 Dcpy = psweight()
@@ -226,16 +259,17 @@ mata drop D
 
 DW = psweight()
 DW.st_set(treatvar, varlist, tousevar, wgtvar)
-if (depvars!="") DW.st_set_depvar(depvars,tousevar)
+if (depvars!="") DW.st_set_depvar(depvars, tousevar)
 
 // Misc balance measures
   DW.diff()
   DW.stddiff()
-  DW.mean_asd()
+  DW.stddiff(1)
+  DW.mean_asd(1)
   DW.stddiff(1)
   DW.stddiff(0)
   DW.varratio()
-  DW.progdiff()
+  DW.progdiff(1)
 
   "Balance table before matching"
   temp = DW.balancetable(1)
@@ -244,37 +278,37 @@ if (depvars!="") DW.st_set_depvar(depvars,tousevar)
 
   "--- ATE (not overidentified) ---"; ""; ""
     DW.cbps("ate", 2)
-    DW.balanceresults("ate",2)
+    DW.balanceresults("ate", 2)
 
   "--- ATE overidentified ---"; ""; ""
     DW.cbpsoid("ate", 2)
-    DW.balanceresults("ate",2)
+    DW.balanceresults("ate", 2)
 
   "--- ATET (not overidentified) ---"; ""; ""
     DW.cbps("atet", 2)
-    DW.balanceresults("atet",2)
+    DW.balanceresults("atet", 2)
 
   "--- ATET overidentified ---"; ""; ""
     DW.cbpsoid("atet", 2)
-    DW.balanceresults("atet",2)
+    DW.balanceresults("atet", 2)
 
 // Other objective functions
   st_local("mlopts", "difficult nonrtolerance")
-  DW.solve("atet","mean_sd_sq",1)
-  DW.balanceresults("atet",1)
+  DW.solve("atet","mean_sd_sq", 1)
+  DW.balanceresults("atet", 1)
 
-  DW.solve("atet","sd_sq",1)
-  DW.balanceresults("atet",1)
+  DW.solve("atet","sd_sq", 1)
+  DW.balanceresults("atet", 1)
 
   if (depvars!="") {
-    DW.solve("atet","stdprogdiff",1)
-    DW.balanceresults("atet",1)
+    DW.solve("atet","stdprogdiff", 1)
+    DW.balanceresults("atet", 1)
   }
   st_local("mlopts", "")
 
-  DW.progdiff()
+  DW.progdiff(1)
   DW.reweight()
-  DW.progdiff()
+  DW.progdiff(1)
 
 // IPW
 
@@ -298,23 +332,23 @@ if (depvars!="") DW.st_set_depvar(depvars,tousevar)
 // tradeoff between CBPS-like balance and variance in weights
 
   DW.cbps("atet", 1)
-  DW.balanceresults("atet",1)
+  DW.balanceresults("atet", 1)
 
-  DW.solve("atet","cbps", 1, (1,.75,6))
-  DW.balanceresults("atet",1)
+  DW.solve("atet","cbps", 1, (1,.75, 6))
+  DW.balanceresults("atet", 1)
 
-  DW.solve("atet","cbps", 1, (1,.50,6))
-  DW.balanceresults("atet",1)
+  DW.solve("atet","cbps", 1, (1,.50, 6))
+  DW.balanceresults("atet", 1)
 
   st_local("mlopts", " nonrtolerance")
-  DW.solve("atet","mean_sd_sq", 1, (1,.75,6))
-  DW.balanceresults("atet",1)
+  DW.solve("atet","mean_sd_sq", 1, (1,.75, 6))
+  DW.balanceresults("atet", 1)
 
-  DW.solve("atet","mean_sd_sq", 1, (1,.50,6))
-  DW.balanceresults("atet",1)
+  DW.solve("atet","mean_sd_sq", 1, (1,.50, 6))
+  DW.balanceresults("atet", 1)
 
   DW.solve("atet","mean_sd_sq", 1)
-  DW.balanceresults("atet",1)
+  DW.balanceresults("atet", 1)
   st_local("mlopts", "")
 
   // you can also target skiwness, kurtosis, or max weight, but it's finicky
