@@ -32,7 +32,7 @@ class psweight {
     real matrix      cbps_port_stata_wgt_matrix(), cbps_port_stata_gradient(), Ct()
 
   public:
-    void             new(), clone(), set(), set_depvar(), st_set(), st_set_depvar(), reweight(), get_scores()
+    void             new(), clone(), set(), set_depvar(), st_set(), st_set_depvar(), reweight(), fill_vars()
     void             cbpseval(), balanceresults()
     real rowvector   solve(), ipw(), cbps(), cbpsoid()
     real colvector   get_pscore(), get_weight_mtch(), get_weight()
@@ -241,9 +241,9 @@ real colvector psweight::get_weight_mtch() return(this.W_mtch)
 real colvector psweight::get_weight()      return(this.W)
 
 // used to push the resulting weights and propensity scores back into Stata.
-void psweight::get_scores(string rowvector newvarnames, string scalar tousevar) {
+void psweight::fill_vars(string rowvector newvarnames, string scalar tousevar) {
   real matrix thisview
-  if (length(tokens(newvarnames))!=4) _error("psweight::get_scores() requires four numeric variable names")
+  if (length(tokens(newvarnames))!=4) _error("psweight::fill_vars() requires four numeric variable names")
   st_view(thisview, ., newvarnames, tousevar)
 
   if (rows(thisview)==rows(this.W)) thisview[., 1] = this.W
