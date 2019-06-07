@@ -265,7 +265,7 @@ void psweight::fill_vars(string rowvector newvarnames, string scalar tousevar) {
 real matrix psweight::balancetable(| real scalar denominator) {
   real matrix table
   string rowvector colstripe, tmp, frmts
-  if (args()<1) denominator=1
+  if (args()<1) denominator=2
 
   if (!length(this.means1))     this.calcmeans()
   if (!length(this.variances1)) this.calcvariances()
@@ -304,7 +304,7 @@ real matrix psweight::balancetable(| real scalar denominator) {
 // The argument is the same as their definition in stddiff() and varratio()
 void psweight::balanceresults(| string scalar stat, real scalar denominator) {
   if (args()<1) stat="ate"
-  if (args()<2) denominator=1
+  if (args()<2) denominator=2
   transmorphic temp
   if (all(this.W_mtch:==1)) "Unmatched data"
   st_rclear()
@@ -425,7 +425,7 @@ void psweight::calccovariances() {
 //    = 2, it uses the pooled variances
 //    = 3, it uses (control groups' variances + treatment groups' variances)/2  (the definition from Stata's tbalance command)
 real rowvector psweight::stddiff(| real scalar denominator) {
-  if (args()<1) denominator=1
+  if (args()<1) denominator=2
   real rowvector stddiff
   if (!length(this.variances1)) this.calcvariances()
   if      (denominator==0) stddiff = (this.diff() :/ sqrt(this.variances0))
@@ -497,13 +497,13 @@ real scalar psweight::wgt_max(string scalar stat) {
 }
 
 real rowvector psweight::sd_sq(| real scalar denominator) {
-  if (args()<1) denominator=1
+  if (args()<1) denominator=2
   return(this.stddiff(denominator):^2)
 }
 
 real scalar psweight::mean_sd(| real scalar denominator) {
   real scalar out
-  if (args()<1) denominator=1
+  if (args()<1) denominator=2
   out = mean(this.stddiff(denominator)')
   st_numscalar("r(mean_sd)", out)
   return(out)
@@ -511,7 +511,7 @@ real scalar psweight::mean_sd(| real scalar denominator) {
 
 real scalar psweight::mean_asd(| real scalar denominator) {
   real scalar out
-  if (args()<1) denominator=1
+  if (args()<1) denominator=2
   out = mean(abs(this.stddiff(denominator))')
   st_numscalar("r(mean_asd)", out)
   return(out)
@@ -519,7 +519,7 @@ real scalar psweight::mean_asd(| real scalar denominator) {
 
 real scalar psweight::max_asd(| real scalar denominator) {
   real scalar out
-  if (args()<1) denominator=1
+  if (args()<1) denominator=2
   out = max(abs(this.stddiff(denominator))')
   st_numscalar("r(max_asd)", out)
   return(out)
@@ -527,7 +527,7 @@ real scalar psweight::max_asd(| real scalar denominator) {
 
 real scalar psweight::mean_sd_sq(| real scalar denominator) {
   real scalar out
-  if (args()<1) denominator=1
+  if (args()<1) denominator=2
   out = mean(this.stddiff(denominator)')
   st_numscalar("r(mean_sd)", out)
   out = out^2
@@ -557,7 +557,7 @@ real rowvector psweight::progdiff(| real scalar denominator) {
   real matrix table
   string rowvector colstripe, tmp
   if (!length(this.depvars)) _error("Dependent variable is undefined.  Use psweight::st_set_depvar().")
-  if (args()<1) denominator=1
+  if (args()<1) denominator=2
 
   yhat = J(rows(this.X), cols(this.Y0), .)
   for (c=1; c<=cols(this.Y0); c++) {
@@ -600,7 +600,7 @@ real rowvector psweight::progdiff(| real scalar denominator) {
 real rowvector psweight::stdprogdiff(| real scalar denominator, real matrix yhat, real rowvector progdiff) {
   real rowvector beta, yhat_bar_0, yhat_bar_1, stddiff
   real scalar c
-  if (args()<1) denominator=1
+  if (args()<1) denominator=2
   if (args()<2) {
     if (!length(this.depvars)) _error("Dependent variable is undefined.  Use psweight::st_set_depvar().")
     yhat = J(rows(this.X), cols(this.Y0), .)
@@ -844,7 +844,7 @@ real rowvector psweight::solve(| string scalar stat, string scalar subcmd, real 
   real scalar oid, unnorm
   if (args()<1) stat="ate"
   if (args()<2) subcmd="ipw"
-  if (args()<3) denominator=1
+  if (args()<3) denominator=2
   if (args()<4) cvopt=J(1, 0, .)
   this.reweight()
   oid = 0
@@ -1070,7 +1070,7 @@ void psweight::cbpseval(real   scalar    todo,
 // This just calls solve() -- described above.
 real rowvector psweight::cbps(| string scalar stat, real scalar denominator) {
   if (args()<1) stat="ate"
-  if (args()<2) denominator=1
+  if (args()<2) denominator=2
   return(solve(stat, "cbps", denominator))
 }
 
@@ -1078,7 +1078,7 @@ real rowvector psweight::cbps(| string scalar stat, real scalar denominator) {
 // This just calls solve() -- described above.
 real rowvector psweight::cbpsoid(| string scalar stat, real scalar denominator) {
   if (args()<1) stat="ate"
-  if (args()<2) denominator=1
+  if (args()<2) denominator=2
   return(solve(stat, "cbpsoid", denominator))
 }
 
