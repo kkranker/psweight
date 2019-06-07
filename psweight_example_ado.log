@@ -2,14 +2,14 @@
       name:  psweight_example_ado
        log:  C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\psweight_example_ado.log
   log type:  text
- opened on:   6 Jun 2019, 18:28:50
+ opened on:   7 Jun 2019, 14:15:46
 . 
 . di as txt "Current user: `c(username)'" _n "Environment: `c(os)' `c(machine_type)' `: environment computername'" _n "Stata: `c(stata_version)'" cond(c(stata_v
 > ersion)==c(version),""," (set to version `c(version)')") _n "Date: " c(current_date) " " c(current_time)
 Current user: KKranker
 Environment: Windows PC (64-bit x86-64) KKRANKER
 Stata: 15.1
-Date:  6 Jun 2019 18:28:50
+Date:  7 Jun 2019 14:15:46
 . desc, short
 
 Contains data from C:\Users\kkranker\Documents\Stata\Multiple-Equation-Models\simple_cattaneo_data.dta
@@ -6333,5 +6333,5 @@ _treated |         N      mean        sd       min        p1       p10       p25
       name:  psweight_example_ado
        log:  C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\psweight_example_ado.log
   log type:  text
- closed on:   6 Jun 2019, 18:30:12
+ closed on:   7 Jun 2019, 14:17:13
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------

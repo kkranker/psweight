@@ -2,16 +2,16 @@
       name:  psweight_example
        log:  C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\psweight_example.log
   log type:  text
- opened on:   6 Jun 2019, 18:27:37
+ opened on:   7 Jun 2019, 14:14:26
 
 . 
 . // ***************************************************************************
-. *! $Id: psweight_example.do,v 9a593f8fa349 2019/06/05 17:13:10 kkranker $
+. *! $Id: psweight_example.do,v 4b55d6675afd 2019/06/07 20:14:16 kkranker $
 . *! IPW- and CBPS-type propensity score reweighting, with extentions
 . *! Example
 . //
 . *! By Keith Kranker
-. // Last updated $Date: 2019/06/05 17:13:10 $
+. // Last updated $Date: 2019/06/07 20:14:16 $
 . //
 . // Copyright (C) Mathematica Policy Research, Inc.
 . // This code cannot be copied, distributed or used without the express written
@@ -27,7 +27,7 @@
 Current user: KKranker
 Environment: Windows PC (64-bit x86-64) KKRANKER
 Stata: 15.1
-Date:  6 Jun 2019 18:27:37
+Date:  7 Jun 2019 14:14:26
 
 . 
 . which psweight
@@ -38,13 +38,12 @@ Date:  6 Jun 2019 18:27:37
 *! By Keith Kranker
 
 . mata: mata describe using lpsweight
-(library contains 58 members)
+(library contains 57 members)
 
 
       # bytes   type                        name and extent
 -------------------------------------------------------------------------------
-        2,276   auto void                   optimize_init_mlopts()
-        4,564   auto classdef scalar        psweight()
+        4,504   auto classdef scalar        psweight()
           852   auto real matrix             ::Ct()
         1,408   auto void                    ::balanceresults()
         2,276   auto real matrix             ::balancetable()
@@ -52,45 +51,44 @@ Date:  6 Jun 2019 18:27:37
           816   auto void                    ::calccovariances()
           320   auto void                    ::calcmeans()
           576   auto void                    ::calcvariances()
-          348   auto real rowvector          ::cbps()
+          356   auto real rowvector          ::cbps()
         2,136   auto void                    ::cbps_port_r()
           768   auto void                    ::cbps_port_stata()
           676   auto real matrix             ::cbps_port_stata_gradient()
           752   auto real colvector          ::cbps_port_stata_moments()
         1,668   auto real matrix             ::cbps_port_stata_wgt_matrix()
         3,312   auto void                    ::cbpseval()
-          348   auto real rowvector          ::cbpsoid()
+          356   auto real rowvector          ::cbpsoid()
           592   auto void                    ::clone()
           568   auto real rowvector          ::diagvariance()
           360   auto real rowvector          ::diff()
-          336   auto real scalar             ::entropydistance()
+        1,080   auto void                    ::fill_vars()
            64   auto real colvector          ::get_pscore()
-          968   auto void                    ::get_scores()
            64   auto real colvector          ::get_weight()
            64   auto real colvector          ::get_weight_mtch()
           736   auto real rowvector          ::ipw()
         1,900   auto real rowvector          ::logitbeta()
           524   auto real colvector          ::logitpredict()
         1,296   auto real colvector          ::logitweights()
-          336   auto real scalar             ::max_asd()
-          340   auto real scalar             ::mean_asd()
-          328   auto real scalar             ::mean_sd()
-          428   auto real scalar             ::mean_sd_sq()
+          360   auto real scalar             ::max_asd()
+          360   auto real scalar             ::mean_asd()
+          352   auto real scalar             ::mean_sd()
+          436   auto real scalar             ::mean_sd_sq()
            96   auto void                    ::new()
           688   auto real rowvector          ::olsbeta()
           468   auto real colvector          ::olspredict()
           276   auto real rowvector          ::pomean()
           756   auto void                    ::postbeta()
-        1,976   auto real rowvector          ::progdiff()
+        2,000   auto real rowvector          ::progdiff()
           728   auto void                    ::reweight()
-          224   auto real rowvector          ::sd_sq()
+          232   auto real rowvector          ::sd_sq()
         1,844   auto void                    ::set()
           304   auto void                    ::set_depvar()
-        6,560   auto real rowvector          ::solve()
-        1,616   auto void                    ::st_set()
-          264   auto void                    ::st_set_depvar()
-        1,004   auto real rowvector          ::stddiff()
-        2,060   auto real rowvector          ::stdprogdiff()
+        6,568   auto real rowvector          ::solve()
+        1,904   auto void                    ::st_set()
+          400   auto void                    ::st_set_depvar()
+        1,012   auto real rowvector          ::stddiff()
+        2,068   auto real rowvector          ::stdprogdiff()
           512   auto real colvector          ::trim()
           368   auto real rowvector          ::varratio()
           288   auto real scalar             ::wgt_cv()
@@ -100,36 +98,561 @@ Date:  6 Jun 2019 18:27:37
           228   auto real scalar             ::wgt_sd()
           372   auto real scalar             ::wgt_skewness()
           412   auto void                   psweight_cbps_eval()
+        2,276   auto void                   psweight_init_mlopts()
           504   auto void                   psweight_logit_eval()
 -------------------------------------------------------------------------------
 
+. 
+. if 1 {
 . 
 . ************************************************************************************
 . * Simple examples in the help file (psweight.sthlp)
 . ************************************************************************************
 . 
-. if 0 {
-. 
 . //  Setup
 . webuse cattaneo2
+(Excerpt from Cattaneo (2010) Journal of Econometrics 155: 138-154)
 . 
 . //  Balance before reweighting
 . psweight balanceonly mbsmoke mmarried mage fbaby medu
+  3778 control obs
+  864 treatment obs
+  (Data are unweighted.)
+-------------------------------------------------------------------------------
+             |    mean_T     mean_C       diff   std_diff    sd_pool  var_ratio
+-------------+-----------------------------------------------------------------
+    mmarried |  .4733796   .7514558  -.2780762  -.6065725   .4584385   1.335944
+        mage |  25.16667   26.81048  -1.643815  -.2925445   5.619026   .8818025
+       fbaby |  .3715278   .4531498   -.081622  -.1644978   .4961893   .9430944
+        medu |  11.63889   12.92986  -1.290968  -.5121546   2.520661   .7315846
+-------------------------------------------------------------------------------
+  
+  Mean standardized diff.             = -0.39394
+  Mean absolute standardized diff.    = 0.39394
+  Maximum absolute standardized diff. = 0.60657
 . 
 . //  Estimate the average treatment effect of smoking on birthweight, using a logit model to predict treatment status
 . psweight ipw mbsmoke mmarried mage fbaby medu
+
+  3778 control obs
+  864 treatment obs
+  (Data are unweighted.)
+initial:       f(p) = -3217.5892
+alternative:   f(p) = -2632.6654
+rescale:       f(p) = -2317.1998
+Iteration 0:   f(p) = -2317.1998  
+Iteration 1:   f(p) = -2156.2731  
+Iteration 2:   f(p) = -2058.0469  
+Iteration 3:   f(p) = -2057.5952  
+Iteration 4:   f(p) = -2057.5951  
+
+Propensity score model coefficients                Number of obs  =      4,642
+Propensity score reweigting
+Loss = IPW
+------------------------------------------------------------------------------
+     mbsmoke |      Coef.
+-------------+----------------------------------------------------------------
+    mmarried |  -1.036252
+        mage |  -.0036626
+       fbaby |  -.4765406
+        medu |   -.127238
+       _cons |    1.02468
+------------------------------------------------------------------------------
+
+New variables (unweighted summary statistics)
+
+Summary for variables: _weight _weight_mtch _pscore
+     by categories of: _treated 
+
+_treated |         N      mean        sd       min        p1       p10       p25       p50       p75       p90       p99       max
+---------+------------------------------------------------------------------------------------------------------------------------
+       0 |      3778         1      .177       .86      .862      .877      .905      .948      1.05      1.23      1.55      2.93
+         |      3778         1      .177       .86      .862      .877      .905      .948      1.05      1.23      1.55      2.93
+         |      3778      .172      .103     .0569     .0593     .0751      .103      .145      .228      .343      .477      .724
+---------+------------------------------------------------------------------------------------------------------------------------
+       1 |       864         1      .541      .266       .31      .471      .543       .79       1.2      1.78      2.86       3.3
+         |       864         1      .541      .266       .31      .471      .543       .79       1.2      1.78      2.86       3.3
+         |       864      .248      .121     .0582     .0672      .108       .16      .243      .354      .408      .619      .721
+---------+------------------------------------------------------------------------------------------------------------------------
+   Total |      4642         1      .283      .266      .456      .862      .895      .941      1.09      1.26      2.12       3.3
+         |      4642         1      .283      .266      .456      .862      .895      .941      1.09      1.26      2.12       3.3
+         |      4642      .186       .11     .0569     .0595     .0848      .105       .16      .257      .357      .483      .724
+----------------------------------------------------------------------------------------------------------------------------------
 . psweight call balanceresults()
+  Balance:
+-------------------------------------------------------------------------------
+             |    mean_T     mean_C       diff   std_diff    sd_pool  var_ratio
+-------------+-----------------------------------------------------------------
+    mmarried |  .6865574   .6976686  -.0111112  -.0241442   .4602022   1.021152
+        mage |  26.03507   26.47091  -.4358363  -.0769175   5.666282   .8180025
+       fbaby |  .4485481   .4382549   .0102932   .0207332    .496461   1.005631
+        medu |  12.28844   12.62439  -.3359562   -.125102   2.685459   .5000611
+-------------------------------------------------------------------------------
+  
+  Mean standardized diff.             = -0.05136
+  Mean absolute standardized diff.    = 0.06172
+  Maximum absolute standardized diff. = 0.12510
+  C.V. of matching weights:           = 0.28260
+  S.D. of matching weights:           = 0.28260
+  Skewness of matching weights:       = 0.03601
+  Kurtosis of matching weights:       = 0.00341
+  Maximum matching weight:            = 3.29874
+. 
+. psweight call mystddiff = stddiff()
+. mata: mystddiff
+                  1              2              3              4
+    +-------------------------------------------------------------+
+  1 |  -.0241441659   -.0769175171    .0207331919   -.1251019798  |
+    +-------------------------------------------------------------+
 . 
 . //  Estimate the average treatment effect on the treated with CBPS
 . psweight cbps mbsmoke mmarried mage fbaby medu, atet
+
+  3778 control obs
+  864 treatment obs
+  (Data are unweighted.)
+  Step 1 (initial values from logit model):
+initial:       f(p) = -3217.5892
+alternative:   f(p) = -2632.6654
+rescale:       f(p) = -2317.1998
+Iteration 0:   f(p) = -2317.1998  
+Iteration 1:   f(p) = -2156.2731  
+Iteration 2:   f(p) = -2058.0469  
+Iteration 3:   f(p) = -2057.5952  
+Iteration 4:   f(p) = -2057.5951  
+  
+  Step 2 (CBPS) :
+Iteration 0:   f(p) =  5.800e-11  
+Iteration 1:   f(p) =  5.705e-11  
+Iteration 2:   f(p) =  4.419e-11  
+Iteration 3:   f(p) =  3.123e-11  
+Iteration 4:   f(p) =  2.530e-11  
+Iteration 5:   f(p) =  1.774e-11  
+Iteration 6:   f(p) =  1.666e-11  
+Iteration 7:   f(p) =  8.484e-12  
+Iteration 8:   f(p) =  2.502e-12  
+Iteration 9:   f(p) =  2.123e-12  
+Iteration 10:  f(p) =  8.215e-13  
+Iteration 11:  f(p) =  3.828e-14  
+Iteration 12:  f(p) =  1.117e-16  
+Iteration 13:  f(p) =  1.193e-18  
+Iteration 14:  f(p) =  7.457e-21  
+
+Propensity score model coefficients                Number of obs  =      4,642
+Propensity score reweigting
+Loss = CBPS (just identified)
+------------------------------------------------------------------------------
+     mbsmoke |      Coef.
+-------------+----------------------------------------------------------------
+    mmarried |  -1.079169
+        mage |  -.0027934
+       fbaby |  -.4962329
+        medu |  -.0967742
+       _cons |   .6621759
+------------------------------------------------------------------------------
+
+New variables (unweighted summary statistics)
+
+Summary for variables: _weight _weight_mtch _pscore
+     by categories of: _treated 
+
+_treated |         N      mean        sd       min        p1       p10       p25       p50       p75       p90       p99       max
+---------+------------------------------------------------------------------------------------------------------------------------
+       0 |      3778         1      .812        .3       .31      .377      .511      .753      1.23      2.27      3.38      8.09
+         |      3778         1      .812        .3       .31      .377      .511      .753      1.23      2.27      3.38      8.09
+         |      3778      .172     .0973     .0643     .0663     .0793      .105      .147       .22      .341      .436      .649
+---------+------------------------------------------------------------------------------------------------------------------------
+       1 |       864         1         0         1         1         1         1         1         1         1         1         1
+         |       864         1         0         1         1         1         1         1         1         1         1         1
+         |       864      .245      .116     .0654     .0729      .105      .158      .241       .36      .401       .53      .647
+---------+------------------------------------------------------------------------------------------------------------------------
+   Total |      4642         1      .732        .3      .311      .419      .517      .834         1         2      3.36      8.09
+         |      4642         1      .732        .3      .311      .419      .517      .834         1         2      3.36      8.09
+         |      4642      .186      .105     .0643     .0665     .0869      .105      .158      .258      .361      .458      .649
+----------------------------------------------------------------------------------------------------------------------------------
 . psweight call balanceresults()
+  Balance:
+-------------------------------------------------------------------------------
+             |    mean_T     mean_C       diff   std_diff    sd_pool  var_ratio
+-------------+-----------------------------------------------------------------
+    mmarried |  .4733796   .4733793   3.27e-07   6.55e-07   .4993446   1.000894
+        mage |  25.16667   25.16667  -2.23e-06  -3.79e-07   5.888802   .7765934
+       fbaby |  .3715278   .3715275   2.81e-07   5.82e-07   .4832651   1.000894
+        medu |  11.63889   11.63889   1.25e-06   4.10e-07   3.047441   .4545646
+-------------------------------------------------------------------------------
+  
+  Mean standardized diff.             = 0.00000
+  Mean absolute standardized diff.    = 0.00000
+  Maximum absolute standardized diff. = 0.00000
+  C.V. of matching weights:           = 0.81153
+  S.D. of matching weights:           = 0.81153
+  Skewness of matching weights:       = 0.04626
+  Kurtosis of matching weights:       = 0.00464
+  Maximum matching weight:            = 8.08544
 . 
 . //  Estimate the average treatment effect on the treated with Penalized CBPS
 . psweight pcbps mbsmoke mmarried mage fbaby medu, atet cvtarget(1 .5 6)
+
+  3778 control obs
+  864 treatment obs
+  (Data are unweighted.)
+  Step 1 (initial values from logit model):
+initial:       f(p) = -3217.5892
+alternative:   f(p) = -2632.6654
+rescale:       f(p) = -2317.1998
+Iteration 0:   f(p) = -2317.1998  
+Iteration 1:   f(p) = -2156.2731  
+Iteration 2:   f(p) = -2058.0469  
+Iteration 3:   f(p) = -2057.5952  
+Iteration 4:   f(p) = -2057.5951  
+  
+  Step 2 (CBPS) :
+Iteration 0:   f(p) =  .00683678  
+Iteration 1:   f(p) =  4.220e-06  
+Iteration 2:   f(p) =  1.820e-07  
+Iteration 3:   f(p) =  1.820e-07  
+Iteration 4:   f(p) =  9.386e-08  
+Iteration 5:   f(p) =  1.489e-08  
+Iteration 6:   f(p) =  1.377e-08  
+Iteration 7:   f(p) =  1.205e-08  
+Iteration 8:   f(p) =  1.142e-08  
+Iteration 9:   f(p) =  1.124e-08  
+Iteration 10:  f(p) =  1.122e-08  
+Iteration 11:  f(p) =  1.122e-08  
+Iteration 12:  f(p) =  1.122e-08  
+Iteration 13:  f(p) =  1.095e-08  
+Iteration 14:  f(p) =  6.310e-09  
+Iteration 15:  f(p) =  6.167e-10  
+Iteration 16:  f(p) =  6.129e-10  
+Iteration 17:  f(p) =  6.113e-10  
+Iteration 18:  f(p) =  6.008e-10  
+Iteration 19:  f(p) =  6.004e-10  
+Iteration 20:  f(p) =  5.994e-10  
+Iteration 21:  f(p) =  5.915e-10  
+Iteration 22:  f(p) =  5.884e-10  
+Iteration 23:  f(p) =  5.882e-10  
+Iteration 24:  f(p) =  5.881e-10  
+Iteration 25:  f(p) =  5.881e-10  
+Iteration 26:  f(p) =  5.881e-10  
+Iteration 27:  f(p) =  5.881e-10  
+Iteration 28:  f(p) =  5.881e-10  
+Iteration 29:  f(p) =  5.881e-10  
+Iteration 30:  f(p) =  5.878e-10  
+Iteration 31:  f(p) =  5.794e-10  
+Iteration 32:  f(p) =  5.270e-10  
+Iteration 33:  f(p) =  4.757e-10  
+Iteration 34:  f(p) =  4.434e-10  
+Iteration 35:  f(p) =  4.349e-10  
+Iteration 36:  f(p) =  4.347e-10  
+Iteration 37:  f(p) =  4.346e-10  
+Iteration 38:  f(p) =  4.346e-10  
+Iteration 39:  f(p) =  4.346e-10  
+Iteration 40:  f(p) =  4.346e-10  
+Iteration 41:  f(p) =  4.346e-10  
+Iteration 42:  f(p) =  4.346e-10  
+Iteration 43:  f(p) =  4.346e-10  
+Iteration 44:  f(p) =  4.346e-10  
+Iteration 45:  f(p) =  4.340e-10  
+Iteration 46:  f(p) =  4.223e-10  
+Iteration 47:  f(p) =  3.455e-10  
+Iteration 48:  f(p) =  2.742e-10  
+Iteration 49:  f(p) =  2.655e-10  
+Iteration 50:  f(p) =  2.508e-10  
+Iteration 51:  f(p) =  2.464e-10  
+Iteration 52:  f(p) =  2.459e-10  
+Iteration 53:  f(p) =  2.459e-10  
+Iteration 54:  f(p) =  2.459e-10  
+Iteration 55:  f(p) =  2.459e-10  
+
+Propensity score model coefficients                Number of obs  =      4,642
+Propensity score reweigting
+Loss = CBPS (just identified) + 1*abs(wgt_cv()-.5)^6)
+------------------------------------------------------------------------------
+     mbsmoke |      Coef.
+-------------+----------------------------------------------------------------
+    mmarried |  -.7703263
+        mage |  -.0070575
+       fbaby |  -.3634082
+        medu |  -.0538161
+       _cons |   -.030892
+------------------------------------------------------------------------------
+
+New variables (unweighted summary statistics)
+
+Summary for variables: _weight _weight_mtch _pscore
+     by categories of: _treated 
+
+_treated |         N      mean        sd       min        p1       p10       p25       p50       p75       p90       p99       max
+---------+------------------------------------------------------------------------------------------------------------------------
+       0 |      3778         1      .512      .437      .475      .534      .653      .845      1.18      1.85      2.51      4.07
+         |      3778         1      .512      .437      .475      .534      .653      .845      1.18      1.85      2.51      4.07
+         |      3778      .169     .0663     .0845     .0913      .101      .121      .151        .2      .281      .346      .462
+---------+------------------------------------------------------------------------------------------------------------------------
+       1 |       864         1         0         1         1         1         1         1         1         1         1         1
+         |       864         1         0         1         1         1         1         1         1         1         1         1
+         |       864      .218     .0766     .0884     .0971      .121      .158      .221      .294      .317      .374      .457
+---------+------------------------------------------------------------------------------------------------------------------------
+   Total |      4642         1      .462      .437      .475       .57      .672      .914         1      1.71      2.44      4.07
+         |      4642         1      .462      .437      .475       .57      .672      .914         1      1.71      2.44      4.07
+         |      4642      .178      .071     .0845     .0913      .106      .123      .158      .232      .297      .353      .462
+----------------------------------------------------------------------------------------------------------------------------------
 . psweight call balanceresults()
+  Balance:
+-------------------------------------------------------------------------------
+             |    mean_T     mean_C       diff   std_diff    sd_pool  var_ratio
+-------------+-----------------------------------------------------------------
+    mmarried |  .4733796   .5602905  -.0869109  -.1744834   .4981038   1.012782
+        mage |  25.16667   25.57598  -.4093149  -.0704521   5.809835   .8024555
+       fbaby |  .3715278   .3964919  -.0249641  -.0511334    .488215   .9766702
+        medu |  11.63889   12.16033  -.5214419  -.1899421   2.745268   .5775576
+-------------------------------------------------------------------------------
+  
+  Mean standardized diff.             = -0.12150
+  Mean absolute standardized diff.    = 0.12150
+  Maximum absolute standardized diff. = 0.18994
+  C.V. of matching weights:           = 0.51225
+  S.D. of matching weights:           = 0.51225
+  Skewness of matching weights:       = 0.02582
+  Kurtosis of matching weights:       = 0.00151
+  Maximum matching weight:            = 4.06948
+. 
+. 
+. ************************************************************************************
+. * Examples in the help file (psweight_class.sthlp)
+. ************************************************************************************
+. 
+. 
+. //  Setup
+. webuse cattaneo2, clear
+(Excerpt from Cattaneo (2010) Journal of Econometrics 155: 138-154)
+. gen byte touse=1
+. 
+. mata:
+------------------------------------------------- mata (type end to exit) --------------------------------------------------------------------------------------
+: 
+: // Create an instance of the class, tell it where the data are
+: P = psweight()
+
+: P.st_set("mbsmoke", "mmarried mage fbaby medu", "touse")
+  3778 control obs
+  864 treatment obs
+  (Data are unweighted.)
+
+: 
+: //  Balance before reweighting
+: P.balancetable(2)
+-------------------------------------------------------------------------------
+             |    mean_T     mean_C       diff   std_diff    sd_pool  var_ratio
+-------------+-----------------------------------------------------------------
+    mmarried |  .4733796   .7514558  -.2780762  -.6065725   .4584385   1.335944
+        mage |  25.16667   26.81048  -1.643815  -.2925445   5.619026   .8818025
+       fbaby |  .3715278   .4531498   -.081622  -.1644978   .4961893   .9430944
+        medu |  11.63889   12.92986  -1.290968  -.5121546   2.520661   .7315846
+-------------------------------------------------------------------------------
+  
+  Mean standardized diff.             = -0.39394
+  Mean absolute standardized diff.    = 0.39394
+  Maximum absolute standardized diff. = 0.60657
+                  1              2              3              4              5              6
+    +-------------------------------------------------------------------------------------------+
+  1 |   .4733796296    .7514557967   -.2780761671   -.6065725095    .4584384599    1.335943589  |
+  2 |   25.16666667    26.81048174    -1.64381507   -.2925444767    5.619026168    .8818025263  |
+  3 |   .3715277778    .4531498147   -.0816220369   -.1644977841    .4961892793    .9430944404  |
+  4 |   11.63888889    12.92985707   -1.290968178   -.5121545711    2.520661244    .7315846294  |
+    +-------------------------------------------------------------------------------------------+
+
+: 
+: //  Estimate the average treatment effect of smoking on birthweight, using a logit model to predict treatment status
+: P.ipw()
+initial:       f(p) = -3217.5892
+alternative:   f(p) = -2632.6654
+rescale:       f(p) = -2317.1998
+Iteration 0:   f(p) = -2317.1998  
+Iteration 1:   f(p) = -2156.2731  
+Iteration 2:   f(p) = -2058.0469  
+Iteration 3:   f(p) = -2057.5952  
+Iteration 4:   f(p) = -2057.5951  
+                  1              2              3              4              5
+    +----------------------------------------------------------------------------+
+  1 |  -1.036251822   -.0036626212    -.476540632   -.1272379607    1.024680497  |
+    +----------------------------------------------------------------------------+
+
+: P.balanceresults("ate", 1)
+  Balance:
+-------------------------------------------------------------------------------
+             |    mean_T     mean_C       diff   std_diff       sd_T  var_ratio
+-------------+-----------------------------------------------------------------
+    mmarried |  .6865574   .6976686  -.0111112  -.0239382   .4641613   1.021152
+        mage |  26.03507   26.47091  -.4358363  -.0836215    5.21201   .8180025
+       fbaby |  .4485481   .4382549   .0102932   .0206843   .4976337   1.005631
+        medu |  12.28844   12.62439  -.3359562  -.1686665   1.991838   .5000611
+-------------------------------------------------------------------------------
+  
+  Mean standardized diff.             = -0.06389
+  Mean absolute standardized diff.    = 0.07423
+  Maximum absolute standardized diff. = 0.16867
+  C.V. of matching weights:           = 0.28260
+  S.D. of matching weights:           = 0.28260
+  Skewness of matching weights:       = 0.03601
+  Kurtosis of matching weights:       = 0.00341
+  Maximum matching weight:            = 3.29874
+
+: 
+: //  Estimate the average treatment effect on the treated with CBPS
+: P.cbps("atet")
+  Step 1 (initial values from logit model):
+initial:       f(p) = -3217.5892
+alternative:   f(p) = -2632.6654
+rescale:       f(p) = -2317.1998
+Iteration 0:   f(p) = -2317.1998  
+Iteration 1:   f(p) = -2156.2731  
+Iteration 2:   f(p) = -2058.0469  
+Iteration 3:   f(p) = -2057.5952  
+Iteration 4:   f(p) = -2057.5951  
+  
+  Step 2 (CBPS) :
+Iteration 0:   f(p) =  5.800e-11  
+Iteration 1:   f(p) =  5.705e-11  
+Iteration 2:   f(p) =  4.419e-11  
+Iteration 3:   f(p) =  3.123e-11  
+Iteration 4:   f(p) =  2.530e-11  
+Iteration 5:   f(p) =  1.774e-11  
+Iteration 6:   f(p) =  1.666e-11  
+Iteration 7:   f(p) =  8.484e-12  
+Iteration 8:   f(p) =  2.502e-12  
+Iteration 9:   f(p) =  2.123e-12  
+Iteration 10:  f(p) =  8.215e-13  
+Iteration 11:  f(p) =  3.828e-14  
+Iteration 12:  f(p) =  1.117e-16  
+Iteration 13:  f(p) =  1.193e-18  
+Iteration 14:  f(p) =  7.457e-21  
+                  1              2              3              4              5
+    +----------------------------------------------------------------------------+
+  1 |  -1.079169076   -.0027934254   -.4962328805   -.0967741689    .6621758666  |
+    +----------------------------------------------------------------------------+
+
+: P.balanceresults("atet", 1)
+  Balance:
+-------------------------------------------------------------------------------
+             |    mean_T     mean_C       diff   std_diff       sd_T  var_ratio
+-------------+-----------------------------------------------------------------
+    mmarried |  .4733796   .4733793   3.27e-07   6.54e-07     .49958   1.000894
+        mage |  25.16667   25.16667  -2.23e-06  -4.21e-07   5.301348   .7765934
+       fbaby |  .3715278   .3715275   2.81e-07   5.81e-07    .483493   1.000894
+        medu |  11.63889   11.63889   1.25e-06   5.76e-07   2.167743   .4545646
+-------------------------------------------------------------------------------
+  
+  Mean standardized diff.             = 0.00000
+  Mean absolute standardized diff.    = 0.00000
+  Maximum absolute standardized diff. = 0.00000
+  C.V. of matching weights:           = 0.81153
+  S.D. of matching weights:           = 0.81153
+  Skewness of matching weights:       = 0.04626
+  Kurtosis of matching weights:       = 0.00464
+  Maximum matching weight:            = 8.08544
+
+: 
+: //  Estimate the average treatment effect on the treated with Penalized CBPS
+: P.solve("atet", "cbps", 2, (1, .5, 6))
+  Step 1 (initial values from logit model):
+initial:       f(p) = -3217.5892
+alternative:   f(p) = -2632.6654
+rescale:       f(p) = -2317.1998
+Iteration 0:   f(p) = -2317.1998  
+Iteration 1:   f(p) = -2156.2731  
+Iteration 2:   f(p) = -2058.0469  
+Iteration 3:   f(p) = -2057.5952  
+Iteration 4:   f(p) = -2057.5951  
+  
+  Step 2 (CBPS) :
+Iteration 0:   f(p) =  .00683678  
+Iteration 1:   f(p) =  4.220e-06  
+Iteration 2:   f(p) =  1.820e-07  
+Iteration 3:   f(p) =  1.820e-07  
+Iteration 4:   f(p) =  9.386e-08  
+Iteration 5:   f(p) =  1.489e-08  
+Iteration 6:   f(p) =  1.377e-08  
+Iteration 7:   f(p) =  1.205e-08  
+Iteration 8:   f(p) =  1.142e-08  
+Iteration 9:   f(p) =  1.124e-08  
+Iteration 10:  f(p) =  1.122e-08  
+Iteration 11:  f(p) =  1.122e-08  
+Iteration 12:  f(p) =  1.122e-08  
+Iteration 13:  f(p) =  1.095e-08  
+Iteration 14:  f(p) =  6.310e-09  
+Iteration 15:  f(p) =  6.167e-10  
+Iteration 16:  f(p) =  6.129e-10  
+Iteration 17:  f(p) =  6.113e-10  
+Iteration 18:  f(p) =  6.008e-10  
+Iteration 19:  f(p) =  6.004e-10  
+Iteration 20:  f(p) =  5.994e-10  
+Iteration 21:  f(p) =  5.915e-10  
+Iteration 22:  f(p) =  5.884e-10  
+Iteration 23:  f(p) =  5.882e-10  
+Iteration 24:  f(p) =  5.881e-10  
+Iteration 25:  f(p) =  5.881e-10  
+Iteration 26:  f(p) =  5.881e-10  
+Iteration 27:  f(p) =  5.881e-10  
+Iteration 28:  f(p) =  5.881e-10  
+Iteration 29:  f(p) =  5.881e-10  
+Iteration 30:  f(p) =  5.878e-10  
+Iteration 31:  f(p) =  5.794e-10  
+Iteration 32:  f(p) =  5.270e-10  
+Iteration 33:  f(p) =  4.757e-10  
+Iteration 34:  f(p) =  4.434e-10  
+Iteration 35:  f(p) =  4.349e-10  
+Iteration 36:  f(p) =  4.347e-10  
+Iteration 37:  f(p) =  4.346e-10  
+Iteration 38:  f(p) =  4.346e-10  
+Iteration 39:  f(p) =  4.346e-10  
+Iteration 40:  f(p) =  4.346e-10  
+Iteration 41:  f(p) =  4.346e-10  
+Iteration 42:  f(p) =  4.346e-10  
+Iteration 43:  f(p) =  4.346e-10  
+Iteration 44:  f(p) =  4.346e-10  
+Iteration 45:  f(p) =  4.340e-10  
+Iteration 46:  f(p) =  4.223e-10  
+Iteration 47:  f(p) =  3.455e-10  
+Iteration 48:  f(p) =  2.742e-10  
+Iteration 49:  f(p) =  2.655e-10  
+Iteration 50:  f(p) =  2.508e-10  
+Iteration 51:  f(p) =  2.464e-10  
+Iteration 52:  f(p) =  2.459e-10  
+Iteration 53:  f(p) =  2.459e-10  
+Iteration 54:  f(p) =  2.459e-10  
+Iteration 55:  f(p) =  2.459e-10  
+                  1              2              3              4              5
+    +----------------------------------------------------------------------------+
+  1 |  -.7703263278   -.0070574866   -.3634082426   -.0538161421   -.0308920244  |
+    +----------------------------------------------------------------------------+
+
+: P.balanceresults("atet", 1)
+  Balance:
+-------------------------------------------------------------------------------
+             |    mean_T     mean_C       diff   std_diff       sd_T  var_ratio
+-------------+-----------------------------------------------------------------
+    mmarried |  .4733796   .5602905  -.0869109  -.1739678     .49958   1.012782
+        mage |  25.16667   25.57598  -.4093149  -.0772096   5.301348   .8024555
+       fbaby |  .3715278   .3964919  -.0249641  -.0516328    .483493   .9766702
+        medu |  11.63889   12.16033  -.5214419  -.2405459   2.167743   .5775576
+-------------------------------------------------------------------------------
+  
+  Mean standardized diff.             = -0.13584
+  Mean absolute standardized diff.    = 0.13584
+  Maximum absolute standardized diff. = 0.24055
+  C.V. of matching weights:           = 0.51225
+  S.D. of matching weights:           = 0.51225
+  Skewness of matching weights:       = 0.02582
+  Kurtosis of matching weights:       = 0.00151
+  Maximum matching weight:            = 4.06948
+
+: 
+: end // end of Mata
+----------------------------------------------------------------------------------------------------------------------------------------------------------------
 . 
 . } // end of simple examples
 
+. 
 . 
 . ************************************************************************************
 . * Describe/summarize the example datasets
@@ -202,7 +725,7 @@ _dta:
 
 . set seed 1
 
-. gen wgt = max(.1,rnormal(2,.4))
+. gen wgt = max(.1, rnormal(2,.4))
 
 . gen fwgt = round(rnormal(2,.4))
 
@@ -254,13 +777,13 @@ _dta:
 . mata:
 ------------------------------------------------- mata (type end to exit) --------------------------------------------------------------------------------------
 : 
-: depvars  = st_local("depvars" )
+: depvars  = st_local("depvars")
 
 : treatvar = st_local("treatvar")
 
-: wgtvar   = st_local("wgtvar"  )
+: wgtvar   = st_local("wgtvar")
 
-: varlist  = st_local("varlist" )
+: varlist  = st_local("varlist")
 
 : tousevar = st_local("tousevar")
 
@@ -275,7 +798,7 @@ _dta:
   92 treatment obs
   (Data are unweighted.)
 
-: if (depvars!="") D.st_set_depvar(depvars,tousevar)
+: if (depvars!="") D.st_set_depvar(depvars, tousevar)
 > 
 > // Misc balance measures
 >   D.diff()
@@ -291,6 +814,16 @@ _dta:
 :   D.stddiff()
                   1              2              3              4              5              6              7              8              9             10
     +-------------------------------------------------------------------------------------------------------------------------------------------------------
+  1 |  -.6149214017              .   -.1050324967              .   -.1140856324   -.1205719184   -.1896218542   -.5792408015    .0485796206    .1481119269
+    +-------------------------------------------------------------------------------------------------------------------------------------------------------
+                 11             12             13             14             15
+     ----------------------------------------------------------------------------+
+  1    -.0817632833    .0671946445    .0471721373    -.148808753   -.0150884239  |
+     ----------------------------------------------------------------------------+
+
+:   D.stddiff(1)
+                  1              2              3              4              5              6              7              8              9             10
+    +-------------------------------------------------------------------------------------------------------------------------------------------------------
   1 |   -.563336463              .   -.1543415516              .   -.1526193687   -.1210072453    -.202287272   -.8035533326    .0457213254    .1527707004
     +-------------------------------------------------------------------------------------------------------------------------------------------------------
                  11             12             13             14             15
@@ -298,7 +831,7 @@ _dta:
   1      -.08618905    .0648405717    .0493954389   -.1578414414    -.016298459  |
      ----------------------------------------------------------------------------+
 
-:   D.mean_asd()
+:   D.mean_asd(1)
   .1977078631
 
 :   D.stddiff(1)
@@ -331,7 +864,7 @@ _dta:
   1    .8791918375   1.090178798   .8926168505   .8686432131   .8285405428  |
      -----------------------------------------------------------------------+
 
-:   D.progdiff()
+:   D.progdiff(1)
 ------------------------------------------------------------------------
              | mean_yhat_T  mean_yhat_C       diff   std_diff   mean_y_C
 -------------+----------------------------------------------------------
@@ -479,7 +1012,7 @@ Iteration 39:  f(p) =  2.421e-19
   1    -.0236434642    .2014653947   -.0067199499   -.3662316718   -.0080121031    3.127762113  |
      -------------------------------------------------------------------------------------------+
 
-:     D.balanceresults("ate",2)
+:     D.balanceresults("ate", 2)
   Balance:
 -------------------------------------------------------------------------------
              |    mean_T     mean_C       diff   std_diff    sd_pool  var_ratio
@@ -612,7 +1145,7 @@ Iteration 27:  f(p) =  5.714e-08
   1    -.1467758692    .1315865104    .0862071499   -.1702520455    .0217912539    1.206345699  |
      -------------------------------------------------------------------------------------------+
 
-:     D.balanceresults("ate",2)
+:     D.balanceresults("ate", 2)
   Balance:
 -------------------------------------------------------------------------------
              |    mean_T     mean_C       diff   std_diff    sd_pool  var_ratio
@@ -745,7 +1278,7 @@ Iteration 30:  f(p) =  8.507e-20
   1    -.1617619526    .1391154892     .057115033   -.1175051709     .011504942    .7828569769  |
      -------------------------------------------------------------------------------------------+
 
-:     D.balanceresults("atet",2)
+:     D.balanceresults("atet", 2)
   Balance:
 -------------------------------------------------------------------------------
              |    mean_T     mean_C       diff   std_diff    sd_pool  var_ratio
@@ -875,7 +1408,7 @@ Iteration 25:  f(p) =  1.211e-07
   1    -.1282784975    .1072999568     .052716481   -.1248021071    .0220743372    .9132204078  |
      -------------------------------------------------------------------------------------------+
 
-:     D.balanceresults("atet",2)
+:     D.balanceresults("atet", 2)
   Balance:
 -------------------------------------------------------------------------------
              |    mean_T     mean_C       diff   std_diff    sd_pool  var_ratio
@@ -924,7 +1457,7 @@ Iteration 25:  f(p) =  1.211e-07
 : // Other objective functions
 :   st_local("mlopts", "difficult nonrtolerance")
 
-:   D.solve("atet","mean_sd_sq",1)
+:   D.solve("atet","mean_sd_sq", 1)
   Step 1 (initial values from logit model):
 initial:       f(p) = -346.57359
 alternative:   f(p) = -283.03849
@@ -960,7 +1493,7 @@ Iteration 4:   f(p) =  2.512e-21
   1    -.1322012753    .1288212844    .0633599597   -.1645468354    .0190734619    1.379530325  |
      -------------------------------------------------------------------------------------------+
 
-:   D.balanceresults("atet",1)
+:   D.balanceresults("atet", 1)
   Balance:
 -------------------------------------------------------------------------------
              |    mean_T     mean_C       diff   std_diff       sd_T  var_ratio
@@ -1006,7 +1539,7 @@ Iteration 4:   f(p) =  2.512e-21
   Note: The std_diff column does not account for the standard error of the linear predictions.
 
 : 
-:   D.solve("atet","sd_sq",1)
+:   D.solve("atet","sd_sq", 1)
   Step 1 (initial values from logit model):
 initial:       f(p) = -346.57359
 alternative:   f(p) = -283.03849
@@ -1093,7 +1626,7 @@ Iteration 21:  f(p) =  1.597e-07  (backed up)
   1    -.1617896689    .1392853356    .0571801245   -.1174440772    .0116347969    1.412922783  |
      -------------------------------------------------------------------------------------------+
 
-:   D.balanceresults("atet",1)
+:   D.balanceresults("atet", 1)
   Balance:
 -------------------------------------------------------------------------------
              |    mean_T     mean_C       diff   std_diff       sd_T  var_ratio
@@ -1140,8 +1673,8 @@ Iteration 21:  f(p) =  1.597e-07  (backed up)
 
 : 
 :   if (depvars!="") {
->     D.solve("atet","stdprogdiff",1)
->     D.balanceresults("atet",1)
+>     D.solve("atet","stdprogdiff", 1)
+>     D.balanceresults("atet", 1)
 >   }
 >   st_local("mlopts", "")
   Step 1 (initial values from logit model):
@@ -1362,7 +1895,7 @@ Iteration 4:   f(p) = -211.17753
   1    -.1331181677    .1277525867    .0623584609   -.1663353313    .0177759207    1.379537286  |
      -------------------------------------------------------------------------------------------+
 
-:   D.balanceresults("atet")
+:   D.balanceresults("atet", 1)
   Balance:
 -------------------------------------------------------------------------------
              |    mean_T     mean_C       diff   std_diff       sd_T  var_ratio
@@ -1530,7 +2063,7 @@ Iteration 4:   f(p) = -211.17753
   1    -.1331181677    .1277525867    .0623584609   -.1663353313    .0177759207    1.379537286  |
      -------------------------------------------------------------------------------------------+
 
-:   D.balanceresults("ate")
+:   D.balanceresults("ate", 1)
   Balance:
 -------------------------------------------------------------------------------
              |    mean_T     mean_C       diff   std_diff       sd_T  var_ratio
@@ -1636,7 +2169,7 @@ Iteration 4:   f(p) = -211.17753
   1    -.1331181677    .1277525867    .0623584609   -.1663353313    .0177759207    1.379537286  |
      -------------------------------------------------------------------------------------------+
 
-:   D.balanceresults("ateu")
+:   D.balanceresults("ateu", 1)
   Balance:
 -------------------------------------------------------------------------------
              |    mean_T     mean_C       diff   std_diff       sd_T  var_ratio
@@ -1735,7 +2268,7 @@ Iteration 30:  f(p) =  8.507e-20
   1    -.1617619526    .1391154892     .057115033   -.1175051709     .011504942    .7828569769  |
      -------------------------------------------------------------------------------------------+
 
-:   D.balanceresults("atet",1)
+:   D.balanceresults("atet", 1)
   Balance:
 -------------------------------------------------------------------------------
              |    mean_T     mean_C       diff   std_diff       sd_T  var_ratio
@@ -1781,7 +2314,7 @@ Iteration 30:  f(p) =  8.507e-20
   Note: The std_diff column does not account for the standard error of the linear predictions.
 
 : 
-:   D.solve("atet","cbps", 1, (1,.75,6))
+:   D.solve("atet","cbps", 1, (1,.75, 6))
   Step 1 (initial values from logit model):
 initial:       f(p) = -346.57359
 alternative:   f(p) = -283.03849
@@ -1924,7 +2457,7 @@ convergence not achieved
   1    -.1253124383    .1000966911    .0449222914   -.0972899179   -.0000551876    .4469634125  |
      -------------------------------------------------------------------------------------------+
 
-:   D.balanceresults("atet",1)
+:   D.balanceresults("atet", 1)
   Balance:
 -------------------------------------------------------------------------------
              |    mean_T     mean_C       diff   std_diff       sd_T  var_ratio
@@ -1970,7 +2503,7 @@ convergence not achieved
   Note: The std_diff column does not account for the standard error of the linear predictions.
 
 : 
-:   D.solve("atet","cbps", 1, (1,.50,6))
+:   D.solve("atet","cbps", 1, (1,.50, 6))
   Step 1 (initial values from logit model):
 initial:       f(p) = -346.57359
 alternative:   f(p) = -283.03849
@@ -2113,7 +2646,7 @@ convergence not achieved
   1    -.0877086818     .064571659    .0348086267   -.0665577743   -.0074344266   -.0748029846  |
      -------------------------------------------------------------------------------------------+
 
-:   D.balanceresults("atet",1)
+:   D.balanceresults("atet", 1)
   Balance:
 -------------------------------------------------------------------------------
              |    mean_T     mean_C       diff   std_diff       sd_T  var_ratio
@@ -2161,7 +2694,7 @@ convergence not achieved
 : 
 :   st_local("mlopts", "difficult nonrtolerance")
 
-:   D.solve("atet","mean_sd_sq", 1, (1,.75,6))
+:   D.solve("atet","mean_sd_sq", 1, (1,.75, 6))
   Step 1 (initial values from logit model):
 initial:       f(p) = -346.57359
 alternative:   f(p) = -283.03849
@@ -2257,7 +2790,7 @@ Iteration 24:  f(p) =  1.985e-11
   1    -.1365717091    .0826969528    .0139935752   -.1221270986    -.003240174    1.406408582  |
      -------------------------------------------------------------------------------------------+
 
-:   D.balanceresults("atet",1)
+:   D.balanceresults("atet", 1)
   Balance:
 -------------------------------------------------------------------------------
              |    mean_T     mean_C       diff   std_diff       sd_T  var_ratio
@@ -2303,7 +2836,7 @@ Iteration 24:  f(p) =  1.985e-11
   Note: The std_diff column does not account for the standard error of the linear predictions.
 
 : 
-:   D.solve("atet","mean_sd_sq", 1, (1,.50,6))
+:   D.solve("atet","mean_sd_sq", 1, (1,.50, 6))
   Step 1 (initial values from logit model):
 initial:       f(p) = -346.57359
 alternative:   f(p) = -283.03849
@@ -2450,7 +2983,7 @@ Iteration 41:  f(p) =  4.112e-10
   1    -.1162047887   -.1676400517   -.1161679118   -.0137662501   -.1495326906    1.379451797  |
      -------------------------------------------------------------------------------------------+
 
-:   D.balanceresults("atet",1)
+:   D.balanceresults("atet", 1)
   Balance:
 -------------------------------------------------------------------------------
              |    mean_T     mean_C       diff   std_diff       sd_T  var_ratio
@@ -2497,7 +3030,7 @@ Iteration 41:  f(p) =  4.112e-10
 
 : 
 : // furthermore, you can target skiwness, kurtosis, or max weight
-:   D.solve("atet","cbps", 1, (1,.50,6,1,0.7,2))
+:   D.solve("atet","cbps", 1, (1,.50, 6, 1, 0.7, 2))
   Step 1 (initial values from logit model):
 initial:       f(p) = -346.57359
 alternative:   f(p) = -283.03849
@@ -2558,7 +3091,7 @@ Iteration 39:  f(p) =  .03891644
   1    -.1081187823    .1821330696    .1321345545   -.3057756013    .0663444759   -.9592819917  |
      -------------------------------------------------------------------------------------------+
 
-:   D.balanceresults("atet",1)
+:   D.balanceresults("atet", 1)
   Balance:
 -------------------------------------------------------------------------------
              |    mean_T     mean_C       diff   std_diff       sd_T  var_ratio
@@ -2672,7 +3205,7 @@ Iteration 39:  f(p) =  .03891644
   408 control obs (sum of weights = 802.3793)
   92 treatment obs (sum of weights = 180.1725)
 
-: if (depvars!="") DW.st_set_depvar(depvars,tousevar)
+: if (depvars!="") DW.st_set_depvar(depvars, tousevar)
 > 
 > // Misc balance measures
 >   DW.diff()
@@ -2688,6 +3221,16 @@ Iteration 39:  f(p) =  .03891644
 :   DW.stddiff()
                   1              2              3              4              5              6              7              8              9             10
     +-------------------------------------------------------------------------------------------------------------------------------------------------------
+  1 |  -.6408852663              .   -.1018169648              .   -.0962823826   -.1514603719    -.181681041   -.5865398877     .088576306    .1243171474
+    +-------------------------------------------------------------------------------------------------------------------------------------------------------
+                 11             12             13             14             15
+     ----------------------------------------------------------------------------+
+  1    -.0586888438    .0822313646    .0565711073   -.1327547655   -.0353142324  |
+     ----------------------------------------------------------------------------+
+
+:   DW.stddiff(1)
+                  1              2              3              4              5              6              7              8              9             10
+    +-------------------------------------------------------------------------------------------------------------------------------------------------------
   1 |  -.5928113513              .   -.1469730323              .   -.1218929028   -.1529139652   -.1938926866   -.7969828512    .0837330563    .1283646934
     +-------------------------------------------------------------------------------------------------------------------------------------------------------
                  11             12             13             14             15
@@ -2695,7 +3238,7 @@ Iteration 39:  f(p) =  .03891644
   1    -.0613348134    .0800443396    .0583642775   -.1419196244   -.0384510908  |
      ----------------------------------------------------------------------------+
 
-:   DW.mean_asd()
+:   DW.mean_asd(1)
   .1998214373
 
 :   DW.stddiff(1)
@@ -2728,7 +3271,7 @@ Iteration 39:  f(p) =  .03891644
   1    .8980781756   1.068619436   .9263536214    .852877099   .8141756036  |
      -----------------------------------------------------------------------+
 
-:   DW.progdiff()
+:   DW.progdiff(1)
 ------------------------------------------------------------------------
              | mean_yhat_T  mean_yhat_C       diff   std_diff   mean_y_C
 -------------+----------------------------------------------------------
@@ -2878,7 +3421,7 @@ Iteration 73:  f(p) =  7.793e-14
   1     .0257840856    .2152131433    -.028533331   -.3393879085   -.0407886924    3.075427325  |
      -------------------------------------------------------------------------------------------+
 
-:     DW.balanceresults("ate",2)
+:     DW.balanceresults("ate", 2)
   Balance:
 -------------------------------------------------------------------------------
              |    mean_T     mean_C       diff   std_diff    sd_pool  var_ratio
@@ -2995,7 +3538,7 @@ Iteration 44:  f(p) =  .01777184
   1    -.1706885657    .1765099541     .113671482   -.1271349333    .0214700515    1.180156409  |
      -------------------------------------------------------------------------------------------+
 
-:     DW.balanceresults("ate",2)
+:     DW.balanceresults("ate", 2)
   Balance:
 -------------------------------------------------------------------------------
              |    mean_T     mean_C       diff   std_diff    sd_pool  var_ratio
@@ -3130,7 +3673,7 @@ Iteration 62:  f(p) =  1.511e-13
   1    -.1336147998    .1522979455    .0757708004   -.1016182953   -.0383404468    .6265999323  |
      -------------------------------------------------------------------------------------------+
 
-:     DW.balanceresults("atet",2)
+:     DW.balanceresults("atet", 2)
   Balance:
 -------------------------------------------------------------------------------
              |    mean_T     mean_C       diff   std_diff    sd_pool  var_ratio
@@ -3246,7 +3789,7 @@ Iteration 43:  f(p) =  .00017215
   1    -.1205476424    .1453090919    .0704761429   -.1075637645   -.0307915057    .7598463812  |
      -------------------------------------------------------------------------------------------+
 
-:     DW.balanceresults("atet",2)
+:     DW.balanceresults("atet", 2)
   Balance:
 -------------------------------------------------------------------------------
              |    mean_T     mean_C       diff   std_diff    sd_pool  var_ratio
@@ -3295,7 +3838,7 @@ Iteration 43:  f(p) =  .00017215
 : // Other objective functions
 :   st_local("mlopts", "difficult nonrtolerance")
 
-:   DW.solve("atet","mean_sd_sq",1)
+:   DW.solve("atet","mean_sd_sq", 1)
   Step 1 (initial values from logit model):
 initial:       f(p) = -681.05307
 alternative:   f(p) =  -555.8915
@@ -3332,7 +3875,7 @@ Iteration 4:   f(p) =  1.988e-21
   1    -.0952384663    .1409151847     .074303883   -.1419191912   -.0201500497     1.24895601  |
      -------------------------------------------------------------------------------------------+
 
-:   DW.balanceresults("atet",1)
+:   DW.balanceresults("atet", 1)
   Balance:
 -------------------------------------------------------------------------------
              |    mean_T     mean_C       diff   std_diff       sd_T  var_ratio
@@ -3378,7 +3921,7 @@ Iteration 4:   f(p) =  1.988e-21
   Note: The std_diff column does not account for the standard error of the linear predictions.
 
 : 
-:   DW.solve("atet","sd_sq",1)
+:   DW.solve("atet","sd_sq", 1)
   Step 1 (initial values from logit model):
 initial:       f(p) = -681.05307
 alternative:   f(p) =  -555.8915
@@ -3469,7 +4012,7 @@ Iteration 22:  f(p) =  2.156e-07  (backed up)
   1    -.1336201721    .1523287035    .0757630004   -.1016270637   -.0382574506    1.349237715  |
      -------------------------------------------------------------------------------------------+
 
-:   DW.balanceresults("atet",1)
+:   DW.balanceresults("atet", 1)
   Balance:
 -------------------------------------------------------------------------------
              |    mean_T     mean_C       diff   std_diff       sd_T  var_ratio
@@ -3516,8 +4059,8 @@ Iteration 22:  f(p) =  2.156e-07  (backed up)
 
 : 
 :   if (depvars!="") {
->     DW.solve("atet","stdprogdiff",1)
->     DW.balanceresults("atet",1)
+>     DW.solve("atet","stdprogdiff", 1)
+>     DW.balanceresults("atet", 1)
 >   }
 >   st_local("mlopts", "")
   Step 1 (initial values from logit model):
@@ -3606,7 +4149,7 @@ Iteration 6:   f(p) =  8.192e-11  (backed up)
   Note: The std_diff column does not account for the standard error of the linear predictions.
 
 : 
-:   DW.progdiff()
+:   DW.progdiff(1)
 ------------------------------------------------------------------------
              | mean_yhat_T  mean_yhat_C       diff   std_diff   mean_y_C
 -------------+----------------------------------------------------------
@@ -3621,7 +4164,7 @@ Iteration 6:   f(p) =  8.192e-11  (backed up)
 
 :   DW.reweight()
 
-:   DW.progdiff()
+:   DW.progdiff(1)
 ------------------------------------------------------------------------
              | mean_yhat_T  mean_yhat_C       diff   std_diff   mean_y_C
 -------------+----------------------------------------------------------
@@ -4049,7 +4592,7 @@ Iteration 62:  f(p) =  1.511e-13
   1    -.1336147998    .1522979455    .0757708004   -.1016182953   -.0383404468    .6265999323  |
      -------------------------------------------------------------------------------------------+
 
-:   DW.balanceresults("atet",1)
+:   DW.balanceresults("atet", 1)
   Balance:
 -------------------------------------------------------------------------------
              |    mean_T     mean_C       diff   std_diff       sd_T  var_ratio
@@ -4095,7 +4638,7 @@ Iteration 62:  f(p) =  1.511e-13
   Note: The std_diff column does not account for the standard error of the linear predictions.
 
 : 
-:   DW.solve("atet","cbps", 1, (1,.75,6))
+:   DW.solve("atet","cbps", 1, (1,.75, 6))
   Step 1 (initial values from logit model):
 initial:       f(p) = -681.05307
 alternative:   f(p) =  -555.8915
@@ -4182,7 +4725,7 @@ Iteration 65:  f(p) =  .00001246
   1    -.1096078376     .125103646    .0659519534   -.0938199887   -.0291288696    .4369062311  |
      -------------------------------------------------------------------------------------------+
 
-:   DW.balanceresults("atet",1)
+:   DW.balanceresults("atet", 1)
   Balance:
 -------------------------------------------------------------------------------
              |    mean_T     mean_C       diff   std_diff       sd_T  var_ratio
@@ -4228,7 +4771,7 @@ Iteration 65:  f(p) =  .00001246
   Note: The std_diff column does not account for the standard error of the linear predictions.
 
 : 
-:   DW.solve("atet","cbps", 1, (1,.50,6))
+:   DW.solve("atet","cbps", 1, (1,.50, 6))
   Step 1 (initial values from logit model):
 initial:       f(p) = -681.05307
 alternative:   f(p) =  -555.8915
@@ -4315,7 +4858,7 @@ Iteration 65:  f(p) =  .00007967
   1     -.079365708    .0918013258    .0506791799   -.0790893461    -.017796856    .1432517744  |
      -------------------------------------------------------------------------------------------+
 
-:   DW.balanceresults("atet",1)
+:   DW.balanceresults("atet", 1)
   Balance:
 -------------------------------------------------------------------------------
              |    mean_T     mean_C       diff   std_diff       sd_T  var_ratio
@@ -4363,7 +4906,7 @@ Iteration 65:  f(p) =  .00007967
 : 
 :   st_local("mlopts", " nonrtolerance")
 
-:   DW.solve("atet","mean_sd_sq", 1, (1,.75,6))
+:   DW.solve("atet","mean_sd_sq", 1, (1,.75, 6))
   Step 1 (initial values from logit model):
 initial:       f(p) = -681.05307
 alternative:   f(p) =  -555.8915
@@ -4475,7 +5018,7 @@ Iteration 29:  f(p) =  2.038e-11
   1     -.124918566    .0509887695   -.0104291029   -.0914520801   -.0549907672    1.261428679  |
      -------------------------------------------------------------------------------------------+
 
-:   DW.balanceresults("atet",1)
+:   DW.balanceresults("atet", 1)
   Balance:
 -------------------------------------------------------------------------------
              |    mean_T     mean_C       diff   std_diff       sd_T  var_ratio
@@ -4521,7 +5064,7 @@ Iteration 29:  f(p) =  2.038e-11
   Note: The std_diff column does not account for the standard error of the linear predictions.
 
 : 
-:   DW.solve("atet","mean_sd_sq", 1, (1,.50,6))
+:   DW.solve("atet","mean_sd_sq", 1, (1,.50, 6))
   Step 1 (initial values from logit model):
 initial:       f(p) = -681.05307
 alternative:   f(p) =  -555.8915
@@ -4663,7 +5206,7 @@ Iteration 39:  f(p) =  2.322e-11
   1    -.1519179177   -.1700237733   -.1077248451    -.064153889   -.1816207716    1.248128039  |
      -------------------------------------------------------------------------------------------+
 
-:   DW.balanceresults("atet",1)
+:   DW.balanceresults("atet", 1)
   Balance:
 -------------------------------------------------------------------------------
              |    mean_T     mean_C       diff   std_diff       sd_T  var_ratio
@@ -4746,7 +5289,7 @@ Iteration 4:   f(p) =  1.988e-21
   1    -.0952384663    .1409151847     .074303883   -.1419191912   -.0201500497     1.24895601  |
      -------------------------------------------------------------------------------------------+
 
-:   DW.balanceresults("atet",1)
+:   DW.balanceresults("atet", 1)
   Balance:
 -------------------------------------------------------------------------------
              |    mean_T     mean_C       diff   std_diff       sd_T  var_ratio
@@ -4806,17 +5349,17 @@ Iteration 4:   f(p) =  1.988e-21
       name:  psweight_example
        log:  C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\psweight_example.log
   log type:  text
- paused on:   6 Jun 2019, 18:28:50
+ paused on:   7 Jun 2019, 14:15:46
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
       name:  psweight_example
        log:  C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\psweight_example.log
   log type:  text
-resumed on:   6 Jun 2019, 18:30:12
+resumed on:   7 Jun 2019, 14:17:13
 
 . log close psweight_example
       name:  psweight_example
        log:  C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\psweight_example.log
   log type:  text
- closed on:   6 Jun 2019, 18:30:12
+ closed on:   7 Jun 2019, 14:17:13
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
