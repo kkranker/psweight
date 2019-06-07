@@ -244,7 +244,7 @@ real colvector psweight::get_weight()      return(this.W)
 void psweight::fill_vars(string rowvector newvarnames, | string scalar tousevar) {
   real matrix thisview
   if (length(tokens(newvarnames))!=4) _error("psweight::fill_vars() requires four numeric variable names")
-  if (args()<3)  st_view(thisview, ., newvarnames)
+  if (args()<2)  st_view(thisview, ., newvarnames)
   else           st_view(thisview, ., newvarnames, tousevar)
 
   if (rows(thisview)==rows(this.W)) thisview[., 1] = this.W

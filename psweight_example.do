@@ -50,6 +50,9 @@ psweight balanceonly mbsmoke mmarried mage fbaby medu
 psweight ipw mbsmoke mmarried mage fbaby medu
 psweight call balanceresults()
 
+psweight call mystddiff = stddiff()
+mata: mystddiff
+
 //  Estimate the average treatment effect on the treated with CBPS
 psweight cbps mbsmoke mmarried mage fbaby medu, atet
 psweight call balanceresults()
@@ -69,6 +72,8 @@ webuse cattaneo2, clear
 gen byte touse=1
 
 mata:
+
+// Create an instance of the class, tell it where the data are
 P = psweight()
 P.st_set("mbsmoke", "mmarried mage fbaby medu", "touse")
 
