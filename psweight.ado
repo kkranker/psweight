@@ -343,7 +343,7 @@ void Estimate(real scalar reweight) {
   }
 
   // stick obs-specific weigths and such into Stata vaiables
-  psweight_ado_most_recent.get_scores("_weight _weight_mtch _pscore _treated", tousevar)
+  psweight_ado_most_recent.fill_vars("_weight _weight_mtch _pscore _treated", tousevar)
 }
 
 end
