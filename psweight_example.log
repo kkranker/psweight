@@ -2,16 +2,16 @@
       name:  psweight_example
        log:  C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\psweight_example.log
   log type:  text
- opened on:   5 Jun 2019, 11:08:41
+ opened on:   6 Jun 2019, 18:27:37
 
 . 
 . // ***************************************************************************
-. *! $Id: psweight_example.do,v d285fc40f0dc 2019/06/03 22:10:31 kkranker $
+. *! $Id: psweight_example.do,v 9a593f8fa349 2019/06/05 17:13:10 kkranker $
 . *! IPW- and CBPS-type propensity score reweighting, with extentions
 . *! Example
 . //
 . *! By Keith Kranker
-. // Last updated $Date: 2019/06/03 22:10:31 $
+. // Last updated $Date: 2019/06/05 17:13:10 $
 . //
 . // Copyright (C) Mathematica Policy Research, Inc.
 . // This code cannot be copied, distributed or used without the express written
@@ -27,7 +27,7 @@
 Current user: KKranker
 Environment: Windows PC (64-bit x86-64) KKRANKER
 Stata: 15.1
-Date:  5 Jun 2019 11:08:41
+Date:  6 Jun 2019 18:27:37
 
 . 
 . which psweight
@@ -38,16 +38,15 @@ Date:  5 Jun 2019 11:08:41
 *! By Keith Kranker
 
 . mata: mata describe using lpsweight
-(library contains 54 members)
+(library contains 58 members)
 
 
       # bytes   type                        name and extent
 -------------------------------------------------------------------------------
         2,276   auto void                   optimize_init_mlopts()
-        4,308   auto classdef scalar        psweight()
+        4,564   auto classdef scalar        psweight()
           852   auto real matrix             ::Ct()
-          208   auto real rowvector          ::asd()
-        1,324   auto void                    ::balanceresults()
+        1,408   auto void                    ::balanceresults()
         2,276   auto real matrix             ::balancetable()
           628   auto void                    ::calcN()
           816   auto void                    ::calccovariances()
@@ -63,32 +62,37 @@ Date:  5 Jun 2019 11:08:41
           348   auto real rowvector          ::cbpsoid()
           592   auto void                    ::clone()
           568   auto real rowvector          ::diagvariance()
-          168   auto real rowvector          ::diff()
+          360   auto real rowvector          ::diff()
           336   auto real scalar             ::entropydistance()
+           64   auto real colvector          ::get_pscore()
           968   auto void                    ::get_scores()
-          712   auto real rowvector          ::ipw()
+           64   auto real colvector          ::get_weight()
+           64   auto real colvector          ::get_weight_mtch()
+          736   auto real rowvector          ::ipw()
         1,900   auto real rowvector          ::logitbeta()
           524   auto real colvector          ::logitpredict()
         1,296   auto real colvector          ::logitweights()
-          320   auto real scalar             ::max_asd()
-          328   auto real scalar             ::mean_asd()
+          336   auto real scalar             ::max_asd()
+          340   auto real scalar             ::mean_asd()
           328   auto real scalar             ::mean_sd()
           428   auto real scalar             ::mean_sd_sq()
            96   auto void                    ::new()
           688   auto real rowvector          ::olsbeta()
           468   auto real colvector          ::olspredict()
-          268   auto real rowvector          ::pomean()
+          276   auto real rowvector          ::pomean()
           756   auto void                    ::postbeta()
-        1,960   auto real rowvector          ::progdiff()
-        6,564   auto real rowvector          ::psweight()
+        1,976   auto real rowvector          ::progdiff()
           728   auto void                    ::reweight()
           224   auto real rowvector          ::sd_sq()
-        1,616   auto void                    ::set()
-          264   auto void                    ::set_Y()
-          852   auto real rowvector          ::stddiff()
-        2,052   auto real rowvector          ::stdprogdiff()
+        1,844   auto void                    ::set()
+          304   auto void                    ::set_depvar()
+        6,560   auto real rowvector          ::solve()
+        1,616   auto void                    ::st_set()
+          264   auto void                    ::st_set_depvar()
+        1,004   auto real rowvector          ::stddiff()
+        2,060   auto real rowvector          ::stdprogdiff()
           512   auto real colvector          ::trim()
-          168   auto real rowvector          ::varratio()
+          368   auto real rowvector          ::varratio()
           288   auto real scalar             ::wgt_cv()
           356   auto real scalar             ::wgt_kurtosis()
           580   auto real scalar             ::wgt_max()
@@ -266,12 +270,12 @@ _dta:
 : 
 : D = psweight()
 
-: D.set(treatvar, varlist, tousevar)
+: D.st_set(treatvar, varlist, tousevar)
   408 control obs
   92 treatment obs
   (Data are unweighted.)
 
-: if (depvars!="") D.set_Y(depvars,tousevar)
+: if (depvars!="") D.st_set_depvar(depvars,tousevar)
 > 
 > // Misc balance measures
 >   D.diff()
@@ -920,7 +924,7 @@ Iteration 25:  f(p) =  1.211e-07
 : // Other objective functions
 :   st_local("mlopts", "difficult nonrtolerance")
 
-:   D.psweight("atet","mean_sd_sq",1)
+:   D.solve("atet","mean_sd_sq",1)
   Step 1 (initial values from logit model):
 initial:       f(p) = -346.57359
 alternative:   f(p) = -283.03849
@@ -1002,7 +1006,7 @@ Iteration 4:   f(p) =  2.512e-21
   Note: The std_diff column does not account for the standard error of the linear predictions.
 
 : 
-:   D.psweight("atet","sd_sq",1)
+:   D.solve("atet","sd_sq",1)
   Step 1 (initial values from logit model):
 initial:       f(p) = -346.57359
 alternative:   f(p) = -283.03849
@@ -1136,7 +1140,7 @@ Iteration 21:  f(p) =  1.597e-07  (backed up)
 
 : 
 :   if (depvars!="") {
->     D.psweight("atet","stdprogdiff",1)
+>     D.solve("atet","stdprogdiff",1)
 >     D.balanceresults("atet",1)
 >   }
 >   st_local("mlopts", "")
@@ -1361,33 +1365,33 @@ Iteration 4:   f(p) = -211.17753
 :   D.balanceresults("atet")
   Balance:
 -------------------------------------------------------------------------------
-             |    mean_T     mean_C       diff   std_diff    sd_pool  var_ratio
+             |    mean_T     mean_C       diff   std_diff       sd_T  var_ratio
 -------------+-----------------------------------------------------------------
-          x1 |  .4673913   .4719209  -.0045296  -.0090652   .4996633   1.007399
+          x1 |  .4673913   .4719209  -.0045296   -.009029   .5016695   1.007399
              |
           x2 |
           0  |  (empty)
-          1  |  .0108696   .0098847   .0009849   .0098566   .0999227   1.107894
+          1  |  .0108696   .0098847   .0009849   .0094468   .1042572   1.107894
              |
           x3 |
           0  |  (empty)
-          1  |  .0217391   .0214054   .0003337   .0023004   .1450795   1.023886
+          1  |  .0217391   .0214054   .0003337   .0022761   .1466296   1.023886
              |
-          x4 |  .4347826    .445852  -.0110694  -.0222576   .4973308   1.003118
-          x5 |  25.46739   25.27307   .1943233   .0286772   6.776222    .596745
-          x6 |  11.86957   11.68981   .1797533   .0877664   2.048089   .5648484
-          x7 |  6.858696   6.711046   .1476493   .0438323   3.368502   1.141787
-         x90 |  .0972024   .0841522   .0130502    .012645   1.032043   .8251709
-         x91 | -.0890157  -.0615794  -.0274362  -.0287197   .9553102   .9665176
-         x92 |  .0453787   .0341522   .0112265   .0113068    .992897   1.149085
-         x93 |  .0865687   .0948113  -.0082427  -.0087305     .94412   .9741335
-         x94 | -.1299173  -.1857505   .0558332   .0540116   1.033726   .7647728
-         x95 | -.0807251  -.0974964   .0167713   .0175493   .9556712   .8954759
+          x4 |  .4347826    .445852  -.0110694  -.0222079   .4984448   1.003118
+          x5 |  25.46739   25.27307   .1943233   .0356955   5.443922    .596745
+          x6 |  11.86957   11.68981   .1797533   .1119919   1.605057   .5648484
+          x7 |  6.858696   6.711046   .1476493    .041513   3.556704   1.141787
+         x90 |  .0972024   .0841522   .0130502   .0136825   .9537854   .8251709
+         x91 | -.0890157  -.0615794  -.0274362   -.029096   .9429542   .9665176
+         x92 |  .0453787   .0341522   .0112265     .01068   1.051175   1.149085
+         x93 |  .0865687   .0948113  -.0082427   -.008816   .9349714   .9741335
+         x94 | -.1299173  -.1857505   .0558332   .0603727   .9248091   .7647728
+         x95 | -.0807251  -.0974964   .0167713   .0183493    .914005   .8954759
 -------------------------------------------------------------------------------
   
-  Mean standardized diff.             = 0.01532
-  Mean absolute standardized diff.    = 0.02590
-  Maximum absolute standardized diff. = 0.08777
+  Mean standardized diff.             = 0.01807
+  Mean absolute standardized diff.    = 0.02870
+  Maximum absolute standardized diff. = 0.11199
   C.V. of matching weights:           = 1.04145
   S.D. of matching weights:           = 1.04145
   Skewness of matching weights:       = 0.13348
@@ -1398,8 +1402,8 @@ Iteration 4:   f(p) = -211.17753
 ------------------------------------------------------------------------
              | mean_yhat_T  mean_yhat_C       diff   std_diff   mean_y_C
 -------------+----------------------------------------------------------
-          y1 |    3424.454     3417.895   6.559175   .0382875   3417.895
-   y1_binary |    .9470413     .9465176   .0005237   .0094247   .9465176
+          y1 |    3424.454     3417.895   6.559175   .0419488   3417.895
+   y1_binary |    .9470413     .9465176   .0005237    .009748   .9465176
 ------------------------------------------------------------------------
   Note: The std_diff column does not account for the standard error of the linear predictions.
 
@@ -1529,33 +1533,33 @@ Iteration 4:   f(p) = -211.17753
 :   D.balanceresults("ate")
   Balance:
 -------------------------------------------------------------------------------
-             |    mean_T     mean_C       diff   std_diff    sd_pool  var_ratio
+             |    mean_T     mean_C       diff   std_diff       sd_T  var_ratio
 -------------+-----------------------------------------------------------------
-          x1 |  .6643106   .6980937  -.0337831  -.0730952   .4621798   1.067096
+          x1 |  .6643106   .6980937  -.0337831  -.0711495   .4748185   1.067096
              |
           x2 |
           0  |  (empty)
-          1  |  .0126474   .0237734   -.011126  -.0762399    .145934   .5426396
+          1  |  .0126474   .0237734   -.011126  -.0990216   .1123593   .5426396
              |
           x3 |
           0  |  (empty)
-          1  |  .0252967   .0398782  -.0145815  -.0769757   .1894293   .6494649
+          1  |  .0252967   .0398782  -.0145815  -.0923548   .1578852   .6494649
              |
-          x4 |  .5035684   .4859058   .0176626   .0352982    .500383   1.009262
-          x5 |  25.88638    26.3268  -.4404207  -.0736253    5.98192   .7436049
-          x6 |  12.40345   12.88502  -.4815643   -.214612   2.243884   .5994444
-          x7 |  6.783391   6.698872   .0845182   .0251498    3.36059   1.188955
-         x90 | -.1279394  -.0237456  -.1041937  -.1022979   1.018533   1.179133
-         x91 |  .0259183  -.0177924   .0437107   .0442269   .9883275   .9105384
-         x92 |  .0197006  -.0121531   .0318537   .0312437   1.019527   1.201641
-         x93 |  .0303493   .0505445  -.0201952  -.0208151   .9702151   .8788976
-         x94 |  -.142924  -.0216133  -.1213108  -.1226343   .9892079   .7980325
-         x95 | -.0930146  -.0717394  -.0212752  -.0217631   .9775833   .7971968
+          x4 |  .5035684   .4859058   .0176626   .0351336   .5027269   1.009262
+          x5 |  25.88638    26.3268  -.4404207  -.0833063   5.286763   .7436049
+          x6 |  12.40345   12.88502  -.4815643  -.2675151   1.800139   .5994444
+          x7 |  6.783391   6.698872   .0845182   .0234373   3.606136   1.188955
+         x90 | -.1279394  -.0237456  -.1041937  -.0957163   1.088568   1.179133
+         x91 |  .0259183  -.0177924   .0437107    .045929   .9517017   .9105384
+         x92 |  .0197006  -.0121531   .0318537   .0289953   1.098582   1.201641
+         x93 |  .0303493   .0505445  -.0201952  -.0219346   .9206994   .8788976
+         x94 |  -.142924  -.0216133  -.1213108  -.1347386   .9003414   .7980325
+         x95 | -.0930146  -.0717394  -.0212752  -.0238956   .8903417   .7971968
 -------------------------------------------------------------------------------
   
-  Mean standardized diff.             = -0.04970
-  Mean absolute standardized diff.    = 0.07061
-  Maximum absolute standardized diff. = 0.21461
+  Mean standardized diff.             = -0.05816
+  Mean absolute standardized diff.    = 0.07870
+  Maximum absolute standardized diff. = 0.26752
   C.V. of matching weights:           = 0.33373
   S.D. of matching weights:           = 0.33373
   Skewness of matching weights:       = 0.18431
@@ -1566,8 +1570,8 @@ Iteration 4:   f(p) = -211.17753
 ------------------------------------------------------------------------
              | mean_yhat_T  mean_yhat_C       diff   std_diff   mean_y_C
 -------------+----------------------------------------------------------
-          y1 |    3442.587     3452.527  -9.940045   -.071235   3452.527
-   y1_binary |    .9516224     .9581213  -.0064989  -.1556173   .9581213
+          y1 |    3442.587     3452.527  -9.940045  -.0756667   3452.527
+   y1_binary |    .9516224     .9581213  -.0064989  -.1701548   .9581213
 ------------------------------------------------------------------------
   Note: The std_diff column does not account for the standard error of the linear predictions.
 
@@ -1635,33 +1639,33 @@ Iteration 4:   f(p) = -211.17753
 :   D.balanceresults("ateu")
   Balance:
 -------------------------------------------------------------------------------
-             |    mean_T     mean_C       diff   std_diff    sd_pool  var_ratio
+             |    mean_T     mean_C       diff   std_diff       sd_T  var_ratio
 -------------+-----------------------------------------------------------------
-          x1 |  .7133644        .75  -.0366356  -.0837821   .4372727   1.099818
+          x1 |  .7133644        .75  -.0366356  -.0805767   .4546676   1.099818
              |
           x2 |
           0  |  (empty)
-          1  |  .0130902   .0269608  -.0138706  -.0897954   .1544686   .4966403
+          1  |  .0130902   .0269608  -.0138706  -.1213694    .114284   .4966403
              |
           x3 |
           0  |  (empty)
-          1  |  .0261829   .0441176  -.0179347  -.0905493   .1980657    .609761
+          1  |  .0261829   .0441176  -.0179347  -.1117052    .160554    .609761
              |
-          x4 |  .5207033    .495098   .0256053   .0511594   .5005007   1.006879
-          x5 |  25.99075   26.56863   -.577878  -.1002906   5.762036   .7963305
-          x6 |  12.53645   13.15931  -.6228673  -.2813566     2.2138   .6382822
-          x7 |  6.764632   6.696078   .0685532   .0204092   3.358927   1.200431
-         x90 | -.1840235   -.048508  -.1355155  -.1337092   1.013509   1.263776
-         x91 |   .054549  -.0077434   .0622924   .0625861   .9953062   .8955527
-         x92 |   .013304  -.0227801   .0360842   .0351881   1.025465    1.21557
-         x93 |  .0163448   .0403853  -.0240406  -.0246383   .9757395    .857822
-         x94 | -.1461641   .0160559  -.1622201  -.1661874    .976127   .8119355
-         x95 |  -.096076  -.0658282  -.0302478  -.0307892   .9824155   .7755988
+          x4 |  .5207033    .495098   .0256053   .0509752   .5023086   1.006879
+          x5 |  25.99075   26.56863   -.577878  -.1102481   5.241616   .7963305
+          x6 |  12.53645   13.15931  -.6228673  -.3420328   1.821075   .6382822
+          x7 |  6.764632   6.696078   .0685532   .0189473   3.618098   1.200431
+         x90 | -.1840235   -.048508  -.1355155  -.1218141   1.112478   1.263776
+         x91 |   .054549  -.0077434   .0622924   .0654547   .9516875   .8955527
+         x92 |   .013304  -.0227801   .0360842   .0325087   1.109983    1.21557
+         x93 |  .0163448   .0403853  -.0240406  -.0262289   .9165674    .857822
+         x94 | -.1461641   .0160559  -.1622201  -.1814314   .8941124   .8119355
+         x95 |  -.096076  -.0658282  -.0302478  -.0342045   .8843216   .7755988
 -------------------------------------------------------------------------------
   
-  Mean standardized diff.             = -0.06398
-  Mean absolute standardized diff.    = 0.09003
-  Maximum absolute standardized diff. = 0.28136
+  Mean standardized diff.             = -0.07398
+  Mean absolute standardized diff.    = 0.09981
+  Maximum absolute standardized diff. = 0.34203
   C.V. of matching weights:           = 0.83016
   S.D. of matching weights:           = 0.83016
   Skewness of matching weights:       = 0.26806
@@ -1672,8 +1676,8 @@ Iteration 4:   f(p) = -211.17753
 ------------------------------------------------------------------------
              | mean_yhat_T  mean_yhat_C       diff   std_diff   mean_y_C
 -------------+----------------------------------------------------------
-          y1 |     3447.97     3460.475  -12.50512  -.0913567   3460.475
-   y1_binary |    .9524694     .9607843  -.0083149   -.208073   .9607843
+          y1 |     3447.97     3460.475  -12.50512  -.0958312   3460.475
+   y1_binary |    .9524694     .9607843  -.0083149  -.2347296   .9607843
 ------------------------------------------------------------------------
   Note: The std_diff column does not account for the standard error of the linear predictions.
 
@@ -1777,7 +1781,7 @@ Iteration 30:  f(p) =  8.507e-20
   Note: The std_diff column does not account for the standard error of the linear predictions.
 
 : 
-:   D.psweight("atet","cbps", 1, (1,.75,6))
+:   D.solve("atet","cbps", 1, (1,.75,6))
   Step 1 (initial values from logit model):
 initial:       f(p) = -346.57359
 alternative:   f(p) = -283.03849
@@ -1966,7 +1970,7 @@ convergence not achieved
   Note: The std_diff column does not account for the standard error of the linear predictions.
 
 : 
-:   D.psweight("atet","cbps", 1, (1,.50,6))
+:   D.solve("atet","cbps", 1, (1,.50,6))
   Step 1 (initial values from logit model):
 initial:       f(p) = -346.57359
 alternative:   f(p) = -283.03849
@@ -2157,7 +2161,7 @@ convergence not achieved
 : 
 :   st_local("mlopts", "difficult nonrtolerance")
 
-:   D.psweight("atet","mean_sd_sq", 1, (1,.75,6))
+:   D.solve("atet","mean_sd_sq", 1, (1,.75,6))
   Step 1 (initial values from logit model):
 initial:       f(p) = -346.57359
 alternative:   f(p) = -283.03849
@@ -2299,7 +2303,7 @@ Iteration 24:  f(p) =  1.985e-11
   Note: The std_diff column does not account for the standard error of the linear predictions.
 
 : 
-:   D.psweight("atet","mean_sd_sq", 1, (1,.50,6))
+:   D.solve("atet","mean_sd_sq", 1, (1,.50,6))
   Step 1 (initial values from logit model):
 initial:       f(p) = -346.57359
 alternative:   f(p) = -283.03849
@@ -2493,7 +2497,7 @@ Iteration 41:  f(p) =  4.112e-10
 
 : 
 : // furthermore, you can target skiwness, kurtosis, or max weight
-:   D.psweight("atet","cbps", 1, (1,.50,6,1,0.7,2))
+:   D.solve("atet","cbps", 1, (1,.50,6,1,0.7,2))
   Step 1 (initial values from logit model):
 initial:       f(p) = -346.57359
 alternative:   f(p) = -283.03849
@@ -2602,6 +2606,60 @@ Iteration 39:  f(p) =  .03891644
 :   st_local("mlopts", "")
 
 : 
+: Dcpy = psweight()
+
+: Dcpy.clone(D)
+
+: Dcpy.balancetable(2)
+-------------------------------------------------------------------------------
+             |    mean_T     mean_C       diff   std_diff    sd_pool  var_ratio
+-------------+-----------------------------------------------------------------
+          x1 |  .4673913        .75  -.2826087  -.6149214   .4595851   1.338962
+             |
+          x2 |
+          0  |  (empty)
+          1  |  .0108696   .0269608  -.0160912  -.1050325   .1532023   .4133173
+             |
+          x3 |
+          0  |  (empty)
+          1  |  .0217391   .0441176  -.0223785  -.1140856   .1961554   .5085817
+             |
+          x4 |  .4347826    .495098  -.0603154  -.1205719   .5002444   .9914484
+          x5 |  25.46739   26.56863  -1.101236  -.1896219   5.807538   .8589874
+          x6 |  11.86957   13.15931  -1.289749  -.5792408   2.226619   .4958356
+          x7 |  6.858696   6.696078   .1626172   .0485796   3.347437   1.160037
+         x90 |  .0972024   -.048508   .1457105   .1481119   .9837861   .9289414
+         x91 | -.0890157  -.0077434  -.0812723  -.0817633   .9939954   .8791918
+         x92 |  .0453787  -.0227801   .0681588   .0671946   1.014349   1.090179
+         x93 |  .0865687   .0403853   .0461833   .0471721   .9790382   .8926169
+         x94 | -.1299173   .0160559  -.1459732  -.1488088   .9809449   .8686432
+         x95 | -.0807251  -.0658282  -.0148969  -.0150884   .9873048   .8285405
+-------------------------------------------------------------------------------
+  
+  Mean standardized diff.             = -0.12754
+  Mean absolute standardized diff.    = 0.17540
+  Maximum absolute standardized diff. = 0.61492
+                   1              2              3              4              5              6
+     +-------------------------------------------------------------------------------------------+
+   1 |   .4673913043            .75   -.2826086957   -.6149214017    .4595850703    1.338962118  |
+   2 |             0              0              0              .              0              .  |
+   3 |   .0108695652    .0269607843   -.0160912191   -.1050324967    .1532022907    .4133172708  |
+   4 |             0              0              0              .              0              .  |
+   5 |   .0217391304    .0441176471   -.0223785166   -.1140856324     .196155433    .5085817193  |
+   6 |   .4347826087    .4950980392   -.0603154305   -.1205719184    .5002444292    .9914483579  |
+   7 |    25.4673913    26.56862745   -1.101236147   -.1896218542    5.807538119    .8589874442  |
+   8 |   11.86956522    13.15931373   -1.289748508   -.5792408015    2.226618886    .4958355659  |
+   9 |   6.858695652    6.696078431    .1626172208    .0485796206     3.34743703    1.160037045  |
+  10 |   .0972024365   -.0485080204    .1457104569    .1481119269    .9837861137    .9289414423  |
+  11 |  -.0890156845   -.0077433544   -.0812723301   -.0817632833    .9939954315    .8791918375  |
+  12 |   .0453786792    -.022780135    .0681588142    .0671946445    1.014348907    1.090178798  |
+  13 |   .0865686693    .0403853445    .0461833248    .0471721373    .9790382071    .8926168505  |
+  14 |  -.1299172593    .0160559349   -.1459731942    -.148808753    .9809449464    .8686432131  |
+  15 |  -.0807250915   -.0658282187   -.0148968728   -.0150884239    .9873047624    .8285405428  |
+     +-------------------------------------------------------------------------------------------+
+
+: mata drop Dcpy
+
 : mata drop D
 
 : 
@@ -2610,11 +2668,11 @@ Iteration 39:  f(p) =  .03891644
 : 
 : DW = psweight()
 
-: DW.set(treatvar, varlist, tousevar, wgtvar)
+: DW.st_set(treatvar, varlist, tousevar, wgtvar)
   408 control obs (sum of weights = 802.3793)
   92 treatment obs (sum of weights = 180.1725)
 
-: if (depvars!="") DW.set_Y(depvars,tousevar)
+: if (depvars!="") DW.st_set_depvar(depvars,tousevar)
 > 
 > // Misc balance measures
 >   DW.diff()
@@ -3237,7 +3295,7 @@ Iteration 43:  f(p) =  .00017215
 : // Other objective functions
 :   st_local("mlopts", "difficult nonrtolerance")
 
-:   DW.psweight("atet","mean_sd_sq",1)
+:   DW.solve("atet","mean_sd_sq",1)
   Step 1 (initial values from logit model):
 initial:       f(p) = -681.05307
 alternative:   f(p) =  -555.8915
@@ -3320,7 +3378,7 @@ Iteration 4:   f(p) =  1.988e-21
   Note: The std_diff column does not account for the standard error of the linear predictions.
 
 : 
-:   DW.psweight("atet","sd_sq",1)
+:   DW.solve("atet","sd_sq",1)
   Step 1 (initial values from logit model):
 initial:       f(p) = -681.05307
 alternative:   f(p) =  -555.8915
@@ -3458,7 +3516,7 @@ Iteration 22:  f(p) =  2.156e-07  (backed up)
 
 : 
 :   if (depvars!="") {
->     DW.psweight("atet","stdprogdiff",1)
+>     DW.solve("atet","stdprogdiff",1)
 >     DW.balanceresults("atet",1)
 >   }
 >   st_local("mlopts", "")
@@ -4037,7 +4095,7 @@ Iteration 62:  f(p) =  1.511e-13
   Note: The std_diff column does not account for the standard error of the linear predictions.
 
 : 
-:   DW.psweight("atet","cbps", 1, (1,.75,6))
+:   DW.solve("atet","cbps", 1, (1,.75,6))
   Step 1 (initial values from logit model):
 initial:       f(p) = -681.05307
 alternative:   f(p) =  -555.8915
@@ -4170,7 +4228,7 @@ Iteration 65:  f(p) =  .00001246
   Note: The std_diff column does not account for the standard error of the linear predictions.
 
 : 
-:   DW.psweight("atet","cbps", 1, (1,.50,6))
+:   DW.solve("atet","cbps", 1, (1,.50,6))
   Step 1 (initial values from logit model):
 initial:       f(p) = -681.05307
 alternative:   f(p) =  -555.8915
@@ -4305,7 +4363,7 @@ Iteration 65:  f(p) =  .00007967
 : 
 :   st_local("mlopts", " nonrtolerance")
 
-:   DW.psweight("atet","mean_sd_sq", 1, (1,.75,6))
+:   DW.solve("atet","mean_sd_sq", 1, (1,.75,6))
   Step 1 (initial values from logit model):
 initial:       f(p) = -681.05307
 alternative:   f(p) =  -555.8915
@@ -4463,7 +4521,7 @@ Iteration 29:  f(p) =  2.038e-11
   Note: The std_diff column does not account for the standard error of the linear predictions.
 
 : 
-:   DW.psweight("atet","mean_sd_sq", 1, (1,.50,6))
+:   DW.solve("atet","mean_sd_sq", 1, (1,.50,6))
   Step 1 (initial values from logit model):
 initial:       f(p) = -681.05307
 alternative:   f(p) =  -555.8915
@@ -4651,7 +4709,7 @@ Iteration 39:  f(p) =  2.322e-11
   Note: The std_diff column does not account for the standard error of the linear predictions.
 
 : 
-:   DW.psweight("atet","mean_sd_sq", 1)
+:   DW.solve("atet","mean_sd_sq", 1)
   Step 1 (initial values from logit model):
 initial:       f(p) = -681.05307
 alternative:   f(p) =  -555.8915
@@ -4744,9 +4802,21 @@ Iteration 4:   f(p) =  1.988e-21
 . } // end of Mata examples
 
 . 
+. log off psweight_example
+      name:  psweight_example
+       log:  C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\psweight_example.log
+  log type:  text
+ paused on:   6 Jun 2019, 18:28:50
+----------------------------------------------------------------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------------------------------------------------
+      name:  psweight_example
+       log:  C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\psweight_example.log
+  log type:  text
+resumed on:   6 Jun 2019, 18:30:12
+
 . log close psweight_example
       name:  psweight_example
        log:  C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\psweight_example.log
   log type:  text
- closed on:   5 Jun 2019, 11:09:44
+ closed on:   6 Jun 2019, 18:30:12
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------

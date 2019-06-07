@@ -118,8 +118,8 @@ estimate = st_local("estimate")
 // * UNWEIGHTED DATA EXAMPLES *
 
 D = psweight()
-D.set(treatvar, varlist, tousevar)
-if (depvars!="") D.set_Y(depvars,tousevar)
+D.st_set(treatvar, varlist, tousevar)
+if (depvars!="") D.st_set_depvar(depvars,tousevar)
 
 // Misc balance measures
   D.diff()
@@ -161,14 +161,14 @@ if (depvars!="") D.set_Y(depvars,tousevar)
 
 // Other objective functions
   st_local("mlopts", "difficult nonrtolerance")
-  D.psweight("atet","mean_sd_sq",1)
+  D.solve("atet","mean_sd_sq",1)
   D.balanceresults("atet",1)
 
-  D.psweight("atet","sd_sq",1)
+  D.solve("atet","sd_sq",1)
   D.balanceresults("atet",1)
 
   if (depvars!="") {
-    D.psweight("atet","stdprogdiff",1)
+    D.solve("atet","stdprogdiff",1)
     D.balanceresults("atet",1)
   }
   st_local("mlopts", "")
@@ -197,32 +197,36 @@ if (depvars!="") D.set_Y(depvars,tousevar)
   D.cbps("atet", 1)
   D.balanceresults("atet",1)
 
-  D.psweight("atet","cbps", 1, (1,.75,6))
+  D.solve("atet","cbps", 1, (1,.75,6))
   D.balanceresults("atet",1)
 
-  D.psweight("atet","cbps", 1, (1,.50,6))
+  D.solve("atet","cbps", 1, (1,.50,6))
   D.balanceresults("atet",1)
 
   st_local("mlopts", "difficult nonrtolerance")
-  D.psweight("atet","mean_sd_sq", 1, (1,.75,6))
+  D.solve("atet","mean_sd_sq", 1, (1,.75,6))
   D.balanceresults("atet",1)
 
-  D.psweight("atet","mean_sd_sq", 1, (1,.50,6))
+  D.solve("atet","mean_sd_sq", 1, (1,.50,6))
   D.balanceresults("atet",1)
 
 // furthermore, you can target skiwness, kurtosis, or max weight
-  D.psweight("atet","cbps", 1, (1,.50,6,1,0.7,2))
+  D.solve("atet","cbps", 1, (1,.50,6,1,0.7,2))
   D.balanceresults("atet",1)
   st_local("mlopts", "")
 
+Dcpy = psweight()
+Dcpy.clone(D)
+Dcpy.balancetable(2)
+mata drop Dcpy
 mata drop D
 
 
 // * WEIGHTED DATA EXAMPLES *
 
 DW = psweight()
-DW.set(treatvar, varlist, tousevar, wgtvar)
-if (depvars!="") DW.set_Y(depvars,tousevar)
+DW.st_set(treatvar, varlist, tousevar, wgtvar)
+if (depvars!="") DW.st_set_depvar(depvars,tousevar)
 
 // Misc balance measures
   DW.diff()
@@ -256,14 +260,14 @@ if (depvars!="") DW.set_Y(depvars,tousevar)
 
 // Other objective functions
   st_local("mlopts", "difficult nonrtolerance")
-  DW.psweight("atet","mean_sd_sq",1)
+  DW.solve("atet","mean_sd_sq",1)
   DW.balanceresults("atet",1)
 
-  DW.psweight("atet","sd_sq",1)
+  DW.solve("atet","sd_sq",1)
   DW.balanceresults("atet",1)
 
   if (depvars!="") {
-    DW.psweight("atet","stdprogdiff",1)
+    DW.solve("atet","stdprogdiff",1)
     DW.balanceresults("atet",1)
   }
   st_local("mlopts", "")
@@ -296,20 +300,20 @@ if (depvars!="") DW.set_Y(depvars,tousevar)
   DW.cbps("atet", 1)
   DW.balanceresults("atet",1)
 
-  DW.psweight("atet","cbps", 1, (1,.75,6))
+  DW.solve("atet","cbps", 1, (1,.75,6))
   DW.balanceresults("atet",1)
 
-  DW.psweight("atet","cbps", 1, (1,.50,6))
+  DW.solve("atet","cbps", 1, (1,.50,6))
   DW.balanceresults("atet",1)
 
   st_local("mlopts", " nonrtolerance")
-  DW.psweight("atet","mean_sd_sq", 1, (1,.75,6))
+  DW.solve("atet","mean_sd_sq", 1, (1,.75,6))
   DW.balanceresults("atet",1)
 
-  DW.psweight("atet","mean_sd_sq", 1, (1,.50,6))
+  DW.solve("atet","mean_sd_sq", 1, (1,.50,6))
   DW.balanceresults("atet",1)
 
-  DW.psweight("atet","mean_sd_sq", 1)
+  DW.solve("atet","mean_sd_sq", 1)
   DW.balanceresults("atet",1)
   st_local("mlopts", "")
 
@@ -319,7 +323,7 @@ end  // end of Mata block
 
 } // end of Mata examples
 
-log close psweight_example
+log off psweight_example
 
 
 // *************************************
@@ -566,4 +570,5 @@ log close psweight_example_R
 
 } // end of R benchmarks
 
-cap nois beep
+log on psweight_example
+log close psweight_example

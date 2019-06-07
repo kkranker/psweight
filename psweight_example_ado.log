@@ -2,14 +2,14 @@
       name:  psweight_example_ado
        log:  C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\psweight_example_ado.log
   log type:  text
- opened on:   5 Jun 2019, 11:09:44
+ opened on:   6 Jun 2019, 18:28:50
 . 
 . di as txt "Current user: `c(username)'" _n "Environment: `c(os)' `c(machine_type)' `: environment computername'" _n "Stata: `c(stata_version)'" cond(c(stata_v
 > ersion)==c(version),""," (set to version `c(version)')") _n "Date: " c(current_date) " " c(current_time)
 Current user: KKranker
 Environment: Windows PC (64-bit x86-64) KKRANKER
 Stata: 15.1
-Date:  5 Jun 2019 11:09:44
+Date:  6 Jun 2019 18:28:50
 . desc, short
 
 Contains data from C:\Users\kkranker\Documents\Stata\Multiple-Equation-Models\simple_cattaneo_data.dta
@@ -101,7 +101,10 @@ macros:
             r(varlist) : "treat x1 0b.x2 1.x2 0b.x3 1.x3 x4 x5 x6 x7 x90 x91 x92 x93 x94 x95"
 
 matrices:
+            r(stddiff) :  1 x 15
+               r(diff) :  1 x 15
                 r(bal) :  15 x 6
+           r(varratio) :  1 x 15
 . 
 . psweight balanceonly `treatvar' `varlist' if `tousevar' [iw=`wgtvar']
   408 control obs (sum of weights = 802.3793)
@@ -405,8 +408,11 @@ scalars:
             r(mean_sd) =  -1.09273321479e-07
 
 matrices:
-               r(prog) :  2 x 5
+           r(progdiff) :  2 x 5
+            r(stddiff) :  1 x 15
+               r(diff) :  1 x 15
                 r(bal) :  15 x 6
+           r(varratio) :  1 x 15
 . psweight // test replay
 ------------------------------------------------------------------------------
        treat |      Coef.
@@ -4892,11 +4898,7 @@ _treated |         N      mean        sd       min        p1       p10       p25
   Mean standardized diff.             = 0.01202
   Mean absolute standardized diff.    = 0.02833
   Maximum absolute standardized diff. = 0.11112
-  C.V. of matching weights:           = 0.00000
-  S.D. of matching weights:           = 0.00000
-  Skewness of matching weights:       = .
-  Kurtosis of matching weights:       = .
-  Maximum matching weight:            = 1.00000
+  Weights equal 1
   
   Prognostic scores:
 ------------------------------------------------------------------------
@@ -6331,5 +6333,5 @@ _treated |         N      mean        sd       min        p1       p10       p25
       name:  psweight_example_ado
        log:  C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\psweight_example_ado.log
   log type:  text
- closed on:   5 Jun 2019, 11:10:58
+ closed on:   6 Jun 2019, 18:30:12
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
