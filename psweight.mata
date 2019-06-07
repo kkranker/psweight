@@ -74,15 +74,17 @@ void psweight::clone(class psweight scalar src) {
 }
 
 // loads the main data into the class, using views wherever possible
-void psweight::st_set(string scalar tvar, string scalar tmvarlist, string scalar tousevar, | string scalar wgtvar) {
+void psweight::st_set(string scalar tvar, string scalar tmvarlist, | string scalar tousevar, string scalar wgtvar) {
   // Define treatment dummy
   this.tvar = tvar
-  st_view(this.T, ., tvar, tousevar)
+  if (args()<3) st_view(this.T, ., tvar)
+  else          st_view(this.T, ., tvar, tousevar)
   // /* */  "T is " + strofreal(rows(this.T)) + " by " + strofreal(cols(this.T))
 
   // Define covariates
   this.tmvarlist  = tokens(tmvarlist)
-  st_view(this.X, ., this.tmvarlist, tousevar)
+  if (args()<3)  st_view(this.X, ., this.tmvarlist)
+  else           st_view(this.X, ., this.tmvarlist, tousevar)
   this.K = cols(this.X)
   // /* */  "X contains" ; this.tmvarlist
   // /* */  "X is " + strofreal(rows(this.X)) + " by " + strofreal(cols(this.X))
@@ -91,7 +93,8 @@ void psweight::st_set(string scalar tvar, string scalar tmvarlist, string scalar
   // This code assumes weights are **already** normalized. Here's code to normalize: this.W = this.W :/ (rows(this.W) / quadcolsum(this.W))
   if (args()>=4) {
     this.wgtvar = wgtvar
-    st_view(this.W_orig, ., this.wgtvar, tousevar) // an extra copy of the weight variable that can only be set via this function. Useful for reweighting/matching situations.
+    if (args()<3) st_view(this.W_orig, ., this.wgtvar)
+    else          st_view(this.W_orig, ., this.wgtvar, tousevar) // an extra copy of the weight variable that can only be set via this function. Useful for reweighting/matching situations.
   }
   else this.W_orig = J(rows(this.T), 1, 1)
   // /* */  "W is " + strofreal(rows(this.W)) + " by " + strofreal(cols(this.W))
@@ -142,11 +145,12 @@ void psweight::calcN() {
 
 // loads the dependent variable data into the class
 // Note: this function doesn't allow the class to touch the treatment group's outcome data
-void psweight::st_set_depvar(string scalar depvarnames, string scalar tousevar) {
+void psweight::st_set_depvar(string scalar depvarnames, | string scalar tousevar) {
   real colvector Y
   this.depvars = tokens(depvarnames)
   Y=.
-  st_view(Y, ., this.depvars, tousevar)
+  if (args()<2)  st_view(Y, ., this.depvars)
+  else           st_view(Y, ., this.depvars, tousevar)
   st_select(this.Y0, Y, !this.T)
   // /* */  "Y0 is " + strofreal(rows(this.Y0)) + " by " + strofreal(cols(this.Y0))
 }
@@ -241,10 +245,11 @@ real colvector psweight::get_weight_mtch() return(this.W_mtch)
 real colvector psweight::get_weight()      return(this.W)
 
 // used to push the resulting weights and propensity scores back into Stata.
-void psweight::fill_vars(string rowvector newvarnames, string scalar tousevar) {
+void psweight::fill_vars(string rowvector newvarnames, | string scalar tousevar) {
   real matrix thisview
   if (length(tokens(newvarnames))!=4) _error("psweight::fill_vars() requires four numeric variable names")
-  st_view(thisview, ., newvarnames, tousevar)
+  if (args()<3)  st_view(thisview, ., newvarnames)
+  else           st_view(thisview, ., newvarnames, tousevar)
 
   if (rows(thisview)==rows(this.W)) thisview[., 1] = this.W
   else thisview[., 1] = J(rows(thisview), 1, .)
@@ -912,7 +917,7 @@ real rowvector psweight::solve(| string scalar stat, string scalar subcmd, real 
     optimize_init_conv_nrtol(S, 1e-9)
   }
   else _error(subcmd + " is invalid with psweight::solve()")
-  if (st_local("mlopts")!="") optimize_init_mlopts(S, st_local("mlopts"))
+  if (st_local("mlopts")!="") psweight_init_mlopts(S, st_local("mlopts"))
 
   // cvopt adds 1 or more elements to the loss function
   // I don't have gradient functions
@@ -1230,7 +1235,7 @@ void psweight::cbps_port_r(real   scalar    todo,
 // extract optimize_init_*() options parsed by Stata program -mlopts-
 // I just copied moptimize_init_mlopts source code, then updated according to
 // the optimize() help manual
-void optimize_init_mlopts(transmorphic scalar M, string scalar mlopts) {
+void psweight_init_mlopts(transmorphic scalar M, string scalar mlopts) {
         string scalar arg, arg1, tok
         transmorphic t, t1
 
