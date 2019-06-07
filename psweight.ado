@@ -78,7 +78,7 @@ program Estimate, eclass sortpreserve byable(recall)
   // check treatment variable
   gettoken tvar varlist: varlist
   _fv_check_depvar `tvar'
-  cap assert inlist(`tvar',0,1) if `tousevar'
+  cap assert inlist(`tvar', 0, 1) if `tousevar'
   if _rc {
     di as err `"The treatment variable (`tvar') must be a dummy variable."'
     error 125
@@ -144,7 +144,7 @@ program Estimate, eclass sortpreserve byable(recall)
     di as error `"cvtarget(), skewtarget(), or kurttarget() required with pcbps subcommand"'
     error 198
   }
-  else if (!inlist(`: list sizeof cvopt',0,3,6,9,12)) {
+  else if (!inlist(`: list sizeof cvopt', 0, 3, 6, 9, 12)) {
     di as error `"cvopt() requires 3, 6, 9, 12 elements"'
     error 198
   }
@@ -316,13 +316,13 @@ void Estimate(real scalar reweight) {
   if  (st_local("cvopt")!="") {
     cvopt       = strtoreal(tokens(st_local("cvopt")))
   }
-  else cvopt = J(1,0,.)
+  else cvopt = J(1, 0, .)
 
   // initialize class and read in data and parameters
   psweight_ado_most_recent = psweightado()
   if  (wgtvar!="") psweight_ado_most_recent.st_set(tvar, varlist, tousevar, wgtvar)
   else             psweight_ado_most_recent.st_set(tvar, varlist, tousevar)
-  if (depvars!="") psweight_ado_most_recent.st_set_depvar(depvars,tousevar)
+  if (depvars!="") psweight_ado_most_recent.st_set_depvar(depvars, tousevar)
   psweight_ado_most_recent.set_opts(stat, subcmd, denominator, cvopt)
 
   // compute invere probabily weights

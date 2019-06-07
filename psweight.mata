@@ -113,12 +113,12 @@ void psweight::st_set(string scalar tvar, string scalar tmvarlist, string scalar
 
   this.calcN()
   if (all(this.W_orig:==1)) {
-    strofreal(this.N0_raw) + " control   obs"
+    strofreal(this.N0_raw) + " control obs"
     strofreal(this.N1_raw) + " treatment obs"
     "(Data are unweighted.)"
   }
   else {
-    strofreal(this.N0_raw) + " control   obs (sum of weights = " + strofreal(this.N0) + ")"
+    strofreal(this.N0_raw) + " control obs (sum of weights = " + strofreal(this.N0) + ")"
     strofreal(this.N1_raw) + " treatment obs (sum of weights = " + strofreal(this.N1) + ")"
   }
 }
@@ -136,8 +136,8 @@ void psweight::calcN() {
   // these means/varinaces are saved internally in the class (to avoid computing them over and over).
   // They need to be reset because we just reweighted the sample.
   // If I'm re-calcuating sample sizes, this is probably the case.  Set to missing here just to be safe.
-  this.means0 = this.means1 = this.meansP = this.variances0 = this.variances1 = this.variancesP = this.variancesA = J(1, 0,.)
-  this.covariances0 = this.covariances1 = this.covariancesP = this.covariancesA = J(0, 0,.)
+  this.means0 = this.means1 = this.meansP = this.variances0 = this.variances1 = this.variancesP = this.variancesA = J(1, 0, .)
+  this.covariances0 = this.covariances1 = this.covariancesP = this.covariancesA = J(0, 0, .)
 }
 
 // loads the dependent variable data into the class
@@ -231,8 +231,8 @@ void psweight::reweight(|real colvector newweight, real colvector newpscores) {
   else if (args()<1) this.PS_mtch = .
   // recalculate N and set means/variances to missing.
   this.calcN()
-  this.means0 = this.means1 = this.meansP = this.variances0 = this.variances1 = this.variancesP = this.variancesA = J(1, 0,.)
-  this.covariances0 = this.covariances1 = this.covariancesP = this.covariancesA = J(0, 0,.)
+  this.means0 = this.means1 = this.meansP = this.variances0 = this.variances1 = this.variancesP = this.variancesA = J(1, 0, .)
+  this.covariances0 = this.covariances1 = this.covariancesP = this.covariancesA = J(0, 0, .)
 }
 
 // functions that allows user to obtain the weights and propensity scores
@@ -247,16 +247,16 @@ void psweight::get_scores(string rowvector newvarnames, string scalar tousevar) 
   st_view(thisview, ., newvarnames, tousevar)
 
   if (rows(thisview)==rows(this.W)) thisview[., 1] = this.W
-  else thisview[., 1] = J(rows(thisview), 1,.)
+  else thisview[., 1] = J(rows(thisview), 1, .)
 
   if (rows(thisview)==rows(this.W_mtch)) thisview[., 2] = this.W_mtch
-  else thisview[., 2] = J(rows(thisview), 1,.)
+  else thisview[., 2] = J(rows(thisview), 1, .)
 
   if (rows(thisview)==rows(this.PS_mtch)) thisview[., 3] = this.PS_mtch
-  else thisview[., 3] = J(rows(thisview), 1,.)
+  else thisview[., 3] = J(rows(thisview), 1, .)
 
   if (rows(thisview)==rows(this.T)) thisview[., 4] = this.T
-  else thisview[., 4] = J(rows(thisview), 1,.)
+  else thisview[., 4] = J(rows(thisview), 1, .)
 }
 
 // This function makes a balance table and prints it to the screen
@@ -561,12 +561,12 @@ real rowvector psweight::progdiff(| real scalar denominator) {
 
   yhat = J(rows(this.X), cols(this.Y0), .)
   for (c=1; c<=cols(this.Y0); c++) {
-    beta = this.olsbeta(this.Y0[., c], this.X[this.sel0,.], this.W[this.sel0])
+    beta = this.olsbeta(this.Y0[., c], this.X[this.sel0, .], this.W[this.sel0])
     yhat[., c] = this.olspredict(this.X, beta)
   }
 
-  yhat_bar_0  = mean(yhat[this.sel0,.], this.W[this.sel0])
-  yhat_bar_1  = mean(yhat[this.sel1,.], this.W[this.sel1])
+  yhat_bar_0  = mean(yhat[this.sel0, .], this.W[this.sel0])
+  yhat_bar_1  = mean(yhat[this.sel1, .], this.W[this.sel1])
   progdiff    = yhat_bar_1 :- yhat_bar_0
   stdprogdiff = stdprogdiff(denominator, yhat, progdiff)
   y_bar_0     = mean(this.Y0, this.W[this.sel0])
@@ -605,13 +605,13 @@ real rowvector psweight::stdprogdiff(| real scalar denominator, real matrix yhat
     if (!length(this.depvars)) _error("Dependent variable is undefined.  Use psweight::st_set_depvar().")
     yhat = J(rows(this.X), cols(this.Y0), .)
     for (c=1; c<=cols(this.Y0); c++) {
-      beta = this.olsbeta(this.Y0[., c], this.X[this.sel0,.], this.W[this.sel0])
+      beta = this.olsbeta(this.Y0[., c], this.X[this.sel0, .], this.W[this.sel0])
       yhat[., c] = this.olspredict(this.X, beta)
     }
   }
   if (args()<3) {
-    yhat_bar_0 = mean(yhat[this.sel0,.], this.W[this.sel0])
-    yhat_bar_1 = mean(yhat[this.sel1,.], this.W[this.sel1])
+    yhat_bar_0 = mean(yhat[this.sel0, .], this.W[this.sel0])
+    yhat_bar_1 = mean(yhat[this.sel1, .], this.W[this.sel1])
     progdiff = yhat_bar_1 :- yhat_bar_0
   }
   if (!length(this.variances1)) this.calcvariances()
@@ -782,7 +782,7 @@ real matrix psweight::Ct(string rowvector tmvarlist) {
     }
     Ct = Ct, J(ko, 1, 0)
   }
-  else Ct = J(0, p+1,.)
+  else Ct = J(0, p+1, .)
   return(Ct)
 }
 
@@ -845,7 +845,7 @@ real rowvector psweight::solve(| string scalar stat, string scalar subcmd, real 
   if (args()<1) stat="ate"
   if (args()<2) subcmd="ipw"
   if (args()<3) denominator=1
-  if (args()<4) cvopt=J(1, 0,.)
+  if (args()<4) cvopt=J(1, 0, .)
   this.reweight()
   oid = 0
 
