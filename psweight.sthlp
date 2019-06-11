@@ -1,4 +1,4 @@
-{smcl}
+﻿{smcl}
 {* Copyright (C) Mathematica This code cannot be copied, distributed or used without the express written permission of Mathematica , Inc.}{...}
 {vieweralsosee "" "--"}{...}
 {vieweralsosee "[TE] teffects intro" "mansection TE teffectsintro"}{...}
@@ -141,25 +141,25 @@ to the {helpb psweight class:psweight Mata class}.
 
 {pstd}
 {cmd:psweight} {it:subcmd} computes inverse-probability weighting (IPW) weights for average treatment effect,
-average treatment effect on the treated, and average treatment effect estimators for observational data.
-IPW estimators use estimated probability weights to correct for the missing data on the potential outcomes).
-Probabilities of treatment--propensity scores--are computed for each observation with one of variety of methods, including
+average treatment effect on the treated, and average treatment effect [LVF: on the untreated] estimators for observational data.
+IPW estimators use estimated probability weights to correct for the missing data on the potential outcomes.
+Probabilities of treatment--propensity scores--are computed for each observation with one of a variety of methods, including
 logistic regression (traditional IPW),
-covariate balance propensity scores (CBPS),
-penalized balance propensity scores (PCBPS)
-prognostic score balancing propensity scores, and
+covariate-balancing propensity scores (CBPS),
+penalized [LVF: covariate-] balancing propensity scores (PCBPS),
+prognostic score-balancing propensity scores, and
 other methods.
 
 {pstd}
-{cmd:psweight} {cmd:balance} constructs a balance table instead of computing IPW weights.
+{cmd:psweight} {cmd:balance} constructs a balance table instead of [LVF: replace instead of with without?] computing IPW weights.
 The most common use case is when you wish to construct a balance table for the unweighted sample.
-However you can also construct a balance table with
+However, you can also construct a balance table with
 {help psweight##mweight_opt:user-supplied weights}.
 
 {pstd}
 After running {cmd:psweight} you can apply class functions
 to your data or access results through {cmd:psweight call};
-see details {help psweight##call:below}
+see details {help psweight##call:below}.
 
 
 {title:Remarks}
@@ -174,7 +174,7 @@ If these variables exist before running {cmd:psweight}, they will be replaced.{p
 and IPW weights as follows:
 
 {pmore}
-The first step involves computing coefficients, {it:b}, for the propensity score model.
+The first step involves computing coefficients {it:b} for the propensity score model.
 The propensity score model takes the form of a logit regression model.
 Specifically, the propensity score for each row in the data is defined as {p_end}
 
@@ -183,11 +183,11 @@ Specifically, the propensity score for each row in the data is defined as {p_end
 {pmore} where {it:X} is the vector of matching variables ({it:tmvarlist}) for the respective row.
 
 {pmore}
-You specify a {it:{help psweight##subcmd:subcmd}} to controls how the vector {it:b} is computed
+You specify a {it:{help psweight##subcmd:subcmd}} to control how the vector {it:b} is computed
 in the internal numerical optimization problem.
 As discussed in Kranker, Blue, and Vollmer Forrow (2019), we can set up optimization problems to solve for
 the {it:b} that produces the best fit in the propensity score model,
-the {it:b} that produces best balance on matching variables,
+the {it:b} that produces the best balance on matching variables,
 the {it:b} that produces the best balance on prognostic scores, or something else.
 The {it:subcmd} also determines how the term "best balance" is defined in the previous sentence.
 That is, for a given {it:subcmd}, we can generically define {it:b} as the vector that solves the problem: {p_end}
@@ -196,22 +196,22 @@ That is, for a given {it:subcmd}, we can generically define {it:b} as the vector
 
 {pmore} where {it:L(X,T,W)} is a "loss function" that corresponds to the specified {it:subcmd}
 (e.g., logit regression or CBPS),
-given the data ({it:(X,T)} and vector of weights {it:W}.
+given the data {it:(X,T)} and vector of weights {it:W}.
 (The weights are computed using the propensity scores, as we describe below.
-The propensity scores are calculated using {it:b}, the data, and formula given above.)
+The propensity scores are calculated using {it:b}, the data, and the formula given above.)
 The available {it:subcmd}s are listed below.
 
 {pmore}
 In Kranker, Blue, and Vollmer Forrow (2019), we proposed adding a "penalty" to the loss function
-that lets you to effectively prespecify the variance (or higher-order moments) of the IPW weight distribution.
+that lets you effectively prespecify the variance (or higher-order moments) of the IPW weight distribution.
 By constraining the distribution of the weights, you can choose among alternative sets of matching weights,
-some of which produce better balance and others which yield higher statistical power.
+some of which produce better balance and others of which yield higher statistical power.
 The penalized method solves for {it:b} in:{p_end}
 
 {center:{it:b} = argmin {it:L(X,T,W)} + {it:f(W)}}
 
 {pmore}
-where {it:f(W)} is smooth, flexible function that increases as the vector of observation weights (W) becomes more variable.
+where {it:f(W)} is a smooth, flexible function that increases as the vector of observation weights (W) becomes more variable.
 The {it:{help psweight##penalty:penalty}} options control the functional form of {it:f(W)}; see details below.
 
 {pmore}
@@ -244,17 +244,17 @@ First we compute unnormalized weights as follows:
 1 for control group observations.
 
 {pmore}
-Next, the weights are normalzied to have mean equal to 1 in each group,
+Next, the weights are normalized to have mean equal to 1 in each group,
 and returned in the variable named {it:_weight_mtch}.
 
 {pmore}
-Finally, the final weights (a variable named {it:_weight}) are set equalt to:{p_end}
+Finally, the final weights (a variable named {it:_weight}) are set equal to:{p_end}
 
 {center:{it:_weight} = {it:W} {help [M-2] op_colon::*} {it:_weight_mtch}}
 
 {pmore} where {it:W} are the {it:{help psweight##weight:sample weights}}.
 (The variable {it:_weight} equals {it:_weight_mtch} if no sample weights are provided.
-If sample weights are provided, the weights are normalized so the weighted mean equals 1.)
+If sample weights are provided, the weights are normalized so the weighted mean equals 1 [LVF: in each group].)
 For convenience, (a copy of) the treatment group indicator variable is
 returned in a variable named {it:_treated}.
 
@@ -308,11 +308,11 @@ After you finish using the instance of the class, it can be deleted with:{p_end}
 {dlgtab:subcmd}
 
 {pstd}
-The {it:subcmd} specifies which method is used to compute coefficients, {it:b}, for the
+The {it:subcmd} specifies which method is used to compute coefficients {it:b} for the
 propensity score model. The seven available estimation methods are:
 
 {pmore}
-The {opt ipw} {it:subcmd} fits a {help logit:logit regression model} by maximim likelihood.
+The {opt ipw} {it:subcmd} fits a {help logit:logit regression model} by maximum likelihood.
 
 {pmore2}
 The logit regression solves for {it:b} in the model:
@@ -320,19 +320,19 @@ The logit regression solves for {it:b} in the model:
 {center:Prob({it:tvar} = 1 | {it:X}) = {help mf_logit:invlogit}({it:X} {help [M-2] op_arith:*} {it:b})}
 
 {pmore}
-The {opt cbps} {it:subcmd} computes just identified covariate-balancing propensity scores
+The {opt cbps} {it:subcmd} computes just-identified covariate-balancing propensity scores
 (Imai and Ratkovic 2014).
 
 {pmore}
-The {opt cbpsoid} {it:subcmd} computes over identified covariate-balancing propensity scores .
+The {opt cbpsoid} {it:subcmd} computes over-identified covariate-balancing propensity scores.
 (Imai and Ratkovic 2014).
 
 {pmore}
-The {opt pcbps} {it:subcmd} implements penalized covariate-balancing propensity score (Kranker, Blue, and Vollmer Forrow 2019).
-The {opt pcbps} {it:subcmd} requires at least one
+The {opt pcbps} {it:subcmd} implements penalized covariate-balancing propensity scores (Kranker, Blue, and Vollmer Forrow 2019).
+The {opt pcbps} {it:subcmd} requires that at least one
 {it:{help psweight##penalty:penalty}} option be specified.
 This is a synonym for the {it:cbps} {it:subcmd} when one or
-more of the {it:{help psweight##penalty:penalty}} option is included.
+more of the {it:{help psweight##penalty:penalty}} options is included.
 
 {pmore}
 The {opt mean_sd_sq} or {opt mean_sd} {it:subcmd}s find the model coefficients that minimize the quantity:
@@ -383,7 +383,7 @@ IPW "matching weights" (the variable named {it:_weight_mtch}).
 {pmore}
 {opt ateu} specifies that the average treatment effect on the untreated be estimated.
 
-{pstd}The formulas used for computing IPW weights are described above.
+{pstd}The formulas used for computing IPW weights for each of these three stats are described above.
 
 
 {dlgtab:Penalty}
@@ -400,7 +400,7 @@ If {opt cvopt(a, b, c)} is specified, then the loss function is modified as:{p_e
 
 {phang2}{opt skewtarget(# # #)} applies a penalty using the skewness of the weight distribution.
 If {opt skewtarget(d, e, f)} is specified, then the loss function is modified as:{p_end}
-{center:{it:L'(X,T,W) = L(X,T,W) + e * abs(({help psweight class:wgt_skewness()} - e)^f)}}
+{center:{it:L'(X,T,W) = L(X,T,W) + e[LVF: should this be d?] * abs(({help psweight class:wgt_skewness()} - e)^f)}}
 {phang3}The default is no penalty: skewtarget(0 0 2).{p_end}
 
 {phang2}{opt kurttarget(# # #)} applies a penalty using the excess kurtosis of the weight distribution.
@@ -450,7 +450,7 @@ The following options control the display of the coefficient tables:
 {opt vsquish},
 {opt noempty:cells},
 {opt base:levels},
-{opt allbase:level}s
+{opt allbase:level}s,
 {opt nofvlab:el},
 {opt fvwrap(#)},
 {opt fvwrapon(style)},
@@ -553,9 +553,9 @@ Mathematica{p_end}
 
 {pstd}
 My coauthors, Laura Blue and Lauren Vollmer Forrow, were closely involved with the
-developement of the Penalized CBPS methodology,
+developement of the Penalized CBPS methodology.
 We received many helpful suggestions from our colleages at Mathematica,
-especially those on the Comprehensive Primary Care Evaluation team.
+especially those on the Comprehensive Primary Care Plus Evaluation team.
 Of note, I thank Liz Potamites for testing early versions of the program and providing helpful feedback.{p_end}
 
 {pstd}
