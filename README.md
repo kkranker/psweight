@@ -4,25 +4,25 @@
 
 `psweight()` is a Mata class that computes inverse-probability weighting (IPW)
 weights for average treatment effect, average treatment effect on the treated,
-and average treatment effect estimators for observational data. IPW estimators
+and average treatment effect [LVF: on the untreated] estimators for observational data. IPW estimators
 use estimated probability weights to correct for the missing data on the
-potential outcomes). Probabilities of treatment--propensity scores--are
+potential outcomes. Probabilities of treatment--propensity scores--are
 computed for each observation with one of variety of methods, including
-logistic regression (traditional IPW), covariate balance propensity scores
-(CBPS), penalized balance propensity scores (PCBPS) prognostic score balancing
+logistic regression (traditional IPW), covariate-balancing propensity scores
+(CBPS), penalized [LVF: covariate-] balancing propensity scores (PCBPS), prognostic score-balancing
 propensity scores, and other methods.  It also constructs balance tables and
 assesses the distribution of the IPW weights.
 
 `psweight` is a Stata command that offers Stata users easy access to the class.
 However, the class offers more flexibility and can conduct some analyses
-unavailable to the Stata command.
+unavailable to [LVF: with? through?] the Stata command.
 
 # The model
 
 `psweight::solve()` and `psweight subcmd` solve for propensity score model
 coefficients, propensity scores, and IPW weights as follows:
 
-The first step involves computing coefficients, b, for the propensity
+The first step involves computing coefficients b for the propensity
 score model.  The propensity score model takes the form of a logit
 regression model.  Specifically, the propensity score for each row in
 the data is defined as
@@ -34,11 +34,11 @@ the data is defined as
 where X is the vector of matching variables (tmvarlist) for the
 respective row.
 
-You specify a subcmd to controls how the vector b is computed in the
+You specify a subcmd to control how the vector b is computed in the
 internal numerical optimization problem.  As discussed in Kranker,
 Blue, and Vollmer Forrow (2019), we can set up optimization problems
 to solve for the b that produces the best fit in the propensity score
-model, the b that produces best balance on matching variables, the b
+model, the b that produces the best balance on matching variables, the b
 that produces the best balance on prognostic scores, or something
 else.  The subcmd also determines how the term "best balance" is
 defined in the previous sentence.  That is, for a given subcmd, we
@@ -49,26 +49,26 @@ can generically define b as the vector that solves the problem:
 ```
 
 where `L(X,T,W)` is a "loss function" that corresponds to the specified
-subcmd (e.g., logit regression or CBPS), given the data (`(X,T)` and
+subcmd (e.g., logit regression or CBPS), given the data `(X,T)` and a
 vector of weights `W`.  (The weights are computed using the propensity
 scores, as we describe below.  The propensity scores are calculated
-using b, the data, and formula given above.) The available `subcmd`s
-are listed in the documentation, and include logit regression and
+using b, the data, and the formula given above.) The available `subcmd`s
+are listed in the documentation and include logit regression and
 CBPS (Imai and Ratkovic 2014).
 
 In Kranker, Blue, and Vollmer Forrow (2019), we proposed adding a
-"penalty" to the loss function that lets you to effectively
+"penalty" to the loss function that lets you effectively
 prespecify the variance (or higher-order moments) of the IPW weight
 distribution.  By constraining the distribution of the weights, you
 can choose among alternative sets of matching weights, some of which
-produce better balance and others which yield higher statistical
+produce better balance and others of which yield higher statistical
 power.  The penalized method solves for b in:
 
 ```
                 b = argmin L(X,T,W) + f(W)
 ```
 
-where `f(W)` is smooth, flexible function that increases as the vector
+where `f(W)` is a smooth, flexible function that increases as the vector
 of observation weights (`W`) becomes more variable.  The penalty
 options control the functional form of `f(W)`; see details below.
 
@@ -84,7 +84,7 @@ estimating the average treatment effect (`ate`), the average treatment
 effect on the treated (`atet`), or the average treatment effect on the
 untreated (`ateu`).
 
-Next, the weights are normalzied to have mean equal to 1 in each
+Next, the weights are normalized to have mean equal to 1 in each
 group, and returned in the variable named `_weight_mtch`.
 
 Finally, the final weights (a variable named _weight) are set equal

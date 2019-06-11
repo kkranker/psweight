@@ -120,19 +120,19 @@ and where src is a (scalar) instance of the class psweight.
 {title:Description}
 
 {p}{cmd: psweight()} is a {help m-2 class:Mata class} that computes inverse-probability weighting (IPW) weights for average treatment
-effect, average treatment effect on the treated, and average treatment effect
+effect, average treatment effect on the treated, and average treatment effect [LVF: on the untreated]
 estimators for observational data. IPW estimators use estimated probability
-weights to correct for the missing data on the potential outcomes). Probabilities
-of treatment--propensity scores--are computed for each observation with one of
-variety of methods, including logistic regression (traditional IPW), covariate
-balance propensity scores (CBPS), penalized balance propensity scores (PCBPS)
+weights to correct for the missing data on the potential outcomes. Probabilities
+of treatment--propensity scores--are computed for each observation with one of a
+variety of methods, including logistic regression (traditional IPW), covariate-
+balancing propensity scores (CBPS), penalized [LVF: covariate-] balancing propensity scores (PCBPS),
 prognostic score balancing propensity scores, and other methods.
 It also constructs balance tables and assesses the distribution of the
 IPW weights.
 
 {p}{helpb psweight} is a Stata command that offers Stata users easy access to
 the class. However, the class offers more flexibility and can conduct some
-analyses unavailable to the Stata command.
+analyses unavailable to [LVF: with? through?] the Stata command.
 
 
 {marker details}{...}
@@ -146,7 +146,8 @@ void P.st_set(treatvar, tmvarlist, | tousevar, wgtvar)
     Loads Stata data for the treatment model into the Mata class using views.
 
     tvar, tmvarlist, tousevar, and wgtvar contain the names of variables in
-        the Stata data.
+        the Stata data. [LVF: either change treatvar above to tvar, or change instances of
+	tvar to treatvar]
 
     tvar      is a variable that must contain values 0 or 1, representing the
                 treatment (1) and comparison (0) group observations.
@@ -166,7 +167,7 @@ void P.set(t, x, | w)
     x specifies the data that predict treatment assignment in the treatment
         model.
     w specifies sample weights; these are treated as iweights (optional;
-        sample is unweighted if wgtvar is not provided)
+        sample is unweighted if wgtvar[LVF: w?  or change w to wgtvar?] is not provided)
 
 void P.st_set_depvar(depvarnames, | tousevar)
 
@@ -206,7 +207,7 @@ real rowvector P.solve(| stat, subcmd, denominator, cvopt)
     ateu}.
 
     subcmd, a string scalar, specifies which method is used to compute
-    coefficients, {it:b}, for the propensity score model.  In some cases, the
+    coefficients {it:b} for the propensity score model.  In some cases, the
     method requires defining how standardized differences are calculated (
     {it:denominator}).
 
@@ -230,20 +231,20 @@ real rowvector P.solve(| stat, subcmd, denominator, cvopt)
         1 x 6           If cvopt=(a, b, c, d, e, f), the loss function is
                         modified to:
                             loss = loss_0 + a * abs((wgt_cv() - b)^c)
-                                          + e * abs((wgt_skewness() - e)^f)
+                                          + e[LVF: should this be d?] * abs((wgt_skewness() - e)^f)
         1 x 9           If cvopt=(a, b, c, d, e, f, g, h, i), the loss
                         function is modified to:
                             loss = loss_0 + a * abs((wgt_cv() - b)^c)
-                                          + e * abs((wgt_skewness() - e)^f)
+                                          + e[LVF: should this be d?] * abs((wgt_skewness() - e)^f)
                                           + g * abs((wgt_kurtosis() - h)^i)
         1 x 12          If cvopt=(a, b, c, d, e, f, g, h, i, j, k, l),  the
                         loss function is modified to:
                             loss = loss_0 + a * abs((wgt_cv() - b)^c)
-                                          + e * abs((wgt_skewness() - e)^f)
+                                          + e[LVF: should this be d?] * abs((wgt_skewness() - e)^f)
                                           + g * abs((wgt_kurtosis() - h)^i)
                                           + j * abs((wgt_max() - k)^l)
 
-        The default is cvopt=(0, 0, 2) (the loss function is unmodified)
+        The default is cvopt=(0, 0, 2) (the loss function is unmodified). 
 
 real rowvector P.ipw(| stat)
 
@@ -293,8 +294,9 @@ void P.reweight(| w,  p)
     w is treated as a set of matching weights; they will be multiplied by the
     sample weights (if sample weights exist).
 
+    [LVF added punctuation to the below -- is meaning correct?]
     If no arguments are provided, the matching weights are reset (that is, the
-    sample is no longer weighted with IPW weights are set to one and the
+    sample is no longer weighted with IPW, weights are set to one, and the
     propensity scores are set to missing).
 
     There is no need to call reweight() when estimating IPW weights. Newly
@@ -311,7 +313,7 @@ real colvector P.get_weight_mtch()
 
 real colvector P.get_weight()
 
-    Returns the final weights (the matching weights times the sample weights).
+    Returns the final weights (the matching weights times the sample weights [LVF:, if any]).
 
 void P.fill_vars(varnames, | tousevar)
 
@@ -335,7 +337,7 @@ real rowvector P.pomean()
    Returns the (weighted) mean of the dependent variable(s) for the control
    group.
 
-   This function requires that a dependent variable exists.
+   This function requires that a dependent variable exist.
 
 
 {marker funct4}{...}
@@ -401,7 +403,7 @@ real scalar P.max_asd(| denominator)
 
 real rowvector P.progdiff(| denominator)
 
-    Returns the prognostic score balance table, a L x 5 matrix:
+    Returns the prognostic score balance table, an L x 5 matrix:
             first column:   mean prognostic score for the treatment group
             second column:  mean prognostic score for the control group
             third column:   difference in mean prognostic scores
@@ -415,7 +417,7 @@ real rowvector P.progdiff(| denominator)
 
     The table is also returned to Stata in r(progdiff).
 
-    This function requires that a dependent variable exists.
+    This function requires that a dependent variable exist.
 
 
 {marker funct5}{...}
@@ -423,7 +425,7 @@ real rowvector P.progdiff(| denominator)
 
 real scalar P.wgt_cv(stat)
 
-    Returns the coefficient of variation of the IPW weights.
+    Returns the coefficient of variation of the IPW weights [LVF: , that is, the standard deviation of the weights divided by their mean].
 
     The value is also returned in Stata in r(wgt_cv).
 
@@ -457,7 +459,7 @@ real scalar P.wgt_max(stat)
 
 void P.balanceresults(| stat, denominator)
 
-    This function is a 1-stop shop to call a selection of the functions
+    This function is a one-stop shop to call a selection of the functions
     defined above. The balance table (balancetable()) is always computed. The
     weight distribution is summarized if any of the current IPW weights do not
     equal 1. The prognostic scores are compared (progdiff()) if a dependent
@@ -569,9 +571,9 @@ Mathematica{p_end}
 
 {pstd}
 My coauthors, Laura Blue and Lauren Vollmer Forrow, were closely involved with the
-developement of the Penalized CBPS methodology,
+development of the Penalized CBPS methodology.
 We received many helpful suggestions from our colleages at Mathematica,
-especially those on the Comprehensive Primary Care Evaluation team.
+especially those on the Comprehensive Primary Care Plus Evaluation team.
 Of note, I thank Liz Potamites for testing early versions of the program and providing helpful feedback.{p_end}
 
 {pstd}
