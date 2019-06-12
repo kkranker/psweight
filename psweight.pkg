@@ -1,0 +1,28 @@
+v 3
+d psweight: IPW- and CBPS-type propensity score reweighting,
+d with various extensions
+d
+d psweight computes inverse-probability weighting (IPW) weights for
+d average treatment effect, average treatment effect on the treated,
+d and average treatment effect on the untreated estimators for
+d observational data. IPW estimators use estimated probability weights
+d to correct for the missing data on the potential outcomes. Probabilities
+d of treatment--propensity scores--are computed for each observation
+d with one of a variety of methods, including logistic regression
+d (traditional IPW), covariate-balancing propensity scores (CBPS),
+d penalized covariate-balancing propensity scores (PCBPS), prognostic
+d score-balancing propensity scores, and other methods.
+d
+d psweight.ado is a Stata command that offers Stata users
+d easy access to the psweight() Mata class.
+d
+d See psweight.sthlp and psweight_class.sthlp for
+d documentation and examples.
+d
+d Package by Keith Kranker, Mathematica Policy Research
+d
+f  psweight.ado
+f  psweight.sthlp
+f  psweight.mata
+f  psweight_class.sthlp
+f lpsweight.mlib
