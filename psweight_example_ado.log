@@ -2,14 +2,14 @@
       name:  psweight_example_ado
        log:  C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\psweight_example_ado.log
   log type:  text
- opened on:   7 Jun 2019, 14:15:46
+ opened on:  12 Jun 2019, 00:40:43
 . 
 . di as txt "Current user: `c(username)'" _n "Environment: `c(os)' `c(machine_type)' `: environment computername'" _n "Stata: `c(stata_version)'" cond(c(stata_v
 > ersion)==c(version),""," (set to version `c(version)')") _n "Date: " c(current_date) " " c(current_time)
 Current user: KKranker
 Environment: Windows PC (64-bit x86-64) KKRANKER
 Stata: 15.1
-Date:  7 Jun 2019 14:15:46
+Date: 12 Jun 2019 00:40:44
 . desc, short
 
 Contains data from C:\Users\kkranker\Documents\Stata\Multiple-Equation-Models\simple_cattaneo_data.dta
@@ -19,7 +19,7 @@ Contains data from C:\Users\kkranker\Documents\Stata\Multiple-Equation-Models\si
 Sorted by: 
      Note: Dataset has changed since last saved.
 . local varlist : copy local varlist_orig
-. summ `treatvar' `varlist' `tousevar' `wgtvar' `depvars'
+. summ `treatvar' `varlist' `tousevar' `wgtvar' `depvarlist'
 
     Variable |        Obs        Mean    Std. Dev.       Min        Max
 -------------+---------------------------------------------------------
@@ -44,15 +44,14 @@ Sorted by:
          wgt |      4,642    1.993316    .4062602   .6638338   3.540576
           y1 |      4,642     3361.68    578.8196        340       5500
    y1_binary |      4,642    .9396812    .2381022          0          1
-. if (trim("`depvars'") != "") local depvaropt depvars(`depvars')
+. if (trim("`depvarlist'") != "") local depvaropt depvarlist(`depvarlist')
 . ereturn clear
 .  return clear
 . 
 . // balance before matching
-. psweight balanceonly `treatvar' `varlist' if `tousevar'
-  408 control obs
-  92 treatment obs
-  (Data are unweighted.)
+. psweight balanceonly `treatvar' `varlist' if `tousevar', ntable
+
+
 -------------------------------------------------------------------------------
              |    mean_T     mean_C       diff   std_diff    sd_pool  var_ratio
 -------------+-----------------------------------------------------------------
@@ -81,34 +80,52 @@ Sorted by:
   Mean standardized diff.             = -0.12754
   Mean absolute standardized diff.    = 0.17540
   Maximum absolute standardized diff. = 0.61492
+  
+-------------------------------------------------------
+                      | Treatment    Control      Total
+----------------------+--------------------------------
+       Number of rows |        92        408        500
+Sum of sample weights |        92        408        500
+       Sum of weights |        92        408        500
+-------------------------------------------------------
 . ereturn list
 
 macros:
                 e(cmd) : "psweight"
-            e(cmdline) : "psweight balanceonly treat x1 i.x2 i.x3 x4 x5 x6 x7 x9* if touse"
+            e(cmdline) : "psweight balanceonly treat x1 i.x2 i.x3 x4 x5 x6 x7 x9* if touse, ntable"
              e(subcmd) : "balanceonly"
           e(tmvarlist) : "x1 0b.x2 1.x2 0b.x3 1.x3 x4 x5 x6 x7 x90 x91 x92 x93 x94 x95"
                e(tvar) : "treat"
 .  return list
 
 scalars:
-            r(mean_sd) =  -.1275443258377829
-           r(mean_asd) =  .1753994534212237
+            r(sum_w_0) =  408
+            r(sum_w_1) =  92
+              r(sum_w) =  500
+           r(sum_sw_0) =  408
+           r(sum_sw_1) =  92
+             r(sum_sw) =  500
+             r(N0_raw) =  408
+             r(N1_raw) =  92
+              r(N_raw) =  500
             r(max_asd) =  .6149214017045797
+           r(mean_asd) =  .1753994534212237
+            r(mean_sd) =  -.1275443258377829
           r(k_omitted) =  2
 
 macros:
             r(varlist) : "treat x1 0b.x2 1.x2 0b.x3 1.x3 x4 x5 x6 x7 x90 x91 x92 x93 x94 x95"
 
 matrices:
+            r(N_table) :  3 x 3
             r(stddiff) :  1 x 15
                r(diff) :  1 x 15
                 r(bal) :  15 x 6
            r(varratio) :  1 x 15
 . 
 . psweight balanceonly `treatvar' `varlist' if `tousevar' [iw=`wgtvar']
-  408 control obs (sum of weights = 802.3793)
-  92 treatment obs (sum of weights = 180.1725)
+
+
 -------------------------------------------------------------------------------
              |    mean_T     mean_C       diff   std_diff    sd_pool  var_ratio
 -------------+-----------------------------------------------------------------
@@ -138,9 +155,8 @@ matrices:
   Mean absolute standardized diff.    = 0.17978
   Maximum absolute standardized diff. = 0.64089
 . psweight balanceonly `treatvar' `varlist' if `tousevar', mweight(`wgtvar') ate
-  408 control obs
-  92 treatment obs
-  (Data are unweighted.)
+
+
   Balance:
 -------------------------------------------------------------------------------
              |    mean_T     mean_C       diff   std_diff    sd_pool  var_ratio
@@ -209,11 +225,10 @@ treat        |
 . ereturn clear
 .  return clear
 . 
-. psweight cbps `treatvar' `varlist' if `tousevar' , ate pooledvariance `depvaropt'
+. psweight cbps `treatvar' `varlist' if `tousevar' , ate pooledvariance `depvaropt' ntable
 
-  408 control obs
-  92 treatment obs
-  (Data are unweighted.)
+
+
   Step 1 (initial values from logit model):
 initial:       f(p) = -346.57359
 alternative:   f(p) = -283.03849
@@ -265,6 +280,14 @@ Iteration 36:  f(p) =  6.223e-14
 Iteration 37:  f(p) =  3.066e-15  
 Iteration 38:  f(p) =  8.784e-17  
 Iteration 39:  f(p) =  2.421e-19  
+  
+-------------------------------------------------------
+                      | Treatment    Control      Total
+----------------------+--------------------------------
+       Number of rows |        92        408        500
+Sum of sample weights |        92        408        500
+       Sum of weights |        92        408        500
+-------------------------------------------------------
 
 Propensity score model coefficients                Number of obs  =        500
 Propensity score reweigting
@@ -314,11 +337,12 @@ scalars:
 
 macros:
                 e(cmd) : "psweight"
-            e(cmdline) : "psweight cbps treat x1 i.x2 i.x3 x4 x5 x6 x7 x9* if touse , ate pooledvariance depvars(y1 y1_binary)"
+            e(cmdline) : "psweight cbps treat x1 i.x2 i.x3 x4 x5 x6 x7 x9* if touse , ate pooledvariance depvarlist(y1 y1_binary) ntable"
              e(subcmd) : "cbps"
-           e(variance) : "pooledvariance"
+         e(depvarlist) : "y1 y1_binary"
           e(tmvarlist) : "x1 0b.x2 1.x2 0b.x3 1.x3 x4 x5 x6 x7 x90 x91 x92 x93 x94 x95"
                e(tvar) : "treat"
+           e(variance) : "pooledvariance"
                e(stat) : "ate"
          e(properties) : "b"
              e(depvar) : "treat"
@@ -383,9 +407,10 @@ macros:
                 e(cmd) : "psweight"
             e(cmdline) : "psweight call balanceresults()"
              e(subcmd) : "call"
-           e(variance) : "pooledvariance"
+         e(depvarlist) : "y1 y1_binary"
           e(tmvarlist) : "x1 0b.x2 1.x2 0b.x3 1.x3 x4 x5 x6 x7 x90 x91 x92 x93 x94 x95"
                e(tvar) : "treat"
+           e(variance) : "pooledvariance"
                e(stat) : "ate"
          e(properties) : "b"
              e(depvar) : "treat"
@@ -463,9 +488,8 @@ treat        |
 J test for overidentifying restrictions: P(chisq>7.142, 14) = 0.929
 . psweight cbpsoid `treatvar' `varlist' if `tousevar' , ate pooledvariance  `depvaropt'
 
-  408 control obs
-  92 treatment obs
-  (Data are unweighted.)
+
+
   Step 1 (initial values from logit model):
 initial:       f(p) = -346.57359
 alternative:   f(p) = -283.03849
@@ -619,9 +643,8 @@ treat        |
 ------------------------------------------------------------------------------
 . psweight cbps `treatvar' `varlist' if `tousevar' , atet pooledvariance  `depvaropt'
 
-  408 control obs
-  92 treatment obs
-  (Data are unweighted.)
+
+
   Step 1 (initial values from logit model):
 initial:       f(p) = -346.57359
 alternative:   f(p) = -283.03849
@@ -780,9 +803,8 @@ treat        |
 J test for overidentifying restrictions: P(chisq>15.137, 14) = 0.369
 . psweight cbpsoid `treatvar' `varlist' if `tousevar' , atet pooledvariance  `depvaropt'
 
-  408 control obs
-  92 treatment obs
-  (Data are unweighted.)
+
+
   Step 1 (initial values from logit model):
 initial:       f(p) = -346.57359
 alternative:   f(p) = -283.03849
@@ -969,9 +991,8 @@ _treated |         N      mean        sd       min        p1       p10       p25
 . // Other objective functions
 . psweight mean_sd_sq `treatvar' `varlist' if `tousevar' , atet treatvariance difficult nonrtolerance `depvaropt'
 
-  408 control obs
-  92 treatment obs
-  (Data are unweighted.)
+
+
   Step 1 (initial values from logit model):
 initial:       f(p) = -346.57359
 alternative:   f(p) = -283.03849
@@ -1087,9 +1108,8 @@ _treated |         N      mean        sd       min        p1       p10       p25
 . 
 . psweight sd_sq `treatvar' `varlist' if `tousevar' , atet treatvariance difficult nonrtolerance `depvaropt'
 
-  408 control obs
-  92 treatment obs
-  (Data are unweighted.)
+
+
   Step 1 (initial values from logit model):
 initial:       f(p) = -346.57359
 alternative:   f(p) = -283.03849
@@ -1256,9 +1276,8 @@ _treated |         N      mean        sd       min        p1       p10       p25
 . 
 . psweight stdprogdiff `treatvar' `varlist' if `tousevar' , atet treatvariance difficult nonrtolerance `depvaropt'
 
-  408 control obs
-  92 treatment obs
-  (Data are unweighted.)
+
+
   Step 1 (initial values from logit model):
 initial:       f(p) = -346.57359
 alternative:   f(p) = -283.03849
@@ -1380,7 +1399,7 @@ _treated |         N      mean        sd       min        p1       p10       p25
 . 
 . 
 . // IPW
-. teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' , atet aequations
+. teffects ipw (`:word 1 of `depvarlist'') (`treatvar' `varlist') if `tousevar' , atet aequations
 
 Iteration 0:   EE criterion =  5.570e-18  
 Iteration 1:   EE criterion =  4.891e-26  
@@ -1491,9 +1510,8 @@ TME1                    |
   -----------------------------------------------------------------
 . psweight ipw `treatvar' `varlist' if `tousevar' , atet averagevariance `depvaropt'
 
-  408 control obs
-  92 treatment obs
-  (Data are unweighted.)
+
+
 initial:       f(p) = -346.57359
 alternative:   f(p) = -283.03849
 rescale:       f(p) = -247.46401
@@ -1591,9 +1609,8 @@ _treated |         N      mean        sd       min        p1       p10       p25
 . 
 . psweight ipw `treatvar' `varlist' if `tousevar' , atet averagevariance `depvaropt'
 
-  408 control obs
-  92 treatment obs
-  (Data are unweighted.)
+
+
 initial:       f(p) = -346.57359
 alternative:   f(p) = -283.03849
 rescale:       f(p) = -247.46401
@@ -1689,7 +1706,7 @@ _treated |         N      mean        sd       min        p1       p10       p25
 ------------------------------------------------------------------------
   Note: The std_diff column does not account for the standard error of the linear predictions.
 . 
-. teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' , ate aequations
+. teffects ipw (`:word 1 of `depvarlist'') (`treatvar' `varlist') if `tousevar' , ate aequations
 
 Iteration 0:   EE criterion =  5.570e-18  
 Iteration 1:   EE criterion =  2.096e-25  
@@ -1732,9 +1749,8 @@ TME1                    |
 -----------------------------------------------------------------------------------------
 . psweight ipw `treatvar' `varlist' if `tousevar' , ate pooledvariance
 
-  408 control obs
-  92 treatment obs
-  (Data are unweighted.)
+
+
 initial:       f(p) = -346.57359
 alternative:   f(p) = -283.03849
 rescale:       f(p) = -247.46401
@@ -1821,7 +1837,7 @@ _treated |         N      mean        sd       min        p1       p10       p25
   Kurtosis of matching weights:       = 0.08385
   Maximum matching weight:            = 4.89817
 . 
-. teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' , atet aequations tlevel(0) control(1)
+. teffects ipw (`:word 1 of `depvarlist'') (`treatvar' `varlist') if `tousevar' , atet aequations tlevel(0) control(1)
 
 Iteration 0:   EE criterion =  5.570e-18  
 Iteration 1:   EE criterion =  4.050e-26  
@@ -1864,9 +1880,8 @@ TME0                    |
 -----------------------------------------------------------------------------------------
 . psweight ipw `treatvar' `varlist' if `tousevar' , ateu pooledvariance
 
-  408 control obs
-  92 treatment obs
-  (Data are unweighted.)
+
+
 initial:       f(p) = -346.57359
 alternative:   f(p) = -283.03849
 rescale:       f(p) = -247.46401
@@ -1956,9 +1971,8 @@ _treated |         N      mean        sd       min        p1       p10       p25
 . // tradeoff between CBPS-like balance and variance in weights
 . psweight cbps `treatvar' `varlist' if `tousevar' , atet treatvariance `depvaropt'
 
-  408 control obs
-  92 treatment obs
-  (Data are unweighted.)
+
+
   Step 1 (initial values from logit model):
 initial:       f(p) = -346.57359
 alternative:   f(p) = -283.03849
@@ -2090,9 +2104,8 @@ _treated |         N      mean        sd       min        p1       p10       p25
 . 
 . psweight pcbps `treatvar' `varlist' if `tousevar' , atet treatvariance cvtarget(1 .75 6) `depvaropt'
 
-  408 control obs
-  92 treatment obs
-  (Data are unweighted.)
+
+
   Step 1 (initial values from logit model):
 initial:       f(p) = -346.57359
 alternative:   f(p) = -283.03849
@@ -2315,9 +2328,8 @@ _treated |         N      mean        sd       min        p1       p10       p25
 . 
 . psweight cbps `treatvar' `varlist' if `tousevar' , atet treatvariance cvtarget(1 .50 6) `depvaropt' // could say pcbps or cbps
 
-  408 control obs
-  92 treatment obs
-  (Data are unweighted.)
+
+
   Step 1 (initial values from logit model):
 initial:       f(p) = -346.57359
 alternative:   f(p) = -283.03849
@@ -2540,9 +2552,8 @@ _treated |         N      mean        sd       min        p1       p10       p25
 . 
 . psweight mean_sd_sq `treatvar' `varlist' if `tousevar' , atet treatvariance cvtarget(1 .75 6) difficult nonrtolerance `depvaropt'
 
-  408 control obs
-  92 treatment obs
-  (Data are unweighted.)
+
+
   Step 1 (initial values from logit model):
 initial:       f(p) = -346.57359
 alternative:   f(p) = -283.03849
@@ -2718,9 +2729,8 @@ _treated |         N      mean        sd       min        p1       p10       p25
 . 
 . psweight mean_sd_sq `treatvar' `varlist' if `tousevar' , atet treatvariance cvtarget(1 .50 6) difficult nonrtolerance `depvaropt'
 
-  408 control obs
-  92 treatment obs
-  (Data are unweighted.)
+
+
   Step 1 (initial values from logit model):
 initial:       f(p) = -346.57359
 alternative:   f(p) = -283.03849
@@ -2947,9 +2957,8 @@ _treated |         N      mean        sd       min        p1       p10       p25
 . 
 . psweight cbpsoid `treatvar' `varlist' if `tousevar' , atet treatvariance cvtarget(1 .75 6) `depvaropt'
 
-  408 control obs
-  92 treatment obs
-  (Data are unweighted.)
+
+
   Step 1 (initial values from logit model):
 initial:       f(p) = -346.57359
 alternative:   f(p) = -283.03849
@@ -3150,9 +3159,8 @@ _treated |         N      mean        sd       min        p1       p10       p25
 . // furthermore, you can target skiwness, kurtosis, or max weight
 . psweight pcbps `treatvar' `varlist' if `tousevar', atet treatvariance cvtarget(1 .5 6) skewtarget(1 0.07 2) `depvaropt'
 
-  408 control obs
-  92 treatment obs
-  (Data are unweighted.)
+
+
   Step 1 (initial values from logit model):
 initial:       f(p) = -346.57359
 alternative:   f(p) = -283.03849
@@ -3376,9 +3384,8 @@ _treated |         N      mean        sd       min        p1       p10       p25
 . capture nois {
 . psweight pcbps `treatvar' `varlist' if `tousevar', atet treatvariance maxtarget(1 10 2) difficult nonrtolerance `depvaropt'
 
-  408 control obs
-  92 treatment obs
-  (Data are unweighted.)
+
+
   Step 1 (initial values from logit model):
 initial:       f(p) = -346.57359
 alternative:   f(p) = -283.03849
@@ -3519,7 +3526,7 @@ convergence not achieved
 
 Propensity score model coefficients                Number of obs  =        500
 Propensity score reweigting
-Loss = CBPS (just identified) + 0*abs(wgt_cv()-0)^2) + 0*abs(wgt_skewness()-0)^2) + 0*abs(wgt_kurtosis()-0)^2) + 1*abs(wgt_max()-10)^2)
+Loss = CBPS (just identified) + 1*abs(wgt_max()-10)^2)
 ------------------------------------------------------------------------------
        treat |      Coef.
 -------------+----------------------------------------------------------------
@@ -3609,8 +3616,8 @@ _treated |         N      mean        sd       min        p1       p10       p25
 . // Replicate CBPS
 . psweight cbps `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], ate pooledvariance `depvaropt'
 
-  408 control obs (sum of weights = 802.3793)
-  92 treatment obs (sum of weights = 180.1725)
+
+
   Step 1 (initial values from logit model):
 initial:       f(p) = -681.05307
 alternative:   f(p) =  -555.8915
@@ -3785,8 +3792,8 @@ _treated |         N      mean        sd       min        p1       p10       p25
 . 
 . psweight cbpsoid `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], ate pooledvariance `depvaropt'
 
-  408 control obs (sum of weights = 802.3793)
-  92 treatment obs (sum of weights = 180.1725)
+
+
   Step 1 (initial values from logit model):
 initial:       f(p) = -681.05307
 alternative:   f(p) =  -555.8915
@@ -3932,8 +3939,8 @@ _treated |         N      mean        sd       min        p1       p10       p25
 . 
 . psweight cbps `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet pooledvariance `depvaropt'
 
-  408 control obs (sum of weights = 802.3793)
-  92 treatment obs (sum of weights = 180.1725)
+
+
   Step 1 (initial values from logit model):
 initial:       f(p) = -681.05307
 alternative:   f(p) =  -555.8915
@@ -4097,8 +4104,8 @@ _treated |         N      mean        sd       min        p1       p10       p25
 . 
 . psweight cbpsoid `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet pooledvariance `depvaropt'
 
-  408 control obs (sum of weights = 802.3793)
-  92 treatment obs (sum of weights = 180.1725)
+
+
   Step 1 (initial values from logit model):
 initial:       f(p) = -681.05307
 alternative:   f(p) =  -555.8915
@@ -4244,8 +4251,8 @@ _treated |         N      mean        sd       min        p1       p10       p25
 . // Other objective functions
 . psweight mean_sd_sq `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet treatvariance difficult nonrtolerance `depvaropt'
 
-  408 control obs (sum of weights = 802.3793)
-  92 treatment obs (sum of weights = 180.1725)
+
+
   Step 1 (initial values from logit model):
 initial:       f(p) = -681.05307
 alternative:   f(p) =  -555.8915
@@ -4362,8 +4369,8 @@ _treated |         N      mean        sd       min        p1       p10       p25
 . 
 . psweight sd_sq `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet treatvariance difficult nonrtolerance `depvaropt'
 
-  408 control obs (sum of weights = 802.3793)
-  92 treatment obs (sum of weights = 180.1725)
+
+
   Step 1 (initial values from logit model):
 initial:       f(p) = -681.05307
 alternative:   f(p) =  -555.8915
@@ -4534,8 +4541,8 @@ _treated |         N      mean        sd       min        p1       p10       p25
 . 
 . psweight stdprogdiff `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet treatvariance difficult nonrtolerance `depvaropt'
 
-  408 control obs (sum of weights = 802.3793)
-  92 treatment obs (sum of weights = 180.1725)
+
+
   Step 1 (initial values from logit model):
 initial:       f(p) = -681.05307
 alternative:   f(p) =  -555.8915
@@ -4657,7 +4664,7 @@ _treated |         N      mean        sd       min        p1       p10       p25
   Note: The std_diff column does not account for the standard error of the linear predictions.
 . 
 . // IPW
-. teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' [iw=`wgtvar'], atet aequations
+. teffects ipw (`:word 1 of `depvarlist'') (`treatvar' `varlist') if `tousevar' [iw=`wgtvar'], atet aequations
 
 Iteration 0:   EE criterion =  3.987e-18  
 Iteration 1:   EE criterion =  1.443e-26  
@@ -4767,10 +4774,10 @@ TME1                    |
               x95 |  -.0658282   -.0807251      1.008285   .8354051
   -----------------------------------------------------------------
 . 
-. psweight ipw `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet treatvariance `depvaropt'
+. psweight ipw `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet treatvariance `depvaropt' ntable
 
-  408 control obs (sum of weights = 802.3793)
-  92 treatment obs (sum of weights = 180.1725)
+
+
 initial:       f(p) = -681.05307
 alternative:   f(p) =  -555.8915
 rescale:       f(p) = -485.05844
@@ -4780,6 +4787,14 @@ Iteration 2:   f(p) = -411.28933
 Iteration 3:   f(p) = -411.19869  
 Iteration 4:   f(p) = -411.19865  
 Iteration 5:   f(p) = -411.19865  
+  
+-------------------------------------------------------
+                      | Treatment    Control      Total
+----------------------+--------------------------------
+       Number of rows |        92        408        500
+Sum of sample weights |  180.1725   802.3793   982.5519
+       Sum of weights |  180.1725   802.3793   982.5519
+-------------------------------------------------------
 
 Propensity score model coefficients                Number of obs  =        983
 Propensity score reweigting
@@ -4911,8 +4926,8 @@ _treated |         N      mean        sd       min        p1       p10       p25
 . 
 . psweight ipw `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet averagevariance `depvaropt'
 
-  408 control obs (sum of weights = 802.3793)
-  92 treatment obs (sum of weights = 180.1725)
+
+
 initial:       f(p) = -681.05307
 alternative:   f(p) =  -555.8915
 rescale:       f(p) = -485.05844
@@ -5009,7 +5024,7 @@ _treated |         N      mean        sd       min        p1       p10       p25
 ------------------------------------------------------------------------
   Note: The std_diff column does not account for the standard error of the linear predictions.
 . 
-. teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' [iw=`wgtvar'], ate aequations
+. teffects ipw (`:word 1 of `depvarlist'') (`treatvar' `varlist') if `tousevar' [iw=`wgtvar'], ate aequations
 
 Iteration 0:   EE criterion =  3.987e-18  
 Iteration 1:   EE criterion =  2.429e-25  
@@ -5052,8 +5067,8 @@ TME1                    |
 -----------------------------------------------------------------------------------------
 . psweight ipw `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], ate treatvariance
 
-  408 control obs (sum of weights = 802.3793)
-  92 treatment obs (sum of weights = 180.1725)
+
+
 initial:       f(p) = -681.05307
 alternative:   f(p) =  -555.8915
 rescale:       f(p) = -485.05844
@@ -5141,7 +5156,7 @@ _treated |         N      mean        sd       min        p1       p10       p25
   Kurtosis of matching weights:       = 0.06628
   Maximum matching weight:            = 4.72518
 . 
-. teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' [iw=`wgtvar'], atet aequations tlevel(0) control(1)
+. teffects ipw (`:word 1 of `depvarlist'') (`treatvar' `varlist') if `tousevar' [iw=`wgtvar'], atet aequations tlevel(0) control(1)
 
 Iteration 0:   EE criterion =  3.987e-18  
 Iteration 1:   EE criterion =  9.605e-26  
@@ -5184,8 +5199,8 @@ TME0                    |
 -----------------------------------------------------------------------------------------
 . psweight ipw `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], ateu treatvariance `depvaropt'
 
-  408 control obs (sum of weights = 802.3793)
-  92 treatment obs (sum of weights = 180.1725)
+
+
 initial:       f(p) = -681.05307
 alternative:   f(p) =  -555.8915
 rescale:       f(p) = -485.05844
@@ -5241,8 +5256,8 @@ _treated |         N      mean        sd       min        p1       p10       p25
 . // tradeoff between CBPS-like balance and variance in weights
 . psweight cbps `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet  treatvariance `depvaropt'
 
-  408 control obs (sum of weights = 802.3793)
-  92 treatment obs (sum of weights = 180.1725)
+
+
   Step 1 (initial values from logit model):
 initial:       f(p) = -681.05307
 alternative:   f(p) =  -555.8915
@@ -5406,8 +5421,8 @@ _treated |         N      mean        sd       min        p1       p10       p25
 . 
 . psweight pcbps `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet treatvariance cvtarget(1 .75 6) `depvaropt'
 
-  408 control obs (sum of weights = 802.3793)
-  92 treatment obs (sum of weights = 180.1725)
+
+
   Step 1 (initial values from logit model):
 initial:       f(p) = -681.05307
 alternative:   f(p) =  -555.8915
@@ -5574,8 +5589,8 @@ _treated |         N      mean        sd       min        p1       p10       p25
 . 
 . psweight pcbps `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet treatvariance cvtarget(1 .50 6) `depvaropt'
 
-  408 control obs (sum of weights = 802.3793)
-  92 treatment obs (sum of weights = 180.1725)
+
+
   Step 1 (initial values from logit model):
 initial:       f(p) = -681.05307
 alternative:   f(p) =  -555.8915
@@ -5742,8 +5757,8 @@ _treated |         N      mean        sd       min        p1       p10       p25
 . 
 . psweight mean_sd_sq `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet treatvariance cvtarget(1 .75 6) difficult nonrtolerance `depvaropt'
 
-  408 control obs (sum of weights = 802.3793)
-  92 treatment obs (sum of weights = 180.1725)
+
+
   Step 1 (initial values from logit model):
 initial:       f(p) = -681.05307
 alternative:   f(p) =  -555.8915
@@ -5935,8 +5950,8 @@ _treated |         N      mean        sd       min        p1       p10       p25
 . 
 . psweight mean_sd_sq `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet treatvariance cvtarget(1 .50 6) difficult nonrtolerance `depvaropt'
 
-  408 control obs (sum of weights = 802.3793)
-  92 treatment obs (sum of weights = 180.1725)
+
+
   Step 1 (initial values from logit model):
 initial:       f(p) = -681.05307
 alternative:   f(p) =  -555.8915
@@ -6161,8 +6176,8 @@ _treated |         N      mean        sd       min        p1       p10       p25
 . capture nois {
 . psweight mean_sd_sq `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet treatvariance maxtarget(1 10 2) difficult nonrtolerance `depvaropt'
 
-  408 control obs (sum of weights = 802.3793)
-  92 treatment obs (sum of weights = 180.1725)
+
+
   Step 1 (initial values from logit model):
 initial:       f(p) = -681.05307
 alternative:   f(p) =  -555.8915
@@ -6244,7 +6259,7 @@ Iteration 21:  f(p) =   .0000271  (backed up)
 
 Propensity score model coefficients                Number of obs  =        983
 Propensity score reweigting
-Loss = mean(stddiff())^2 + 0*abs(wgt_cv()-0)^2) + 0*abs(wgt_skewness()-0)^2) + 0*abs(wgt_kurtosis()-0)^2) + 1*abs(wgt_max()-10)^2)
+Loss = mean(stddiff())^2 + 1*abs(wgt_max()-10)^2)
 ------------------------------------------------------------------------------
        treat |      Coef.
 -------------+----------------------------------------------------------------
@@ -6333,5 +6348,5 @@ _treated |         N      mean        sd       min        p1       p10       p25
       name:  psweight_example_ado
        log:  C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\psweight_example_ado.log
   log type:  text
- closed on:   7 Jun 2019, 14:17:13
+ closed on:  12 Jun 2019, 00:42:11
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
