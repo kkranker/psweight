@@ -60,13 +60,14 @@ program Estimate, eclass sortpreserve byable(recall)
 
   // standard syntax parsing
   syntax varlist(min=2 numeric fv) [if] [in] [fw iw/], ///
-          [ DEPvars(varlist numeric) /// outcome variables (if any)
+          [ DEPvarlist(varlist numeric) /// outcome variables (if any)
             ate atet ateu /// to fill in stat
-            TREatvariance CONtrolvariance POOledvariance Averagevariance /// to fill in denominator
-            cvtarget(numlist min=3 max=3) skewtarget(numlist min=3 max=3) kurttarget(numlist min=3 max=3) ///
-            maxtarget(numlist min=3 max=3) ///  maxtarget is undocumented since it tends not to converge
+            TREatvariance CONtrolvariance POOledvariance AVEragevariance /// to fill in denominator
+            CVTarget(numlist min=3 max=3) SKEWTarget(numlist min=3 max=3) KURTTarget(numlist min=3 max=3) ///
+            maxtarget(numlist min=3 max=3) ///  maxtarget is undocumented since it does not converge well
             from(name) /// starting values for maximization
             MWeight(varname numeric) /// 'matching weights' for balanceonly option
+            NTABle /// show sample size table at bottom
             * ] //  display and ml options are allowed
   marksample tousevar
   _get_diopts diopts options, `options'
@@ -110,7 +111,7 @@ program Estimate, eclass sortpreserve byable(recall)
   gettoken trash varlist : varlist
 
   // check type of dependent variables (if any)
-  foreach v of local depvars {
+  foreach v of local depvarlist {
     markout `tousevar' `v'
     _fv_check_depvar `v'
   }
@@ -135,9 +136,9 @@ program Estimate, eclass sortpreserve byable(recall)
   }
 
   // parse the "cvopt" option
-  if (!mi("`maxtarget'")  & mi("`kurttarget'")) local kurttarget "0 0 2"
-  if (!mi("`kurttarget'") & mi("`skewtarget'")) local skewtarget "0 0 2"
-  if (!mi("`skewtarget'") & mi("`cvtarget'"))   local cvtarget   "0 0 2"
+  if (!mi("`maxtarget'")  & mi("`kurttarget'")) local kurttarget "0 . ."
+  if (!mi("`kurttarget'") & mi("`skewtarget'")) local skewtarget "0 . ."
+  if (!mi("`skewtarget'") & mi("`cvtarget'"))   local cvtarget   "0 . ."
   local cvopt "`cvtarget' `skewtarget' `kurttarget' `maxtarget'"
   local cvopt : list clean cvopt
   if ("`subcmd'"=="balanceonly" & "`cvopt'"!="") {
@@ -177,6 +178,7 @@ program Estimate, eclass sortpreserve byable(recall)
     cap mata: mata drop psweight_ado_most_recent
   }
   return clear
+  di _n
 
   // balanceonly option just prints balance and then end the program
   if ("`subcmd'"=="balanceonly") {
@@ -203,19 +205,20 @@ program Estimate, eclass sortpreserve byable(recall)
   else if ("`subcmd'"=="sd_sq"      ) di as txt "Loss = sum(stddiff()^2)" _c
   else if ("`subcmd'"=="stdprogdiff") di as txt "Loss = sum(stdprogdiff()^2)" _c
   tokenize `cvopt'
-  if ("`1'"!="")  di as txt   " + `1'*abs(wgt_cv()-`2')^`3')" _c
-  if ("`4'"!="")  di as txt   " + `4'*abs(wgt_skewness()-`5')^`6')" _c
-  if ("`7'"!="")  di as txt   " + `7'*abs(wgt_kurtosis()-`8')^`9')" _c
-  if ("`10'"!="") di as txt   " + `10'*abs(wgt_max()-`11')^`12')" _c
+  if !inlist(`"`1'"' , "", "0", ".")  di as txt   " + `1'*abs(wgt_cv()-`2')^`3')" _c
+  if !inlist(`"`4'"' , "", "0", ".")  di as txt   " + `4'*abs(wgt_skewness()-`5')^`6')" _c
+  if !inlist(`"`7'"' , "", "0", ".")  di as txt   " + `7'*abs(wgt_kurtosis()-`8')^`9')" _c
+  if !inlist(`"`10'"', "", "0", ".")  di as txt   " + `10'*abs(wgt_max()-`11')^`12')" _c
   di ""
   ereturn post `psweight_beta_out' `wgtexp', obs(`psweight_N_out') buildfvinfo esample(`tousevar') depname("`tvar'")
-  ereturn local stat                      = "`stat'"
-  ereturn local tvar                      = strtrim("`tvar'")
-  ereturn local tmvarlist                 = strtrim("`varlist'")
-  ereturn local variance                  = "`variance'"
-  if ("`weight'"!="") ereturn local wtype = "`weight'"
-  if ("`wexp'"!="")   ereturn local wexp  = "`wexp'"
-  if ("`cvopt'"!="")  ereturn local cvopt = "`cvopt'"
+  ereturn                         local stat       = "`stat'"
+  ereturn                         local variance   = "`variance'"
+  ereturn                         local tvar       = strtrim("`tvar'")
+  ereturn                         local tmvarlist  = strtrim("`varlist'")
+  if ("`depvarlist'"!="") ereturn local depvarlist = "`depvarlist'"
+  if ("`weight'"!="")     ereturn local wtype      = "`weight'"
+  if ("`wexp'"!="")       ereturn local wexp       = "`wexp'"
+  if ("`cvopt'"!="")      ereturn local cvopt      = "`cvopt'"
   _coef_table, `diopts'
 
   // print distribution of weights to screen
@@ -228,6 +231,16 @@ end
 program define get_matrix_table_options, sclass
   syntax [, format(passthru) NOOMITted vsquish NOEMPTYcells BASElevels ALLBASElevels NOFVLABel fvwrap(passthru) fvwrapon(passthru) nolstretch *]
   sreturn local opts = strrtrim(stritrim(`"`format' `noomitted' `vsquish' `noemptycells' `baselevels' `passthru' `allbaselevels' `nofvlabel' `fvwrap' `fvwrapon' `nolstretch'"'))
+end
+
+// this is a trivial workaround for the problem that
+// you're not allowed to do:
+// .  _matrix_table r(matname)
+program define flex_matrix_table
+  syntax anything [, *]
+  tempname copy
+  matrix `copy' = `anything'
+  _matrix_table `copy', `options'
 end
 
 
@@ -265,13 +278,13 @@ void psweightado::set_opts(string scalar stat_in, string scalar subcmd_in, real 
 }
 
 // sets this.W appropriately for the balanceonly option in the .ado file
-void psweightado::userweight(| string scalar wgtvar, string scalar tousevar) {
-  if (args()==0 | wgtvar=="") this.reweight()
+void psweightado::userweight(| string scalar swvar, string scalar tousevar) {
+  if (args()==0 | swvar=="") this.reweight()
   else if (args()==2) {
     real colvector userweight
     userweight=.
-    st_view(userweight, ., wgtvar, tousevar)
-    if (length(userweight)!=length(this.T)) _error("Unexpected dimension for " + wgtvar)
+    st_view(userweight, ., swvar, tousevar)
+    if (length(userweight)!=length(this.T)) _error("Unexpected dimension for " + swvar)
     this.reweight(userweight)
   }
   else _error("userweight() requires 0 or 2 arguments")
@@ -302,8 +315,8 @@ real matrix    psweightado::balancetable()   return(this.super.balancetable(this
 //          == 0: just calcuate balance
 void Estimate(real scalar reweight) {
   external class   psweightado scalar psweight_ado_most_recent
-  string scalar    tvar, varlist, tousevar, wgtvar, depvars
-  string scalar    stat, subcmd, mweightvar
+  string scalar    tvar, varlist, tousevar, swvar, depvarlist
+  string scalar    stat, subcmd, mweightvar, ntable
   real   scalar    denominator
   real   rowvector cvopt
   transmorphic temp
@@ -312,11 +325,12 @@ void Estimate(real scalar reweight) {
   tvar        = st_local("tvar")
   varlist     = st_local("varlist")
   tousevar    = st_local("tousevar")
-  wgtvar      = st_local("wgtvar")
-  depvars     = st_local("depvars")
+  swvar       = st_local("wgtvar") // note: the .ado files uses "wghvar" (from syntax) while my Mata code uses swvar
+  depvarlist  = st_local("depvarlist")
   stat        = st_local("stat")
   subcmd      = st_local("subcmd")
   denominator = strtoreal(st_local("denominator"))
+  ntable      = st_local("ntable")
   if  (st_local("cvopt")!="") {
     cvopt       = strtoreal(tokens(st_local("cvopt")))
   }
@@ -324,9 +338,9 @@ void Estimate(real scalar reweight) {
 
   // initialize class and read in data and parameters
   psweight_ado_most_recent = psweightado()
-  if  (wgtvar!="") psweight_ado_most_recent.st_set(tvar, varlist, tousevar, wgtvar)
-  else             psweight_ado_most_recent.st_set(tvar, varlist, tousevar)
-  if (depvars!="") psweight_ado_most_recent.st_set_depvar(depvars, tousevar)
+  if  (swvar!="")     psweight_ado_most_recent.st_set(tvar, varlist, tousevar, swvar)
+  else                psweight_ado_most_recent.st_set(tvar, varlist, tousevar)
+  if (depvarlist!="") psweight_ado_most_recent.st_set_depvars(depvarlist, tousevar)
   psweight_ado_most_recent.set_opts(stat, subcmd, denominator, cvopt)
 
   // compute invere probabily weights
@@ -348,6 +362,12 @@ void Estimate(real scalar reweight) {
 
   // stick obs-specific weigths and such into Stata vaiables
   psweight_ado_most_recent.fill_vars("_weight _weight_mtch _pscore _treated", tousevar)
+
+  if (ntable != "") {
+    temp = psweight_ado_most_recent.get_N()
+    ""
+    stata("cap nois flex_matrix_table r(N_table)")
+  }
 }
 
 end
