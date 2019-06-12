@@ -3,6 +3,7 @@
                                                      ___/   /   /___/   /   /___/    
                                                        Statistics/Data Analysis      
       
+      ﻿
       Title
       
        psweight -- IPW- and CBPS-type propensity score reweighting, with various
@@ -30,70 +31,75 @@
                   variable, and v is a new Mata variable; see details below.
       
       
-          subcmd            Description
+          subcmd              Description
           -------------------------------------------------------------------------
-          ipw               logit regression
-          cbps              just-identified covariate-balancing propensity score
-          cbpsoid           over-identified covariate-balancing propensity score
-          pcbps             penalized covariate-balancing propensity score
-          mean_sd_sq        minimize mean(stddiff())^2
-          sd_sq             minimize sum(stddiff()^2)
-          stdprogdiff       minimize sum(stdprogdiff()^2)
-          mean_sd           synonym for mean_sd_sq
-          sd                synonym for sd_sq
+          ipw                 logit regression
+          cbps                just-identified covariate-balancing propensity score
+          cbpsoid             over-identified covariate-balancing propensity score
+          pcbps               penalized covariate-balancing propensity score
+          mean_sd_sq          minimize mean(stddiff())^2
+          sd_sq               minimize sum(stddiff()^2)
+          stdprogdiff         minimize sum(stdprogdiff()^2)
+          mean_sd             synonym for mean_sd_sq
+          sd                  synonym for sd_sq
           -------------------------------------------------------------------------
           Only one subcmd may be specified.
       
       
-          stat              Description
+          stat                Description
           -------------------------------------------------------------------------
-          ate               estimate average treatment effect in population; the
-                              default
-          atet              estimate average treatment effect on the treated
-          ateu              estimate average treatment effect on the untreated
+          ate                 estimate average treatment effect in population; the
+                                default
+          atet                estimate average treatment effect on the treated
+          ateu                estimate average treatment effect on the untreated
           -------------------------------------------------------------------------
           Only one stat may be specified.
       
       
-          penalty           Description
+          penalty             Description
           -------------------------------------------------------------------------
-          cvtarget(# # #)   applies penalty using the coefficient of variation of
-                              the weight distribution; default is no penalty:
-                              cvtarget(0 0 2)
-          skewtarget(# # #) applies penalty using the skewness of the weight
-                              distribution; default no penalty: skewtarget (0 0 2)
-          kurttarget(# # #) applies penalty using the excess kurtosis of the weight
-                              distribution; default no penalty: kurttarget(0 0 2)
+          cvtarget(# # #)     applies penalty using the coefficient of variation of
+                                the weight distribution; default is no penalty:
+                                cvtarget(0 0 2)
+          skewtarget(# # #)   applies penalty using the skewness of the weight
+                                distribution; default no penalty: skewtarget (0 0
+                                2)
+          kurttarget(# # #)   applies penalty using the excess kurtosis of the
+                                weight distribution; default no penalty:
+                                kurttarget(0 0 2)
           -------------------------------------------------------------------------
           One or more penalty options may be specified.
       
       
-          variance          Description
+          variance            Description
           -------------------------------------------------------------------------
-          pooledvariance    uses the pooled (treatment plus control) sample's
-                              variances to calculate standardized differences; the
-                              default
-          controlvariance   uses the control groups' variances to calculate
-                              standardized differences
-          treatvariance     uses the treatment groups' variances to calculate
-                              standardized difference
-          averagevariance   uses (the control groups' variances + treatment groups'
-                              variances)/2 to calculate standardized differences
+          pooledvariance      uses the pooled (treatment plus control) sample's
+                                variances to calculate standardized differences;
+                                the default
+          controlvariance     uses the control group's variances to calculate
+                                standardized differences
+          treatvariance       uses the treatment group's variances to calculate
+                                standardized difference
+          averagevariance     uses (the control group's variances + treatment
+                                group's variances)/2 to calculate standardized
+                                differences
           -------------------------------------------------------------------------
           Only one variance may be specified.
       
       
-          options           Description
+          options             Description
           -------------------------------------------------------------------------
-          depvars(varlist)  outcome variables
-          display_options    control columns and column formats, row spacing, line
-                              width, display of omitted variables and base and
-                              empty cells, and factor-variable labeling
-          maximize_options  control the maximization process; seldom used
-          coeflegend        display legend instead of statistics
+          depvarlist(varlist) outcome variables
+          display_options     control columns and column formats, row spacing, line
+                                width, display of omitted variables and base and
+                                empty cells, and factor-variable labeling
+          maximize_options    control the maximization process; seldom used
+          ntable              display a table with sample sizes
+          coeflegend          display legend instead of statistics
           -------------------------------------------------------------------------
           tmvarlist may contain factor variables; see fvvarlists.
-          fweights and iweights are allowed; see weight.
+          Sample weights may be specified as fweights or iweights; see weight.
+            iweights are treated the same as fweights.
       
       
       Description
@@ -103,21 +109,22 @@
       
           psweight subcmd computes inverse-probability weighting (IPW) weights for
           average treatment effect, average treatment effect on the treated, and
-          average treatment effect estimators for observational data.  IPW
-          estimators use estimated probability weights to correct for the missing
-          data on the potential outcomes).  Probabilities of treatment--propensity
-          scores--are computed for each observation with one of variety of methods,
-          including logistic regression (traditional IPW), covariate balance
-          propensity scores (CBPS), penalized balance propensity scores (PCBPS)
-          prognostic score balancing propensity scores, and other methods.
+          average treatment effect on the untreated estimators for observational
+          data.  IPW estimators use estimated probability weights to correct for
+          the missing data on the potential outcomes.  Probabilities of
+          treatment--propensity scores--are computed for each observation with one
+          of a variety of methods, including logistic regression (traditional IPW),
+          covariate-balancing propensity scores (CBPS), penalized
+          covariate-balancing propensity scores (PCBPS), prognostic score-balancing
+          propensity scores, and other methods.
       
-          psweight balance constructs a balance table instead of computing IPW
+          psweight balance constructs a balance table without computing IPW
           weights.  The most common use case is when you wish to construct a
-          balance table for the unweighted sample.  However you can also construct
+          balance table for the unweighted sample.  However, you can also construct
           a balance table with user-supplied weights.
       
           After running psweight you can apply class functions to your data or
-          access results through psweight call; see details below
+          access results through psweight call; see details below.
       
       
       Remarks
@@ -129,8 +136,8 @@
           psweight subcmd solves for propensity score model coefficients,
           propensity scores, and IPW weights as follows:
       
-              The first step involves computing coefficients, b, for the propensity
-              score model.  The propensity score model takes the form of a logit
+              The first step involves computing coefficients for the propensity
+              score model, b.  The propensity score model takes the form of a logit
               regression model.  Specifically, the propensity score for each row in
               the data is defined as
       
@@ -139,37 +146,38 @@
               where X is the vector of matching variables (tmvarlist) for the
               respective row.
       
-              You specify a subcmd to controls how the vector b is computed in the
+              You specify a subcmd to control how the vector b is computed in the
               internal numerical optimization problem.  As discussed in Kranker,
               Blue, and Vollmer Forrow (2019), we can set up optimization problems
               to solve for the b that produces the best fit in the propensity score
-              model, the b that produces best balance on matching variables, the b
-              that produces the best balance on prognostic scores, or something
-              else.  The subcmd also determines how the term "best balance" is
-              defined in the previous sentence.  That is, for a given subcmd, we
-              can generically define b as the vector that solves the problem:
+              model, the b that produces the best balance on matching variables,
+              the b that produces the best balance on prognostic scores, or
+              something else.  The subcmd also determines how the term "best
+              balance" is defined in the previous sentence.  That is, for a given
+              subcmd, we can generically define b as the vector that solves the
+              problem:
       
                                     b = argmin L(X,T,W)
       
               where L(X,T,W) is a "loss function" that corresponds to the specified
-              subcmd (e.g., logit regression or CBPS), given the data ((X,T) and
-              vector of weights W.  (The weights are computed using the propensity
-              scores, as we describe below.  The propensity scores are calculated
-              using b, the data, and formula given above.) The available subcmds
-              are listed below.
+              subcmd (e.g., logit regression or CBPS), given the data (X,T) and a
+              vector of weights (W).  (The weights are computed using the
+              propensity scores, as we describe below.  The propensity scores are
+              calculated using b, the data, and the formula given above.) The
+              available subcmds are listed below.
       
               In Kranker, Blue, and Vollmer Forrow (2019), we proposed adding a
-              "penalty" to the loss function that lets you to effectively
-              prespecify the variance (or higher-order moments) of the IPW weight
+              "penalty" to the loss function that lets you effectively prespecify
+              the variance (or higher-order moments) of the IPW weight
               distribution.  By constraining the distribution of the weights, you
               can choose among alternative sets of matching weights, some of which
-              produce better balance and others which yield higher statistical
+              produce better balance and others of which yield higher statistical
               power.  The penalized method solves for b in:
       
                                 b = argmin L(X,T,W) + f(W)
       
-              where f(W) is smooth, flexible function that increases as the vector
-              of observation weights (W) becomes more variable.  The penalty
+              where f(W) is a smooth, flexible function that increases as the
+              vector of observation weights (W) becomes more variable.  The penalty
               options control the functional form of f(W); see details below.
       
               Once the b is estimated, we can compute propensity scores (p) for
@@ -193,10 +201,10 @@
                   - The unnormalized ateu weights are (1-p)/p for treatment group
                       observations and 1 for control group observations.
       
-              Next, the weights are normalzied to have mean equal to 1 in each
+              Next, the weights are normalized to have mean equal to 1 in each
               group, and returned in the variable named _weight_mtch.
       
-              Finally, the final weights (a variable named _weight) are set equalt
+              Finally, the final weights (a variable named _weight) are set equal
               to:
       
                                 _weight = W :* _weight_mtch
@@ -204,8 +212,8 @@
               where W are the sample weights.  (The variable _weight equals
               _weight_mtch if no sample weights are provided.  If sample weights
               are provided, the weights are normalized so the weighted mean equals
-              1.) For convenience, (a copy of) the treatment group indicator
-              variable is returned in a variable named _treated.
+              1 in each group.) For convenience, (a copy of) the treatment group
+              indicator variable is returned in a variable named _treated.
       
           After estimation, psweight subcmd will display the model coefficients b
           and a summary of the newly constructed variables.
@@ -250,26 +258,26 @@
               +--------+
           ----+ subcmd +-----------------------------------------------------------
       
-          The subcmd specifies which method is used to compute coefficients, b, for
+          The subcmd specifies which method is used to compute coefficients b for
           the propensity score model. The seven available estimation methods are:
       
-              The ipw subcmd fits a logit regression model by maximim likelihood.
+              The ipw subcmd fits a logit regression model by maximum likelihood.
       
                   The logit regression solves for b in the model:
       
                            Prob(tvar = 1 | X) = invlogit(X * b)
       
-              The cbps subcmd computes just identified covariate-balancing
+              The cbps subcmd computes just-identified covariate-balancing
               propensity scores (Imai and Ratkovic 2014).
       
-              The cbpsoid subcmd computes over identified covariate-balancing
-              propensity scores .  (Imai and Ratkovic 2014).
+              The cbpsoid subcmd computes over-identified covariate-balancing
+              propensity scores.  (Imai and Ratkovic 2014).
       
               The pcbps subcmd implements penalized covariate-balancing propensity
-              score (Kranker, Blue, and Vollmer Forrow 2019).  The pcbps subcmd
-              requires at least one penalty option be specified.  This is a synonym
-              for the cbps subcmd when one or more of the penalty option is
-              included.
+              scores (Kranker, Blue, and Vollmer Forrow 2019).  The pcbps subcmd
+              requires that at least one penalty option be specified.  This is a
+              synonym for the cbps subcmd when one or more of the penalty options
+              is included.
       
               The mean_sd_sq or mean_sd subcmds find the model coefficients that
               minimize the quantity:  mean(stddiff())^2.  That is, the weights
@@ -290,7 +298,7 @@
               are summed.
       
                   The stdprogdiff subcmd requires that dependent variables be
-                  specified (through the depvar() option).
+                  specified (through the depvarlist() option).
       
                   Prognostic scores are computed by fitting a linear regression
                   model of the tmvarlist on the dependent variable(s) by ordinary
@@ -315,7 +323,8 @@
               ateu specifies that the average treatment effect on the untreated be
               estimated.
       
-          The formulas used for computing IPW weights are described above.
+          The formulas used for computing IPW weights for each of these three stats
+          are described above.
       
       
               +---------+
@@ -329,19 +338,19 @@
                   of the weight distribution.  If cvopt(a, b, c) is specified, then
                   the loss function is modified as:
                      L'(X,T,W) = L(X,T,W) + a * abs((wgt_cv() - b)^c)
-                  The default is no penalty: cvtarget(0 0 2).
+                  The default is no penalty: cvtarget(0 . .).
       
               skewtarget(# # #) applies a penalty using the skewness of the weight
                   distribution.  If skewtarget(d, e, f) is specified, then the loss
                   function is modified as:
-                  L'(X,T,W) = L(X,T,W) + e * abs((wgt_skewness() - e)^f)
-                  The default is no penalty: skewtarget(0 0 2).
+                  L'(X,T,W) = L(X,T,W) + d * abs((wgt_skewness() - e)^f)
+                  The default is no penalty: skewtarget(0 . .).
       
               kurttarget(# # #) applies a penalty using the excess kurtosis of the
                   weight distribution.  If kurttarget(g, h, i) is specified, then
                   the loss function is modified as:
                    L'(X,T,W) = L(X,T,W) + g* abs((wgt_kurtosis() - h)^i)
-                  The default is no penalty: kurttarget(0 0 2).
+                  The default is no penalty: kurttarget(0 . .).
       
       
               +----------+
@@ -357,21 +366,21 @@
               pooledvariance uses the pooled (treatment plus control) sample's
                   variances to calculate standardized differences; the default
       
-              controlvariance uses the control groups' variances to calculate
+              controlvariance uses the control group's variances to calculate
                   standardized differences
       
-              treatvariance uses the treatment groups' variances to calculate
+              treatvariance uses the treatment group's variances to calculate
                   standardized difference
       
-              averagevariance uses (the control groups' variances + treatment
-                  groups' variances)/2 to calculate standardized differences (as in
+              averagevariance uses (the control group's variances + treatment
+                  group's variances)/2 to calculate standardized differences (as in
                   tebalance)
       
       
               +---------------+
           ----+ Other options +----------------------------------------------------
       
-          depvars(varlist) specificies dependent variables (outcome variables).
+          depvarlist(varlist) specificies dependent variables (outcome variables).
               The data for the treatment group observations are ignored, but the
               data for the the control group are used to compute prognostic scores
               (see above).
@@ -380,7 +389,7 @@
           display_options:
       
               The following options control the display of the coefficient tables:
-                  noomitted, vsquish, noemptycells, baselevels, allbaselevels
+                  noomitted, vsquish, noemptycells, baselevels, allbaselevels,
                   nofvlabel, fvwrap(#), fvwrapon(style), cformat(%fmt), and
                   nolstretch see [R] estimation options.
       
@@ -395,6 +404,8 @@
               qtolerance(#), nonrtolerance, showtolerance, and difficult.  For a
               description of these options, see [R] maximize and
               moptimize_init_mlopts().
+      
+          ntable displays a table with sample sizes and the sum of the weights.
       
           coeflegend; [R] estimation options.
       
@@ -449,15 +460,17 @@
       Acknowledgements
       
           My coauthors, Laura Blue and Lauren Vollmer Forrow, were closely involved
-          with the developement of the Penalized CBPS methodology, We received many
-          helpful suggestions from our colleages at Mathematica, especially those
-          on the Comprehensive Primary Care Evaluation team.  Of note, I thank Liz
-          Potamites for testing early versions of the program and providing helpful
-          feedback.
+          with the developement of the Penalized CBPS methodology.  We received
+          many helpful suggestions from our colleages at Mathematica, especially
+          those on the Comprehensive Primary Care Plus Evaluation team.  Of note, I
+          thank Liz Potamites for testing early versions of the program and
+          providing helpful feedback.
       
           The code for implementing the CBPS method is based on work by Fong et al.
           (2018), namely the CBPS package for R.  I also reviewed the Stata CBPS
           implementation by Filip Premik.
+      
+          Source code is available at https://github.com/kkranker/psweight
       
       
       Stored results
@@ -474,9 +487,11 @@
             e(subcmd)     specified subcmd
             e(tvar)       name of the treatment indicator (tvar)
             e(tmvarlist)  names of the matching variables (tmvarlist)
+            e(depvarlist) names of dependent variables (if any)
             e(variance)   specified variance
-            e(wtype)      weight type
-            e(wexp)       weight expression
+            e(wtype)      weight type (if any)
+            e(wexp)       weight expression (if any)
+            e(cvopt)      specified penalty (if any)
       
           In addition, psweight subcmd stores the following in e():
       
@@ -490,7 +505,10 @@
             e(sample)     marks estimation sample
       
           In addition, psweight balance stores a matrix named r(bal) and other
-          output in r(); see psweight class
+          output in r(); see the documentation for the balancetable().
+      
+          The ntable option adds a matrix stores a matrix named r(N_table) and
+          other output in r(); see the documentation for the get_N() command.
       
       
       References

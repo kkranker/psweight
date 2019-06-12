@@ -2,16 +2,15 @@
       name:  psweight_example
        log:  C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\psweight_example.log
   log type:  text
- opened on:   7 Jun 2019, 14:14:26
+ opened on:  12 Jun 2019, 00:39:25
 
 . 
 . // ***************************************************************************
-. *! $Id: psweight_example.do,v 4b55d6675afd 2019/06/07 20:14:16 kkranker $
+. *! psweight_example.do
 . *! IPW- and CBPS-type propensity score reweighting, with extentions
-. *! Example
+. *! Examples
 . //
 . *! By Keith Kranker
-. // Last updated $Date: 2019/06/07 20:14:16 $
 . //
 . // Copyright (C) Mathematica Policy Research, Inc.
 . // This code cannot be copied, distributed or used without the express written
@@ -27,7 +26,7 @@
 Current user: KKranker
 Environment: Windows PC (64-bit x86-64) KKRANKER
 Stata: 15.1
-Date:  7 Jun 2019 14:14:26
+Date: 12 Jun 2019 00:39:25
 
 . 
 . which psweight
@@ -38,12 +37,12 @@ Date:  7 Jun 2019 14:14:26
 *! By Keith Kranker
 
 . mata: mata describe using lpsweight
-(library contains 57 members)
+(library contains 58 members)
 
 
       # bytes   type                        name and extent
 -------------------------------------------------------------------------------
-        4,504   auto classdef scalar        psweight()
+        4,552   auto classdef scalar        psweight()
           852   auto real matrix             ::Ct()
         1,408   auto void                    ::balanceresults()
         2,276   auto real matrix             ::balancetable()
@@ -63,6 +62,7 @@ Date:  7 Jun 2019 14:14:26
           568   auto real rowvector          ::diagvariance()
           360   auto real rowvector          ::diff()
         1,080   auto void                    ::fill_vars()
+        1,248   auto real matrix             ::get_N()
            64   auto real colvector          ::get_pscore()
            64   auto real colvector          ::get_weight()
            64   auto real colvector          ::get_weight_mtch()
@@ -80,13 +80,13 @@ Date:  7 Jun 2019 14:14:26
           276   auto real rowvector          ::pomean()
           756   auto void                    ::postbeta()
         2,000   auto real rowvector          ::progdiff()
-          728   auto void                    ::reweight()
+          712   auto void                    ::reweight()
           232   auto real rowvector          ::sd_sq()
-        1,844   auto void                    ::set()
-          304   auto void                    ::set_depvar()
-        6,568   auto real rowvector          ::solve()
-        1,904   auto void                    ::st_set()
-          400   auto void                    ::st_set_depvar()
+        1,448   auto void                    ::set()
+          388   auto void                    ::set_depvars()
+        6,560   auto real rowvector          ::solve()
+        1,432   auto void                    ::st_set()
+          400   auto void                    ::st_set_depvars()
         1,012   auto real rowvector          ::stddiff()
         2,068   auto real rowvector          ::stdprogdiff()
           512   auto real colvector          ::trim()
@@ -114,10 +114,9 @@ Date:  7 Jun 2019 14:14:26
 (Excerpt from Cattaneo (2010) Journal of Econometrics 155: 138-154)
 . 
 . //  Balance before reweighting
-. psweight balanceonly mbsmoke mmarried mage fbaby medu
-  3778 control obs
-  864 treatment obs
-  (Data are unweighted.)
+. psweight balanceonly mbsmoke mmarried mage fbaby medu, ntab
+
+
 -------------------------------------------------------------------------------
              |    mean_T     mean_C       diff   std_diff    sd_pool  var_ratio
 -------------+-----------------------------------------------------------------
@@ -130,13 +129,20 @@ Date:  7 Jun 2019 14:14:26
   Mean standardized diff.             = -0.39394
   Mean absolute standardized diff.    = 0.39394
   Maximum absolute standardized diff. = 0.60657
+  
+-------------------------------------------------------
+                      | Treatment    Control      Total
+----------------------+--------------------------------
+       Number of rows |       864       3778       4642
+Sum of sample weights |       864       3778       4642
+       Sum of weights |       864       3778       4642
+-------------------------------------------------------
 . 
 . //  Estimate the average treatment effect of smoking on birthweight, using a logit model to predict treatment status
 . psweight ipw mbsmoke mmarried mage fbaby medu
 
-  3778 control obs
-  864 treatment obs
-  (Data are unweighted.)
+
+
 initial:       f(p) = -3217.5892
 alternative:   f(p) = -2632.6654
 rescale:       f(p) = -2317.1998
@@ -208,9 +214,8 @@ _treated |         N      mean        sd       min        p1       p10       p25
 . //  Estimate the average treatment effect on the treated with CBPS
 . psweight cbps mbsmoke mmarried mage fbaby medu, atet
 
-  3778 control obs
-  864 treatment obs
-  (Data are unweighted.)
+
+
   Step 1 (initial values from logit model):
 initial:       f(p) = -3217.5892
 alternative:   f(p) = -2632.6654
@@ -293,9 +298,8 @@ _treated |         N      mean        sd       min        p1       p10       p25
 . //  Estimate the average treatment effect on the treated with Penalized CBPS
 . psweight pcbps mbsmoke mmarried mage fbaby medu, atet cvtarget(1 .5 6)
 
-  3778 control obs
-  864 treatment obs
-  (Data are unweighted.)
+
+
   Step 1 (initial values from logit model):
 initial:       f(p) = -3217.5892
 alternative:   f(p) = -2632.6654
@@ -434,9 +438,6 @@ _treated |         N      mean        sd       min        p1       p10       p25
 : P = psweight()
 
 : P.st_set("mbsmoke", "mmarried mage fbaby medu", "touse")
-  3778 control obs
-  864 treatment obs
-  (Data are unweighted.)
 
 : 
 : //  Balance before reweighting
@@ -735,7 +736,7 @@ _dta:
   3. }
 
 . 
-. local depvars = "y1 y1_binary"
+. local depvarlist = "y1 y1_binary"
 
 . local treatvar = "treat"
 
@@ -754,7 +755,7 @@ _dta:
 
 . mark    `tousevar' `if' `in' `wgtexp'
 
-. markout `tousevar' `depvars' `treatvar' `varlist'
+. markout `tousevar' `depvarlist' `treatvar' `varlist'
 
 . local varlist_orig : copy local varlist
 
@@ -777,28 +778,25 @@ _dta:
 . mata:
 ------------------------------------------------- mata (type end to exit) --------------------------------------------------------------------------------------
 : 
-: depvars  = st_local("depvars")
+: depvarlist = st_local("depvarlist")
 
-: treatvar = st_local("treatvar")
+: treatvar   = st_local("treatvar")
 
-: wgtvar   = st_local("wgtvar")
+: wgtvar     = st_local("wgtvar")
 
-: varlist  = st_local("varlist")
+: varlist    = st_local("varlist")
 
-: tousevar = st_local("tousevar")
+: tousevar   = st_local("tousevar")
 
-: estimate = st_local("estimate")
+: estimate   = st_local("estimateerror")
 
 : // * UNWEIGHTED DATA EXAMPLES *
 : 
 : D = psweight()
 
 : D.st_set(treatvar, varlist, tousevar)
-  408 control obs
-  92 treatment obs
-  (Data are unweighted.)
 
-: if (depvars!="") D.st_set_depvar(depvars, tousevar)
+: if (depvarlist!="") D.st_set_depvars(depvarlist, tousevar)
 > 
 > // Misc balance measures
 >   D.diff()
@@ -876,6 +874,22 @@ _dta:
     +-------------------------------+
   1 |  -15.93745522   -.0125187159  |
     +-------------------------------+
+
+:   D.get_N()
+         1     2     3
+    +-------------------+
+  1 |   92   408   500  |
+  2 |   92   408   500  |
+  3 |   92   408   500  |
+    +-------------------+
+
+:   stata("matrix list r(N_table)")
+
+r(N_table)[3,3]
+              Treatment    Control      Total
+Number of ~s         92        408        500
+Sum of sam~s         92        408        500
+Sum of wei~s         92        408        500
 
 : 
 :   "Balance table before matching"
@@ -1056,6 +1070,22 @@ Iteration 39:  f(p) =  2.421e-19
    y1_binary |    .9544751     .9544751   2.97e-09   6.57e-08   .9544751
 ------------------------------------------------------------------------
   Note: The std_diff column does not account for the standard error of the linear predictions.
+
+:     D.get_N()
+         1     2     3
+    +-------------------+
+  1 |   92   408   500  |
+  2 |   92   408   500  |
+  3 |   92   408   500  |
+    +-------------------+
+
+:     stata("matrix list r(N_table)")
+
+r(N_table)[3,3]
+              Treatment    Control      Total
+Number of ~s         92        408        500
+Sum of sam~s         92        408        500
+Sum of wei~s         92        408        500
 
 : 
 :   "--- ATE overidentified ---"; ""; ""
@@ -1672,7 +1702,7 @@ Iteration 21:  f(p) =  1.597e-07  (backed up)
   Note: The std_diff column does not account for the standard error of the linear predictions.
 
 : 
-:   if (depvars!="") {
+:   if (depvarlist!="") {
 >     D.solve("atet","stdprogdiff", 1)
 >     D.balanceresults("atet", 1)
 >   }
@@ -1763,7 +1793,7 @@ Iteration 6:   f(p) =  2.535e-16
 
 : 
 : // IPW
-:   stata("teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' , atet aequations")
+:   stata("teffects ipw (`:word 1 of `depvarlist'') (`treatvar' `varlist') if `tousevar' , atet aequations")
 
 Iteration 0:   EE criterion =  5.570e-18  
 Iteration 1:   EE criterion =  4.891e-26  
@@ -2003,7 +2033,7 @@ Iteration 4:   f(p) = -211.17753
   Maximum absolute standardized diff. = 0.65427
 
 : 
-:   stata("teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' , ate aequations")
+:   stata("teffects ipw (`:word 1 of `depvarlist'') (`treatvar' `varlist') if `tousevar' , ate aequations")
 
 Iteration 0:   EE criterion =  5.570e-18  
 Iteration 1:   EE criterion =  2.096e-25  
@@ -2109,7 +2139,7 @@ Iteration 4:   f(p) = -211.17753
   Note: The std_diff column does not account for the standard error of the linear predictions.
 
 : 
-:   stata("teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' , atet aequations tlevel(0) control(1)")
+:   stata("teffects ipw (`:word 1 of `depvarlist'') (`treatvar' `varlist') if `tousevar' , atet aequations tlevel(0) control(1)")
 
 Iteration 0:   EE criterion =  5.570e-18  
 Iteration 1:   EE criterion =  4.050e-26  
@@ -3202,10 +3232,8 @@ Iteration 39:  f(p) =  .03891644
 : DW = psweight()
 
 : DW.st_set(treatvar, varlist, tousevar, wgtvar)
-  408 control obs (sum of weights = 802.3793)
-  92 treatment obs (sum of weights = 180.1725)
 
-: if (depvars!="") DW.st_set_depvar(depvars, tousevar)
+: if (depvarlist!="") DW.st_set_depvars(depvarlist, tousevar)
 > 
 > // Misc balance measures
 >   DW.diff()
@@ -3283,6 +3311,22 @@ Iteration 39:  f(p) =  .03891644
     +-------------------------------+
   1 |  -11.14415063    -.011974287  |
     +-------------------------------+
+
+:   DW.get_N()
+                 1             2             3
+    +-------------------------------------------+
+  1 |           92           408           500  |
+  2 |  180.1725403   802.3793408   982.5518811  |
+  3 |  180.1725403   802.3793408   982.5518811  |
+    +-------------------------------------------+
+
+:   stata("matrix list r(N_table)")
+
+r(N_table)[3,3]
+              Treatment    Control      Total
+Number of ~s         92        408        500
+Sum of sam~s  180.17254  802.37934  982.55188
+Sum of wei~s  180.17254  802.37934  982.55188
 
 : 
 :   "Balance table before matching"
@@ -3465,6 +3509,22 @@ Iteration 73:  f(p) =  7.793e-14
    y1_binary |    .9569443     .9569441   1.47e-07   3.27e-06   .9569441
 ------------------------------------------------------------------------
   Note: The std_diff column does not account for the standard error of the linear predictions.
+
+:     DW.get_N()
+                 1             2             3
+    +-------------------------------------------+
+  1 |           92           408           500  |
+  2 |  180.1725403   802.3793408   982.5518811  |
+  3 |  180.1725403   802.3793408   982.5518811  |
+    +-------------------------------------------+
+
+:     stata("matrix list r(N_table)")
+
+r(N_table)[3,3]
+              Treatment    Control      Total
+Number of ~s         92        408        500
+Sum of sam~s  180.17254  802.37934  982.55188
+Sum of wei~s  180.17254  802.37934  982.55188
 
 : 
 :   "--- ATE overidentified ---"; ""; ""
@@ -4058,7 +4118,7 @@ Iteration 22:  f(p) =  2.156e-07  (backed up)
   Note: The std_diff column does not account for the standard error of the linear predictions.
 
 : 
-:   if (depvars!="") {
+:   if (depvarlist!="") {
 >     DW.solve("atet","stdprogdiff", 1)
 >     DW.balanceresults("atet", 1)
 >   }
@@ -4180,7 +4240,7 @@ Iteration 6:   f(p) =  8.192e-11  (backed up)
 : 
 : // IPW
 : 
-:   stata("teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' [iw=`wgtvar'], atet aequations")
+:   stata("teffects ipw (`:word 1 of `depvarlist'') (`treatvar' `varlist') if `tousevar' [iw=`wgtvar'], atet aequations")
 
 Iteration 0:   EE criterion =  3.987e-18  
 Iteration 1:   EE criterion =  1.443e-26  
@@ -4382,7 +4442,7 @@ Iteration 5:   f(p) = -411.19865
   Maximum absolute standardized diff. = 0.65945
 
 : 
-:   stata("teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' [iw=`wgtvar'], ate aequations")
+:   stata("teffects ipw (`:word 1 of `depvarlist'') (`treatvar' `varlist') if `tousevar' [iw=`wgtvar'], ate aequations")
 
 Iteration 0:   EE criterion =  3.987e-18  
 Iteration 1:   EE criterion =  2.429e-25  
@@ -4444,7 +4504,7 @@ Iteration 5:   f(p) = -411.19865
      -------------------------------------------------------------------------------------------+
 
 : 
-:   stata("teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' [iw=`wgtvar'], atet aequations tlevel(0) control(1)")
+:   stata("teffects ipw (`:word 1 of `depvarlist'') (`treatvar' `varlist') if `tousevar' [iw=`wgtvar'], atet aequations tlevel(0) control(1)")
 
 Iteration 0:   EE criterion =  3.987e-18  
 Iteration 1:   EE criterion =  9.605e-26  
@@ -5349,17 +5409,17 @@ Iteration 4:   f(p) =  1.988e-21
       name:  psweight_example
        log:  C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\psweight_example.log
   log type:  text
- paused on:   7 Jun 2019, 14:15:46
+ paused on:  12 Jun 2019, 00:40:43
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
       name:  psweight_example
        log:  C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\psweight_example.log
   log type:  text
-resumed on:   7 Jun 2019, 14:17:13
+resumed on:  12 Jun 2019, 00:42:11
 
 . log close psweight_example
       name:  psweight_example
        log:  C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\psweight_example.log
   log type:  text
- closed on:   7 Jun 2019, 14:17:13
+ closed on:  12 Jun 2019, 00:42:11
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
