@@ -121,14 +121,15 @@ and where src is a (scalar) instance of the class psweight.
 
 {cmd:psweight()} is a {help m-2 class:Mata class} that computes inverse-probability weighting (IPW)
 weights for average treatment effect, average treatment effect on the treated,
-and average treatment effect on the untreated estimators for observational data.
-IPW estimators use estimated probability weights to correct for the missing data
-on the potential outcomes. Probabilities of treatment--propensity scores--are
-computed for each observation with one of a variety of methods, including
-logistic regression (traditional IPW), covariate-balancing propensity scores
-(CBPS), penalized covariate-balancing propensity scores (PCBPS), prognostic
-score balancing propensity scores, and other methods. It also constructs balance
-tables and assesses the distribution of the IPW weights.
+and average treatment effect on the untreated estimators for observational
+data. IPW estimators use estimated probability weights to correct for the
+missing data on the potential outcomes. Probabilities of treatment--propensity
+scores--are computed for each observation with one of a variety of methods,
+including logistic regression (traditional IPW), covariate-balancing
+propensity scores (CBPS), penalized covariate-balancing propensity scores
+(PCBPS), prognostic score balancing propensity scores, and other methods.
+It also constructs balance tables and assesses the distribution of the IPW
+weights.
 
 {helpb psweight} is a Stata command that offers Stata users easy access to
 the class. However, the class offers more flexibility and can conduct some
@@ -594,16 +595,16 @@ real matrix P.get_N()
     //  Balance before reweighting
     P.balancetable(2)
 
-    // Estimate the average treatment effect of smoking on birthweight,
+    // Estimate the ATE of smoking on birthweight,
     // using a logit model to predict treatment status
     P.ipw()
     P.balanceresults("ate", 1)
 
-    //  Estimate the average treatment effect on the treated with CBPS
+    //  Estimate the ATET with CBPS
     P.cbps("atet")
     P.balanceresults("atet", 1)
 
-    //  Estimate the average treatment effect on the treated with Penalized CBPS
+    //  Estimate the ATET with Penalized CBPS
     P.solve("atet", "cbps", 2, (1, .5, 6))
     P.balanceresults("atet", 1)
 
