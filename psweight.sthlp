@@ -567,6 +567,8 @@ Of note, I thank Liz Potamites for testing early versions of the program and pro
 The code for implementing the CBPS method is based on work by Fong et al. (2018), namely the CBPS package for R.
 I also reviewed the Stata CBPS implementation by Filip Premik.
 
+{pstd}Source code is available at {browse "https://github.com/kkranker/psweight"}{p_end}
+
 
 {marker results}{...}
 {title:Stored results}

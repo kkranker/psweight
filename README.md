@@ -102,11 +102,13 @@ implementation by Filip Premik.
 
 # Suggested Citation
 
-* TBD
+* Kranker, K. "psweight: IPW- and CBPS-type propensity score reweighting, with various extensions," Statistical Software Components, Boston College Department of Economics, 2019. Available at https://ideas.repec.org/s/boc/bocode.html.
 
 or
 
-* Kranker, K., L. Blue, and L. Vollmer Forrow.  2019.  "Improving Effect Estimates by Limiting the Variability in Inverse Propensity Score Weights." Manuscript under review.
+* Kranker, K., L. Blue, and L. Vollmer Forrow.  "Improving Effect Estimates by Limiting the Variability in Inverse Propensity Score Weights." Manuscript under review, 2019.
+
+Source code is available at https://github.com/kkranker/psweight
 
 
 # Installation

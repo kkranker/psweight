@@ -616,15 +616,7 @@ real matrix P.get_N()
 By Keith Kranker,
 Mathematica Policy Research
 
-My coauthors, Laura Blue and Lauren Vollmer Forrow, were closely involved with the
-development of the Penalized CBPS methodology. We received many helpful suggestions
-from our colleages at Mathematica, especially those on the Comprehensive Primary
-Care Plus Evaluation team. Of note, I thank Liz Potamites for testing early versions
-of the program and providing helpful feedback.
-
-The code for implementing the CBPS method is based on work by Fong et al. (2018),
-namely the CBPS package for R. I also reviewed the Stata CBPS implementation by
-Filip Premik.
+Please refer to the citations and ackowledgements in {helpb psweight}.
 
 {marker source}{...}
 {title:Source code}
