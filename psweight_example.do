@@ -403,7 +403,7 @@ cbps `treatvar' `varlist' if `tousevar' , ate logit optimization_technique("nr")
 ereturn clear
  return clear
 
-psweight cbps `treatvar' `varlist' if `tousevar' , ate pooledvariance `depvaropt'
+psweight cbps `treatvar' `varlist' if `tousevar' , ate pooledvariance `depvaropt' ntable
 ereturn list
  return list
 
@@ -443,7 +443,7 @@ psweight call balanceresults()
 // IPW
 teffects ipw (`:word 1 of `depvarlist'') (`treatvar' `varlist') if `tousevar' , atet aequations
 di _b[POmean:0.treat]
-tebalance summarize, ntable
+tebalance summarize
 tebalance summarize, baseline ntable
 psweight ipw `treatvar' `varlist' if `tousevar' , atet averagevariance `depvaropt'
 psweight call balanceresults()
