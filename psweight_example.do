@@ -15,12 +15,11 @@ do C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\_build.do
 log using psweight_example.log, name(psweight_example) replace
 
 // ***************************************************************************
-*! $Id$
+*! psweight_example.do
 *! IPW- and CBPS-type propensity score reweighting, with extentions
-*! Example
+*! Examples
 //
 *! By Keith Kranker
-// Last updated $Date$
 //
 // Copyright (C) Mathematica Policy Research, Inc.
 // This code cannot be copied, distributed or used without the express written
@@ -44,7 +43,7 @@ if 1 {
 webuse cattaneo2
 
 //  Balance before reweighting
-psweight balanceonly mbsmoke mmarried mage fbaby medu
+psweight balanceonly mbsmoke mmarried mage fbaby medu, ntab
 
 //  Estimate the average treatment effect of smoking on birthweight, using a logit model to predict treatment status
 psweight ipw mbsmoke mmarried mage fbaby medu
@@ -119,7 +118,7 @@ forvalues i = 90/95 {
   gen x`i' = rnormal()
 }
 
-local depvars = "y1 y1_binary"
+local depvarlist = "y1 y1_binary"
 local treatvar = "treat"
 local varlist = "x1 i.x2 i.x3 x4 x5 x6 x7 x9*"
 local wgtvar = "wgt"
@@ -130,7 +129,7 @@ local estimate = "atet"
 // some automatic parsing based on options above, since Mata doesn't have this stuff
 if "`wgtvar'"!="" local wgtexp "[iw=`wgtvar']"
 mark    `tousevar' `if' `in' `wgtexp'
-markout `tousevar' `depvars' `treatvar' `varlist'
+markout `tousevar' `depvarlist' `treatvar' `varlist'
 local varlist_orig : copy local varlist
 
 _rmcoll `treatvar' `varlist' if `tousevar' `wgtexp', expand logit touse(`tousevar')
@@ -146,17 +145,17 @@ if 1 {
 
 mata:
 
-depvars  = st_local("depvars")
-treatvar = st_local("treatvar")
-wgtvar   = st_local("wgtvar")
-varlist  = st_local("varlist")
-tousevar = st_local("tousevar")
-estimate = st_local("estimate")
+depvarlist = st_local("depvarlist")
+treatvar   = st_local("treatvar")
+wgtvar     = st_local("wgtvar")
+varlist    = st_local("varlist")
+tousevar   = st_local("tousevar")
+estimate   = st_local("estimateerror")
 // * UNWEIGHTED DATA EXAMPLES *
 
 D = psweight()
 D.st_set(treatvar, varlist, tousevar)
-if (depvars!="") D.st_set_depvar(depvars, tousevar)
+if (depvarlist!="") D.st_set_depvars(depvarlist, tousevar)
 
 // Misc balance measures
   D.diff()
@@ -167,6 +166,8 @@ if (depvars!="") D.st_set_depvar(depvars, tousevar)
   D.stddiff(0)
   D.varratio()
   D.progdiff(1)
+  D.get_N()
+  stata("matrix list r(N_table)")
 
   "Balance table before matching"
   table = D.balancetable(1)
@@ -178,6 +179,8 @@ if (depvars!="") D.st_set_depvar(depvars, tousevar)
     stata(`"cbps_imbalance"')
     D.cbps("ate", 2)
     D.balanceresults("ate", 2)
+    D.get_N()
+    stata("matrix list r(N_table)")
 
   "--- ATE overidentified ---"; ""; ""
     stata(`"cbps `treatvar' `varlist' if `tousevar' , ate over logit optimization_technique("nr") evaluator_type("gf1")"')
@@ -205,14 +208,14 @@ if (depvars!="") D.st_set_depvar(depvars, tousevar)
   D.solve("atet","sd_sq", 1)
   D.balanceresults("atet", 1)
 
-  if (depvars!="") {
+  if (depvarlist!="") {
     D.solve("atet","stdprogdiff", 1)
     D.balanceresults("atet", 1)
   }
   st_local("mlopts", "")
 
 // IPW
-  stata("teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' , atet aequations")
+  stata("teffects ipw (`:word 1 of `depvarlist'') (`treatvar' `varlist') if `tousevar' , atet aequations")
   stata("di _b[POmean:0.treat]")
   stata("tebalance summarize")
   stata("tebalance summarize, baseline")
@@ -223,11 +226,11 @@ if (depvars!="") D.st_set_depvar(depvars, tousevar)
   D.reweight()
   table = D.balancetable(3)
 
-  stata("teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' , ate aequations")
+  stata("teffects ipw (`:word 1 of `depvarlist'') (`treatvar' `varlist') if `tousevar' , ate aequations")
   D.ipw("ate")
   D.balanceresults("ate", 1)
 
-  stata("teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' , atet aequations tlevel(0) control(1)")
+  stata("teffects ipw (`:word 1 of `depvarlist'') (`treatvar' `varlist') if `tousevar' , atet aequations tlevel(0) control(1)")
   D.ipw("ateu")
   D.balanceresults("ateu", 1)
 
@@ -264,7 +267,7 @@ mata drop D
 
 DW = psweight()
 DW.st_set(treatvar, varlist, tousevar, wgtvar)
-if (depvars!="") DW.st_set_depvar(depvars, tousevar)
+if (depvarlist!="") DW.st_set_depvars(depvarlist, tousevar)
 
 // Misc balance measures
   DW.diff()
@@ -275,6 +278,8 @@ if (depvars!="") DW.st_set_depvar(depvars, tousevar)
   DW.stddiff(0)
   DW.varratio()
   DW.progdiff(1)
+  DW.get_N()
+  stata("matrix list r(N_table)")
 
   "Balance table before matching"
   temp = DW.balancetable(1)
@@ -284,6 +289,8 @@ if (depvars!="") DW.st_set_depvar(depvars, tousevar)
   "--- ATE (not overidentified) ---"; ""; ""
     DW.cbps("ate", 2)
     DW.balanceresults("ate", 2)
+    DW.get_N()
+    stata("matrix list r(N_table)")
 
   "--- ATE overidentified ---"; ""; ""
     DW.cbpsoid("ate", 2)
@@ -305,7 +312,7 @@ if (depvars!="") DW.st_set_depvar(depvars, tousevar)
   DW.solve("atet","sd_sq", 1)
   DW.balanceresults("atet", 1)
 
-  if (depvars!="") {
+  if (depvarlist!="") {
     DW.solve("atet","stdprogdiff", 1)
     DW.balanceresults("atet", 1)
   }
@@ -317,7 +324,7 @@ if (depvars!="") DW.st_set_depvar(depvars, tousevar)
 
 // IPW
 
-  stata("teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' [iw=`wgtvar'], atet aequations")
+  stata("teffects ipw (`:word 1 of `depvarlist'') (`treatvar' `varlist') if `tousevar' [iw=`wgtvar'], atet aequations")
   stata("di _b[POmean:0.treat]")
   stata("tebalance summarize")
   stata("tebalance summarize, baseline")  // I noticed the sum of weights in tebalance are weird
@@ -328,10 +335,10 @@ if (depvars!="") DW.st_set_depvar(depvars, tousevar)
   DW.reweight()
   table = DW.balancetable(3)
 
-  stata("teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' [iw=`wgtvar'], ate aequations")
+  stata("teffects ipw (`:word 1 of `depvarlist'') (`treatvar' `varlist') if `tousevar' [iw=`wgtvar'], ate aequations")
   DW.ipw("ate")
 
-  stata("teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' [iw=`wgtvar'], atet aequations tlevel(0) control(1)")
+  stata("teffects ipw (`:word 1 of `depvarlist'') (`treatvar' `varlist') if `tousevar' [iw=`wgtvar'], atet aequations tlevel(0) control(1)")
   DW.ipw("ateu")
 
 // tradeoff between CBPS-like balance and variance in weights
@@ -376,13 +383,13 @@ log using psweight_example_ado.log, name(psweight_example_ado) replace
 di as txt "Current user: `c(username)'" _n "Environment: `c(os)' `c(machine_type)' `: environment computername'" _n "Stata: `c(stata_version)'" cond(c(stata_version)==c(version),""," (set to version `c(version)')") _n "Date: " c(current_date) " " c(current_time)
 desc, short
 local varlist : copy local varlist_orig
-summ `treatvar' `varlist' `tousevar' `wgtvar' `depvars'
-if (trim("`depvars'") != "") local depvaropt depvars(`depvars')
+summ `treatvar' `varlist' `tousevar' `wgtvar' `depvarlist'
+if (trim("`depvarlist'") != "") local depvaropt depvarlist(`depvarlist')
 ereturn clear
  return clear
 
 // balance before matching
-psweight balanceonly `treatvar' `varlist' if `tousevar'
+psweight balanceonly `treatvar' `varlist' if `tousevar', ntable
 ereturn list
  return list
 
@@ -434,21 +441,21 @@ psweight call balanceresults()
 
 
 // IPW
-teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' , atet aequations
+teffects ipw (`:word 1 of `depvarlist'') (`treatvar' `varlist') if `tousevar' , atet aequations
 di _b[POmean:0.treat]
-tebalance summarize
-tebalance summarize, baseline
+tebalance summarize, ntable
+tebalance summarize, baseline ntable
 psweight ipw `treatvar' `varlist' if `tousevar' , atet averagevariance `depvaropt'
 psweight call balanceresults()
 
 psweight ipw `treatvar' `varlist' if `tousevar' , atet averagevariance `depvaropt'
 psweight call balanceresults()
 
-teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' , ate aequations
+teffects ipw (`:word 1 of `depvarlist'') (`treatvar' `varlist') if `tousevar' , ate aequations
 psweight ipw `treatvar' `varlist' if `tousevar' , ate pooledvariance
 psweight call balanceresults()
 
-teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' , atet aequations tlevel(0) control(1)
+teffects ipw (`:word 1 of `depvarlist'') (`treatvar' `varlist') if `tousevar' , atet aequations tlevel(0) control(1)
 psweight ipw `treatvar' `varlist' if `tousevar' , ateu pooledvariance
 psweight call balanceresults()
 
@@ -506,7 +513,7 @@ psweight stdprogdiff `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet trea
 psweight call balanceresults()
 
 // IPW
-teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' [iw=`wgtvar'], atet aequations
+teffects ipw (`:word 1 of `depvarlist'') (`treatvar' `varlist') if `tousevar' [iw=`wgtvar'], atet aequations
 di _b[POmean:0.treat]
 tebalance summarize
 tebalance summarize, baseline
@@ -519,11 +526,11 @@ psweight call balanceresults()
 psweight ipw `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet averagevariance `depvaropt'
 psweight call balanceresults()
 
-teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' [iw=`wgtvar'], ate aequations
+teffects ipw (`:word 1 of `depvarlist'') (`treatvar' `varlist') if `tousevar' [iw=`wgtvar'], ate aequations
 psweight ipw `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], ate treatvariance
 psweight call balanceresults()
 
-teffects ipw (`:word 1 of `depvars'') (`treatvar' `varlist') if `tousevar' [iw=`wgtvar'], atet aequations tlevel(0) control(1)
+teffects ipw (`:word 1 of `depvarlist'') (`treatvar' `varlist') if `tousevar' [iw=`wgtvar'], atet aequations tlevel(0) control(1)
 psweight ipw `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], ateu treatvariance `depvaropt'
 
 // tradeoff between CBPS-like balance and variance in weights
