@@ -65,7 +65,7 @@ see details {help psweight##call:below}.
 
 
 {marker subcmd}{...}
-{synoptset 16}{...}
+{synoptset 18}{...}
 {synopthdr:subcmd}
 {synoptline}
 {synopt: {opt ipw}}logit regression{p_end}
@@ -94,9 +94,9 @@ see details {help psweight##call:below}.
 {marker penalty}{...}
 {synopthdr:penalty}
 {synoptline}
-{synopt: {opt cvtarget(# # #)}}applies penalty using the coefficient of variation of the weight distribution; default is no penalty: cvtarget(0 0 2){p_end}
-{synopt: {opt skewtarget(# # #)}}applies penalty using the skewness of the weight distribution; default no penalty: skewtarget (0 0 2){p_end}
-{synopt: {opt kurttarget(# # #)}}applies penalty using the excess kurtosis of the weight distribution; default no penalty: kurttarget(0 0 2){p_end}
+{synopt: {opt cvt:arget(# # #)}}applies penalty using the coefficient of variation of the weight distribution; default is no penalty: cvtarget(0 0 2){p_end}
+{synopt: {opt skewt:arget(# # #)}}applies penalty using the skewness of the weight distribution; default no penalty: skewtarget (0 0 2){p_end}
+{synopt: {opt kurtt:arget(# # #)}}applies penalty using the excess kurtosis of the weight distribution; default no penalty: kurttarget(0 0 2){p_end}
 {synoptline}
 {p 4 6 2}One or more penalty options may be specified.{p_end}
 
@@ -105,9 +105,9 @@ see details {help psweight##call:below}.
 {synopthdr:variance}
 {synoptline}
 {synopt: {opt pool:edvariance}}uses the pooled (treatment plus control) sample's variances to calculate standardized differences; the default{p_end}
-{synopt: {opt con:trolvariance}}uses the control groups' variances to calculate standardized differences{p_end}
-{synopt: {opt tre:atvariance}}uses the treatment groups' variances to calculate standardized difference{p_end}
-{synopt: {opt a:veragevariance}}uses (the control groups' variances + treatment groups' variances)/2 to calculate standardized differences{p_end}
+{synopt: {opt con:trolvariance}}uses the control group's variances to calculate standardized differences{p_end}
+{synopt: {opt tre:atvariance}}uses the treatment group's variances to calculate standardized difference{p_end}
+{synopt: {opt ave:ragevariance}}uses (the control group's variances + treatment group's variances)/2 to calculate standardized differences{p_end}
 {synoptline}
 {p 4 6 2}Only one {it:variance} may be specified.{p_end}
 
@@ -115,12 +115,13 @@ see details {help psweight##call:below}.
 {marker options_table}{...}
 {synopthdr}
 {synoptline}
-{synopt: {opth dep:vars(varlist)}}outcome variables{p_end}
-{synopt: {it:{help psweight##display_options:display_options}}}
-control columns and column formats, row spacing, line width, display of omitted
+{synopt: {opth dep:varlist(varlist)}}outcome variables{p_end}
+{synopt: {it:{help psweight##display_options:display_options}}}control
+columns and column formats, row spacing, line width, display of omitted
 variables and base and empty cells, and factor-variable labeling{p_end}
 {synopt: {it:{help psweight##maximize_options:maximize_options}}}control
 the maximization process; seldom used {* includes from()}{p_end}
+{synopt: {opt ntab:le}}display a table with sample sizes{p_end}
 {synopt: {opt coefl:egend}}display legend instead of statistics{p_end}
 {synoptline}
 {p2colreset}{...}
@@ -128,7 +129,8 @@ the maximization process; seldom used {* includes from()}{p_end}
 {it:tmvarlist} may contain factor variables; see {help fvvarlists}.{p_end}
 {p 4 6 2}
 {marker weight}{...}
-{opt fweight}s and {opt iweight}s are allowed; see {help weight}.{p_end}
+Sample weights may be specified as {opt fweight}s or {opt iweight}s;
+see {help weight}. {opt iweight}s are treated the same as {opt fweight}s.{p_end}
 {p 4 6 2}
 
 
@@ -141,17 +143,17 @@ to the {helpb psweight class:psweight Mata class}.
 
 {pstd}
 {cmd:psweight} {it:subcmd} computes inverse-probability weighting (IPW) weights for average treatment effect,
-average treatment effect on the treated, and average treatment effect [LVF: on the untreated] estimators for observational data.
+average treatment effect on the treated, and average treatment effect on the untreated estimators for observational data.
 IPW estimators use estimated probability weights to correct for the missing data on the potential outcomes.
 Probabilities of treatment--propensity scores--are computed for each observation with one of a variety of methods, including
 logistic regression (traditional IPW),
 covariate-balancing propensity scores (CBPS),
-penalized [LVF: covariate-] balancing propensity scores (PCBPS),
+penalized covariate-balancing propensity scores (PCBPS),
 prognostic score-balancing propensity scores, and
 other methods.
 
 {pstd}
-{cmd:psweight} {cmd:balance} constructs a balance table instead of [LVF: replace instead of with without?] computing IPW weights.
+{cmd:psweight} {cmd:balance} constructs a balance table without computing IPW weights.
 The most common use case is when you wish to construct a balance table for the unweighted sample.
 However, you can also construct a balance table with
 {help psweight##mweight_opt:user-supplied weights}.
@@ -174,7 +176,7 @@ If these variables exist before running {cmd:psweight}, they will be replaced.{p
 and IPW weights as follows:
 
 {pmore}
-The first step involves computing coefficients {it:b} for the propensity score model.
+The first step involves computing coefficients for the propensity score model, {it:b}.
 The propensity score model takes the form of a logit regression model.
 Specifically, the propensity score for each row in the data is defined as {p_end}
 
@@ -196,7 +198,7 @@ That is, for a given {it:subcmd}, we can generically define {it:b} as the vector
 
 {pmore} where {it:L(X,T,W)} is a "loss function" that corresponds to the specified {it:subcmd}
 (e.g., logit regression or CBPS),
-given the data {it:(X,T)} and vector of weights {it:W}.
+given the data ({it:X,T}) and a vector of weights {it:(W)}.
 (The weights are computed using the propensity scores, as we describe below.
 The propensity scores are calculated using {it:b}, the data, and the formula given above.)
 The available {it:subcmd}s are listed below.
@@ -254,7 +256,7 @@ Finally, the final weights (a variable named {it:_weight}) are set equal to:{p_e
 
 {pmore} where {it:W} are the {it:{help psweight##weight:sample weights}}.
 (The variable {it:_weight} equals {it:_weight_mtch} if no sample weights are provided.
-If sample weights are provided, the weights are normalized so the weighted mean equals 1 [LVF: in each group].)
+If sample weights are provided, the weights are normalized so the weighted mean equals 1 in each group.)
 For convenience, (a copy of) the treatment group indicator variable is
 returned in a variable named {it:_treated}.
 
@@ -357,7 +359,7 @@ the squared (standardized) differences in prognostic scores are summed.
 
 {pmore2}
 The {it:stdprogdiff} {it:subcmd} requires that dependent
-variables be specified (through the {opt depvar}() option).
+variables be specified (through the {opt depvarlist}() option).
 
 {pmore2}
 Prognostic scores are computed by fitting a linear regression model
@@ -396,17 +398,17 @@ If none of these options are specified, {it:f(W)}=0.
 {phang2}{opt cvtarget(# # #)} applies a penalty using the coefficient of variation of the weight distribution.
 If {opt cvopt(a, b, c)} is specified, then the loss function is modified as:{p_end}
 {center:{it:L'(X,T,W) = L(X,T,W) + a * abs(({help psweight class:wgt_cv()} - b)^c)}}
-{phang3}The default is no penalty: cvtarget(0 0 2).
+{phang3}The default is no penalty: cvtarget(0 . .).
 
 {phang2}{opt skewtarget(# # #)} applies a penalty using the skewness of the weight distribution.
 If {opt skewtarget(d, e, f)} is specified, then the loss function is modified as:{p_end}
-{center:{it:L'(X,T,W) = L(X,T,W) + e[LVF: should this be d?] * abs(({help psweight class:wgt_skewness()} - e)^f)}}
-{phang3}The default is no penalty: skewtarget(0 0 2).{p_end}
+{center:{it:L'(X,T,W) = L(X,T,W) + d * abs(({help psweight class:wgt_skewness()} - e)^f)}}
+{phang3}The default is no penalty: skewtarget(0 . .).{p_end}
 
 {phang2}{opt kurttarget(# # #)} applies a penalty using the excess kurtosis of the weight distribution.
 If {opt kurttarget(g, h, i)} is specified, then the loss function is modified as:{p_end}
 {center:{it:L'(X,T,W) = L(X,T,W) + g* abs(({help psweight class:wgt_kurtosis()} - h)^i)}}
-{phang3}The default is no penalty: kurttarget(0 0 2).{p_end}
+{phang3}The default is no penalty: kurttarget(0 . .).{p_end}
 {...}
 {* maxtarget option is undocumented}{...}
 
@@ -424,19 +426,19 @@ and for computing balance tables.
 {opt pooledvariance} uses the pooled (treatment plus control) sample's variances to calculate standardized differences; the default
 
 {phang2}
-{opt controlvariance} uses the control groups' variances to calculate standardized differences
+{opt controlvariance} uses the control group's variances to calculate standardized differences
 
 {phang2}
-{opt treatvariance} uses the treatment groups' variances to calculate standardized difference
+{opt treatvariance} uses the treatment group's variances to calculate standardized difference
 
 {phang2}
-{opt averagevariance} uses (the control groups' variances + treatment groups' variances)/2 to calculate standardized differences (as in {help tebalance})
+{opt averagevariance} uses (the control group's variances + treatment group's variances)/2 to calculate standardized differences (as in {help tebalance})
 
 
 {dlgtab:Other options}
 
 {phang}
-{opth depvars(varlist)} specificies dependent variables (outcome variables).
+{opth depvarlist(varlist)} specificies dependent variables (outcome variables).
 The data for the treatment group observations are ignored, but the data for the
 the control group are used to compute prognostic scores (see above).
 
@@ -492,6 +494,9 @@ see {help _matrix_table##display_options: _matrix_table}.
 {cmdab:dif:ficult}.
 For a description of these options, see {manhelp maximize R} and
 {help mf_moptimize_init_mlopts:moptimize_init_mlopts()}.
+
+{phang}
+{opt ntable} displays a table with sample sizes and the sum of the weights.
 
 {phang}
 {cmd:coeflegend};
@@ -581,9 +586,11 @@ store the following in {cmd:e()}:
 {synopt: {cmd:e(subcmd)}}specified {it:{help psweight##subcmd:subcmd}}{p_end}
 {synopt: {cmd:e(tvar)}}name of the treatment indicator ({it:tvar}){p_end}
 {synopt: {cmd:e(tmvarlist)}}names of the matching variables ({it:tmvarlist}){p_end}
+{synopt: {cmd:e(depvarlist)}}names of dependent variables (if any){p_end}
 {synopt: {cmd:e(variance)}}specified {it:{help psweight##variance:variance}}{p_end}
-{synopt: {cmd:e(wtype)}}weight type{p_end}
-{synopt: {cmd:e(wexp)}}weight expression{p_end}
+{synopt: {cmd:e(wtype)}}weight type (if any){p_end}
+{synopt: {cmd:e(wexp)}}weight expression (if any){p_end}
+{synopt: {cmd:e(cvopt)}}specified {it:penalty} (if any){p_end}
 
 {pstd}
 In addition, {cmd:psweight} {it:subcmd} stores the following in {cmd:e()}:
@@ -601,7 +608,12 @@ In addition, {cmd:psweight} {it:subcmd} stores the following in {cmd:e()}:
 {pstd}
 In addition, {cmd:psweight} {cmd:balance} stores a matrix named {cmd:r(bal)}
 and other output in {cmd:r()};
-see {helpb psweight class}
+see the documentation for the {help psweight class:balancetable()}.
+
+{pstd}
+The {opt ntable} option adds a matrix stores a matrix named {cmd:r(N_table)}
+and other output in {cmd:r()};
+see the documentation for the {help psweight class:get_N() command}.
 
 
 {marker references}{...}

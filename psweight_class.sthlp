@@ -22,10 +22,10 @@ score reweighting, with various extensions (class definition)
 {help psweight_class##funct1:Setup functions}:
 
                     P = psweight()
-    void            P.st_set(treatvar, tmvarlist, | tousevar, wgtvar)
-    void            P.set(t, x, | w)
-    void            P.st_set_depvar( depvarnames, | tousevar)
-    void            P.set_depvar(y0)
+    void            P.st_set(tvar, tmvarlist, | tousevar, swvar)
+    void            P.st_set_depvars(depvarlist, | tousevar)
+    void            P.set(t, tm, | sw)
+    void            P.set_depvars(y0)
 
 {help psweight_class##funct2:Functions to estimate IPW weights}:
 
@@ -33,7 +33,6 @@ score reweighting, with various extensions (class definition)
     real rowvector  P.ipw(| stat)
     real rowvector  P.cbps(| stat, denominator)
     real rowvector  P.cbpsoid(| stat, denominator)
-
 
 {help psweight_class##funct3:Post-estimation functions}:
 
@@ -68,14 +67,15 @@ treatment and control groups):
 
     void            P.balanceresults(| stat, denominator)
     void            P.clone(src)
+    real matrix     P.get_N()
 
 where:
 
         tvar            : string scalar (must contain Stata {help varname})
         tmvarlist       : string scalar (must contain Stata {help varnames})
         tousevar        : string scalar (must contain Stata {help varname})
-        wgtvar          : string scalar (must contain Stata {help varname})
-        depvarnames     : string scalar (must contain Stata {help varnames})
+        swvar           : string scalar (must contain Stata {help varname})
+        depvarlist      : string scalar (must contain Stata {help varnames})
         varnames        : string scalar (must contain Stata {help varnames})
 
         t               : real column vector
@@ -119,20 +119,20 @@ and where src is a (scalar) instance of the class psweight.
 {marker description}{...}
 {title:Description}
 
-{p}{cmd: psweight()} is a {help m-2 class:Mata class} that computes inverse-probability weighting (IPW) weights for average treatment
-effect, average treatment effect on the treated, and average treatment effect [LVF: on the untreated]
-estimators for observational data. IPW estimators use estimated probability
-weights to correct for the missing data on the potential outcomes. Probabilities
-of treatment--propensity scores--are computed for each observation with one of a
-variety of methods, including logistic regression (traditional IPW), covariate-
-balancing propensity scores (CBPS), penalized [LVF: covariate-] balancing propensity scores (PCBPS),
-prognostic score balancing propensity scores, and other methods.
-It also constructs balance tables and assesses the distribution of the
-IPW weights.
+{cmd:psweight()} is a {help m-2 class:Mata class} that computes inverse-probability weighting (IPW)
+weights for average treatment effect, average treatment effect on the treated,
+and average treatment effect on the untreated estimators for observational data.
+IPW estimators use estimated probability weights to correct for the missing data
+on the potential outcomes. Probabilities of treatment--propensity scores--are
+computed for each observation with one of a variety of methods, including
+logistic regression (traditional IPW), covariate-balancing propensity scores
+(CBPS), penalized covariate-balancing propensity scores (PCBPS), prognostic
+score balancing propensity scores, and other methods. It also constructs balance
+tables and assesses the distribution of the IPW weights.
 
-{p}{helpb psweight} is a Stata command that offers Stata users easy access to
+{helpb psweight} is a Stata command that offers Stata users easy access to
 the class. However, the class offers more flexibility and can conduct some
-analyses unavailable to [LVF: with? through?] the Stata command.
+analyses unavailable with the Stata command.
 
 
 {marker details}{...}
@@ -141,13 +141,12 @@ analyses unavailable to [LVF: with? through?] the Stata command.
 {marker funct1}{...}
 {it:Setup functions}:
 
-void P.st_set(treatvar, tmvarlist, | tousevar, wgtvar)
+void P.st_set(tvar, tmvarlist, | tousevar, swvar)
 
     Loads Stata data for the treatment model into the Mata class using views.
 
-    tvar, tmvarlist, tousevar, and wgtvar contain the names of variables in
-        the Stata data. [LVF: either change treatvar above to tvar, or change instances of
-	tvar to treatvar]
+    tvar, tmvarlist, tousevar, and swvar contain the names of variables in
+        the Stata data.
 
     tvar      is a variable that must contain values 0 or 1, representing the
                 treatment (1) and comparison (0) group observations.
@@ -155,8 +154,8 @@ void P.st_set(treatvar, tmvarlist, | tousevar, wgtvar)
                 assignment in the treatment model.
     tousevar  is a variable that must contain values 0 or 1, representing the
                 rows to include (1) or exclude (0). (optional)
-    wgtvar    is a variable that specifies sample weights (optional; sample is
-                unweighted if wgtvar is not provided)
+    swvar     is a variable that specifies sample weights (optional; sample is
+                unweighted if swvar is not provided)
 
 void P.set(t, x, | w)
 
@@ -167,20 +166,20 @@ void P.set(t, x, | w)
     x specifies the data that predict treatment assignment in the treatment
         model.
     w specifies sample weights; these are treated as iweights (optional;
-        sample is unweighted if wgtvar[LVF: w?  or change w to wgtvar?] is not provided)
+        sample is unweighted if w is not provided)
 
-void P.st_set_depvar(depvarnames, | tousevar)
+void P.st_set_depvars(depvarlist, | tousevar)
 
     Loads Stata data for the dependent variable (control group only) into the
     Mata class using views.
 
-    depvarnames and tousevar contain the names of variables in the Stata data.
+    depvarlist and tousevar contain the names of variables in the Stata data.
 
-    depvarnames are the variable(s) containing the dependent variable(s).
+    depvarlist are the variable(s) containing the dependent variable(s).
     tousevar is a variable that must contain values 0 or 1, representing the
     rows to include (1) or exclude (0). (optional)
 
-void P.set_depvar(y0)
+void P.set_depvars(y0)
 
     Loads Mata data for the dependent variable (control group only) into the
     Mata class.
@@ -197,17 +196,19 @@ real rowvector P.solve(| stat, subcmd, denominator, cvopt)
     {help psweight##remarks:help psweight} for a description of the methods.
 
     The function returns the vector of coefficients for the propensity score
-    model ({it:b}).
+    model, {it:b}.
 
     In addition, the function updates (private) variables containing the
     propensity scores (predicted values) and IPW weights. The type of IPW
     weights is specified by {it:stat}, and could be weights for estimating
     average treatment effects {opt ate}, average treatment effects on the
     treated {opt atet}, or average treatment effects on the untreated {opt
-    ateu}.
+    ateu}. The IPW weights are normalized to have mean equal to 1 in each
+    group. (If sample weights are provided, the weights are normalized so
+    the weighted mean equals 1 in each group.)
 
     subcmd, a string scalar, specifies which method is used to compute
-    coefficients {it:b} for the propensity score model.  In some cases, the
+    coefficients for the propensity score model ({it:b}).  In some cases, the
     method requires defining how standardized differences are calculated (
     {it:denominator}).
 
@@ -231,20 +232,21 @@ real rowvector P.solve(| stat, subcmd, denominator, cvopt)
         1 x 6           If cvopt=(a, b, c, d, e, f), the loss function is
                         modified to:
                             loss = loss_0 + a * abs((wgt_cv() - b)^c)
-                                          + e[LVF: should this be d?] * abs((wgt_skewness() - e)^f)
+                                          + d * abs((wgt_skewness() - e)^f)
         1 x 9           If cvopt=(a, b, c, d, e, f, g, h, i), the loss
                         function is modified to:
                             loss = loss_0 + a * abs((wgt_cv() - b)^c)
-                                          + e[LVF: should this be d?] * abs((wgt_skewness() - e)^f)
+                                          + d * abs((wgt_skewness() - e)^f)
                                           + g * abs((wgt_kurtosis() - h)^i)
         1 x 12          If cvopt=(a, b, c, d, e, f, g, h, i, j, k, l),  the
                         loss function is modified to:
                             loss = loss_0 + a * abs((wgt_cv() - b)^c)
-                                          + e[LVF: should this be d?] * abs((wgt_skewness() - e)^f)
+                                          + d * abs((wgt_skewness() - e)^f)
                                           + g * abs((wgt_kurtosis() - h)^i)
                                           + j * abs((wgt_max() - k)^l)
 
-        The default is cvopt=(0, 0, 2) (the loss function is unmodified). 
+        The default is a zero-length matrix (cvopt=J(1, 0, .)),
+        meaning that the loss function is unmodified.
 
 real rowvector P.ipw(| stat)
 
@@ -288,16 +290,18 @@ void P.reweight(| w,  p)
     Updates the class instance's (private) member variables with the supplied
     matching weights (w) and propensity scores (p).
 
-    After reweight(), downstream functions (e.g., to construct the balance
+    After reweight(), subsequent functions (e.g., to construct the balance
     table) will use the reweighted sample.
 
     w is treated as a set of matching weights; they will be multiplied by the
     sample weights (if sample weights exist).
 
-    [LVF added punctuation to the below -- is meaning correct?]
+    The function does not normalize the weights, w;
+    weights should be normalized before calling reweight().
+
     If no arguments are provided, the matching weights are reset (that is, the
-    sample is no longer weighted with IPW, weights are set to one, and the
-    propensity scores are set to missing).
+    matching weights are set to one, and the propensity scores are set to
+    missing).
 
     There is no need to call reweight() when estimating IPW weights. Newly
     calculated IPW weights will automatically be applied to the class instance.
@@ -311,9 +315,18 @@ real colvector P.get_weight_mtch()
 
     Returns the matching weights.
 
+    When weights are constructed through solve(), ipw(), cbps(), or cbpsoid(),
+    the matching weights are normalized to have mean equal to 1 in each group.
+    (If sample weights are provided, the weights are normalized so the weighted
+    mean equals 1 in each group.)
+
 real colvector P.get_weight()
 
-    Returns the final weights (the matching weights times the sample weights [LVF:, if any]).
+    Returns the final weights.
+
+    The final weights are the matching weights times the sample weights (if
+    any). The variable final weights equal the matching weights no sample
+    weights are provided.
 
 void P.fill_vars(varnames, | tousevar)
 
@@ -338,6 +351,8 @@ real rowvector P.pomean()
    group.
 
    This function requires that a dependent variable exist.
+
+   This function is really only useful after computing ATET weights.
 
 
 {marker funct4}{...}
@@ -425,7 +440,9 @@ real rowvector P.progdiff(| denominator)
 
 real scalar P.wgt_cv(stat)
 
-    Returns the coefficient of variation of the IPW weights [LVF: , that is, the standard deviation of the weights divided by their mean].
+    Returns the coefficient of variation of the IPW weights.
+    The coefficient of variation equals the standard deviation of the weights
+    divided by their mean.
 
     The value is also returned in Stata in r(wgt_cv).
 
@@ -484,6 +501,36 @@ void P.clone(src)
         : P2.clone(P1)
         : P2.balancetable()
 
+real matrix P.get_N()
+
+    Returns a 3x3 matrix with sample sizes and the sum of the weights (if any).
+
+        The first  column refers to the treatment group
+        The second column refers to the control group
+        The third  column refers to the pooled sample
+
+        The first  row contains the number of observations (rows) in the data
+        The second row contains the sum of the sample weights.
+        The third  row contains the sum of the final weights.
+        (For unweighted data, the three rows will be identical.)
+
+    The matrix is also returned in Stata in r(N_table).
+
+    Further, the individual cells from the table are also returned in Stata
+    in r():
+
+        r(N1_raw)     number of observations (rows) for the treatment group
+        r(N0_raw)     number of observations (rows) for the control group
+        r(N_raw)      number of observations (rows) for the pooled sample
+
+        r(sum_sw_1)   sum of the sample weights for the treatment group
+        r(sum_sw_0)   sum of the sample weights for the control group
+        r(sum_sw)     sum of the sample weights for the pooled sample
+
+        r(sum_w_1)    sum of weights for the treatment group
+        r(sum_w_0)    sum of weights for the control group
+        r(sum_w)      sum of weights for the pooled sample
+
 
 {marker conformability}{...}
 {title:Conformability}
@@ -507,9 +554,10 @@ void P.clone(src)
     cbps()            : 1 x k   real
     cbpsoid()         : 1 x k   real
 
-    get_pscore()      : n x 1  real
-    get_weight_mtch() : n x 1  real
-    get_weight()      : n x 1  real
+    get_pscore()      : n x 1   real
+    get_weight_mtch() : n x 1   real
+    get_weight()      : n x 1   real
+    get_N()           : 3 x 3   real
 
     balancetable()    : k x 6   real
     diff()            : 1 x k   real
@@ -522,7 +570,7 @@ void P.clone(src)
 
     mean_sd()         : 1 x 1   real
     mean_asd()        : 1 x 1   real
-    max_asd()          : 1 x 1   real
+    max_asd()         : 1 x 1   real
 
     wgt_cv()          : 1 x 1   real
     wgt_sd()          : 1 x 1   real
@@ -565,20 +613,18 @@ void P.clone(src)
 {marker author}{...}
 {title:Author}
 
-{pstd}
 By Keith Kranker,
-Mathematica{p_end}
+Mathematica Policy Research
 
-{pstd}
 My coauthors, Laura Blue and Lauren Vollmer Forrow, were closely involved with the
-development of the Penalized CBPS methodology.
-We received many helpful suggestions from our colleages at Mathematica,
-especially those on the Comprehensive Primary Care Plus Evaluation team.
-Of note, I thank Liz Potamites for testing early versions of the program and providing helpful feedback.{p_end}
+development of the Penalized CBPS methodology. We received many helpful suggestions
+from our colleages at Mathematica, especially those on the Comprehensive Primary
+Care Plus Evaluation team. Of note, I thank Liz Potamites for testing early versions
+of the program and providing helpful feedback.
 
-{pstd}
-The code for implementing the CBPS method is based on work by Fong et al. (2018), namely the CBPS package for R.
-I also reviewed the Stata CBPS implementation by Filip Premik.
+The code for implementing the CBPS method is based on work by Fong et al. (2018),
+namely the CBPS package for R. I also reviewed the Stata CBPS implementation by
+Filip Premik.
 
 {marker source}{...}
 {title:Source code}
