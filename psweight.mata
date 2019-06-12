@@ -18,9 +18,9 @@ mata set matafavor speed
 // Define the class
 class psweight {
   protected:
-    real colvector   T, W, sel1, sel0, Y0, W_orig, W_mtch, PS_mtch
+    real colvector   T, W, sel1, sel0, Y0, SW, W_mtch, PS_mtch
     real matrix      X, XC, Xstd
-    string scalar    tvar, depvars, wgtvar
+    string scalar    tvar, depvars, swvar
     string rowvector tmvarlist
     real rowvector   means1, means0, meansP, variances0, variances1, variancesP, variancesA
     real matrix      covariances0, covariances1, covariancesP, covariancesA
@@ -32,13 +32,13 @@ class psweight {
     real matrix      cbps_port_stata_wgt_matrix(), cbps_port_stata_gradient(), Ct()
 
   public:
-    void             new(), clone(), set(), set_depvar(), st_set(), st_set_depvar(), reweight(), fill_vars()
+    void             new(), clone(), set(), set_depvars(), st_set(), st_set_depvars(), reweight(), fill_vars()
     void             cbpseval(), balanceresults()
     real rowvector   solve(), ipw(), cbps(), cbpsoid()
     real colvector   get_pscore(), get_weight_mtch(), get_weight()
     real rowvector   diff(), stddiff(), varratio(), progdiff(), pomean()
     real scalar      mean_sd(), mean_asd(), max_asd(), wgt_cv(), wgt_sd(), wgt_skewness(), wgt_kurtosis(), wgt_max()
-    real matrix      balancetable()
+    real matrix      balancetable(), get_N()
 }
 
 // SETUP FUNCTIONS
@@ -62,18 +62,21 @@ void psweight::clone(class psweight scalar src) {
   this.sel1     = src.sel1
   this.T        = src.T
   this.X        = src.X
-  this.W_orig   = src.W_orig
+  this.SW       = src.SW
   this.Y0       = src.Y0
   this.tvar     = src.tvar
   this.tmvarlist= src.tmvarlist
-  this.wgtvar   = src.wgtvar
+  this.swvar    = src.swvar
   this.depvars  = src.depvars
   this.reweight()
   this.calcN()
 }
 
 // loads Stata data into the class, using views wherever possible
-void psweight::st_set(string scalar tvar, string scalar tmvarlist, | string scalar tousevar, string scalar wgtvar) {
+void psweight::st_set(string scalar tvar,
+                      string scalar tmvarlist, |
+                      string scalar tousevar,
+                      1string scalar swvar) {
   // Define treatment dummy
   this.tvar = tvar
   if (args()<3) st_view(this.T, ., tvar)
@@ -88,24 +91,25 @@ void psweight::st_set(string scalar tvar, string scalar tmvarlist, | string scal
   // /* */  "X contains" ; this.tmvarlist
   // /* */  "X is " + strofreal(rows(this.X)) + " by " + strofreal(cols(this.X))
 
-  // Define weights
-  // This code assumes weights are **already** normalized. Here's code to normalize: this.W = this.W :/ (rows(this.W) / quadcolsum(this.W))
+  // Define sample weights (SW)
+  // This code assumes weights are **already** normalized, if necessary.
+  // Here's code to normalize: this.W = this.W :/ (rows(this.W) / quadcolsum(this.W))
   if (args()>=4) {
-    this.wgtvar = wgtvar
-    if (args()<3) st_view(this.W_orig, ., this.wgtvar)
-    else          st_view(this.W_orig, ., this.wgtvar, tousevar) // an extra copy of the weight variable that can only be set via this function. Useful for reweighting/matching situations.
+    this.swvar = swvar
+    if (args()<3) st_view(this.SW, ., this.swvar)
+    else          st_view(this.SW, ., this.swvar, tousevar) // an extra copy of the weight variable that can only be set via this function. Useful for reweighting/matching situations.
   }
-  else this.W_orig = J(rows(this.T), 1, 1)
+  else this.SW = J(rows(this.T), 1, 1)
   // /* */  "W is " + strofreal(rows(this.W)) + " by " + strofreal(cols(this.W))
-  // initialize W_mtch=1 and W=W_orig
-  // W_orig is a view, but W and W_mtch are not
+  // initialize W_mtch=1 and W=SW
+  // SW is potentially a view, but W and W_mtch always contain the data
   this.reweight()
-  // /* */  "W_orig is " + strofreal(rows(this.W_orig)) + " by " + strofreal(cols(this.W_orig))
+  // /* */  "SW is " + strofreal(rows(this.SW)) + " by " + strofreal(cols(this.SW))
   // /* */  "W is " + strofreal(rows(this.W)) + " by " + strofreal(cols(this.W))
 
   // Index to select observations in control and treatment groups
-  this.sel0 = selectindex(!this.T :& this.W_orig)
-  this.sel1 = selectindex( this.T :& this.W_orig)
+  this.sel0 = selectindex(!this.T :& this.SW)
+  this.sel1 = selectindex( this.T :& this.SW)
 
   // Save raw number of observations
   this.N0_raw = rows(this.sel0)
@@ -113,16 +117,8 @@ void psweight::st_set(string scalar tvar, string scalar tmvarlist, | string scal
   this.N_raw = this.N0_raw + this.N1_raw
   if (min((this.N0_raw, this.N1_raw)==0)) _error("At least one treatment and control observation required.")
 
+  // calculate sample sizes
   this.calcN()
-  if (all(this.W_orig:==1)) {
-    strofreal(this.N0_raw) + " control obs"
-    strofreal(this.N1_raw) + " treatment obs"
-    "(Data are unweighted.)"
-  }
-  else {
-    strofreal(this.N0_raw) + " control obs (sum of weights = " + strofreal(this.N0) + ")"
-    strofreal(this.N1_raw) + " treatment obs (sum of weights = " + strofreal(this.N1) + ")"
-  }
 }
 
 // calculates unweighted/wegihted sample sizes for treatment and control group
@@ -141,11 +137,41 @@ void psweight::calcN() {
   this.covariances0 = this.covariances1 = this.covariancesP = this.covariancesA = J(0, 0, .)
 }
 
+// display/return sample sizes
+real matrix psweight::get_N() {
+
+  st_numscalar("r(N_raw)" , N_raw)
+  st_numscalar("r(N1_raw)", N1_raw)
+  st_numscalar("r(N0_raw)", N0_raw)
+
+  real scalar sum_sw_1, sum_sw_0, sum_sw
+  sum_sw_1 = quadcolsum(this.SW[this.sel1])
+  sum_sw_0 = quadcolsum(this.SW[this.sel0])
+  sum_sw   = sum_sw_1 + sum_sw_0
+  st_numscalar("r(sum_sw)"  , sum_sw)
+  st_numscalar("r(sum_sw_1)", sum_sw_1)
+  st_numscalar("r(sum_sw_0)", sum_sw_0)
+
+  st_numscalar("r(sum_w)"   , N)
+  st_numscalar("r(sum_w_1)" , N1)
+  st_numscalar("r(sum_w_0)" , N0)
+
+  real matrix N_table
+  N_table = (this.N1_raw, this.N0_raw, this.N_raw \
+             sum_sw_1,    sum_sw_0,    sum_sw \
+             this.N1,     this.N0,     this.N)
+  st_matrix("r(N_table)", N_table)
+  st_matrixcolstripe("r(N_table)", ("", "Treatment" \ "", "Control" \ "" ,"Total"))
+  st_matrixrowstripe("r(N_table)", ("", "Number of rows" \ "", "Sum of sample weights" \ "", "Sum of weights"))
+  return(N_table)
+}
+
 // loads the Stata dependent variable data into the class
 // Note: this function doesn't allow the class to touch the treatment group's outcome data
-void psweight::st_set_depvar(string scalar depvarnames, | string scalar tousevar) {
+void psweight::st_set_depvars(string scalar depvarlist, |
+                              string scalar tousevar) {
   real colvector Y
-  this.depvars = tokens(depvarnames)
+  this.depvars = tokens(depvarlist)
   Y=.
   if (args()<2)  st_view(Y, ., this.depvars)
   else           st_view(Y, ., this.depvars, tousevar)
@@ -154,17 +180,19 @@ void psweight::st_set_depvar(string scalar depvarnames, | string scalar tousevar
 }
 
 // loads Mata data into the class
-void psweight::set(real colvector t, real matrix x, | real colvector w) {
+void psweight::set(real colvector t,
+                   real matrix tm, |
+                   real colvector sw) {
   // Define treatment dummy
-  this.tvar = "mata_t"
+  this.tvar = "t"
   this.T = (t:!=0)
 
   // Define covariates
-  this.tmvarlist = J(1, cols(x), "mata_x")
-  if (rows(t)==rows(x)) {
-    this.X = x
+  this.tmvarlist = invtokens(J(1, cols(tm), "tm_") :+ strofreal(1..cols(tm)))
+  if (rows(t)==rows(tm)) {
+    this.X = tm
   }
-  else _error("x needs to have same number of rows as t")
+  else _error("tm needs to have same number of rows as t")
   this.K = cols(this.X)
   // /* */  "X contains" ; this.tmvarlist
   // /* */  "X is " + strofreal(rows(this.X)) + " by " + strofreal(cols(this.X))
@@ -172,24 +200,24 @@ void psweight::set(real colvector t, real matrix x, | real colvector w) {
   // Define weights
   // This code assumes weights are **already** normalized. Here's code to normalize: this.W = this.W :/ (rows(this.W) / quadcolsum(this.W))
   if (args()>=3) {
-    this.wgtvar = "mata_w"
-    if (rows(t)!=rows(w)) {
-      this.W_orig = w
+    this.swvar = "sw"
+    if (rows(t)!=rows(sw)) {
+      this.SW = sw
     }
-    else _error("w needs to have same number of rows as t")
+    else _error("sw needs to have same number of rows as t")
     // an extra copy of the weight variable that can only be set via this function. Useful for reweighting/matching situations.
   }
-  else this.W_orig = J(rows(this.T), 1, 1)
+  else this.SW = J(rows(this.T), 1, 1)
   // /* */  "W is " + strofreal(rows(this.W)) + " by " + strofreal(cols(this.W))
-  // initialize W_mtch=1 and W=W_orig
-  // W_orig is a view, but W and W_mtch are not
+  // initialize W_mtch=1 and W=SW
+  // SW is a view, but W and W_mtch are not
   this.reweight()
-  // /* */  "W_orig is " + strofreal(rows(this.W_orig)) + " by " + strofreal(cols(this.W_orig))
+  // /* */  "SW is " + strofreal(rows(this.SW)) + " by " + strofreal(cols(this.SW))
   // /* */  "W is " + strofreal(rows(this.W)) + " by " + strofreal(cols(this.W))
 
   // Index to select observations in control and treatment groups
-  this.sel0 = selectindex(!this.T :& this.W_orig)
-  this.sel1 = selectindex( this.T :& this.W_orig)
+  this.sel0 = selectindex(!this.T :& this.SW)
+  this.sel1 = selectindex( this.T :& this.SW)
 
   // Save raw number of observations
   this.N0_raw = rows(this.sel0)
@@ -197,37 +225,30 @@ void psweight::set(real colvector t, real matrix x, | real colvector w) {
   this.N_raw = this.N0_raw + this.N1_raw
   if (min((this.N0_raw, this.N1_raw)==0)) _error("At least one treatment and control observation required.")
 
+  // calculate and display sample sizes
   this.calcN()
-  if (all(this.W_orig:==1)) {
-    strofreal(this.N0_raw) + " control obs"
-    strofreal(this.N1_raw) + " treatment obs"
-    "(Data are unweighted.)"
-  }
-  else {
-    strofreal(this.N0_raw) + " control obs (sum of weights = " + strofreal(this.N0) + ")"
-    strofreal(this.N1_raw) + " treatment obs (sum of weights = " + strofreal(this.N1) + ")"
-  }
 }
 
 // loads Mata dependent variable data into the class
-void psweight::set_depvar(real matrix y0) {
+void psweight::set_depvars(real matrix y0) {
   if (rows(y0)==this.N0_raw) {
     this.Y0 = y0
   }
   else _error("y0 has an unexpected number of rows")
-  this.depvars = J(1, cols(y0), "mata_y")
+  this.depvars = invtokens(J(1, cols(y0), "y0_") :+ strofreal(1..cols(y0)))
   // /* */  "Y0 is " + strofreal(rows(this.Y0)) + " by " + strofreal(cols(this.Y0))
 }
 
 // multiply the original weights by a matching weight
 // and, optimally, store IPW weights in this.PS_mtch
-void psweight::reweight(|real colvector newweight, real colvector newpscores) {
+void psweight::reweight(| real colvector w,
+                          real colvector p) {
   // weights
   if (args()<1) this.W_mtch = J(rows(this.T), 1, 1)
-  else          this.W_mtch = newweight
-  this.W = this.W_orig :* this.W_mtch
+  else          this.W_mtch = w
+  this.W = this.SW :* this.W_mtch
   // p-scores
-  if (args()>1) this.PS_mtch = newpscores
+  if (args()>1)      this.PS_mtch = p
   else if (args()<1) this.PS_mtch = .
   // recalculate N and set means/variances to missing.
   this.calcN()
@@ -241,7 +262,8 @@ real colvector psweight::get_weight_mtch() return(this.W_mtch)
 real colvector psweight::get_weight()      return(this.W)
 
 // used to push the resulting weights and propensity scores back into Stata
-void psweight::fill_vars(string rowvector newvarnames, | string scalar tousevar) {
+void psweight::fill_vars(string rowvector newvarnames, |
+                         string scalar tousevar) {
   real matrix thisview
   if (length(tokens(newvarnames))!=4) _error("psweight::fill_vars() requires four numeric variable names")
   if (args()<2)  st_view(thisview, ., newvarnames)
@@ -300,7 +322,8 @@ real matrix psweight::balancetable(| real scalar denominator) {
 }
 
 // Prints the balance table and other stuff to the screen
-void psweight::balanceresults(| string scalar stat, real scalar denominator) {
+void psweight::balanceresults(| string scalar stat,
+                                real scalar denominator) {
   if (args()<1) stat="ate"
   if (args()<2) denominator=2
   transmorphic temp
@@ -308,7 +331,7 @@ void psweight::balanceresults(| string scalar stat, real scalar denominator) {
   st_rclear()
   "Balance:"
   temp = this.balancetable(denominator)
-  if (any(this.W_mtch:!=1)) {
+  if (!allof(this.W_mtch, 1)) {
     "C.V. of matching weights:           = " + strofreal(this.wgt_cv(stat), "%9.5f")
     "S.D. of matching weights:           = " + strofreal(this.wgt_sd(stat), "%9.5f")
     "Skewness of matching weights:       = " + strofreal(this.wgt_skewness(stat), "%9.5f")
@@ -347,7 +370,9 @@ real rowvector psweight::diff() {
 // diagvariance(x, w) is the same as diagonal(quadvariance(x, w))'
 // but it can be a lot faster than quadvariance, especially when you have lots of columns.
 // For testing, mreldif(diagvariance(X, w), diagonal(quadvariance(X, w))') should be small
-real rowvector psweight::diagvariance(real matrix x, | real colvector w, real rowvector xmean) {
+real rowvector psweight::diagvariance(real matrix x, |
+                                      real colvector w,
+                                      real rowvector xmean) {
   real rowvector v
   if (args()<2) w = 1
   if (args()<3) xmean = mean(x, w)
@@ -419,10 +444,11 @@ real rowvector psweight::stddiff(| real scalar denominator) {
 }
 
 // Calculate means, variance, CV, SD, skewness, kurtosis, and higher moments of the matching weights
-real rowvector psweight::wgt_moments(real scalar r, string scalar stat) {
+real rowvector psweight::wgt_moments(real scalar r,
+                                     string scalar stat) {
   real scalar v, m
   real colvector W_sel
-  if      (strlower(stat)=="ate") W_sel=this.W_mtch
+  if      (strlower(stat)=="ate")  W_sel=this.W_mtch
   else if (strlower(stat)=="atet") W_sel=this.W_mtch[this.sel0]
   else if (strlower(stat)=="ateu") W_sel=this.W_mtch[this.sel1]
   else _error(stat + " is an invalid argument for psweight::wgt_moments()")
@@ -466,7 +492,7 @@ real scalar psweight::wgt_kurtosis(string scalar stat) {
 
 real scalar psweight::wgt_max(string scalar stat) {
   real scalar mx
-  if      (strlower(stat)=="ate") mx = max(this.W_mtch)
+  if      (strlower(stat)=="ate")  mx = max(this.W_mtch)
   else if (strlower(stat)=="atet") mx = max(this.W_mtch[this.sel0])
   else if (strlower(stat)=="ateu") mx = max(this.W_mtch[this.sel1])
   else _error(stat + " is an invalid argument for psweight::wgt_moments()")
@@ -534,7 +560,7 @@ real rowvector psweight::progdiff(| real scalar denominator) {
   real scalar c
   real matrix table
   string rowvector colstripe, tmp
-  if (!length(this.depvars)) _error("Dependent variable is undefined.  Use psweight::st_set_depvar().")
+  if (!length(this.depvars)) _error("Dependent variable is undefined.  Use psweight::st_set_depvars().")
   if (args()<1) denominator=2
 
   yhat = J(rows(this.X), cols(this.Y0), .)
@@ -573,12 +599,14 @@ real rowvector psweight::progdiff(| real scalar denominator) {
 // Variances do not account for the OLS modeling; they are just the variance of the y_hat variable
 // Note: when this is used in the optimization program, the OLS model is re-estimated each iteration.
 // This is to estimate the OLS model with a reweighted comparison group that "looks like" the treatment group.
-real rowvector psweight::stdprogdiff(| real scalar denominator, real matrix yhat, real rowvector progdiff) {
+real rowvector psweight::stdprogdiff(| real scalar denominator,
+                                       real matrix yhat,
+                                       real rowvector progdiff) {
   real rowvector beta, yhat_bar_0, yhat_bar_1, stddiff
   real scalar c
   if (args()<1) denominator=2
   if (args()<2) {
-    if (!length(this.depvars)) _error("Dependent variable is undefined.  Use psweight::st_set_depvar().")
+    if (!length(this.depvars)) _error("Dependent variable is undefined.  Use psweight::st_set_depvars().")
     yhat = J(rows(this.X), cols(this.Y0), .)
     for (c=1; c<=cols(this.Y0); c++) {
       beta = this.olsbeta(this.Y0[., c], this.X[this.sel0, .], this.W[this.sel0])
@@ -601,7 +629,10 @@ real rowvector psweight::stdprogdiff(| real scalar denominator, real matrix yhat
 
 // Calculates coefficients for an OLS regression model
 // A contant term is included in the regression.
-real rowvector psweight::olsbeta(real matrix y, real matrix X, | real colvector w, real scalar addconst) {
+real rowvector psweight::olsbeta(real matrix y,
+                                 real matrix X, |
+                                 real colvector w,
+                                 real scalar addconst) {
   real colvector beta
   real matrix XX, Xy
   if (args()<3) w=1
@@ -623,7 +654,8 @@ real rowvector psweight::olsbeta(real matrix y, real matrix X, | real colvector 
 // Returns predicted values, X*beta'
 // If cols(X)+1==cols(beta), the function assumes the last coefficient corresponds to the constant term, and X just doesn't have a constant term
 // Warning: this function doesn't check the conformability; I rely on Stata to produce errors with invalid arguments
-real colvector psweight::olspredict(real matrix X, real rowvector beta) {
+real colvector psweight::olspredict(real matrix X,
+                                    real rowvector beta) {
   if ((cols(X)==cols(beta)) & cols(beta)) {
     return(X*beta')
   }
@@ -632,7 +664,6 @@ real colvector psweight::olspredict(real matrix X, real rowvector beta) {
   }
   else _error("X and beta are not conformable.")
 }
-
 
 // Computes weights (and returns them in this.W_mtch)
 //    stat corresponds to the options in psweight::logitweights()
@@ -646,7 +677,7 @@ real rowvector psweight::ipw(| string scalar stat) {
   this.reweight()
   if (args()<1) stat="ate"
   Ct = this.Ct((this.tmvarlist,"_cons"))
-  beta   = this.logitbeta(this.T, this.X, this.W_orig, 1, Ct)
+  beta   = this.logitbeta(this.T, this.X, this.SW, 1, Ct)
   // /* */ "propensity score (logit) model beta:"; beta
   pscore = this.logitpredict(this.X, beta)
   ipwwgt = this.logitweights(pscore, stat)
@@ -657,14 +688,15 @@ real rowvector psweight::ipw(| string scalar stat) {
 
 // Returns (weighted) mean of the dependent variable(s) in the control group
 real rowvector psweight::pomean() {
-  if (this.depvars=="") _error("dependent variable not defined. use psweight::st_set_depvar()")
+  if (this.depvars=="") _error("dependent variable not defined. use psweight::st_set_depvars()")
   return(mean(this.Y0, this.W[this.sel0]))
 }
 
 // Returns predicted values (e.g., propensity scores) if given the X's and betas, using the logit model functional form
 // If cols(X)+1==cols(beta), the function assumes the last coefficient corresponds to a constant term, and X just doesn't include it
 // Warning: this function doesn't check conformability; I assume Stata will produce an error with invalid arguments
-real colvector psweight::logitpredict(real matrix X, real rowvector beta) {
+real colvector psweight::logitpredict(real matrix X,
+                                      real rowvector beta) {
   if ((cols(X)==cols(beta)) & cols(beta)) {
     return(invlogit(X*beta'))
   }
@@ -676,7 +708,9 @@ real colvector psweight::logitpredict(real matrix X, real rowvector beta) {
 
 // Trims a generic column vector, x
 // by default, trimming is at 1e-6 and 1-1e-6, which is useful for trimming propensity scores very close to 0 or 1
-real colvector psweight::trim(real colvector x, | real scalar minval, real scalar maxval) {
+real colvector psweight::trim(real colvector x, |
+                              real scalar minval,
+                              real scalar maxval) {
   real colvector out
   if (args()<2) minval = 1e-6
   if (args()<3) maxval = 1-minval
@@ -690,7 +724,8 @@ real colvector psweight::trim(real colvector x, | real scalar minval, real scala
 //    stat = "ate"  computes weights for average treatment effect (the default)
 //         = "atet" computes weights for average treatment effect on the treated
 //         = "ateu" computes weights for average treatment effect on the untreated
-real colvector psweight::logitweights(real colvector pscore, | string scalar stat) {
+real colvector psweight::logitweights(real colvector pscore, |
+                                      string scalar stat) {
   real colvector pm
   real matrix ipwwgt
   if (args()<2) stat="ate"
@@ -706,15 +741,19 @@ real colvector psweight::logitweights(real colvector pscore, | string scalar sta
   else _error(stat + " is an invalid argument for psweight::logitweights()")
 
   // normalize the weights to have mean 1 in each group
-  if (strlower(stat)=="ate" | strlower(stat)=="atet") ipwwgt[this.sel0] = ipwwgt[this.sel0] :/ mean(ipwwgt[this.sel0], this.W_orig[this.sel0])
-  if (strlower(stat)=="ate" | strlower(stat)=="ateu") ipwwgt[this.sel1] = ipwwgt[this.sel1] :/ mean(ipwwgt[this.sel1], this.W_orig[this.sel1])
+  if (strlower(stat)=="ate" | strlower(stat)=="atet") ipwwgt[this.sel0] = ipwwgt[this.sel0] :/ mean(ipwwgt[this.sel0], this.SW[this.sel0])
+  if (strlower(stat)=="ate" | strlower(stat)=="ateu") ipwwgt[this.sel1] = ipwwgt[this.sel1] :/ mean(ipwwgt[this.sel1], this.SW[this.sel1])
   return(ipwwgt)
 }
 
 // Define function to calculate coefficients for a logit regression model
 // A contant term is added to the model and its coefficient is included in the vector of betas
 // The program looks at Stata local mlopts for options related to controlling maximization
-real rowvector psweight::logitbeta(real colvector Ymat, real matrix Xmat, | real colvector Wmat, real scalar addconst, real matrix Ct) {
+real rowvector psweight::logitbeta(real colvector Ymat,
+                                   real matrix Xmat, |
+                                   real colvector Wmat,
+                                   real scalar addconst,
+                                   real matrix Ct) {
   transmorphic S
   if (args()<4) addconst=1
 
@@ -724,7 +763,7 @@ real rowvector psweight::logitbeta(real colvector Ymat, real matrix Xmat, | real
   moptimize_init_depvar(S, 1, Ymat)
   moptimize_init_eq_indepvars(S, 1, Xmat)
   if (!addconst) moptimize_init_eq_cons(S, 1, "off")
-  if (args()>=3 & any(Wmat:!=1)) moptimize_init_weight(S, Wmat)
+  if (args()>=3 & !allof(Wmat, 1)) moptimize_init_weight(S, Wmat)
   moptimize_init_eq_colnames(S, 1, (J(1, cols(Xmat),"x") + strofreal((1..cols(Xmat)))))
   moptimize_init_vcetype(S, "robust")
   if (args()>=5) moptimize_init_constraints(S, Ct)
@@ -769,19 +808,21 @@ void psweight::postbeta(real rowvector beta) {
   tempmatname=st_tempname()
   st_matrix(tempmatname, beta)
   st_local("psweight_beta_out", tempmatname)
-  if      ((this.K==cols(beta)) & cols(beta)) st_matrixcolstripe(tempmatname, (J(cols(beta), 1,""), this.tmvarlist'))
+  if      ((this.K==cols(beta))   & cols(beta)) st_matrixcolstripe(tempmatname, (J(cols(beta), 1,""), this.tmvarlist'))
   else if ((this.K==cols(beta)-1) & cols(beta)) st_matrixcolstripe(tempmatname, (J(cols(beta), 1,""),(this.tmvarlist' \ "_cons")))
-  else                                                      _error("beta does not have the expected dimensions.")
+  else _error("beta does not have the expected dimensions.")
   st_local("psweight_N_out", strofreal(this.N))
 }
 
-void psweight_logit_eval(transmorphic S, real rowvector beta, real colvector lnf) {
+void psweight_logit_eval(transmorphic S,
+                         real rowvector beta,
+                         real colvector lnf) {
   real colvector Y, pm, xb, lj
   Y  = moptimize_util_depvar(S, 1)
   xb = moptimize_util_xb(S, beta, 1)
   pm = 2*(Y :!= 0) :- 1
   lj = invlogit(pm:*xb)
-  if (any(lj :== 0)) {
+  if (anyof(lj, 0)) {
     lnf = .
     return
   }
@@ -794,7 +835,10 @@ void psweight_logit_eval(transmorphic S, real rowvector beta, real colvector lnf
 //    denominator is passed to stddiff() and related functions
 //    oid=1 turns on the "over-identified" version of the CBPS model; oid=0 leaves it off
 //    cvopt adds the CV of the matching weights to the optimization objective function; see documentation
-real rowvector psweight::solve(| string scalar stat, string scalar subcmd, real scalar denominator, real rowvector cvopt) {
+real rowvector psweight::solve(| string scalar stat,
+                                 string scalar subcmd,
+                                 real scalar denominator,
+                                 real rowvector cvopt) {
   real rowvector beta
   real colvector pscore, cbpswgt
   real matrix ww, Ct
@@ -826,7 +870,7 @@ real rowvector psweight::solve(| string scalar stat, string scalar subcmd, real 
     subcmd="cbps"
     oid=1
   }
-  if (subcmd=="cbps" & all(this.W_orig:==1)) {
+  if (subcmd=="cbps" & allof(this.SW, 1)) {
     subcmd="cbps_port_stata"
   }
   else if (subcmd=="cbps") {
@@ -925,7 +969,7 @@ real rowvector psweight::solve(| string scalar stat, string scalar subcmd, real 
     // is this just this.covariancesP ?
     ww = this.cbps_port_stata_wgt_matrix(beta_logit, oid, stat)
     ww = invsym(ww)
-    if (!all(this.W_orig:==1)) _error("psweight::cbps_port_stata_moments() does not yet accomodate weighted samples")
+    if (!allof(this.SW, 1)) _error("psweight::cbps_port_stata_moments() does not yet accomodate weighted samples")
   }
   else if (subcmd=="cbps_port_r" & !oid) {
     if (!oid) ww = invsym(quadcross(this.Xstd, this.W, this.Xstd))
@@ -965,10 +1009,18 @@ real rowvector psweight::solve(| string scalar stat, string scalar subcmd, real 
 }
 
 // helper function -- note this is not a member of the class
-void psweight_cbps_eval(real todo, real beta,
-                      class psweight scalar M,
-                      string stat, string subcmd, real denominator, real oid, real cvopt, real ww,
-                      real lnf, real g, real H) {
+void psweight_cbps_eval(real todo,
+                        real beta,
+                        class psweight scalar M,
+                        string stat,
+                        string subcmd,
+                        real denominator,
+                        real oid,
+                        real cvopt,
+                        real ww,
+                        real lnf,
+                        real g,
+                        real H) {
   M.cbpseval(todo, beta, stat, subcmd, denominator, oid, cvopt, ww, lnf, g, H)
 }
 
@@ -1023,14 +1075,16 @@ void psweight::cbpseval(real   scalar    todo,
 }
 
 // Calls CBPS model (not over-identified); this just calls solve() -- described above.
-real rowvector psweight::cbps(| string scalar stat, real scalar denominator) {
+real rowvector psweight::cbps(| string scalar stat,
+                                real scalar denominator) {
   if (args()<1) stat="ate"
   if (args()<2) denominator=2
   return(solve(stat, "cbps", denominator))
 }
 
 // Calls over-identified CBPS model; this just calls solve() -- described above.
-real rowvector psweight::cbpsoid(| string scalar stat, real scalar denominator) {
+real rowvector psweight::cbpsoid(| string scalar stat,
+                                   real scalar denominator) {
   if (args()<1) stat="ate"
   if (args()<2) denominator=2
   return(solve(stat, "cbpsoid", denominator))
@@ -1059,7 +1113,10 @@ void psweight::cbps_port_stata(real   scalar    todo,
 }
 
 // Port of the moment function from the Stata verion of CBPS
-real colvector psweight::cbps_port_stata_moments(real colvector pscore, real matrix dpscore, real scalar overid, string scalar stat) {
+real colvector psweight::cbps_port_stata_moments(real colvector pscore,
+                                                 real matrix dpscore,
+                                                 real scalar overid,
+                                                 string scalar stat) {
   real colvector gg
 
   // this is inefficient
@@ -1082,7 +1139,9 @@ real colvector psweight::cbps_port_stata_moments(real colvector pscore, real mat
 
 
 // Port of the gradient function from the Stata verion of CBPS
-real matrix psweight::cbps_port_stata_gradient(real colvector pscore, real scalar overid, string scalar stat) {
+real matrix psweight::cbps_port_stata_gradient(real colvector pscore,
+                                               real scalar overid,
+                                               string scalar stat) {
   real matrix G, dw
   if (strlower(stat)=="ate") {
     G = -(this.XC:*((this.T:-pscore):^2):/pscore:/(1:-pscore))'this.XC
@@ -1100,7 +1159,9 @@ real matrix psweight::cbps_port_stata_gradient(real colvector pscore, real scala
 
 
 // Port of the weighting matrix function from the Stata verion of CBPS
-real matrix psweight::cbps_port_stata_wgt_matrix(real rowvector beta, real scalar overid, string scalar stat) {
+real matrix psweight::cbps_port_stata_wgt_matrix(real rowvector beta,
+                                                 real scalar overid,
+                                                 string scalar stat) {
   real matrix ww
   real colvector pscore, dpscore
   pscore  = this.logitpredict(this.X, beta)
@@ -1135,13 +1196,13 @@ real matrix psweight::cbps_port_stata_wgt_matrix(real rowvector beta, real scala
 
 // Port of the gmm.func() function from CBPS.Binary.R (version 0.17)
 void psweight::cbps_port_r(real   scalar    todo,
-                         real   rowvector beta,
-                         string scalar    stat,
-                         real   scalar    overid,
-                         real   matrix    ww,
-                         real   matrix    lnf,
-                         real   matrix    g,
-                         real   matrix    H) {
+                           real   rowvector beta,
+                           string scalar    stat,
+                           real   scalar    overid,
+                           real   matrix    ww,
+                           real   matrix    lnf,
+                           real   matrix    g,
+                           real   matrix    H) {
   real colvector pscore, w_cbps
   pscore = this.logitpredict(this.Xstd, beta)
   pscore = this.trim(pscore)
@@ -1153,25 +1214,25 @@ void psweight::cbps_port_r(real   scalar    todo,
   }
   if (!overid) {
      w_cbps = 1/this.N :* w_cbps
-     lnf = abs(quadcross(w_cbps, this.W_orig, this.Xstd) * ww * quadcross(this.Xstd, this.W_orig, w_cbps))
+     lnf = abs(quadcross(w_cbps, this.SW, this.Xstd) * ww * quadcross(this.Xstd, this.SW, w_cbps))
   }
   else {
     real colvector gbar, wx1, wx2, wx3
     real matrix V
-    gbar = (quadcross(this.Xstd, this.W_orig, this.T:-pscore) \ quadcross(this.Xstd, this.W_orig, w_cbps)) :/ this.N
+    gbar = (quadcross(this.Xstd, this.SW, this.T:-pscore) \ quadcross(this.Xstd, this.SW, w_cbps)) :/ this.N
     if (strlower(stat)=="atet") {
       wx1 = this.Xstd:*sqrt((1:-pscore):*pscore)
       wx2 = this.Xstd:*sqrt(pscore:/(1:-pscore))
       wx3 = this.Xstd:*sqrt(pscore)
-      V =  (quadcross(wx1, this.W_orig, wx1), quadcross(wx3, this.W_orig, wx3) \
-            quadcross(wx3, this.W_orig, wx3), quadcross(wx2, this.W_orig, wx2) :* (this.N:/this.N1_raw)) :/ this.N1_raw
+      V =  (quadcross(wx1, this.SW, wx1), quadcross(wx3, this.SW, wx3) \
+            quadcross(wx3, this.SW, wx3), quadcross(wx2, this.SW, wx2) :* (this.N:/this.N1_raw)) :/ this.N1_raw
     }
     else if (strlower(stat)=="ate") {
       wx1 = this.Xstd:*sqrt((1:-pscore):*pscore)
       wx2 = this.Xstd:*((pscore:*(1:-pscore)):^-.5)
       wx3 = this.Xstd
-      V = (quadcross(wx1, this.W_orig, wx1), quadcross(wx3, this.W_orig, wx3) \
-           quadcross(wx3, this.W_orig, wx3), quadcross(wx2, this.W_orig, wx2)) :/ this.N
+      V = (quadcross(wx1, this.SW, wx1), quadcross(wx3, this.SW, wx3) \
+           quadcross(wx3, this.SW, wx3), quadcross(wx2, this.SW, wx2)) :/ this.N
     }
     else _error(stat + " is not allowed.")
     lnf = gbar' * invsym(V) * gbar
@@ -1183,7 +1244,8 @@ void psweight::cbps_port_r(real   scalar    todo,
 
 // extract optimize_init_*() options parsed by Stata program -mlopts-
 // I just copied moptimize_init_mlopts source code, then updated according to the optimize() help entry
-void psweight_init_mlopts(transmorphic scalar M, string scalar mlopts) {
+void psweight_init_mlopts(transmorphic scalar M,
+                          string scalar mlopts) {
         string scalar arg, arg1, tok
         transmorphic t, t1
 
