@@ -444,7 +444,7 @@ psweight call balanceresults()
 teffects ipw (`:word 1 of `depvarlist'') (`treatvar' `varlist') if `tousevar' , atet aequations
 di _b[POmean:0.treat]
 tebalance summarize
-tebalance summarize, baseline ntable
+tebalance summarize, baseline
 psweight ipw `treatvar' `varlist' if `tousevar' , atet averagevariance `depvaropt'
 psweight call balanceresults()
 
@@ -518,7 +518,7 @@ di _b[POmean:0.treat]
 tebalance summarize
 tebalance summarize, baseline
 
-psweight ipw `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet treatvariance `depvaropt'
+psweight ipw `treatvar' `varlist' if `tousevar' [iw=`wgtvar'], atet treatvariance `depvaropt' ntable
 psweight call balanceresults()
 psweight call reweight()
 psweight call balanceresults()
