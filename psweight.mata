@@ -74,9 +74,9 @@ void psweight::clone(class psweight scalar src) {
 
 // loads Stata data into the class, using views wherever possible
 void psweight::st_set(string scalar tvar,
-                      string scalar tmvarlist, |
-                      string scalar tousevar,
-                      1string scalar swvar) {
+                      string scalar tmvarlist,
+                      | string scalar tousevar,
+                        string scalar swvar) {
   // Define treatment dummy
   this.tvar = tvar
   if (args()<3) st_view(this.T, ., tvar)
@@ -168,8 +168,8 @@ real matrix psweight::get_N() {
 
 // loads the Stata dependent variable data into the class
 // Note: this function doesn't allow the class to touch the treatment group's outcome data
-void psweight::st_set_depvars(string scalar depvarlist, |
-                              string scalar tousevar) {
+void psweight::st_set_depvars(string scalar depvarlist,
+                              | string scalar tousevar) {
   real colvector Y
   this.depvars = tokens(depvarlist)
   Y=.
@@ -181,8 +181,8 @@ void psweight::st_set_depvars(string scalar depvarlist, |
 
 // loads Mata data into the class
 void psweight::set(real colvector t,
-                   real matrix tm, |
-                   real colvector sw) {
+                   real matrix tm,
+                   | real colvector sw) {
   // Define treatment dummy
   this.tvar = "t"
   this.T = (t:!=0)
@@ -262,8 +262,8 @@ real colvector psweight::get_weight_mtch() return(this.W_mtch)
 real colvector psweight::get_weight()      return(this.W)
 
 // used to push the resulting weights and propensity scores back into Stata
-void psweight::fill_vars(string rowvector newvarnames, |
-                         string scalar tousevar) {
+void psweight::fill_vars(string rowvector newvarnames,
+                         | string scalar tousevar) {
   real matrix thisview
   if (length(tokens(newvarnames))!=4) _error("psweight::fill_vars() requires four numeric variable names")
   if (args()<2)  st_view(thisview, ., newvarnames)
@@ -370,9 +370,9 @@ real rowvector psweight::diff() {
 // diagvariance(x, w) is the same as diagonal(quadvariance(x, w))'
 // but it can be a lot faster than quadvariance, especially when you have lots of columns.
 // For testing, mreldif(diagvariance(X, w), diagonal(quadvariance(X, w))') should be small
-real rowvector psweight::diagvariance(real matrix x, |
-                                      real colvector w,
-                                      real rowvector xmean) {
+real rowvector psweight::diagvariance(real matrix x,
+                                      | real colvector w,
+                                        real rowvector xmean) {
   real rowvector v
   if (args()<2) w = 1
   if (args()<3) xmean = mean(x, w)
@@ -630,9 +630,9 @@ real rowvector psweight::stdprogdiff(| real scalar denominator,
 // Calculates coefficients for an OLS regression model
 // A contant term is included in the regression.
 real rowvector psweight::olsbeta(real matrix y,
-                                 real matrix X, |
-                                 real colvector w,
-                                 real scalar addconst) {
+                                 real matrix X,
+                                 | real colvector w,
+                                   real scalar addconst) {
   real colvector beta
   real matrix XX, Xy
   if (args()<3) w=1
@@ -708,9 +708,9 @@ real colvector psweight::logitpredict(real matrix X,
 
 // Trims a generic column vector, x
 // by default, trimming is at 1e-6 and 1-1e-6, which is useful for trimming propensity scores very close to 0 or 1
-real colvector psweight::trim(real colvector x, |
-                              real scalar minval,
-                              real scalar maxval) {
+real colvector psweight::trim(real colvector x,
+                              | real scalar minval,
+                                real scalar maxval) {
   real colvector out
   if (args()<2) minval = 1e-6
   if (args()<3) maxval = 1-minval
@@ -724,8 +724,8 @@ real colvector psweight::trim(real colvector x, |
 //    stat = "ate"  computes weights for average treatment effect (the default)
 //         = "atet" computes weights for average treatment effect on the treated
 //         = "ateu" computes weights for average treatment effect on the untreated
-real colvector psweight::logitweights(real colvector pscore, |
-                                      string scalar stat) {
+real colvector psweight::logitweights(real colvector pscore,
+                                      | string scalar stat) {
   real colvector pm
   real matrix ipwwgt
   if (args()<2) stat="ate"
@@ -750,10 +750,10 @@ real colvector psweight::logitweights(real colvector pscore, |
 // A contant term is added to the model and its coefficient is included in the vector of betas
 // The program looks at Stata local mlopts for options related to controlling maximization
 real rowvector psweight::logitbeta(real colvector Ymat,
-                                   real matrix Xmat, |
-                                   real colvector Wmat,
-                                   real scalar addconst,
-                                   real matrix Ct) {
+                                   real matrix Xmat,
+                                   | real colvector Wmat,
+                                     real scalar addconst,
+                                     real matrix Ct) {
   transmorphic S
   if (args()<4) addconst=1
 
