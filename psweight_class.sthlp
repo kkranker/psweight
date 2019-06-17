@@ -140,7 +140,7 @@ analyses unavailable with the Stata command.
 {title:Details}
 
 {marker funct1}{...}
-{it:Setup functions}:
+{bf:Setup functions}:
 
 void P.st_set(tvar, tmvarlist, | tousevar, swvar)
 

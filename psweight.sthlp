@@ -553,6 +553,11 @@ logit model to predict treatment status{p_end}
 {pstd}By Keith Kranker{break}
 Mathematica{p_end}
 
+{pstd}Suggested Citation:{p_end}
+{phang2}Kranker, K. "psweight: IPW- and CBPS-type propensity score reweighting, with various extensions," Statistical Software Components S458657, Boston College Department of Economics, 2019. Available at https://ideas.repec.org/c/boc/bocode/s458657.html.{p_end}
+{phang2}- or -{p_end}
+{phang2}Kranker, K., L. Blue, and L. Vollmer Forrow.  "Improving Effect Estimates by Limiting the Variability in Inverse Propensity Score Weights." Manuscript under review, 2019.{p_end}
+
 
 {title:Acknowledgements}
 
@@ -567,7 +572,8 @@ Of note, I thank Liz Potamites for testing early versions of the program and pro
 The code for implementing the CBPS method is based on work by Fong et al. (2018), namely the CBPS package for R.
 I also reviewed the Stata CBPS implementation by Filip Premik.
 
-{pstd}Source code is available at {browse "https://github.com/kkranker/psweight"}{p_end}
+{pstd}Source code is available at {browse "https://github.com/kkranker/psweight"}.
+Please report issues at {browse "https://github.com/kkranker/psweight/issues"}.{p_end}
 
 
 {marker results}{...}
