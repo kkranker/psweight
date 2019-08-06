@@ -323,7 +323,6 @@ void Estimate(real scalar reweight) {
   stat        = st_local("stat")
   subcmd      = st_local("subcmd")
   denominator = strtoreal(st_local("denominator"))
-  ntable      = st_local("ntable")
   if  (st_local("cvopt")!="") {
     cvopt       = strtoreal(tokens(st_local("cvopt")))
   }

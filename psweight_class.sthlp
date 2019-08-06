@@ -518,7 +518,8 @@ real matrix P.get_N(| s)
 
     The matrix is also returned in Stata in r(N_table).
 
-    Further, the individual cells from the table are also returned in Stata in r():
+    Further, the individual cells from the table are also returned in Stata
+    in r():
 
         r(N1_raw)     number of observations (rows) for the treatment group
         r(N0_raw)     number of observations (rows) for the control group
