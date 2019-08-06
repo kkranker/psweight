@@ -138,7 +138,9 @@ void psweight::calcN() {
 }
 
 // display/return sample sizes
-real matrix psweight::get_N() {
+real matrix psweight::get_N(| s) {
+
+  if (args() < 1) s = 0
 
   st_numscalar("r(N_raw)" , N_raw)
   st_numscalar("r(N1_raw)", N1_raw)
@@ -148,6 +150,7 @@ real matrix psweight::get_N() {
   sum_sw_1 = quadcolsum(this.SW[this.sel1])
   sum_sw_0 = quadcolsum(this.SW[this.sel0])
   sum_sw   = sum_sw_1 + sum_sw_0
+
   st_numscalar("r(sum_sw)"  , sum_sw)
   st_numscalar("r(sum_sw_1)", sum_sw_1)
   st_numscalar("r(sum_sw_0)", sum_sw_0)
@@ -163,6 +166,14 @@ real matrix psweight::get_N() {
   st_matrix("r(N_table)", N_table)
   st_matrixcolstripe("r(N_table)", ("", "Treatment" \ "", "Control" \ "" ,"Total"))
   st_matrixrowstripe("r(N_table)", ("", "Number of rows" \ "", "Sum of sample weights" \ "", "Sum of weights"))
+
+  if (s) {
+    string scalar tmp
+    tmp = st_tempname()
+    stata("matrix " + tmp + " = r(N_table)")
+    stata("_matrix_table " + tmp)
+  }
+
   return(N_table)
 }
 
@@ -280,6 +291,14 @@ void psweight::fill_vars(string rowvector newvarnames,
 
   if (rows(thisview)==rows(this.T)) thisview[., 4] = this.T
   else thisview[., 4] = J(rows(thisview), 1, .)
+
+  display("New variables created: " +
+          `"{stata "tabstat "' + tokens(newvarnames)[1] + `" if e(sample), by(_treated) c(s) s(N mean sd min p1 p10 p25 p50 p75 p90 p99 max) format":"' + tokens(newvarnames)[1] + `"} "' +
+          `"{stata "tabstat "' + tokens(newvarnames)[2] + `" if e(sample), by(_treated) c(s) s(N mean sd min p1 p10 p25 p50 p75 p90 p99 max) format":"' + tokens(newvarnames)[2] + `"} "' +
+          `"{stata "tabstat "' + tokens(newvarnames)[3] + `" if e(sample), by(_treated) c(s) s(N mean sd min p1 p10 p25 p50 p75 p90 p99 max) format":"' + tokens(newvarnames)[3] + `"} "' +
+          `"{stata "tabstat "' + tokens(newvarnames)[4] + `" if e(sample),              c(s) s(N mean    min                            max) format":"' + tokens(newvarnames)[4] + `"} "' )
+  ""
+
 }
 
 // Construct a balance table (and print it to the screen)

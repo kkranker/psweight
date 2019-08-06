@@ -115,6 +115,8 @@ program Estimate, eclass sortpreserve byable(recall)
     markout `tousevar' `v'
     _fv_check_depvar `v'
   }
+  tempvar   tousevar_cpy
+  clonevar `tousevar_cpy' = `tousevar'
 
   // parse the "stat" options
   local stat "`ate'`atet'`ateu'"
@@ -183,34 +185,34 @@ program Estimate, eclass sortpreserve byable(recall)
   // balanceonly option just prints balance and then end the program
   if ("`subcmd'"=="balanceonly") {
     mata: Estimate(0)
-    ereturn local tvar                      = strtrim("`tvar'")
-    ereturn local tmvarlist                 = strtrim("`varlist'")
-    ereturn local variance                  = "`variance'"
-    if ("`weight'"!="") ereturn local wtype = "`weight'"
-    if ("`wexp'"!="")   ereturn local wexp  = "`wexp'"
-    exit
+  }
+  else {
+
+    // switch over to Mata, helper function runs the main function
+    mata: Estimate(1)
+
+    // print results to screen
+    di as txt _n "Propensity score model coefficients" _c
+    di as txt _col(52) "Number of obs" _col(67) "=" _col(69) as res %10.0fc `psweight_N_out'
+    di as txt "Propensity score reweigting"
+    if      ("`subcmd'"=="ipw"        ) di as txt "Loss = IPW" _c
+    else if ("`subcmd'"=="cbps"       ) di as txt "Loss = CBPS (just identified)" _c
+    else if ("`subcmd'"=="cbpsoid"    ) di as txt "Loss = CBPS (over identified)" _c
+    else if ("`subcmd'"=="mean_sd_sq" ) di as txt "Loss = mean(stddiff())^2" _c
+    else if ("`subcmd'"=="sd_sq"      ) di as txt "Loss = sum(stddiff()^2)" _c
+    else if ("`subcmd'"=="stdprogdiff") di as txt "Loss = sum(stdprogdiff()^2)" _c
+    tokenize `cvopt'
+    if !inlist(`"`1'"' , "", "0", ".")  di as txt   " + `1'*abs(wgt_cv()-`2')^`3')" _c
+    if !inlist(`"`4'"' , "", "0", ".")  di as txt   " + `4'*abs(wgt_skewness()-`5')^`6')" _c
+    if !inlist(`"`7'"' , "", "0", ".")  di as txt   " + `7'*abs(wgt_kurtosis()-`8')^`9')" _c
+    if !inlist(`"`10'"', "", "0", ".")  di as txt   " + `10'*abs(wgt_max()-`11')^`12')" _c
+    di ""
+    ereturn post `psweight_beta_out' `wgtexp', obs(`psweight_N_out') buildfvinfo esample(`tousevar') depname("`tvar'") properties(b)
+    _coef_table, `diopts'
+
   }
 
-  // switch over to Mata, helper function runs the main function
-  mata: Estimate(1)
-
-  // print results to screen
-  di as txt _n "Propensity score model coefficients" _c
-  di as txt _col(52) "Number of obs" _col(67) "=" _col(69) as res %10.0fc `psweight_N_out'
-  di as txt "Propensity score reweigting"
-  if      ("`subcmd'"=="ipw"        ) di as txt "Loss = IPW" _c
-  else if ("`subcmd'"=="cbps"       ) di as txt "Loss = CBPS (just identified)" _c
-  else if ("`subcmd'"=="cbpsoid"    ) di as txt "Loss = CBPS (over identified)" _c
-  else if ("`subcmd'"=="mean_sd_sq" ) di as txt "Loss = mean(stddiff())^2" _c
-  else if ("`subcmd'"=="sd_sq"      ) di as txt "Loss = sum(stddiff()^2)" _c
-  else if ("`subcmd'"=="stdprogdiff") di as txt "Loss = sum(stdprogdiff()^2)" _c
-  tokenize `cvopt'
-  if !inlist(`"`1'"' , "", "0", ".")  di as txt   " + `1'*abs(wgt_cv()-`2')^`3')" _c
-  if !inlist(`"`4'"' , "", "0", ".")  di as txt   " + `4'*abs(wgt_skewness()-`5')^`6')" _c
-  if !inlist(`"`7'"' , "", "0", ".")  di as txt   " + `7'*abs(wgt_kurtosis()-`8')^`9')" _c
-  if !inlist(`"`10'"', "", "0", ".")  di as txt   " + `10'*abs(wgt_max()-`11')^`12')" _c
-  di ""
-  ereturn post `psweight_beta_out' `wgtexp', obs(`psweight_N_out') buildfvinfo esample(`tousevar') depname("`tvar'")
+  // these locals are returned for balance tables and reweighting
   ereturn                         local stat       = "`stat'"
   ereturn                         local variance   = "`variance'"
   ereturn                         local tvar       = strtrim("`tvar'")
@@ -219,28 +221,19 @@ program Estimate, eclass sortpreserve byable(recall)
   if ("`weight'"!="")     ereturn local wtype      = "`weight'"
   if ("`wexp'"!="")       ereturn local wexp       = "`wexp'"
   if ("`cvopt'"!="")      ereturn local cvopt      = "`cvopt'"
-  _coef_table, `diopts'
 
-  // print distribution of weights to screen
-  di as txt _n "New variables (unweighted summary statistics)"
-  tabstat _weight _weight_mtch _pscore if e(sample), by(_treated) c(s) s(N mean sd min p1 p10 p25 p50 p75 p90 p99 max) format
-  return clear
+  // stick obs-specific weigths and such into Stata vaiables
+  mata: psweight_ado_most_recent.fill_vars("_weight _weight_mtch _pscore _treated", "`tousevar_cpy'")
+
+  // this function puts sample sizes into r()
+  tempname tempr
+  mata: `tempr' = psweight_ado_most_recent.get_N(`=("`ntable'"!="")')
 
 end
 
 program define get_matrix_table_options, sclass
   syntax [, format(passthru) NOOMITted vsquish NOEMPTYcells BASElevels ALLBASElevels NOFVLABel fvwrap(passthru) fvwrapon(passthru) nolstretch *]
   sreturn local opts = strrtrim(stritrim(`"`format' `noomitted' `vsquish' `noemptycells' `baselevels' `passthru' `allbaselevels' `nofvlabel' `fvwrap' `fvwrapon' `nolstretch'"'))
-end
-
-// this is a trivial workaround for the problem that
-// you're not allowed to do:
-// .  _matrix_table r(matname)
-program define flex_matrix_table
-  syntax anything [, *]
-  tempname copy
-  matrix `copy' = `anything'
-  _matrix_table `copy', `options'
 end
 
 
@@ -360,14 +353,6 @@ void Estimate(real scalar reweight) {
     }
   }
 
-  // stick obs-specific weigths and such into Stata vaiables
-  psweight_ado_most_recent.fill_vars("_weight _weight_mtch _pscore _treated", tousevar)
-
-  if (ntable != "") {
-    temp = psweight_ado_most_recent.get_N()
-    ""
-    stata("cap nois flex_matrix_table r(N_table)")
-  }
 }
 
 end
