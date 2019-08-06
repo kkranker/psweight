@@ -8,9 +8,9 @@ cap log close psweight_example
 cap log close psweight_example_ado
 cap log close psweight_example_R
 local makegraphs = 01
-cd "C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\"
+cd "C:\Users\kkranker\Documents\Stata\psweight\code-psweight\"
 
-do C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\_build.do
+do C:\Users\kkranker\Documents\Stata\psweight\code-psweight\_build.do
 
 log using psweight_example.log, name(psweight_example) replace
 
@@ -166,8 +166,7 @@ if (depvarlist!="") D.st_set_depvars(depvarlist, tousevar)
   D.stddiff(0)
   D.varratio()
   D.progdiff(1)
-  D.get_N()
-  stata("matrix list r(N_table)")
+  D.get_N(1)
 
   "Balance table before matching"
   table = D.balancetable(1)
@@ -179,8 +178,7 @@ if (depvarlist!="") D.st_set_depvars(depvarlist, tousevar)
     stata(`"cbps_imbalance"')
     D.cbps("ate", 2)
     D.balanceresults("ate", 2)
-    D.get_N()
-    stata("matrix list r(N_table)")
+    D.get_N(1)
 
   "--- ATE overidentified ---"; ""; ""
     stata(`"cbps `treatvar' `varlist' if `tousevar' , ate over logit optimization_technique("nr") evaluator_type("gf1")"')
@@ -278,8 +276,7 @@ if (depvarlist!="") DW.st_set_depvars(depvarlist, tousevar)
   DW.stddiff(0)
   DW.varratio()
   DW.progdiff(1)
-  DW.get_N()
-  stata("matrix list r(N_table)")
+  DW.get_N(1)
 
   "Balance table before matching"
   temp = DW.balancetable(1)
@@ -289,8 +286,7 @@ if (depvarlist!="") DW.st_set_depvars(depvarlist, tousevar)
   "--- ATE (not overidentified) ---"; ""; ""
     DW.cbps("ate", 2)
     DW.balanceresults("ate", 2)
-    DW.get_N()
-    stata("matrix list r(N_table)")
+    DW.get_N(1)
 
   "--- ATE overidentified ---"; ""; ""
     DW.cbpsoid("ate", 2)
@@ -570,10 +566,10 @@ log using psweight_example_R.log, name(psweight_example_R) replace
 
 fvrevar `varlist'
 tempfile csvout
-export delimited `treatvar' `r(varlist)' `wgtvar' using "C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\testfile.csv" if `tousevar', replace nolabel
+export delimited `treatvar' `r(varlist)' `wgtvar' using "C:\Users\kkranker\Documents\Stata\psweight\code-psweight\testfile.csv" if `tousevar', replace nolabel
 
 rsource, terminator(END_OF_R) lsource
-  mydata <- read.csv("C:\\Users\\kkranker\\Documents\\Stata\\Ado\\Devel\\gmatch\\testfile.csv", stringsAsFactors = F);
+  mydata <- read.csv("C:\\Users\\kkranker\\Documents\\Stata\\psweight\\code-psweight\\testfile.csv", stringsAsFactors = F);
   library(CBPS);
   summary(mydata);
   fit_ATE         <- CBPS(treat ~ x1 + x1 + X__000000 + X__000001 +x4 + x5 + x6 +x7 +x90 +x91+ x92 +x93 +x94+ x95, data = mydata, ATT = 0, method='exact', standardize=TRUE);
@@ -610,7 +606,7 @@ rsource, terminator(END_OF_R) lsource
   balance(W_fit_ATET_over);
   q();
 END_OF_R
-erase "C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch\testfile.csv"
+erase "C:\Users\kkranker\Documents\Stata\psweight\code-psweight\testfile.csv"
 
 log close psweight_example_R
 

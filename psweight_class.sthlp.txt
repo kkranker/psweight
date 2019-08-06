@@ -59,7 +59,7 @@
       
           void            P.balanceresults(| stat, denominator)
           void            P.clone(src)
-          real matrix     P.get_N()
+          real matrix     P.get_N(| s)
       
       where:
       
@@ -75,6 +75,7 @@
               y0              : real matrix
               w               : real column vector
               p               : real column vector
+              s               : real scalar
       
       and where denominator, a real (integer) scalar optionally specified, determines
       how standardized differences are calculated:
@@ -486,7 +487,7 @@
               : P2.clone(P1)
               : P2.balancetable()
       
-      real matrix P.get_N()
+      real matrix P.get_N(| s)
       
           Returns a 3x3 matrix with sample sizes and the sum of the weights (if any).
       
@@ -515,6 +516,8 @@
               r(sum_w_1)    sum of weights for the treatment group
               r(sum_w_0)    sum of weights for the control group
               r(sum_w)      sum of weights for the pooled sample
+      
+          The r(N_table) matrix is displayed if s is nonmissing and is nonzero.
       
       
       Conformability
