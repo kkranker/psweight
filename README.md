@@ -113,17 +113,18 @@ Please report issues at  https://github.com/kkranker/psweight/issues.
 
 # Installation
 
-To install from Github, type this from your Stata command line:
+To install official releases from SSC, type this from your Stata command line:
+
+```stata
+. net describe psweight, from(http://fmwww.bc.edu/RePEc/bocode/p)
+```
+
+To install the latest version from Github, type this from your Stata command line:
 
 ```stata
 . net from https://raw.githubusercontent.com/kkranker/psweight/master/
 ```
 
-(coming soon) To install from SSC, type this from your Stata command line:
-
-```stata
-. net describe psweight
-```
 
 # References
 
