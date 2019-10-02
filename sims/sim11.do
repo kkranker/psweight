@@ -1,5 +1,5 @@
 if ("`: environment computername'"=="M116" | "`: environment computername'"=="NJ1STATA1") cd "U:\Stata\Ado\Devel\gmatch"
-else cd "C:\Users\kkranker\Documents\Stata\Ado\Devel\gmatch"
+else cd "C:\Users\kkranker\Documents\Stata\psweight\code-psweight\"
 
 clear all
 cls
@@ -8,7 +8,7 @@ local sim = 11
 cap log close sim`sim'
 set linesize 180
 cap mkdir  sims/sim`sim'
-log using "sims/sim`sim'/logfile.log", replace name(sim`sim')
+log using "sims/sim`sim'/logfile.log", append name(sim`sim')
 
 *! $Id$
 *! BPO CBPS Simulation
@@ -28,11 +28,10 @@ mac list _sim
 // DGP is saved in a separate .ado file
 adopath ++ "./sims"
 adopath ++ "../gridsearchcv"
-which dgp_ssbgc
-which onerep
+which dgp_ksir
+which onerep_ksir
 which sim_reshape
 which randomforest
-which gridsearchcv
 
 // control simulations
 local reps 5000
@@ -66,8 +65,7 @@ local bestparams = "depth(5) lsize(20) numvars(4)"
 parallel setclusters `=min(8, c(processors_max)-1)'
 local simopts    expr(_b) reps(\`reps') processors(`=c(processors_max)')
 local commonopts n(`Nrange') ///
-                 estimators(raw ipw_true_ps ipw ipwcbps cbps rf stdprogdiff) ///
-         cvtargets(99.9 99 98 97 95 93 90 85 80 75 50) ///
+                 estimators(ebalance trim discard) ///
          ate ///
          vce(robust) iter(\`c(maxiter)') cformat(%9.3fc) pformat(%5.3f) sformat(%7.3f) pooledvariance ///
          rfopts(iterations(200) `bestparams') ///
@@ -83,14 +81,16 @@ drop _all
 
 parallel sim, `simopts': onerep_ksir, `commonopts' augmented
 
-save sims/sim`sim'/Data_Unprocessed.dta, replace
+append using sims/sim`sim'/Data_Unprocessed.dta, gen(old_sims)
+
+save sims/sim`sim'/Data_Unprocessed_append.dta, replace
 
 // ------------------------------------------------------------------------
 // summarize results
 // ------------------------------------------------------------------------
 
 sim_reshape
-save sims/sim`sim'/Data.dta, replace
+save sims/sim`sim'/Data_append.dta, replace
 
 set linesize 220
 

@@ -41,7 +41,7 @@ program define onerep_ksir, eclass
 
   // process options
   // throw error if invalid options
-  local valid_est raw ipw_true_ps ipw ipw_te stdprogdiff cbps ipwcbps elastic rf
+  local valid_est raw ipw_true_ps ipw ipw_te stdprogdiff cbps ipwcbps elastic rf ebalance trim discard
   // if ("`estimators'"=="") local estimators : copy local valid_est
   if !`:list estimators in valid_est' {
     di as error "estimators(`: list estimators-valid_est') invalid"
@@ -153,6 +153,19 @@ program define onerep_ksir, eclass
         }
         cap mata: mata drop gmatch_ado_most_recent
 
+        // IPW model with entropy balancing
+        local e "ebalance"
+        if (`: list e in estimators') cap `quietly' {
+          di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `truepscore' `trueoutcome'" _n(2)
+          tempvar ebalanceW ebalancePS
+          ebalance a c.`pscorevarlist', generate(`ebalanceW') maxiter(25)
+          // predict `ebalancePS'
+          // mkwgt `ebalanceW' = `ebalancePS', `ate' `atet' `ateu'
+          Estimate `pscorevarlist' [aw=`ebalanceW'], bmatrix(`_b_') prefix(`prefix') est(`e') ///
+            `omopt' `vce' `ate'`atet'`ateu' `options' `diopts'
+        }
+        cap mata: mata drop gmatch_ado_most_recent
+
         // IPW model with randomforest model used to estimate P-scores
         local e "rf"
         if (`: list e in estimators') cap `quietly' {
@@ -163,6 +176,29 @@ program define onerep_ksir, eclass
           mkwgt `rfW' = `rfPS', `ate' `atet' `ateu'
           Estimate `pscorevarlist' [aw=`rfW'], bmatrix(`_b_') prefix(`prefix') est(`e') ///
             `omopt' `vce' `ate'`atet'`ateu' `options' `diopts'
+        }
+        cap mata: mata drop gmatch_ado_most_recent
+
+        // IPW model with weights trimmed to .10 or .90 if outside range [.10, .90]
+        local e "trim"
+        if (`: list e in estimators') cap `quietly' {
+          di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `truepscore' `trueoutcome'" _n(2)
+          gmatch a `pscorevarlist', ipw `ate'`atet'`ateu' `fromopt' `options' `diopts'
+          replace _weight = .90 if inrange(_weight, .90,   .)
+          replace _weight = .10 if inrange(_weight,   0, .10)
+          Estimate [aw=_weight], bmatrix(`_b_') prefix(`prefix') est(`e') ///
+             `omopt' `vce' `ate'`atet'`ateu' `options' `diopts'
+        }
+        cap mata: mata drop gmatch_ado_most_recent
+
+        // IPW model with obervations dropped if weights are outside range [.10, .90]
+        local e "discard"
+        if (`: list e in estimators') cap `quietly' {
+          di _n(2) as txt "`prefix' with estimator: " as res "`e'" as txt " `truepscore' `trueoutcome'" _n(2)
+          gmatch a `pscorevarlist', ipw `ate'`atet'`ateu' `fromopt' `options' `diopts'
+          replace _weight = 0 if inrange(_weight, .90, .) | inrange(_weight, 0, .10)
+          Estimate [aw=_weight], bmatrix(`_b_') prefix(`prefix') est(`e') ///
+             `omopt' `vce' `ate'`atet'`ateu' `options' `diopts'
         }
         cap mata: mata drop gmatch_ado_most_recent
 

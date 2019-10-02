@@ -30,7 +30,7 @@ program define sim_reshape
   di as txt "`: list sizeof ests' estimators:"
   mac list _ests
   local ee = 0
-  local estdefine `++ee' "RAW" `++ee' "IPW_TRUE_PS" `++ee' "STDPROGDIFF" `++ee' "IPW_TE" `++ee' "IPW" `ee' "ELASTIC" `++ee' "RF" `++ee' "IPWCBPS" `++ee' "CBPS"
+  local estdefine `++ee' "RAW" `++ee' "IPW_TRUE_PS" `++ee' "STDPROGDIFF" `++ee' "IPW_TE" `++ee' "IPW" `++ee' "TRIM" `++ee' "DISCARD" `ee' "ELASTIC" `ee' "EBALANCE" `++ee' "RF" `++ee' "IPWCBPS" `++ee' "CBPS"
   foreach est of local ests {
     if !regexm(strupper("`est'"), "CBPS[0-9].*") continue
     local estdefine `estdefine' `++ee' `=strupper("`est'")'
