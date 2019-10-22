@@ -112,8 +112,8 @@ local scenario `macval(scenario)' cbps_pct
 // the 99.9 doesn't clearly do anything -- virtually the same as CBPS in many settings
 // also drop N = 25 / 100 because our editor wanted a simpler table
 // in some tables/figures, only show 2 sample sizes
-local ifstmnt !inlist(estimator, 999) & !inlist(N, 25, 100)
-local 2ns     inlist(N, 50, 1000)
+local ifstmnt !inlist(estimator, 999) & inlist(N, 50, 200, 1000)
+local 2ns     inlist(N, 50)
 
 // box plots of impact estimates
 levelsof N, local(Narray)
@@ -121,7 +121,7 @@ set scheme s2manual_KAK
 graph hbox impact_est if `ifstmnt' & `2ns', ///
   over(estimator) nooutsides ///
   ytitle("Distribution of impact estimates" "(true impact = 0)", size(vsmall)) ysize(6.5) ylab(0) xsize(6.5) ///
-  by(N augmented, norescale colfirst iscale(*.6) iylabel title("") note("Outside values not shown", size(vsmall))) note("")
+  by(N augmented, norescale colfirst row(2) iscale(*.6) iylabel title("") note("Outside values not shown", size(vsmall))) note("")
 graph save   sims/sim`sim'/hbox_impact_est.gph, replace
 graph export sims/sim`sim'/hbox_impact_est.emf, replace
 graph export sims/sim`sim'/hbox_impact_est.png, replace
@@ -181,10 +181,10 @@ foreach v of var rmse bias impact_est_var {
 // table with columns for each statistic
 preserve
   keep if `ifstmnt' & `2ns'
-  keep estimator N augmented wgt_cv wgt_max bal_mean_asd bal_max_asd
+  keep estimator N augmented wgt_cv wgt_skewness bal_mean_asd bal_max_asd
   keep if aug==0 // these stats are all identical for aug and non-aug estimators
   local c=0
-  foreach v of var           wgt_cv wgt_max bal_mean_asd bal_max_asd {
+  foreach v of var           wgt_cv wgt_skewness bal_mean_asd bal_max_asd {
     rename `v' stat`++c'
     local def `macval(def)' `c' "`v'"
   }
@@ -196,10 +196,10 @@ preserve
 // rebuild and export to LaTeX snippet
 restore, preserve
   keep if `ifstmnt' & `2ns'
-  keep estimator N augmented wgt_cv wgt_max bal_mean_asd bal_max_asd
+  keep estimator N augmented wgt_cv wgt_skewness bal_mean_asd bal_max_asd
   keep if aug==0 // these stats are all identical for aug and non-aug estimators
-  reshape wide wgt_cv wgt_max bal_mean_asd bal_max_asd , i(estimator) j(N)
-  unab vvv: wgt_cv* wgt_max* bal_mean_asd* bal_max_asd*
+  reshape wide wgt_cv wgt_skewness bal_mean_asd bal_max_asd , i(estimator) j(N)
+  unab vvv: wgt_cv* wgt_skewness* bal_mean_asd* bal_max_asd*
   mata: st_matrix("dta", st_data(., "`vvv'"))
   mata: st_matrixcolstripe("dta", (J(`:list sizeof vvv', 1, ""), tokens("`vvv'")'))
   mata: st_matrixrowstripe("dta", (J(`c(N)', 1, ""), st_vlmap("estimator_recode", st_data(., "estimator"))))

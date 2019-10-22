@@ -56,19 +56,19 @@ None (unweighted data) & 96.40 & 24.75 & 4.86 & 26.42 & 6.90 & 1.42\\
 
 columns refer to N and 0/1 for regression adjustment.
 \begin{center}
-\begin{tabular}{rrrrrrrrr}
-\hline \noalign{\smallskip} & wgt_cv50 & wgt_cv1000 & wgt_max50 & wgt_max1000 & bal_mean_asd50 & bal_mean_asd1000 & bal_max_asd50 & bal_max_asd1000\\
-\noalign{\smallskip}\hline \noalign{\smallskip}Logit regression & 0.678 & 1.357 & 4.370 & 34.315 & 0.147 & 0.108 & 0.270 & 0.224\\
-Logit regression, with trimming & 0.683 & 1.389 & 4.407 & 35.389 & 0.148 & 0.111 & 0.270 & 0.229\\
-Random forest classifier & 0.348 & 0.408 & 2.245 & 3.685 & 0.274 & 0.121 & 0.467 & 0.256\\
-CBPS, over identified & 0.524 & 0.766 & 3.317 & 16.321 & 0.152 & 0.044 & 0.284 & 0.082\\
-CBPS, just identified & 0.728 & 0.679 & 4.214 & 12.962 & 0.034 & 0.001 & 0.077 & 0.004\\
-PCBPS 99% & 0.727 & 0.677 & 4.211 & 12.900 & 0.032 & 0.002 & 0.072 & 0.005\\
-PCBPS 97% & 0.718 & 0.664 & 4.167 & 12.582 & 0.035 & 0.005 & 0.078 & 0.015\\
-PCBPS 95% & 0.706 & 0.651 & 4.105 & 12.260 & 0.040 & 0.009 & 0.088 & 0.024\\
-PCBPS 90% & 0.675 & 0.618 & 3.943 & 11.447 & 0.053 & 0.018 & 0.115 & 0.050\\
-PCBPS 75% & 0.572 & 0.518 & 3.420 & 9.019 & 0.099 & 0.049 & 0.213 & 0.139\\
-True propensity score & 0.574 & 0.672 & 3.535 & 9.379 & 0.289 & 0.073 & 0.512 & 0.132\\
-None (unweighted data) & 0.000 & 0.000 & 1.000 & 1.000 & 0.414 & 0.342 & 0.783 & 0.733\\
+\begin{tabular}{rrrrr}
+\hline \noalign{\smallskip} & wgt_cv50 & wgt_skewness50 & bal_mean_asd50 & bal_max_asd50\\
+\noalign{\smallskip}\hline \noalign{\smallskip}Logit regression & 0.678 & 0.416 & 0.147 & 0.270\\
+Logit regression, with trimming & 0.683 & 0.419 & 0.148 & 0.270\\
+Random forest classifier & 0.348 & 0.217 & 0.274 & 0.467\\
+CBPS, over identified & 0.524 & 0.338 & 0.152 & 0.284\\
+CBPS, just identified & 0.728 & 0.373 & 0.034 & 0.077\\
+PCBPS 99% & 0.727 & 0.373 & 0.032 & 0.072\\
+PCBPS 97% & 0.718 & 0.372 & 0.035 & 0.078\\
+PCBPS 95% & 0.706 & 0.369 & 0.040 & 0.088\\
+PCBPS 90% & 0.675 & 0.361 & 0.053 & 0.115\\
+PCBPS 75% & 0.572 & 0.333 & 0.099 & 0.213\\
+True propensity score & 0.574 & 0.353 & 0.289 & 0.512\\
+None (unweighted data) & 0.000 &  & 0.414 & 0.783\\
 \noalign{\smallskip}\hline\end{tabular}\\
 \end{center}
