@@ -181,10 +181,10 @@ foreach v of var rmse bias impact_est_var {
 // table with columns for each statistic
 preserve
   keep if `ifstmnt' & `2ns'
-  keep estimator N augmented wgt_cv wgt_skewness bal_mean_asd bal_max_asd
+  keep estimator N augmented wgt_cv bal_mean_asd bal_max_asd
   keep if aug==0 // these stats are all identical for aug and non-aug estimators
   local c=0
-  foreach v of var           wgt_cv wgt_skewness bal_mean_asd bal_max_asd {
+  foreach v of var           wgt_cv bal_mean_asd bal_max_asd {
     rename `v' stat`++c'
     local def `macval(def)' `c' "`v'"
   }
@@ -196,10 +196,10 @@ preserve
 // rebuild and export to LaTeX snippet
 restore, preserve
   keep if `ifstmnt' & `2ns'
-  keep estimator N augmented wgt_cv wgt_skewness bal_mean_asd bal_max_asd
+  keep estimator N augmented wgt_cv bal_mean_asd bal_max_asd
   keep if aug==0 // these stats are all identical for aug and non-aug estimators
-  reshape wide wgt_cv wgt_skewness bal_mean_asd bal_max_asd , i(estimator) j(N)
-  unab vvv: wgt_cv* wgt_skewness* bal_mean_asd* bal_max_asd*
+  reshape wide wgt_cv bal_mean_asd bal_max_asd , i(estimator) j(N)
+  unab vvv: wgt_cv* bal_mean_asd* bal_max_asd*
   mata: st_matrix("dta", st_data(., "`vvv'"))
   mata: st_matrixcolstripe("dta", (J(`:list sizeof vvv', 1, ""), tokens("`vvv'")'))
   mata: st_matrixrowstripe("dta", (J(`c(N)', 1, ""), st_vlmap("estimator_recode", st_data(., "estimator"))))

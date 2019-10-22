@@ -2,7 +2,7 @@
       name:  sim11_tables
        log:  C:\Users\kkranker\Documents\Stata\psweight\code-psweight\sims/sim11/summary_tables.log
   log type:  text
- opened on:  21 Oct 2019, 20:42:43
+ opened on:  21 Oct 2019, 20:56:15
 
 . 
 . *! BPO CBPS Simulation
@@ -1151,14 +1151,14 @@ columns refer to N and 0/1 for regression adjustment.
 .   keep if `ifstmnt' & `2ns'
 (180 observations deleted)
 
-.   keep estimator N augmented wgt_cv wgt_skewness bal_mean_asd bal_max_asd
+.   keep estimator N augmented wgt_cv bal_mean_asd bal_max_asd
 
 .   keep if aug==0 // these stats are all identical for aug and non-aug estimators
 (12 observations deleted)
 
 .   local c=0
 
-.   foreach v of var           wgt_cv wgt_skewness bal_mean_asd bal_max_asd {
+.   foreach v of var           wgt_cv bal_mean_asd bal_max_asd {
   2.     rename `v' stat`++c'
   3.     local def `macval(def)' `c' "`v'"
   4.   }
@@ -1171,25 +1171,25 @@ columns refer to N and 0/1 for regression adjustment.
 
 .   tabdisp estimator  N _j, by(augmented) c(stat) cellwidth(6) csep(2) stubwidth(13)
 
-----------------------------------------------------
-augmented and |               _j and N              
-RECODE of     | - wg -    - wg -    - ba -    - ba -
-estimator     |     50        50        50        50
---------------+-------------------------------------
+------------------------------------------
+augmented and |          _j and N         
+RECODE of     | - wg -    - ba -    - ba -
+estimator     |     50        50        50
+--------------+---------------------------
 IPW           |
-Logit regress |  0.678     0.416     0.147     0.270
-Logit regress |  0.683     0.419     0.148     0.270
-Random forest |  0.348     0.217     0.274     0.467
-CBPS, over id |  0.524     0.338     0.152     0.284
-CBPS, just id |  0.728     0.373     0.034     0.077
-    PCBPS 99% |  0.727     0.373     0.032     0.072
-    PCBPS 97% |  0.718     0.372     0.035     0.078
-    PCBPS 95% |  0.706     0.369     0.040     0.088
-    PCBPS 90% |  0.675     0.361     0.053     0.115
-    PCBPS 75% |  0.572     0.333     0.099     0.213
-True propensi |  0.574     0.353     0.289     0.512
-None (unweigh |  0.000               0.414     0.783
-----------------------------------------------------
+Logit regress |  0.678     0.147     0.270
+Logit regress |  0.683     0.148     0.270
+Random forest |  0.348     0.274     0.467
+CBPS, over id |  0.524     0.152     0.284
+CBPS, just id |  0.728     0.034     0.077
+    PCBPS 99% |  0.727     0.032     0.072
+    PCBPS 97% |  0.718     0.035     0.078
+    PCBPS 95% |  0.706     0.040     0.088
+    PCBPS 90% |  0.675     0.053     0.115
+    PCBPS 75% |  0.572     0.099     0.213
+True propensi |  0.574     0.289     0.512
+None (unweigh |  0.000     0.414     0.783
+------------------------------------------
 
 . 
 . // rebuild and export to LaTeX snippet
@@ -1198,27 +1198,26 @@ None (unweigh |  0.000               0.414     0.783
 .   keep if `ifstmnt' & `2ns'
 (180 observations deleted)
 
-.   keep estimator N augmented wgt_cv wgt_skewness bal_mean_asd bal_max_asd
+.   keep estimator N augmented wgt_cv bal_mean_asd bal_max_asd
 
 .   keep if aug==0 // these stats are all identical for aug and non-aug estimators
 (12 observations deleted)
 
-.   reshape wide wgt_cv wgt_skewness bal_mean_asd bal_max_asd , i(estimator) j(N)
+.   reshape wide wgt_cv bal_mean_asd bal_max_asd , i(estimator) j(N)
 (note: j = 50)
 
 Data                               long   ->   wide
 -----------------------------------------------------------------------------
 Number of obs.                       12   ->      12
-Number of variables                   7   ->       6
+Number of variables                   6   ->       5
 j variable (1 values)                 N   ->   (dropped)
 xij variables:
                                  wgt_cv   ->   wgt_cv50
-                           wgt_skewness   ->   wgt_skewness50
                            bal_mean_asd   ->   bal_mean_asd50
                             bal_max_asd   ->   bal_max_asd50
 -----------------------------------------------------------------------------
 
-.   unab vvv: wgt_cv* wgt_skewness* bal_mean_asd* bal_max_asd*
+.   unab vvv: wgt_cv* bal_mean_asd* bal_max_asd*
 
 .   mata: st_matrix("dta", st_data(., "`vvv'"))
 
@@ -1228,22 +1227,22 @@ xij variables:
 
 .   frmttable using "sims/sim`sim'/LaTeX summary.tex", s(dta) tex addtable fragment sdec(3) coljust(r{r}r)
 
-                                            --------------------------------------------------------------------------------------------
-                                                                               wgt_cv50  wgt_skewness50  bal_mean_asd50  bal_max_asd50 
-                                            --------------------------------------------------------------------------------------------
-                                             Logit regression                   0.678        0.416           0.147           0.270     
-                                             Logit regression, with trimming    0.683        0.419           0.148           0.270     
-                                             Random forest classifier           0.348        0.217           0.274           0.467     
-                                             CBPS, over identified              0.524        0.338           0.152           0.284     
-                                             CBPS, just identified              0.728        0.373           0.034           0.077     
-                                             PCBPS 99%                          0.727        0.373           0.032           0.072     
-                                             PCBPS 97%                          0.718        0.372           0.035           0.078     
-                                             PCBPS 95%                          0.706        0.369           0.040           0.088     
-                                             PCBPS 90%                          0.675        0.361           0.053           0.115     
-                                             PCBPS 75%                          0.572        0.333           0.099           0.213     
-                                             True propensity score              0.574        0.353           0.289           0.512     
-                                             None (unweighted data)             0.000                        0.414           0.783     
-                                            --------------------------------------------------------------------------------------------
+                                                    ----------------------------------------------------------------------------
+                                                                                       wgt_cv50  bal_mean_asd50  bal_max_asd50 
+                                                    ----------------------------------------------------------------------------
+                                                     Logit regression                   0.678        0.147           0.270     
+                                                     Logit regression, with trimming    0.683        0.148           0.270     
+                                                     Random forest classifier           0.348        0.274           0.467     
+                                                     CBPS, over identified              0.524        0.152           0.284     
+                                                     CBPS, just identified              0.728        0.034           0.077     
+                                                     PCBPS 99%                          0.727        0.032           0.072     
+                                                     PCBPS 97%                          0.718        0.035           0.078     
+                                                     PCBPS 95%                          0.706        0.040           0.088     
+                                                     PCBPS 90%                          0.675        0.053           0.115     
+                                                     PCBPS 75%                          0.572        0.099           0.213     
+                                                     True propensity score              0.574        0.289           0.512     
+                                                     None (unweighted data)             0.000        0.414           0.783     
+                                                    ----------------------------------------------------------------------------
 
 
 . 
@@ -1254,5 +1253,5 @@ xij variables:
       name:  sim11_tables
        log:  C:\Users\kkranker\Documents\Stata\psweight\code-psweight\sims/sim11/summary_tables.log
   log type:  text
- closed on:  21 Oct 2019, 20:43:26
+ closed on:  21 Oct 2019, 20:56:54
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
