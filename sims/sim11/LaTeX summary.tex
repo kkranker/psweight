@@ -1,0 +1,74 @@
+\begin{center}
+\begin{tabular}{rrrrrrr}
+\hline  & rmse_50_0 & rmse_200_0 & rmse_1000_0 & rmse_50_1 & rmse_200_1 & rmse_1000_1\\
+\hline Logit regression & 10.16 & 8.85 & 10.65 & 7.10 & 6.09 & 6.32\\
+Logit regression, with trimming & 17.53 & 15.62 & 15.10 & 7.34 & 6.13 & 5.83\\
+Random forest classifier & 13.18 & 10.86 & 8.03 & 6.48 & 4.19 & 2.95\\
+CBPS, over identified & 10.88 & 7.40 & 5.35 & 7.07 & 6.06 & 6.19\\
+CBPS, just identified & 8.94 & 6.33 & 6.25 & 7.35 & 6.06 & 6.15\\
+PCBPS 99% & 8.61 & 6.31 & 6.26 & 7.32 & 6.05 & 6.14\\
+PCBPS 97% & 8.70 & 6.46 & 6.48 & 7.32 & 6.06 & 6.14\\
+PCBPS 95% & 8.83 & 6.65 & 6.71 & 7.31 & 6.06 & 6.14\\
+PCBPS 90% & 9.17 & 7.19 & 7.30 & 7.29 & 6.07 & 6.14\\
+PCBPS 75% & 10.72 & 9.16 & 9.30 & 7.26 & 6.10 & 6.13\\
+True propensity score & 13.01 & 6.90 & 3.17 & 5.51 & 3.00 & 1.44\\
+None (unweighted data) & 22.36 & 20.61 & 20.11 & 7.73 & 6.87 & 6.62\\
+\hline\end{tabular}\\
+\end{center}
+
+columns refer to N and 0/1 for regression adjustment.
+\begin{center}
+\begin{tabular}{rrrrrrr}
+\hline  & bias_50_0 & bias_200_0 & bias_1000_0 & bias_50_1 & bias_200_1 & bias_1000_1\\
+\hline Logit regression & -6.13 & -1.97 & 1.17 & -4.51 & -5.21 & -5.96\\
+Logit regression, with trimming & -15.56 & -15.16 & -15.00 & -5.25 & -5.59 & -5.72\\
+Random forest classifier & -11.14 & -10.40 & -7.93 & -4.22 & -3.65 & -2.83\\
+CBPS, over identified & -8.93 & -6.63 & -4.78 & -4.60 & -5.23 & -5.94\\
+CBPS, just identified & -5.74 & -5.31 & -5.96 & -4.42 & -5.13 & -5.90\\
+PCBPS 99% & -5.62 & -5.32 & -5.99 & -4.40 & -5.13 & -5.90\\
+PCBPS 97% & -5.77 & -5.52 & -6.22 & -4.42 & -5.14 & -5.90\\
+PCBPS 95% & -6.00 & -5.76 & -6.47 & -4.45 & -5.15 & -5.90\\
+PCBPS 90% & -6.58 & -6.42 & -7.09 & -4.49 & -5.18 & -5.90\\
+PCBPS 75% & -8.59 & -8.61 & -9.16 & -4.69 & -5.30 & -5.91\\
+True propensity score & -2.00 & -0.46 & -0.08 & -0.97 & -0.29 & -0.04\\
+None (unweighted data) & -20.09 & -20.00 & -19.99 & -5.78 & -6.34 & -6.51\\
+\hline\end{tabular}\\
+\end{center}
+
+columns refer to N and 0/1 for regression adjustment.
+\begin{center}
+\begin{tabular}{rrrrrrr}
+\hline  & impact_est_var_50_0 & impact_est_var_200_0 & impact_est_var_1000_0 & impact_est_var_50_1 & impact_est_var_200_1 & impact_est_var_1000_1\\
+\hline Logit regression & 65.66 & 74.45 & 112.18 & 30.08 & 10.02 & 4.37\\
+Logit regression, with trimming & 65.27 & 14.20 & 3.01 & 26.30 & 6.27 & 1.30\\
+Random forest classifier & 49.55 & 9.61 & 1.65 & 24.17 & 4.24 & 0.65\\
+CBPS, over identified & 38.66 & 10.79 & 5.85 & 28.93 & 9.41 & 3.07\\
+CBPS, just identified & 47.10 & 11.91 & 3.58 & 34.47 & 10.39 & 2.97\\
+PCBPS 99% & 42.54 & 11.48 & 3.40 & 34.25 & 10.37 & 2.97\\
+PCBPS 97% & 42.44 & 11.24 & 3.29 & 34.05 & 10.30 & 2.94\\
+PCBPS 95% & 42.01 & 10.98 & 3.19 & 33.65 & 10.21 & 2.92\\
+PCBPS 90% & 40.91 & 10.47 & 2.96 & 32.93 & 9.97 & 2.85\\
+PCBPS 75% & 41.26 & 9.82 & 2.46 & 30.77 & 9.21 & 2.63\\
+True propensity score & 165.23 & 47.37 & 10.04 & 29.42 & 8.94 & 2.07\\
+None (unweighted data) & 96.40 & 24.75 & 4.86 & 26.42 & 6.90 & 1.42\\
+\hline\end{tabular}\\
+\end{center}
+
+columns refer to N and 0/1 for regression adjustment.
+\begin{center}
+\begin{tabular}{rrrrrrrrr}
+\hline \noalign{\smallskip} & wgt_cv50 & wgt_cv1000 & wgt_max50 & wgt_max1000 & bal_mean_asd50 & bal_mean_asd1000 & bal_max_asd50 & bal_max_asd1000\\
+\noalign{\smallskip}\hline \noalign{\smallskip}Logit regression & 0.678 & 1.357 & 4.370 & 34.315 & 0.147 & 0.108 & 0.270 & 0.224\\
+Logit regression, with trimming & 0.683 & 1.389 & 4.407 & 35.389 & 0.148 & 0.111 & 0.270 & 0.229\\
+Random forest classifier & 0.348 & 0.408 & 2.245 & 3.685 & 0.274 & 0.121 & 0.467 & 0.256\\
+CBPS, over identified & 0.524 & 0.766 & 3.317 & 16.321 & 0.152 & 0.044 & 0.284 & 0.082\\
+CBPS, just identified & 0.728 & 0.679 & 4.214 & 12.962 & 0.034 & 0.001 & 0.077 & 0.004\\
+PCBPS 99% & 0.727 & 0.677 & 4.211 & 12.900 & 0.032 & 0.002 & 0.072 & 0.005\\
+PCBPS 97% & 0.718 & 0.664 & 4.167 & 12.582 & 0.035 & 0.005 & 0.078 & 0.015\\
+PCBPS 95% & 0.706 & 0.651 & 4.105 & 12.260 & 0.040 & 0.009 & 0.088 & 0.024\\
+PCBPS 90% & 0.675 & 0.618 & 3.943 & 11.447 & 0.053 & 0.018 & 0.115 & 0.050\\
+PCBPS 75% & 0.572 & 0.518 & 3.420 & 9.019 & 0.099 & 0.049 & 0.213 & 0.139\\
+True propensity score & 0.574 & 0.672 & 3.535 & 9.379 & 0.289 & 0.073 & 0.512 & 0.132\\
+None (unweighted data) & 0.000 & 0.000 & 1.000 & 1.000 & 0.414 & 0.342 & 0.783 & 0.733\\
+\noalign{\smallskip}\hline\end{tabular}\\
+\end{center}

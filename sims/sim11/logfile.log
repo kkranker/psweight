@@ -17416,3 +17416,3206 @@ STDPROGDIFF |      167.9825       167.9825                                      
   log type:  text
  closed on:   1 Mar 2019, 18:31:12
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      name:  sim11
+       log:  C:\Users\kkranker\Documents\Stata\psweight\code-psweight\sims/sim11/logfile.log
+  log type:  text
+ opened on:   2 Oct 2019, 08:58:33
+
+. 
+. *! $Id$
+. *! BPO CBPS Simulation
+. // Try using the K-S and I-R simulation setup
+. // Compare to IPW, CBPS (both versions), RF (with RF paremters picked through X-validation)
+. // (Sim 11 is what I was trying to run in Sim 10. I've just fixed the issue with matsize.)
+. //
+. *! By Keith Kranker
+. // Last updated $Date$
+. //
+. // Copyright (C) Mathematica Policy Research, Inc.
+. // This code cannot be copied, distributed or used without the express written
+. // permission of Mathematica Policy Research, Inc.
+. 
+. mac list _sim
+_sim:           11
+
+. 
+. // DGP is saved in a separate .ado file
+. adopath ++ "./sims"
+  [1]              "./sims"
+  [2]  (BASE)      "C:\Program Files (x86)\Stata15\ado\base/"
+  [3]  (SITE)      "C:\Program Files (x86)\Stata15\ado\site/"
+  [4]              "."
+  [5]  (PERSONAL)  "C:\Users\kkranker\Documents\Stata\Ado\personal/"
+  [6]  (PLUS)      "C:\Users\kkranker\Documents\Stata\Ado\plus/"
+  [7]  (OLDPLACE)  "C:\Users\kkranker\Documents\Stata\Ado/"
+  [8]              "C:\Users\kkranker\Documents\Stata\dtalink\code-dtalink"
+  [9]              "C:\Users\kkranker\Documents\Stata\psweight\code-psweight"
+  [10]             "C:\Users\kkranker\Documents\Stata\cic\code-cic"
+  [11]             "C:\Users\kkranker\Documents\Stata\Stata-Common-Code"
+
+. adopath ++ "../gridsearchcv"
+  [1]              "../gridsearchcv"
+  [2]              "./sims"
+  [3]  (BASE)      "C:\Program Files (x86)\Stata15\ado\base/"
+  [4]  (SITE)      "C:\Program Files (x86)\Stata15\ado\site/"
+  [5]              "."
+  [6]  (PERSONAL)  "C:\Users\kkranker\Documents\Stata\Ado\personal/"
+  [7]  (PLUS)      "C:\Users\kkranker\Documents\Stata\Ado\plus/"
+  [8]  (OLDPLACE)  "C:\Users\kkranker\Documents\Stata\Ado/"
+  [9]              "C:\Users\kkranker\Documents\Stata\dtalink\code-dtalink"
+  [10]             "C:\Users\kkranker\Documents\Stata\psweight\code-psweight"
+  [11]             "C:\Users\kkranker\Documents\Stata\cic\code-cic"
+  [12]             "C:\Users\kkranker\Documents\Stata\Stata-Common-Code"
+
+. which dgp_ksir
+./sims\dgp_ksir.ado
+*! $Id$
+*! Data generating processe (DGP) senarios from:
+*! By Keith Kranker
+
+. which onerep_ksir
+./sims\onerep_ksir.ado
+*! $Id$
+*! One replication of the Simulations with DGP_KSIR.ADO
+*! By Keith Kranker
+
+. which sim_reshape
+./sims\sim_reshape.ado
+*! $Id$
+*! Reshapes the outpute from simmulate: from wide to tall
+*! By Keith Kranker
+
+. which randomforest
+C:\Users\kkranker\Documents\Stata\Ado\plus\r\randomforest.ado
+*! version 1.2  June, 2018
+
+. 
+. // control simulations
+. local reps 5000
+
+. local Nrange 25 50 100 200 1000
+
+. local cvreps 100
+
+. local ntrees 250
+
+. local grid (depth: 1 5 10 20) (lsize: 5 10 20 40) (numvars: 1 2 3 4)
+
+. 
+. // other settings
+. set seed `sim'  //  1 for simulation 1, 2 for simulation 2, etc.
+
+. set matsize `c(max_matsize)'
+
+. set maxiter 50
+
+. set scheme mpr
+
+. 
+. 
+. // ------------------------------------------------------------------------
+. // cross validation for RF model parameters
+. // ------------------------------------------------------------------------
+. 
+. // SEE sim10/logfile.log for cross validation results.
+. // (Sim 11 is what I was trying to run in Sim 10. I've just fixed the issue with matsize.)
+. 
+. local bestparams = "depth(5) lsize(20) numvars(4)"
+
+. 
+. 
+. // ------------------------------------------------------------------------
+. // setup simulations
+. // ------------------------------------------------------------------------
+. 
+. // options
+. parallel setclusters `=min(8, c(processors_max)-1)'
+N Child processes: 3
+Stata dir:  C:\Program Files (x86)\Stata15/StataMP-64.exe
+
+. local simopts    expr(_b) reps(\`reps') processors(`=c(processors_max)')
+
+. local commonopts n(`Nrange') ///
+>                  estimators(ebalance trim discard) ///
+>          ate ///
+>          vce(robust) iter(\`c(maxiter)') cformat(%9.3fc) pformat(%5.3f) sformat(%7.3f) pooledvariance ///
+>          rfopts(iterations(200) `bestparams') ///
+>          // quietly
+
+. 
+. // ------------------------------------------------------------------------
+. // multiple matching approaches
+. // difference in means and augmented
+. // ------------------------------------------------------------------------
+. 
+. onerep_ksir, `commonopts' augmented
+(obs 1,000)
+(0 observations deleted)
+
+
+
+--------------------
+I_1
+--------------------
+Scenario: I
+Impact:   0
+N:        1000
+--------------------
+
+
+
+
+I_1 with estimator: ebalance  
+
+
+
+
+Data Setup
+Treatment variable:   a
+Covariate adjustment: x1 x2 x3 x4 
+
+Optimizing...
+Iteration 1: Max Difference = 1985.79998
+Iteration 2: Max Difference = 729.464783
+Iteration 3: Max Difference = 267.289743
+Iteration 4: Max Difference = 97.2781622
+Iteration 5: Max Difference = 34.7695081
+Iteration 6: Max Difference = 11.8652359
+Iteration 7: Max Difference = 3.65632389
+Iteration 8: Max Difference = 1.01053481
+Iteration 9: Max Difference = .285612581
+Iteration 10: Max Difference = .047231727
+Iteration 11: Max Difference = .001529675
+maximum difference smaller than the tolerance level; convergence achieved
+
+
+Treated units: 497     total of weights: 497
+Control units: 503     total of weights: 497
+
+
+Before: without weighting
+
+             |              Treat              |             Control             
+             |      mean   variance   skewness |      mean   variance   skewness 
+-------------+---------------------------------+---------------------------------
+          x1 |     .8808      .1405      .9901 |     1.362      .4616       1.47 
+          x2 |     10.11      .3454     .07723 |     9.897      .2137     -.4134 
+          x3 |     .2235    .001565      1.106 |     .2174    .001697      1.012 
+          x4 |     406.1       3026      .1709 |     395.6       3114      .1718 
+
+
+After:  __000003 as the weighting variable
+
+             |              Treat              |             Control             
+             |      mean   variance   skewness |      mean   variance   skewness 
+-------------+---------------------------------+---------------------------------
+          x1 |     .8808      .1405      .9901 |     .8811      .1232      1.233 
+          x2 |     10.11      .3454     .07723 |     10.11       .333     .03865 
+          x3 |     .2235    .001565      1.106 |     .2235    .001563      1.265 
+          x4 |     406.1       3026      .1709 |     406.1       3486      .5018 
+(sum of wgt is 994.0000000000001)
+------------------------------------------------------------------------------
+             |               Robust
+           y |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+           a |
+  Treatment  |     -3.243      3.479   -0.932   0.352      -10.070       3.585
+       _cons |    201.361      3.106   64.830   0.000      195.266     207.456
+------------------------------------------------------------------------------
+  2.5 percent power to detect an effect of 0, assuming a standard error of 3.479192 and a 2-sided test and alpha = .05
+type mismatch:  exp.exp:  transmorphic found where struct expected
+
+
+Balance for I_1 with estimator: 
+
+
+no variables defined
+last estimates not found
+  Unmatched data
+  Balance:
+-------------------------------------------------------------------------------
+             |    mean_T     mean_C       diff   std_diff    sd_pool  var_ratio
+-------------+-----------------------------------------------------------------
+          x1 |  .8808024   .8810608  -.0002584  -.0007121   .3629105   1.139963
+          x2 |  10.10609   10.10605   .0000365   .0000626   .5821033   1.037091
+          x3 |  .2234952   .2234996  -4.43e-06  -.0001121   .0395304   1.001133
+          x4 |  406.0817   406.0793    .002336    .000041   57.03354   .8682274
+-------------------------------------------------------------------------------
+  
+  Mean standardized diff., squared
+  3.24583e-08
+  Mean absolute standardized diff.
+  .0002319499
+  Maximum absolute standardized diff.
+  .0007120736
+  C.V. of matching weights:
+  0
+  S.D. of matching weights:
+  0
+  Skewness of matching weights:
+  .
+  Kurtosis of matching weights:
+  .
+  Maximum matching weight:
+  1
+
+
+I_1 with estimator: ebalance augmented
+
+
+(sum of wgt is 994.0000000000001)
+------------------------------------------------------------------------------
+             |               Robust
+           y |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+           a |
+  Treatment  |     -3.229      0.917   -3.523   0.000       -5.028      -1.430
+          x1 |     60.206      1.503   40.061   0.000       57.256      63.155
+          x2 |     -0.319      1.085   -0.294   0.769       -2.448       1.811
+          x3 |   -201.709     14.738  -13.686   0.000     -230.630    -172.787
+          x4 |      0.369      0.012   29.584   0.000        0.344       0.393
+       _cons |     46.813      9.097    5.146   0.000       28.963      64.664
+------------------------------------------------------------------------------
+  2.5 percent power to detect an effect of 0, assuming a standard error of .9166062 and a 2-sided test and alpha = .05
+  Unmatched data
+  Balance:
+-------------------------------------------------------------------------------
+             |    mean_T     mean_C       diff   std_diff    sd_pool  var_ratio
+-------------+-----------------------------------------------------------------
+          x1 |  .8808024   .8810608  -.0002584  -.0007121   .3629105   1.139963
+          x2 |  10.10609   10.10605   .0000365   .0000626   .5821033   1.037091
+          x3 |  .2234952   .2234996  -4.43e-06  -.0001121   .0395304   1.001133
+          x4 |  406.0817   406.0793    .002336    .000041   57.03354   .8682274
+-------------------------------------------------------------------------------
+  
+  Mean standardized diff., squared
+  3.24583e-08
+  Mean absolute standardized diff.
+  .0002319499
+  Maximum absolute standardized diff.
+  .0007120736
+  C.V. of matching weights:
+  0
+  S.D. of matching weights:
+  0
+  Skewness of matching weights:
+  .
+  Kurtosis of matching weights:
+  .
+  Maximum matching weight:
+  1
+
+
+I_1 with estimator: trim  
+
+
+
+  503 control obs
+  497 treatment obs
+  (Data are unweighted.)
+initial:       f(p) = -693.14718
+alternative:   f(p) = -722.57698
+rescale:       f(p) = -693.13082
+Iteration 0:   f(p) = -693.13082  
+Iteration 1:   f(p) =  -568.6105  
+Iteration 2:   f(p) = -566.97412  
+Iteration 3:   f(p) =  -566.9677  
+Iteration 4:   f(p) =  -566.9677  
+
+Propensity score model coefficients                Number of obs  =      1,000
+Generalization of IPW/CPBS-type reweigting
+Loss = IPW
+------------------------------------------------------------------------------
+           a |      Coef.
+-------------+----------------------------------------------------------------
+          x1 |     -2.088
+          x2 |      1.083
+          x3 |      4.434
+          x4 |     -0.002
+       _cons |     -8.783
+------------------------------------------------------------------------------
+
+New variables (unweighted summary statistics)
+
+Summary for variables: _weight _weight_mtch _pscore
+     by categories of: _treated 
+
+_treated |         N      mean        sd       min        p1       p10       p25       p50       p75       p90       p99       max
+---------+------------------------------------------------------------------------------------------------------------------------
+       0 |       503         1      .681      .499      .501      .542      .634      .801      1.11      1.56       3.7      6.93
+         |       503         1      .681      .499      .501      .542      .634      .801      1.11      1.56       3.7      6.93
+         |       503      .385      .222    .00032    .00517     .0798      .213      .377      .551       .68      .865      .928
+---------+------------------------------------------------------------------------------------------------------------------------
+       1 |       497         1       .75       .52      .533        .6      .665      .811      1.05      1.46      4.39      11.4
+         |       497         1       .75       .52      .533        .6      .665      .811      1.05      1.46      4.39      11.4
+         |       497       .61      .194     .0446      .116      .349      .484      .626      .764      .847      .953      .976
+---------+------------------------------------------------------------------------------------------------------------------------
+   Total |      1000         1      .716      .499      .503      .563      .653      .806      1.08      1.54       4.2      11.4
+         |      1000         1      .716      .499      .503      .563      .653      .806      1.08      1.54       4.2      11.4
+         |      1000      .497      .237    .00032    .00889      .161      .326      .517      .681      .802      .938      .976
+----------------------------------------------------------------------------------------------------------------------------------
+(389 real changes made)
+(0 real changes made)
+(sum of wgt is 771.5866089515038)
+------------------------------------------------------------------------------
+             |               Robust
+           y |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+           a |
+  Treatment  |    -16.257      2.259   -7.195   0.000      -20.691     -11.823
+       _cons |    216.574      1.602  135.194   0.000      213.430     219.717
+------------------------------------------------------------------------------
+  2.5 percent power to detect an effect of 0, assuming a standard error of 2.259335 and a 2-sided test and alpha = .05
+  Balance:
+-------------------------------------------------------------------------------
+             |    mean_T     mean_C       diff   std_diff    sd_pool  var_ratio
+-------------+-----------------------------------------------------------------
+          x1 |    1.0799   1.122327  -.0424274   -.076915    .551614   .7343114
+          x2 |  10.01684   10.02123  -.0043907  -.0081353   .5397032   1.029287
+          x3 |  .2197319   .2204615  -.0007295  -.0184139   .0396194   .9075125
+          x4 |  400.4957   401.2359  -.7401821  -.0130359   56.78027   .9311113
+-------------------------------------------------------------------------------
+  
+  Mean standardized diff., squared
+  .0008482675
+  Mean absolute standardized diff.
+  .0291250322
+  Maximum absolute standardized diff.
+  .0769149865
+  C.V. of matching weights:
+  .7159448829
+  S.D. of matching weights:
+  .7159448829
+  Skewness of matching weights:
+  .1905107413
+  Kurtosis of matching weights:
+  .0625383822
+  Maximum matching weight:
+  11.37304503
+
+
+I_1 with estimator: trim augmented
+
+
+(sum of wgt is 771.5866089515038)
+------------------------------------------------------------------------------
+             |               Robust
+           y |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+           a |
+  Treatment  |     -4.661      1.080   -4.317   0.000       -6.781      -2.542
+          x1 |     43.055      1.601   26.899   0.000       39.914      46.196
+          x2 |      0.716      1.294    0.554   0.580       -1.823       3.255
+          x3 |    -44.769     20.704   -2.162   0.031      -85.398      -4.140
+          x4 |      0.373      0.013   28.924   0.000        0.348       0.399
+       _cons |     17.187     10.765    1.597   0.111       -3.937      38.311
+------------------------------------------------------------------------------
+  2.5 percent power to detect an effect of 0, assuming a standard error of 1.079889 and a 2-sided test and alpha = .05
+  Balance:
+-------------------------------------------------------------------------------
+             |    mean_T     mean_C       diff   std_diff    sd_pool  var_ratio
+-------------+-----------------------------------------------------------------
+          x1 |    1.0799   1.122327  -.0424274   -.076915    .551614   .7343114
+          x2 |  10.01684   10.02123  -.0043907  -.0081353   .5397032   1.029287
+          x3 |  .2197319   .2204615  -.0007295  -.0184139   .0396194   .9075125
+          x4 |  400.4957   401.2359  -.7401821  -.0130359   56.78027   .9311113
+-------------------------------------------------------------------------------
+  
+  Mean standardized diff., squared
+  .0008482675
+  Mean absolute standardized diff.
+  .0291250322
+  Maximum absolute standardized diff.
+  .0769149865
+  C.V. of matching weights:
+  .7159448829
+  S.D. of matching weights:
+  .7159448829
+  Skewness of matching weights:
+  .1905107413
+  Kurtosis of matching weights:
+  .0625383822
+  Maximum matching weight:
+  11.37304503
+
+
+I_1 with estimator: discard  
+
+
+
+  503 control obs
+  497 treatment obs
+  (Data are unweighted.)
+initial:       f(p) = -693.14718
+alternative:   f(p) = -722.57698
+rescale:       f(p) = -693.13082
+Iteration 0:   f(p) = -693.13082  
+Iteration 1:   f(p) =  -568.6105  
+Iteration 2:   f(p) = -566.97412  
+Iteration 3:   f(p) =  -566.9677  
+Iteration 4:   f(p) =  -566.9677  
+
+Propensity score model coefficients                Number of obs  =      1,000
+Generalization of IPW/CPBS-type reweigting
+Loss = IPW
+------------------------------------------------------------------------------
+           a |      Coef.
+-------------+----------------------------------------------------------------
+          x1 |     -2.088
+          x2 |      1.083
+          x3 |      4.434
+          x4 |     -0.002
+       _cons |     -8.783
+------------------------------------------------------------------------------
+
+New variables (unweighted summary statistics)
+
+Summary for variables: _weight _weight_mtch _pscore
+     by categories of: _treated 
+
+_treated |         N      mean        sd       min        p1       p10       p25       p50       p75       p90       p99       max
+---------+------------------------------------------------------------------------------------------------------------------------
+       0 |       503         1      .681      .499      .501      .542      .634      .801      1.11      1.56       3.7      6.93
+         |       503         1      .681      .499      .501      .542      .634      .801      1.11      1.56       3.7      6.93
+         |       503      .385      .222    .00032    .00517     .0798      .213      .377      .551       .68      .865      .928
+---------+------------------------------------------------------------------------------------------------------------------------
+       1 |       497         1       .75       .52      .533        .6      .665      .811      1.05      1.46      4.39      11.4
+         |       497         1       .75       .52      .533        .6      .665      .811      1.05      1.46      4.39      11.4
+         |       497       .61      .194     .0446      .116      .349      .484      .626      .764      .847      .953      .976
+---------+------------------------------------------------------------------------------------------------------------------------
+   Total |      1000         1      .716      .499      .503      .563      .653      .806      1.08      1.54       4.2      11.4
+         |      1000         1      .716      .499      .503      .563      .653      .806      1.08      1.54       4.2      11.4
+         |      1000      .497      .237    .00032    .00889      .161      .326      .517      .681      .802      .938      .976
+----------------------------------------------------------------------------------------------------------------------------------
+(389 real changes made)
+(sum of wgt is 421.4866089515037)
+------------------------------------------------------------------------------
+             |               Robust
+           y |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+           a |
+  Treatment  |    -38.745      2.684  -14.435   0.000      -44.016     -33.474
+       _cons |    228.218      1.949  117.121   0.000      224.391     232.045
+------------------------------------------------------------------------------
+  2.5 percent power to detect an effect of 0, assuming a standard error of 2.684046 and a 2-sided test and alpha = .05
+  Balance:
+-------------------------------------------------------------------------------
+             |    mean_T     mean_C       diff   std_diff    sd_pool  var_ratio
+-------------+-----------------------------------------------------------------
+          x1 |    1.0799   1.122327  -.0424274   -.076915    .551614   .7343114
+          x2 |  10.01684   10.02123  -.0043907  -.0081353   .5397032   1.029287
+          x3 |  .2197319   .2204615  -.0007295  -.0184139   .0396194   .9075125
+          x4 |  400.4957   401.2359  -.7401821  -.0130359   56.78027   .9311113
+-------------------------------------------------------------------------------
+  
+  Mean standardized diff., squared
+  .0008482675
+  Mean absolute standardized diff.
+  .0291250322
+  Maximum absolute standardized diff.
+  .0769149865
+  C.V. of matching weights:
+  .7159448829
+  S.D. of matching weights:
+  .7159448829
+  Skewness of matching weights:
+  .1905107413
+  Kurtosis of matching weights:
+  .0625383822
+  Maximum matching weight:
+  11.37304503
+
+
+I_1 with estimator: discard augmented
+
+
+(sum of wgt is 421.4866089515037)
+------------------------------------------------------------------------------
+             |               Robust
+           y |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+           a |
+  Treatment  |    -18.887      2.528   -7.470   0.000      -23.852     -13.922
+          x1 |     33.643      2.105   15.980   0.000       29.509      37.778
+          x2 |      5.177      1.823    2.839   0.005        1.596       8.757
+          x3 |    -13.853     23.299   -0.595   0.552      -59.611      31.904
+          x4 |      0.364      0.016   22.312   0.000        0.332       0.396
+       _cons |    -14.894     15.651   -0.952   0.342      -45.631      15.843
+------------------------------------------------------------------------------
+  2.5 percent power to detect an effect of 0, assuming a standard error of 2.528269 and a 2-sided test and alpha = .05
+  Balance:
+-------------------------------------------------------------------------------
+             |    mean_T     mean_C       diff   std_diff    sd_pool  var_ratio
+-------------+-----------------------------------------------------------------
+          x1 |    1.0799   1.122327  -.0424274   -.076915    .551614   .7343114
+          x2 |  10.01684   10.02123  -.0043907  -.0081353   .5397032   1.029287
+          x3 |  .2197319   .2204615  -.0007295  -.0184139   .0396194   .9075125
+          x4 |  400.4957   401.2359  -.7401821  -.0130359   56.78027   .9311113
+-------------------------------------------------------------------------------
+  
+  Mean standardized diff., squared
+  .0008482675
+  Mean absolute standardized diff.
+  .0291250322
+  Maximum absolute standardized diff.
+  .0769149865
+  C.V. of matching weights:
+  .7159448829
+  S.D. of matching weights:
+  .7159448829
+  Skewness of matching weights:
+  .1905107413
+  Kurtosis of matching weights:
+  .0625383822
+  Maximum matching weight:
+  11.37304503
+(800 observations deleted)
+
+
+
+--------------------
+I_2
+--------------------
+Scenario: I
+Impact:   0
+N:        200
+--------------------
+
+
+
+
+I_2 with estimator: ebalance  
+
+
+
+
+Data Setup
+Treatment variable:   a
+Covariate adjustment: x1 x2 x3 x4 
+
+Optimizing...
+Iteration 1: Max Difference = 392.452359
+Iteration 2: Max Difference = 143.315229
+Iteration 3: Max Difference = 51.6884745
+Iteration 4: Max Difference = 18.0485848
+Iteration 5: Max Difference = 5.84150478
+Iteration 6: Max Difference = 1.69549826
+Iteration 7: Max Difference = .563199267
+Iteration 8: Max Difference = .23632659
+Iteration 9: Max Difference = .036859627
+Iteration 10: Max Difference = .000660535
+maximum difference smaller than the tolerance level; convergence achieved
+
+
+Treated units: 99      total of weights: 99
+Control units: 101     total of weights: 99
+
+
+Before: without weighting
+
+             |              Treat              |             Control             
+             |      mean   variance   skewness |      mean   variance   skewness 
+-------------+---------------------------------+---------------------------------
+          x1 |     .8583      .1367      .7275 |     1.419      .6497      1.689 
+          x2 |     10.13      .4115      .8758 |     9.924      .1267     -.3975 
+          x3 |     .2176    .001482      .8376 |     .2172    .002501      2.273 
+          x4 |     406.8       2857      .2367 |     392.6       3122      .3483 
+
+
+After:  __000005 as the weighting variable
+
+             |              Treat              |             Control             
+             |      mean   variance   skewness |      mean   variance   skewness 
+-------------+---------------------------------+---------------------------------
+          x1 |     .8583      .1367      .7275 |     .8584      .1508      1.732 
+          x2 |     10.13      .4115      .8758 |     10.13      .1317     -.5268 
+          x3 |     .2176    .001482      .8376 |     .2176    .001993      4.193 
+          x4 |     406.8       2857      .2367 |     406.8       3071      .4313 
+(sum of wgt is 198)
+------------------------------------------------------------------------------
+             |               Robust
+           y |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+           a |
+  Treatment  |     -6.472      6.697   -0.966   0.335      -19.678       6.735
+       _cons |    204.315      5.856   34.890   0.000      192.767     215.863
+------------------------------------------------------------------------------
+  2.5 percent power to detect an effect of 0, assuming a standard error of 6.697122 and a 2-sided test and alpha = .05
+type mismatch:  exp.exp:  transmorphic found where struct expected
+
+
+Balance for I_2 with estimator: 
+
+
+no variables defined
+last estimates not found
+  Unmatched data
+  Balance:
+-------------------------------------------------------------------------------
+             |    mean_T     mean_C       diff   std_diff    sd_pool  var_ratio
+-------------+-----------------------------------------------------------------
+          x1 |  .8583465   .8584276  -.0000812  -.0002147   .3781479   .9063351
+          x2 |  10.13137   10.13135   .0000152   .0000292   .5198532   3.122852
+          x3 |  .2175846   .2175854  -8.03e-07  -.0000193   .0415813   .7432232
+          x4 |  406.8456   406.8427   .0029747   .0000548   54.30988   .9301858
+-------------------------------------------------------------------------------
+  
+  Mean standardized diff., squared
+  1.40545e-09
+  Mean absolute standardized diff.
+  .0000794944
+  Maximum absolute standardized diff.
+  .0002146504
+  C.V. of matching weights:
+  0
+  S.D. of matching weights:
+  0
+  Skewness of matching weights:
+  .
+  Kurtosis of matching weights:
+  .
+  Maximum matching weight:
+  1
+
+
+I_2 with estimator: ebalance augmented
+
+
+(sum of wgt is 198)
+------------------------------------------------------------------------------
+             |               Robust
+           y |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+           a |
+  Treatment  |     -6.467      2.099   -3.081   0.002      -10.608      -2.327
+          x1 |     66.053      3.231   20.445   0.000       59.681      72.425
+          x2 |      1.361      1.840    0.740   0.460       -2.268       4.989
+          x3 |   -127.171     45.251   -2.810   0.005     -216.419     -37.924
+          x4 |      0.337      0.026   13.076   0.000        0.286       0.388
+       _cons |     24.313     20.128    1.208   0.229      -15.385      64.012
+------------------------------------------------------------------------------
+  2.5 percent power to detect an effect of 0, assuming a standard error of 2.099441 and a 2-sided test and alpha = .05
+  Unmatched data
+  Balance:
+-------------------------------------------------------------------------------
+             |    mean_T     mean_C       diff   std_diff    sd_pool  var_ratio
+-------------+-----------------------------------------------------------------
+          x1 |  .8583465   .8584276  -.0000812  -.0002147   .3781479   .9063351
+          x2 |  10.13137   10.13135   .0000152   .0000292   .5198532   3.122852
+          x3 |  .2175846   .2175854  -8.03e-07  -.0000193   .0415813   .7432232
+          x4 |  406.8456   406.8427   .0029747   .0000548   54.30988   .9301858
+-------------------------------------------------------------------------------
+  
+  Mean standardized diff., squared
+  1.40545e-09
+  Mean absolute standardized diff.
+  .0000794944
+  Maximum absolute standardized diff.
+  .0002146504
+  C.V. of matching weights:
+  0
+  S.D. of matching weights:
+  0
+  Skewness of matching weights:
+  .
+  Kurtosis of matching weights:
+  .
+  Maximum matching weight:
+  1
+
+
+I_2 with estimator: trim  
+
+
+
+  101 control obs
+  99 treatment obs
+  (Data are unweighted.)
+initial:       f(p) = -138.62944
+alternative:   f(p) =  -144.3154
+rescale:       f(p) = -138.61991
+Iteration 0:   f(p) = -138.61991  
+Iteration 1:   f(p) = -112.76264  
+Iteration 2:   f(p) = -112.09813  
+Iteration 3:   f(p) = -112.08854  
+Iteration 4:   f(p) = -112.08854  
+
+Propensity score model coefficients                Number of obs  =        200
+Generalization of IPW/CPBS-type reweigting
+Loss = IPW
+------------------------------------------------------------------------------
+           a |      Coef.
+-------------+----------------------------------------------------------------
+          x1 |     -2.096
+          x2 |      0.979
+          x3 |      4.777
+          x4 |     -0.000
+       _cons |     -8.480
+------------------------------------------------------------------------------
+
+New variables (unweighted summary statistics)
+
+Summary for variables: _weight _weight_mtch _pscore
+     by categories of: _treated 
+
+_treated |         N      mean        sd       min        p1       p10       p25       p50       p75       p90       p99       max
+---------+------------------------------------------------------------------------------------------------------------------------
+       0 |       101         1      .484       .52      .521      .551      .648      .852      1.25       1.6      2.61      2.77
+         |       101         1      .484       .52      .521      .551      .648      .852      1.25       1.6      2.61      2.77
+         |       101      .383      .228    .00025    .00183     .0575      .198       .39      .585      .674      .801      .813
+---------+------------------------------------------------------------------------------------------------------------------------
+       1 |        99         1      .491      .538      .538      .599      .694      .868      1.06      1.68       3.3       3.3
+         |        99         1      .491      .538      .538      .599      .694      .868      1.06      1.68       3.3       3.3
+         |        99       .61      .199      .159      .159      .311      .496      .604      .756      .874      .974      .974
+---------+------------------------------------------------------------------------------------------------------------------------
+   Total |       200         1      .486       .52      .521      .572      .662      .856      1.19       1.6      2.69       3.3
+         |       200         1      .486       .52      .521      .572      .662      .856      1.19       1.6      2.69       3.3
+         |       200      .495      .242    .00025    .00277      .146      .317      .517      .677       .81      .953      .974
+----------------------------------------------------------------------------------------------------------------------------------
+(89 real changes made)
+(0 real changes made)
+(sum of wgt is 156.9131116355094)
+------------------------------------------------------------------------------
+             |               Robust
+           y |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+           a |
+  Treatment  |    -17.507      4.767   -3.673   0.000      -26.907      -8.107
+       _cons |    217.426      3.496   62.201   0.000      210.532     224.319
+------------------------------------------------------------------------------
+  2.5 percent power to detect an effect of 0, assuming a standard error of 4.766653 and a 2-sided test and alpha = .05
+  Balance:
+-------------------------------------------------------------------------------
+             |    mean_T     mean_C       diff   std_diff    sd_pool  var_ratio
+-------------+-----------------------------------------------------------------
+          x1 |  1.006256   1.162672  -.1564151  -.2711148   .5769331   .3800544
+          x2 |  10.03106    9.97125   .0598078   .1234766   .4843655   2.306321
+          x3 |  .2157464   .2144137   .0013327   .0353486   .0377019   .6236761
+          x4 |  400.2659   398.3274   1.938513   .0348003   55.70393   .9343736
+-------------------------------------------------------------------------------
+  
+  Mean standardized diff., squared
+  .0003752873
+  Mean absolute standardized diff.
+  .1161850822
+  Maximum absolute standardized diff.
+  .2711148313
+  C.V. of matching weights:
+  .4861398068
+  S.D. of matching weights:
+  .4861398068
+  Skewness of matching weights:
+  .1354536368
+  Kurtosis of matching weights:
+  .0357706936
+  Maximum matching weight:
+  3.29827683
+
+
+I_2 with estimator: trim augmented
+
+
+(sum of wgt is 156.9131116355094)
+------------------------------------------------------------------------------
+             |               Robust
+           y |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+           a |
+  Treatment  |     -5.985      2.442   -2.451   0.015      -10.801      -1.168
+          x1 |     38.546      3.438   11.213   0.000       31.766      45.326
+          x2 |      1.208      2.642    0.457   0.648       -4.003       6.420
+          x3 |     16.248     44.773    0.363   0.717      -72.056     104.551
+          x4 |      0.358      0.026   13.629   0.000        0.306       0.409
+       _cons |     10.828     24.464    0.443   0.659      -37.422      59.078
+------------------------------------------------------------------------------
+  2.5 percent power to detect an effect of 0, assuming a standard error of 2.442053 and a 2-sided test and alpha = .05
+  Balance:
+-------------------------------------------------------------------------------
+             |    mean_T     mean_C       diff   std_diff    sd_pool  var_ratio
+-------------+-----------------------------------------------------------------
+          x1 |  1.006256   1.162672  -.1564151  -.2711148   .5769331   .3800544
+          x2 |  10.03106    9.97125   .0598078   .1234766   .4843655   2.306321
+          x3 |  .2157464   .2144137   .0013327   .0353486   .0377019   .6236761
+          x4 |  400.2659   398.3274   1.938513   .0348003   55.70393   .9343736
+-------------------------------------------------------------------------------
+  
+  Mean standardized diff., squared
+  .0003752873
+  Mean absolute standardized diff.
+  .1161850822
+  Maximum absolute standardized diff.
+  .2711148313
+  C.V. of matching weights:
+  .4861398068
+  S.D. of matching weights:
+  .4861398068
+  Skewness of matching weights:
+  .1354536368
+  Kurtosis of matching weights:
+  .0357706936
+  Maximum matching weight:
+  3.29827683
+
+
+I_2 with estimator: discard  
+
+
+
+  101 control obs
+  99 treatment obs
+  (Data are unweighted.)
+initial:       f(p) = -138.62944
+alternative:   f(p) =  -144.3154
+rescale:       f(p) = -138.61991
+Iteration 0:   f(p) = -138.61991  
+Iteration 1:   f(p) = -112.76264  
+Iteration 2:   f(p) = -112.09813  
+Iteration 3:   f(p) = -112.08854  
+Iteration 4:   f(p) = -112.08854  
+
+Propensity score model coefficients                Number of obs  =        200
+Generalization of IPW/CPBS-type reweigting
+Loss = IPW
+------------------------------------------------------------------------------
+           a |      Coef.
+-------------+----------------------------------------------------------------
+          x1 |     -2.096
+          x2 |      0.979
+          x3 |      4.777
+          x4 |     -0.000
+       _cons |     -8.480
+------------------------------------------------------------------------------
+
+New variables (unweighted summary statistics)
+
+Summary for variables: _weight _weight_mtch _pscore
+     by categories of: _treated 
+
+_treated |         N      mean        sd       min        p1       p10       p25       p50       p75       p90       p99       max
+---------+------------------------------------------------------------------------------------------------------------------------
+       0 |       101         1      .484       .52      .521      .551      .648      .852      1.25       1.6      2.61      2.77
+         |       101         1      .484       .52      .521      .551      .648      .852      1.25       1.6      2.61      2.77
+         |       101      .383      .228    .00025    .00183     .0575      .198       .39      .585      .674      .801      .813
+---------+------------------------------------------------------------------------------------------------------------------------
+       1 |        99         1      .491      .538      .538      .599      .694      .868      1.06      1.68       3.3       3.3
+         |        99         1      .491      .538      .538      .599      .694      .868      1.06      1.68       3.3       3.3
+         |        99       .61      .199      .159      .159      .311      .496      .604      .756      .874      .974      .974
+---------+------------------------------------------------------------------------------------------------------------------------
+   Total |       200         1      .486       .52      .521      .572      .662      .856      1.19       1.6      2.69       3.3
+         |       200         1      .486       .52      .521      .572      .662      .856      1.19       1.6      2.69       3.3
+         |       200      .495      .242    .00025    .00277      .146      .317      .517      .677       .81      .953      .974
+----------------------------------------------------------------------------------------------------------------------------------
+(89 real changes made)
+(sum of wgt is 76.81311163550944)
+------------------------------------------------------------------------------
+             |               Robust
+           y |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+           a |
+  Treatment  |    -45.492      5.894   -7.718   0.000      -57.173     -33.810
+       _cons |    231.571      4.463   51.891   0.000      222.726     240.416
+------------------------------------------------------------------------------
+  2.5 percent power to detect an effect of 0, assuming a standard error of 5.894017 and a 2-sided test and alpha = .05
+  Balance:
+-------------------------------------------------------------------------------
+             |    mean_T     mean_C       diff   std_diff    sd_pool  var_ratio
+-------------+-----------------------------------------------------------------
+          x1 |  1.006256   1.162672  -.1564151  -.2711148   .5769331   .3800544
+          x2 |  10.03106    9.97125   .0598078   .1234766   .4843655   2.306321
+          x3 |  .2157464   .2144137   .0013327   .0353486   .0377019   .6236761
+          x4 |  400.2659   398.3274   1.938513   .0348003   55.70393   .9343736
+-------------------------------------------------------------------------------
+  
+  Mean standardized diff., squared
+  .0003752873
+  Mean absolute standardized diff.
+  .1161850822
+  Maximum absolute standardized diff.
+  .2711148313
+  C.V. of matching weights:
+  .4861398068
+  S.D. of matching weights:
+  .4861398068
+  Skewness of matching weights:
+  .1354536368
+  Kurtosis of matching weights:
+  .0357706936
+  Maximum matching weight:
+  3.29827683
+
+
+I_2 with estimator: discard augmented
+
+
+(sum of wgt is 76.81311163550944)
+------------------------------------------------------------------------------
+             |               Robust
+           y |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+           a |
+  Treatment  |    -25.330      5.685   -4.456   0.000      -36.602     -14.058
+          x1 |     28.571      3.701    7.719   0.000       21.232      35.910
+          x2 |      5.204      3.626    1.435   0.154       -1.986      12.394
+          x3 |     32.907     45.455    0.724   0.471      -57.222     123.036
+          x4 |      0.356      0.038    9.400   0.000        0.281       0.431
+       _cons |    -13.807     33.303   -0.415   0.679      -79.840      52.226
+------------------------------------------------------------------------------
+  2.5 percent power to detect an effect of 0, assuming a standard error of 5.684821 and a 2-sided test and alpha = .05
+  Balance:
+-------------------------------------------------------------------------------
+             |    mean_T     mean_C       diff   std_diff    sd_pool  var_ratio
+-------------+-----------------------------------------------------------------
+          x1 |  1.006256   1.162672  -.1564151  -.2711148   .5769331   .3800544
+          x2 |  10.03106    9.97125   .0598078   .1234766   .4843655   2.306321
+          x3 |  .2157464   .2144137   .0013327   .0353486   .0377019   .6236761
+          x4 |  400.2659   398.3274   1.938513   .0348003   55.70393   .9343736
+-------------------------------------------------------------------------------
+  
+  Mean standardized diff., squared
+  .0003752873
+  Mean absolute standardized diff.
+  .1161850822
+  Maximum absolute standardized diff.
+  .2711148313
+  C.V. of matching weights:
+  .4861398068
+  S.D. of matching weights:
+  .4861398068
+  Skewness of matching weights:
+  .1354536368
+  Kurtosis of matching weights:
+  .0357706936
+  Maximum matching weight:
+  3.29827683
+(100 observations deleted)
+
+
+
+--------------------
+I_3
+--------------------
+Scenario: I
+Impact:   0
+N:        100
+--------------------
+
+
+
+
+I_3 with estimator: ebalance  
+
+
+
+
+Data Setup
+Treatment variable:   a
+Covariate adjustment: x1 x2 x3 x4 
+
+Optimizing...
+Iteration 1: Max Difference = 179.74034
+Iteration 2: Max Difference = 65.0799111
+Iteration 3: Max Difference = 22.9622879
+Iteration 4: Max Difference = 7.62748112
+Iteration 5: Max Difference = 2.32190088
+Iteration 6: Max Difference = .784486745
+Iteration 7: Max Difference = .323544212
+Iteration 8: Max Difference = .060250624
+Iteration 9: Max Difference = .001932011
+maximum difference smaller than the tolerance level; convergence achieved
+
+
+Treated units: 53      total of weights: 53
+Control units: 47      total of weights: 53
+
+
+Before: without weighting
+
+             |              Treat              |             Control             
+             |      mean   variance   skewness |      mean   variance   skewness 
+-------------+---------------------------------+---------------------------------
+          x1 |     .8525      .1383      .7493 |     1.471      .6021      1.163 
+          x2 |     10.12      .4283      1.229 |     9.923      .1446     -.5606 
+          x3 |     .2187    .001884      .9773 |     .2143    .001775      .5894 
+          x4 |     409.1       2238      .2533 |     391.1       3529      .4536 
+
+
+After:  __000007 as the weighting variable
+
+             |              Treat              |             Control             
+             |      mean   variance   skewness |      mean   variance   skewness 
+-------------+---------------------------------+---------------------------------
+          x1 |     .8525      .1383      .7493 |     .8527      .1937      1.646 
+          x2 |     10.12      .4283      1.229 |     10.12      .1211    -.09084 
+          x3 |     .2187    .001884      .9773 |     .2186   .0009391      1.141 
+          x4 |     409.1       2238      .2533 |     409.1       3512      .7443 
+(sum of wgt is 106)
+------------------------------------------------------------------------------
+             |               Robust
+           y |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+           a |
+  Treatment  |     -5.837     13.732   -0.425   0.672      -33.088      21.415
+       _cons |    203.793     12.991   15.687   0.000      178.013     229.573
+------------------------------------------------------------------------------
+  2.5 percent power to detect an effect of 0, assuming a standard error of 13.73235 and a 2-sided test and alpha = .05
+type mismatch:  exp.exp:  transmorphic found where struct expected
+
+
+Balance for I_3 with estimator: 
+
+
+no variables defined
+last estimates not found
+  Unmatched data
+  Balance:
+-------------------------------------------------------------------------------
+             |    mean_T     mean_C       diff   std_diff    sd_pool  var_ratio
+-------------+-----------------------------------------------------------------
+          x1 |  .8524673     .85267  -.0002027  -.0005002   .4051982    .716061
+          x2 |  10.12475   10.12464   .0001129   .0002165   .5214695   3.546959
+          x3 |  .2186516   .2186483   3.33e-06   .0000891   .0373787   2.011482
+          x4 |  409.1208   409.1035   .0173203   .0003248   53.31984   .6388046
+-------------------------------------------------------------------------------
+  
+  Mean standardized diff., squared
+  1.05954e-09
+  Mean absolute standardized diff.
+  .0002826748
+  Maximum absolute standardized diff.
+  .0005002486
+  C.V. of matching weights:
+  0
+  S.D. of matching weights:
+  0
+  Skewness of matching weights:
+  .
+  Kurtosis of matching weights:
+  .
+  Maximum matching weight:
+  1
+
+
+I_3 with estimator: ebalance augmented
+
+
+(sum of wgt is 106)
+------------------------------------------------------------------------------
+             |               Robust
+           y |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+           a |
+  Treatment  |     -5.829      3.323   -1.754   0.083      -12.426       0.768
+          x1 |     64.943      4.289   15.142   0.000       56.428      73.459
+          x2 |      0.183      2.406    0.076   0.939       -4.594       4.961
+          x3 |   -182.334     37.913   -4.809   0.000     -257.612    -107.057
+          x4 |      0.370      0.036   10.249   0.000        0.298       0.442
+       _cons |     35.061     23.478    1.493   0.139      -11.555      81.677
+------------------------------------------------------------------------------
+  2.5 percent power to detect an effect of 0, assuming a standard error of 3.32265 and a 2-sided test and alpha = .05
+  Unmatched data
+  Balance:
+-------------------------------------------------------------------------------
+             |    mean_T     mean_C       diff   std_diff    sd_pool  var_ratio
+-------------+-----------------------------------------------------------------
+          x1 |  .8524673     .85267  -.0002027  -.0005002   .4051982    .716061
+          x2 |  10.12475   10.12464   .0001129   .0002165   .5214695   3.546959
+          x3 |  .2186516   .2186483   3.33e-06   .0000891   .0373787   2.011482
+          x4 |  409.1208   409.1035   .0173203   .0003248   53.31984   .6388046
+-------------------------------------------------------------------------------
+  
+  Mean standardized diff., squared
+  1.05954e-09
+  Mean absolute standardized diff.
+  .0002826748
+  Maximum absolute standardized diff.
+  .0005002486
+  C.V. of matching weights:
+  0
+  S.D. of matching weights:
+  0
+  Skewness of matching weights:
+  .
+  Kurtosis of matching weights:
+  .
+  Maximum matching weight:
+  1
+
+
+I_3 with estimator: trim  
+
+
+
+  47 control obs
+  53 treatment obs
+  (Data are unweighted.)
+initial:       f(p) = -69.314718
+alternative:   f(p) = -70.907698
+rescale:       f(p) = -69.134904
+Iteration 0:   f(p) = -69.134904  
+Iteration 1:   f(p) = -52.871482  
+Iteration 2:   f(p) = -52.689431  
+Iteration 3:   f(p) = -52.689194  
+Iteration 4:   f(p) = -52.689194  
+
+Propensity score model coefficients                Number of obs  =        100
+Generalization of IPW/CPBS-type reweigting
+Loss = IPW
+------------------------------------------------------------------------------
+           a |      Coef.
+-------------+----------------------------------------------------------------
+          x1 |     -2.276
+          x2 |      0.742
+          x3 |     11.120
+          x4 |      0.004
+       _cons |     -8.624
+------------------------------------------------------------------------------
+
+New variables (unweighted summary statistics)
+
+Summary for variables: _weight _weight_mtch _pscore
+     by categories of: _treated 
+
+_treated |         N      mean        sd       min        p1       p10       p25       p50       p75       p90       p99       max
+---------+------------------------------------------------------------------------------------------------------------------------
+       0 |        47         1      .657      .473      .473      .495      .561      .694      1.32      1.71       3.3       3.3
+         |        47         1      .657      .473      .473      .495      .561      .694      1.32      1.71       3.3       3.3
+         |        47      .381      .264    .00395    .00395     .0494      .161      .321      .644      .725      .857      .857
+---------+------------------------------------------------------------------------------------------------------------------------
+       1 |        53         1      .454      .608      .608      .635      .727      .904       1.1      1.45      2.94      2.94
+         |        53         1      .454      .608      .608      .635      .727      .904       1.1      1.45      2.94      2.94
+         |        53      .662      .195      .199      .199      .404      .535      .648      .806      .923      .964      .964
+---------+------------------------------------------------------------------------------------------------------------------------
+   Total |       100         1      .556      .473      .473      .535      .635      .847      1.14      1.56      3.12       3.3
+         |       100         1      .556      .473      .473      .535      .635      .847      1.14      1.56      3.12       3.3
+         |       100       .53      .269    .00395    .00477       .12      .319      .575      .752      .868      .964      .964
+----------------------------------------------------------------------------------------------------------------------------------
+(44 real changes made)
+(0 real changes made)
+(sum of wgt is 76.87467132146973)
+------------------------------------------------------------------------------
+             |               Robust
+           y |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+           a |
+  Treatment  |    -19.049      7.038   -2.707   0.008      -33.016      -5.083
+       _cons |    219.015      5.503   39.800   0.000      208.095     229.936
+------------------------------------------------------------------------------
+  2.5 percent power to detect an effect of 0, assuming a standard error of 7.037958 and a 2-sided test and alpha = .05
+  Balance:
+-------------------------------------------------------------------------------
+             |    mean_T     mean_C       diff   std_diff    sd_pool  var_ratio
+-------------+-----------------------------------------------------------------
+          x1 |  .9841001   1.149273  -.1651731  -.2966057   .5568778   .3936945
+          x2 |  10.06611   10.00889   .0572203   .1141244    .501385    2.03111
+          x3 |  .2152901   .2120877   .0032024   .0887867   .0360684   1.127962
+          x4 |  406.0185   405.0926    .925925   .0166158   55.72545   .4503588
+-------------------------------------------------------------------------------
+  
+  Mean standardized diff., squared
+  .0003713208
+  Mean absolute standardized diff.
+  .129033169
+  Maximum absolute standardized diff.
+  .2966057083
+  C.V. of matching weights:
+  .5558650711
+  S.D. of matching weights:
+  .5558650711
+  Skewness of matching weights:
+  .2144364705
+  Kurtosis of matching weights:
+  .0797260965
+  Maximum matching weight:
+  3.297920882
+
+
+I_3 with estimator: trim augmented
+
+
+(sum of wgt is 76.87467132146973)
+------------------------------------------------------------------------------
+             |               Robust
+           y |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+           a |
+  Treatment  |     -5.221      3.607   -1.447   0.151      -12.382       1.941
+          x1 |     42.009      3.497   12.011   0.000       35.065      48.954
+          x2 |      1.016      3.133    0.324   0.747       -5.205       7.236
+          x3 |    -73.429     57.808   -1.270   0.207     -188.208      41.350
+          x4 |      0.354      0.039    9.120   0.000        0.277       0.431
+       _cons |     29.335     29.585    0.992   0.324      -29.407      88.077
+------------------------------------------------------------------------------
+  2.5 percent power to detect an effect of 0, assuming a standard error of 3.606821 and a 2-sided test and alpha = .05
+  Balance:
+-------------------------------------------------------------------------------
+             |    mean_T     mean_C       diff   std_diff    sd_pool  var_ratio
+-------------+-----------------------------------------------------------------
+          x1 |  .9841001   1.149273  -.1651731  -.2966057   .5568778   .3936945
+          x2 |  10.06611   10.00889   .0572203   .1141244    .501385    2.03111
+          x3 |  .2152901   .2120877   .0032024   .0887867   .0360684   1.127962
+          x4 |  406.0185   405.0926    .925925   .0166158   55.72545   .4503588
+-------------------------------------------------------------------------------
+  
+  Mean standardized diff., squared
+  .0003713208
+  Mean absolute standardized diff.
+  .129033169
+  Maximum absolute standardized diff.
+  .2966057083
+  C.V. of matching weights:
+  .5558650711
+  S.D. of matching weights:
+  .5558650711
+  Skewness of matching weights:
+  .2144364705
+  Kurtosis of matching weights:
+  .0797260965
+  Maximum matching weight:
+  3.297920882
+
+
+I_3 with estimator: discard  
+
+
+
+  47 control obs
+  53 treatment obs
+  (Data are unweighted.)
+initial:       f(p) = -69.314718
+alternative:   f(p) = -70.907698
+rescale:       f(p) = -69.134904
+Iteration 0:   f(p) = -69.134904  
+Iteration 1:   f(p) = -52.871482  
+Iteration 2:   f(p) = -52.689431  
+Iteration 3:   f(p) = -52.689194  
+Iteration 4:   f(p) = -52.689194  
+
+Propensity score model coefficients                Number of obs  =        100
+Generalization of IPW/CPBS-type reweigting
+Loss = IPW
+------------------------------------------------------------------------------
+           a |      Coef.
+-------------+----------------------------------------------------------------
+          x1 |     -2.276
+          x2 |      0.742
+          x3 |     11.120
+          x4 |      0.004
+       _cons |     -8.624
+------------------------------------------------------------------------------
+
+New variables (unweighted summary statistics)
+
+Summary for variables: _weight _weight_mtch _pscore
+     by categories of: _treated 
+
+_treated |         N      mean        sd       min        p1       p10       p25       p50       p75       p90       p99       max
+---------+------------------------------------------------------------------------------------------------------------------------
+       0 |        47         1      .657      .473      .473      .495      .561      .694      1.32      1.71       3.3       3.3
+         |        47         1      .657      .473      .473      .495      .561      .694      1.32      1.71       3.3       3.3
+         |        47      .381      .264    .00395    .00395     .0494      .161      .321      .644      .725      .857      .857
+---------+------------------------------------------------------------------------------------------------------------------------
+       1 |        53         1      .454      .608      .608      .635      .727      .904       1.1      1.45      2.94      2.94
+         |        53         1      .454      .608      .608      .635      .727      .904       1.1      1.45      2.94      2.94
+         |        53      .662      .195      .199      .199      .404      .535      .648      .806      .923      .964      .964
+---------+------------------------------------------------------------------------------------------------------------------------
+   Total |       100         1      .556      .473      .473      .535      .635      .847      1.14      1.56      3.12       3.3
+         |       100         1      .556      .473      .473      .535      .635      .847      1.14      1.56      3.12       3.3
+         |       100       .53      .269    .00395    .00477       .12      .319      .575      .752      .868      .964      .964
+----------------------------------------------------------------------------------------------------------------------------------
+(44 real changes made)
+(sum of wgt is 37.27467132146973)
+------------------------------------------------------------------------------
+             |               Robust
+           y |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+           a |
+  Treatment  |    -37.157      9.182   -4.047   0.000      -55.566     -18.748
+       _cons |    224.898      6.589   34.134   0.000      211.688     238.108
+------------------------------------------------------------------------------
+  2.5 percent power to detect an effect of 0, assuming a standard error of 9.182156 and a 2-sided test and alpha = .05
+  Balance:
+-------------------------------------------------------------------------------
+             |    mean_T     mean_C       diff   std_diff    sd_pool  var_ratio
+-------------+-----------------------------------------------------------------
+          x1 |  .9841001   1.149273  -.1651731  -.2966057   .5568778   .3936945
+          x2 |  10.06611   10.00889   .0572203   .1141244    .501385    2.03111
+          x3 |  .2152901   .2120877   .0032024   .0887867   .0360684   1.127962
+          x4 |  406.0185   405.0926    .925925   .0166158   55.72545   .4503588
+-------------------------------------------------------------------------------
+  
+  Mean standardized diff., squared
+  .0003713208
+  Mean absolute standardized diff.
+  .129033169
+  Maximum absolute standardized diff.
+  .2966057083
+  C.V. of matching weights:
+  .5558650711
+  S.D. of matching weights:
+  .5558650711
+  Skewness of matching weights:
+  .2144364705
+  Kurtosis of matching weights:
+  .0797260965
+  Maximum matching weight:
+  3.297920882
+
+
+I_3 with estimator: discard augmented
+
+
+(sum of wgt is 37.27467132146973)
+------------------------------------------------------------------------------
+             |               Robust
+           y |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+           a |
+  Treatment  |    -18.610      9.048   -2.057   0.045      -36.783      -0.437
+          x1 |     35.162      4.625    7.603   0.000       25.873      44.451
+          x2 |      2.609      3.326    0.784   0.436       -4.071       9.289
+          x3 |    -56.834     61.038   -0.931   0.356     -179.432      65.765
+          x4 |      0.368      0.056    6.554   0.000        0.256       0.481
+       _cons |     13.042     33.198    0.393   0.696      -53.639      79.722
+------------------------------------------------------------------------------
+  2.5 percent power to detect an effect of 0, assuming a standard error of 9.047827 and a 2-sided test and alpha = .05
+  Balance:
+-------------------------------------------------------------------------------
+             |    mean_T     mean_C       diff   std_diff    sd_pool  var_ratio
+-------------+-----------------------------------------------------------------
+          x1 |  .9841001   1.149273  -.1651731  -.2966057   .5568778   .3936945
+          x2 |  10.06611   10.00889   .0572203   .1141244    .501385    2.03111
+          x3 |  .2152901   .2120877   .0032024   .0887867   .0360684   1.127962
+          x4 |  406.0185   405.0926    .925925   .0166158   55.72545   .4503588
+-------------------------------------------------------------------------------
+  
+  Mean standardized diff., squared
+  .0003713208
+  Mean absolute standardized diff.
+  .129033169
+  Maximum absolute standardized diff.
+  .2966057083
+  C.V. of matching weights:
+  .5558650711
+  S.D. of matching weights:
+  .5558650711
+  Skewness of matching weights:
+  .2144364705
+  Kurtosis of matching weights:
+  .0797260965
+  Maximum matching weight:
+  3.297920882
+(50 observations deleted)
+
+
+
+--------------------
+I_4
+--------------------
+Scenario: I
+Impact:   0
+N:        50
+--------------------
+
+
+
+
+I_4 with estimator: ebalance  
+
+
+
+
+Data Setup
+Treatment variable:   a
+Covariate adjustment: x1 x2 x3 x4 
+
+Optimizing...
+Iteration 1: Max Difference = 81.6992306
+Iteration 2: Max Difference = 29.159897
+Iteration 3: Max Difference = 10.1033889
+Iteration 4: Max Difference = 3.55318624
+Iteration 5: Max Difference = 1.40704798
+Iteration 6: Max Difference = .685940578
+algorithm does not converge within specified tolerance; no solution AND/OR near colinearity of covariates (and possibly their higher orders)
+note: The algorithm fails to adjust the mean (1st order moment) of x4
+
+
+Pre-balancing: without weighting
+
+             |              Treat              |             Control             
+             |      mean   variance   skewness |      mean   variance   skewness 
+-------------+---------------------------------+---------------------------------
+          x1 |     .9318      .1765       .519 |      1.64      .6607      .9901 
+          x2 |     10.12      .4295      1.882 |     9.826      .1347     -.2561 
+          x3 |     .2181    .001774      .6808 |     .2145    .003083      .5635 
+          x4 |     409.4       2255      .2998 |       390       4707      .5977 
+__000009 not found
+
+
+I_4 with estimator: trim  
+
+
+
+  22 control obs
+  28 treatment obs
+  (Data are unweighted.)
+initial:       f(p) = -34.657359
+alternative:   f(p) = -34.703849
+rescale:       f(p) = -34.296971
+Iteration 0:   f(p) = -34.296971  
+Iteration 1:   f(p) = -23.194608  
+Iteration 2:   f(p) =   -22.5687  
+Iteration 3:   f(p) = -22.552737  
+Iteration 4:   f(p) =   -22.5527  
+Iteration 5:   f(p) =   -22.5527  
+
+Propensity score model coefficients                Number of obs  =         50
+Generalization of IPW/CPBS-type reweigting
+Loss = IPW
+------------------------------------------------------------------------------
+           a |      Coef.
+-------------+----------------------------------------------------------------
+          x1 |     -2.754
+          x2 |      2.759
+          x3 |      9.558
+          x4 |     -0.000
+       _cons |    -25.635
+------------------------------------------------------------------------------
+
+New variables (unweighted summary statistics)
+
+Summary for variables: _weight _weight_mtch _pscore
+     by categories of: _treated 
+
+_treated |         N      mean        sd       min        p1       p10       p25       p50       p75       p90       p99       max
+---------+------------------------------------------------------------------------------------------------------------------------
+       0 |        22         1      1.57      .347      .347       .37       .38      .452      .689      .987       6.2       6.2
+         |        22         1      1.57      .347      .347       .37       .38      .452      .689      .987       6.2       6.2
+         |        22      .332      .276    .00256    .00256     .0646     .0903      .234      .498       .65      .944      .944
+---------+------------------------------------------------------------------------------------------------------------------------
+       1 |        28         1      .353       .67       .67      .679      .722      .862      1.23      1.49      1.97      1.97
+         |        28         1      .353       .67       .67      .679      .722      .862      1.23      1.49      1.97      1.97
+         |        28      .739      .212       .34       .34      .448      .546      .778      .928      .986         1         1
+---------+------------------------------------------------------------------------------------------------------------------------
+   Total |        50         1      1.06      .347      .347      .377       .54       .73         1      1.49       6.2       6.2
+         |        50         1      1.06      .347      .347      .377       .54       .73         1      1.49       6.2       6.2
+         |        50       .56      .315    .00256    .00256     .0826       .34      .549      .878      .966         1         1
+----------------------------------------------------------------------------------------------------------------------------------
+(16 real changes made)
+(0 real changes made)
+(sum of wgt is 34.95180442471755)
+------------------------------------------------------------------------------
+             |               Robust
+           y |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+           a |
+  Treatment  |    -16.926     12.374   -1.368   0.178      -41.806       7.953
+       _cons |    219.909     10.585   20.776   0.000      198.626     241.191
+------------------------------------------------------------------------------
+  2.5 percent power to detect an effect of 0, assuming a standard error of 12.37392 and a 2-sided test and alpha = .05
+  Balance:
+-------------------------------------------------------------------------------
+             |    mean_T     mean_C       diff   std_diff    sd_pool  var_ratio
+-------------+-----------------------------------------------------------------
+          x1 |  1.022092   1.086626  -.0645334   -.113986   .5661522   .3872513
+          x2 |    10.027   10.01243    .014568   .0281472   .5175637   1.988132
+          x3 |  .2158102   .2115101   .0043001   .1128931     .03809   .9222429
+          x4 |  407.5824   432.5075   -24.9251  -.3263867   76.36679   .1782573
+-------------------------------------------------------------------------------
+  
+  Mean standardized diff., squared
+  .0055999951
+  Mean absolute standardized diff.
+  .1453532404
+  Maximum absolute standardized diff.
+  .3263867066
+  C.V. of matching weights:
+  1.057742168
+  S.D. of matching weights:
+  1.057742168
+  Skewness of matching weights:
+  .5493917849
+  Kurtosis of matching weights:
+  .36692235
+  Maximum matching weight:
+  6.19977543
+
+
+I_4 with estimator: trim augmented
+
+
+(sum of wgt is 34.95180442471755)
+------------------------------------------------------------------------------
+             |               Robust
+           y |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+           a |
+  Treatment  |     -0.019      6.404   -0.003   0.998      -12.925      12.888
+          x1 |     44.479      5.049    8.810   0.000       34.304      54.654
+          x2 |     -1.089      3.805   -0.286   0.776       -8.758       6.580
+          x3 |    -75.655     74.663   -1.013   0.316     -226.129      74.818
+          x4 |      0.371      0.061    6.126   0.000        0.249       0.493
+       _cons |     36.387     42.165    0.863   0.393      -48.590     121.364
+------------------------------------------------------------------------------
+  2.5 percent power to detect an effect of 0, assuming a standard error of 6.404038 and a 2-sided test and alpha = .05
+  Balance:
+-------------------------------------------------------------------------------
+             |    mean_T     mean_C       diff   std_diff    sd_pool  var_ratio
+-------------+-----------------------------------------------------------------
+          x1 |  1.022092   1.086626  -.0645334   -.113986   .5661522   .3872513
+          x2 |    10.027   10.01243    .014568   .0281472   .5175637   1.988132
+          x3 |  .2158102   .2115101   .0043001   .1128931     .03809   .9222429
+          x4 |  407.5824   432.5075   -24.9251  -.3263867   76.36679   .1782573
+-------------------------------------------------------------------------------
+  
+  Mean standardized diff., squared
+  .0055999951
+  Mean absolute standardized diff.
+  .1453532404
+  Maximum absolute standardized diff.
+  .3263867066
+  C.V. of matching weights:
+  1.057742168
+  S.D. of matching weights:
+  1.057742168
+  Skewness of matching weights:
+  .5493917849
+  Kurtosis of matching weights:
+  .36692235
+  Maximum matching weight:
+  6.19977543
+
+
+I_4 with estimator: discard  
+
+
+
+  22 control obs
+  28 treatment obs
+  (Data are unweighted.)
+initial:       f(p) = -34.657359
+alternative:   f(p) = -34.703849
+rescale:       f(p) = -34.296971
+Iteration 0:   f(p) = -34.296971  
+Iteration 1:   f(p) = -23.194608  
+Iteration 2:   f(p) =   -22.5687  
+Iteration 3:   f(p) = -22.552737  
+Iteration 4:   f(p) =   -22.5527  
+Iteration 5:   f(p) =   -22.5527  
+
+Propensity score model coefficients                Number of obs  =         50
+Generalization of IPW/CPBS-type reweigting
+Loss = IPW
+------------------------------------------------------------------------------
+           a |      Coef.
+-------------+----------------------------------------------------------------
+          x1 |     -2.754
+          x2 |      2.759
+          x3 |      9.558
+          x4 |     -0.000
+       _cons |    -25.635
+------------------------------------------------------------------------------
+
+New variables (unweighted summary statistics)
+
+Summary for variables: _weight _weight_mtch _pscore
+     by categories of: _treated 
+
+_treated |         N      mean        sd       min        p1       p10       p25       p50       p75       p90       p99       max
+---------+------------------------------------------------------------------------------------------------------------------------
+       0 |        22         1      1.57      .347      .347       .37       .38      .452      .689      .987       6.2       6.2
+         |        22         1      1.57      .347      .347       .37       .38      .452      .689      .987       6.2       6.2
+         |        22      .332      .276    .00256    .00256     .0646     .0903      .234      .498       .65      .944      .944
+---------+------------------------------------------------------------------------------------------------------------------------
+       1 |        28         1      .353       .67       .67      .679      .722      .862      1.23      1.49      1.97      1.97
+         |        28         1      .353       .67       .67      .679      .722      .862      1.23      1.49      1.97      1.97
+         |        28      .739      .212       .34       .34      .448      .546      .778      .928      .986         1         1
+---------+------------------------------------------------------------------------------------------------------------------------
+   Total |        50         1      1.06      .347      .347      .377       .54       .73         1      1.49       6.2       6.2
+         |        50         1      1.06      .347      .347      .377       .54       .73         1      1.49       6.2       6.2
+         |        50       .56      .315    .00256    .00256     .0826       .34      .549      .878      .966         1         1
+----------------------------------------------------------------------------------------------------------------------------------
+(16 real changes made)
+(sum of wgt is 20.55180442471755)
+------------------------------------------------------------------------------
+             |               Robust
+           y |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+           a |
+  Treatment  |    -36.472     11.327   -3.220   0.003      -59.544     -13.399
+       _cons |    224.498      7.937   28.284   0.000      208.330     240.665
+------------------------------------------------------------------------------
+  2.5 percent power to detect an effect of 0, assuming a standard error of 11.32699 and a 2-sided test and alpha = .05
+  Balance:
+-------------------------------------------------------------------------------
+             |    mean_T     mean_C       diff   std_diff    sd_pool  var_ratio
+-------------+-----------------------------------------------------------------
+          x1 |  1.022092   1.086626  -.0645334   -.113986   .5661522   .3872513
+          x2 |    10.027   10.01243    .014568   .0281472   .5175637   1.988132
+          x3 |  .2158102   .2115101   .0043001   .1128931     .03809   .9222429
+          x4 |  407.5824   432.5075   -24.9251  -.3263867   76.36679   .1782573
+-------------------------------------------------------------------------------
+  
+  Mean standardized diff., squared
+  .0055999951
+  Mean absolute standardized diff.
+  .1453532404
+  Maximum absolute standardized diff.
+  .3263867066
+  C.V. of matching weights:
+  1.057742168
+  S.D. of matching weights:
+  1.057742168
+  Skewness of matching weights:
+  .5493917849
+  Kurtosis of matching weights:
+  .36692235
+  Maximum matching weight:
+  6.19977543
+
+
+I_4 with estimator: discard augmented
+
+
+(sum of wgt is 20.55180442471755)
+------------------------------------------------------------------------------
+             |               Robust
+           y |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+           a |
+  Treatment  |    -10.397     10.691   -0.972   0.339      -32.298      11.503
+          x1 |     38.039      6.664    5.708   0.000       24.389      51.689
+          x2 |      5.370      6.459    0.831   0.413       -7.862      18.601
+          x3 |    -43.614     87.967   -0.496   0.624     -223.806     136.578
+          x4 |      0.279      0.070    3.996   0.000        0.136       0.421
+       _cons |     11.985     63.121    0.190   0.851     -117.313     141.283
+------------------------------------------------------------------------------
+  2.5 percent power to detect an effect of 0, assuming a standard error of 10.69136 and a 2-sided test and alpha = .05
+  Balance:
+-------------------------------------------------------------------------------
+             |    mean_T     mean_C       diff   std_diff    sd_pool  var_ratio
+-------------+-----------------------------------------------------------------
+          x1 |  1.022092   1.086626  -.0645334   -.113986   .5661522   .3872513
+          x2 |    10.027   10.01243    .014568   .0281472   .5175637   1.988132
+          x3 |  .2158102   .2115101   .0043001   .1128931     .03809   .9222429
+          x4 |  407.5824   432.5075   -24.9251  -.3263867   76.36679   .1782573
+-------------------------------------------------------------------------------
+  
+  Mean standardized diff., squared
+  .0055999951
+  Mean absolute standardized diff.
+  .1453532404
+  Maximum absolute standardized diff.
+  .3263867066
+  C.V. of matching weights:
+  1.057742168
+  S.D. of matching weights:
+  1.057742168
+  Skewness of matching weights:
+  .5493917849
+  Kurtosis of matching weights:
+  .36692235
+  Maximum matching weight:
+  6.19977543
+(25 observations deleted)
+
+
+
+--------------------
+I_5
+--------------------
+Scenario: I
+Impact:   0
+N:        25
+--------------------
+
+
+
+
+I_5 with estimator: ebalance  
+
+
+
+
+Data Setup
+Treatment variable:   a
+Covariate adjustment: x1 x2 x3 x4 
+
+Optimizing...
+Iteration 1: Max Difference = 40.375526
+Iteration 2: Max Difference = 14.7695753
+Iteration 3: Max Difference = 6.81512984
+algorithm does not converge within specified tolerance; no solution AND/OR near colinearity of covariates (and possibly their higher orders)
+note: The algorithm fails to adjust the mean (1st order moment) of x4
+
+
+Pre-balancing: without weighting
+
+             |              Treat              |             Control             
+             |      mean   variance   skewness |      mean   variance   skewness 
+-------------+---------------------------------+---------------------------------
+          x1 |     .9417      .1667     .06722 |     1.744      .8979      1.218 
+          x2 |     10.16      .6604      1.965 |     9.884      .1305      .2111 
+          x3 |     .2149     .00301      .6836 |     .2083    .003286      .3732 
+          x4 |     418.9       1946     .08064 |     405.1       4970      1.395 
+__00000B not found
+
+
+I_5 with estimator: trim  
+
+
+
+  11 control obs
+  14 treatment obs
+  (Data are unweighted.)
+initial:       f(p) =  -17.32868
+alternative:   f(p) = -17.351925
+rescale:       f(p) = -17.148485
+Iteration 0:   f(p) = -17.148485  
+Iteration 1:   f(p) = -11.435944  
+Iteration 2:   f(p) = -11.221336  
+Iteration 3:   f(p) = -11.217606  
+Iteration 4:   f(p) = -11.217603  
+Iteration 5:   f(p) = -11.217603  
+
+Propensity score model coefficients                Number of obs  =         25
+Generalization of IPW/CPBS-type reweigting
+Loss = IPW
+------------------------------------------------------------------------------
+           a |      Coef.
+-------------+----------------------------------------------------------------
+          x1 |     -3.194
+          x2 |      3.004
+          x3 |     20.064
+          x4 |     -0.014
+       _cons |    -23.836
+------------------------------------------------------------------------------
+
+New variables (unweighted summary statistics)
+
+Summary for variables: _weight _weight_mtch _pscore
+     by categories of: _treated 
+
+_treated |         N      mean        sd       min        p1       p10       p25       p50       p75       p90       p99       max
+---------+------------------------------------------------------------------------------------------------------------------------
+       0 |        11         1      .524      .524      .524      .528      .562      .801      1.43      1.86      1.94      1.94
+         |        11         1      .524      .524      .524      .528      .562      .801      1.43      1.86      1.94      1.94
+         |        11      .352       .28    .00285    .00285     .0108     .0696      .347      .634      .719      .731      .731
+---------+------------------------------------------------------------------------------------------------------------------------
+       1 |        14         1      .412      .639      .639      .641      .646      .865      1.19      1.48      2.06      2.06
+         |        14         1      .412      .639      .639      .641      .646      .865      1.19      1.48      2.06      2.06
+         |        14      .723      .236       .31       .31      .432      .537      .743      .989      .997         1         1
+---------+------------------------------------------------------------------------------------------------------------------------
+   Total |        25         1      .454      .524      .524      .562      .645      .801      1.19      1.86      2.06      2.06
+         |        25         1      .454      .524      .524      .562      .645      .801      1.19      1.86      2.06      2.06
+         |        25       .56      .313    .00285    .00285     .0696      .347      .544      .799       .99         1         1
+----------------------------------------------------------------------------------------------------------------------------------
+(12 real changes made)
+(0 real changes made)
+(sum of wgt is 19.40142073985515)
+------------------------------------------------------------------------------
+             |               Robust
+           y |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+           a |
+  Treatment  |    -25.193     13.356   -1.886   0.072      -52.822       2.436
+       _cons |    233.686     11.097   21.058   0.000      210.730     256.643
+------------------------------------------------------------------------------
+  2.5 percent power to detect an effect of 0, assuming a standard error of 13.35622 and a 2-sided test and alpha = .05
+  Balance:
+-------------------------------------------------------------------------------
+             |    mean_T     mean_C       diff   std_diff    sd_pool  var_ratio
+-------------+-----------------------------------------------------------------
+          x1 |  1.036121   1.418186  -.3820652  -.6050381   .6314729   .2802603
+          x2 |  10.02716   9.833151    .194008   .3315655   .5851273    3.19415
+          x3 |  .2100325   .2071904   .0028421   .0638655   .0445019   1.165144
+          x4 |   415.113   406.0754   9.037618   .1526501    59.2048   .2443912
+-------------------------------------------------------------------------------
+  
+  Mean standardized diff., squared
+  .0002027568
+  Mean absolute standardized diff.
+  .2882798009
+  Maximum absolute standardized diff.
+  .6050381444
+  C.V. of matching weights:
+  .4541635662
+  S.D. of matching weights:
+  .4541635662
+  Skewness of matching weights:
+  .2071976517
+  Kurtosis of matching weights:
+  .1208452668
+  Maximum matching weight:
+  2.061247747
+
+
+I_5 with estimator: trim augmented
+
+
+(sum of wgt is 19.40142073985515)
+------------------------------------------------------------------------------
+             |               Robust
+           y |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+           a |
+  Treatment  |     -6.665      7.878   -0.846   0.408      -23.155       9.824
+          x1 |     33.752      6.484    5.205   0.000       20.181      47.323
+          x2 |    -11.038      6.155   -1.793   0.089      -23.921       1.845
+          x3 |    -82.091    126.707   -0.648   0.525     -347.293     183.111
+          x4 |      0.430      0.069    6.248   0.000        0.286       0.573
+       _cons |    131.695     59.100    2.228   0.038        7.997     255.394
+------------------------------------------------------------------------------
+  2.5 percent power to detect an effect of 0, assuming a standard error of 7.878223 and a 2-sided test and alpha = .05
+  Balance:
+-------------------------------------------------------------------------------
+             |    mean_T     mean_C       diff   std_diff    sd_pool  var_ratio
+-------------+-----------------------------------------------------------------
+          x1 |  1.036121   1.418186  -.3820652  -.6050381   .6314729   .2802603
+          x2 |  10.02716   9.833151    .194008   .3315655   .5851273    3.19415
+          x3 |  .2100325   .2071904   .0028421   .0638655   .0445019   1.165144
+          x4 |   415.113   406.0754   9.037618   .1526501    59.2048   .2443912
+-------------------------------------------------------------------------------
+  
+  Mean standardized diff., squared
+  .0002027568
+  Mean absolute standardized diff.
+  .2882798009
+  Maximum absolute standardized diff.
+  .6050381444
+  C.V. of matching weights:
+  .4541635662
+  S.D. of matching weights:
+  .4541635662
+  Skewness of matching weights:
+  .2071976517
+  Kurtosis of matching weights:
+  .1208452668
+  Maximum matching weight:
+  2.061247747
+
+
+I_5 with estimator: discard  
+
+
+
+  11 control obs
+  14 treatment obs
+  (Data are unweighted.)
+initial:       f(p) =  -17.32868
+alternative:   f(p) = -17.351925
+rescale:       f(p) = -17.148485
+Iteration 0:   f(p) = -17.148485  
+Iteration 1:   f(p) = -11.435944  
+Iteration 2:   f(p) = -11.221336  
+Iteration 3:   f(p) = -11.217606  
+Iteration 4:   f(p) = -11.217603  
+Iteration 5:   f(p) = -11.217603  
+
+Propensity score model coefficients                Number of obs  =         25
+Generalization of IPW/CPBS-type reweigting
+Loss = IPW
+------------------------------------------------------------------------------
+           a |      Coef.
+-------------+----------------------------------------------------------------
+          x1 |     -3.194
+          x2 |      3.004
+          x3 |     20.064
+          x4 |     -0.014
+       _cons |    -23.836
+------------------------------------------------------------------------------
+
+New variables (unweighted summary statistics)
+
+Summary for variables: _weight _weight_mtch _pscore
+     by categories of: _treated 
+
+_treated |         N      mean        sd       min        p1       p10       p25       p50       p75       p90       p99       max
+---------+------------------------------------------------------------------------------------------------------------------------
+       0 |        11         1      .524      .524      .524      .528      .562      .801      1.43      1.86      1.94      1.94
+         |        11         1      .524      .524      .524      .528      .562      .801      1.43      1.86      1.94      1.94
+         |        11      .352       .28    .00285    .00285     .0108     .0696      .347      .634      .719      .731      .731
+---------+------------------------------------------------------------------------------------------------------------------------
+       1 |        14         1      .412      .639      .639      .641      .646      .865      1.19      1.48      2.06      2.06
+         |        14         1      .412      .639      .639      .641      .646      .865      1.19      1.48      2.06      2.06
+         |        14      .723      .236       .31       .31      .432      .537      .743      .989      .997         1         1
+---------+------------------------------------------------------------------------------------------------------------------------
+   Total |        25         1      .454      .524      .524      .562      .645      .801      1.19      1.86      2.06      2.06
+         |        25         1      .454      .524      .524      .562      .645      .801      1.19      1.86      2.06      2.06
+         |        25       .56      .313    .00285    .00285     .0696      .347      .544      .799       .99         1         1
+----------------------------------------------------------------------------------------------------------------------------------
+(12 real changes made)
+(sum of wgt is 8.601420739855151)
+------------------------------------------------------------------------------
+             |               Robust
+           y |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+           a |
+  Treatment  |    -46.221     19.873   -2.326   0.040      -89.960      -2.481
+       _cons |    238.295     15.414   15.460   0.000      204.370     272.221
+------------------------------------------------------------------------------
+  2.5 percent power to detect an effect of 0, assuming a standard error of 19.87273 and a 2-sided test and alpha = .05
+  Balance:
+-------------------------------------------------------------------------------
+             |    mean_T     mean_C       diff   std_diff    sd_pool  var_ratio
+-------------+-----------------------------------------------------------------
+          x1 |  1.036121   1.418186  -.3820652  -.6050381   .6314729   .2802603
+          x2 |  10.02716   9.833151    .194008   .3315655   .5851273    3.19415
+          x3 |  .2100325   .2071904   .0028421   .0638655   .0445019   1.165144
+          x4 |   415.113   406.0754   9.037618   .1526501    59.2048   .2443912
+-------------------------------------------------------------------------------
+  
+  Mean standardized diff., squared
+  .0002027568
+  Mean absolute standardized diff.
+  .2882798009
+  Maximum absolute standardized diff.
+  .6050381444
+  C.V. of matching weights:
+  .4541635662
+  S.D. of matching weights:
+  .4541635662
+  Skewness of matching weights:
+  .2071976517
+  Kurtosis of matching weights:
+  .1208452668
+  Maximum matching weight:
+  2.061247747
+
+
+I_5 with estimator: discard augmented
+
+
+(sum of wgt is 8.601420739855151)
+------------------------------------------------------------------------------
+             |               Robust
+           y |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+           a |
+  Treatment  |      6.243     21.158    0.295   0.777      -43.789      56.275
+          x1 |     41.950      7.607    5.515   0.001       23.962      59.938
+          x2 |      4.942     13.172    0.375   0.719      -26.205      36.089
+          x3 |   -115.849    124.479   -0.931   0.383     -410.195     178.498
+          x4 |      0.195      0.202    0.967   0.366       -0.282       0.672
+       _cons |     46.119    101.376    0.455   0.663     -193.598     285.836
+------------------------------------------------------------------------------
+  2.5 percent power to detect an effect of 0, assuming a standard error of 21.15849 and a 2-sided test and alpha = .05
+  Balance:
+-------------------------------------------------------------------------------
+             |    mean_T     mean_C       diff   std_diff    sd_pool  var_ratio
+-------------+-----------------------------------------------------------------
+          x1 |  1.036121   1.418186  -.3820652  -.6050381   .6314729   .2802603
+          x2 |  10.02716   9.833151    .194008   .3315655   .5851273    3.19415
+          x3 |  .2100325   .2071904   .0028421   .0638655   .0445019   1.165144
+          x4 |   415.113   406.0754   9.037618   .1526501    59.2048   .2443912
+-------------------------------------------------------------------------------
+  
+  Mean standardized diff., squared
+  .0002027568
+  Mean absolute standardized diff.
+  .2882798009
+  Maximum absolute standardized diff.
+  .6050381444
+  C.V. of matching weights:
+  .4541635662
+  S.D. of matching weights:
+  .4541635662
+  Skewness of matching weights:
+  .2071976517
+  Kurtosis of matching weights:
+  .1208452668
+  Maximum matching weight:
+  2.061247747
+---------------------------------------------------------------------------------
+                |      Coef.
+----------------+----------------------------------------------------------------
+I_1             |
+              N |  1,000.000
+             Nt |    497.000
+           true |      0.000
+----------------+----------------------------------------------------------------
+I_1_ebalance    |
+     impact_est |     -3.243
+       sd_error |      3.479
+           bias |     -3.243
+      error_sqr |     10.516
+  power_zstat_0 |      0.025
+            p_0 |      0.352
+       reject_0 |      0.000
+        covered |      1.000
+    bal_max_asd |      0.001
+   bal_mean_asd |      0.000
+         wgt_sd |      0.000
+         wgt_cv |      0.000
+        wgt_max |      1.000
+----------------+----------------------------------------------------------------
+I_1_ebalanceaug |
+     impact_est |     -3.229
+       sd_error |      0.917
+           bias |     -3.229
+      error_sqr |     10.426
+  power_zstat_0 |      0.025
+            p_0 |      0.000
+       reject_0 |      1.000
+        covered |      0.000
+    bal_max_asd |      0.001
+   bal_mean_asd |      0.000
+         wgt_sd |      0.000
+         wgt_cv |      0.000
+        wgt_max |      1.000
+----------------+----------------------------------------------------------------
+I_1_trim        |
+     impact_est |    -16.257
+       sd_error |      2.259
+           bias |    -16.257
+      error_sqr |    264.287
+  power_zstat_0 |      0.025
+            p_0 |      0.000
+       reject_0 |      1.000
+        covered |      0.000
+    bal_max_asd |      0.077
+   bal_mean_asd |      0.029
+         wgt_sd |      0.716
+         wgt_cv |      0.716
+   wgt_skewness |      0.191
+   wgt_kurtosis |      0.063
+        wgt_max |     11.373
+----------------+----------------------------------------------------------------
+I_1_trimaug     |
+     impact_est |     -4.661
+       sd_error |      1.080
+           bias |     -4.661
+      error_sqr |     21.729
+  power_zstat_0 |      0.025
+            p_0 |      0.000
+       reject_0 |      1.000
+        covered |      0.000
+    bal_max_asd |      0.077
+   bal_mean_asd |      0.029
+         wgt_sd |      0.716
+         wgt_cv |      0.716
+   wgt_skewness |      0.191
+   wgt_kurtosis |      0.063
+        wgt_max |     11.373
+----------------+----------------------------------------------------------------
+I_1_discard     |
+     impact_est |    -38.745
+       sd_error |      2.684
+           bias |    -38.745
+      error_sqr |  1,501.193
+  power_zstat_0 |      0.025
+            p_0 |      0.000
+       reject_0 |      1.000
+        covered |      0.000
+    bal_max_asd |      0.077
+   bal_mean_asd |      0.029
+         wgt_sd |      0.716
+         wgt_cv |      0.716
+   wgt_skewness |      0.191
+   wgt_kurtosis |      0.063
+        wgt_max |     11.373
+----------------+----------------------------------------------------------------
+I_1_discardaug  |
+     impact_est |    -18.887
+       sd_error |      2.528
+           bias |    -18.887
+      error_sqr |    356.728
+  power_zstat_0 |      0.025
+            p_0 |      0.000
+       reject_0 |      1.000
+        covered |      0.000
+    bal_max_asd |      0.077
+   bal_mean_asd |      0.029
+         wgt_sd |      0.716
+         wgt_cv |      0.716
+   wgt_skewness |      0.191
+   wgt_kurtosis |      0.063
+        wgt_max |     11.373
+----------------+----------------------------------------------------------------
+I_2             |
+              N |    200.000
+             Nt |     99.000
+           true |      0.000
+----------------+----------------------------------------------------------------
+I_2_ebalance    |
+     impact_est |     -6.472
+       sd_error |      6.697
+           bias |     -6.472
+      error_sqr |     41.882
+  power_zstat_0 |      0.025
+            p_0 |      0.335
+       reject_0 |      0.000
+        covered |      1.000
+    bal_max_asd |      0.000
+   bal_mean_asd |      0.000
+         wgt_sd |      0.000
+         wgt_cv |      0.000
+        wgt_max |      1.000
+----------------+----------------------------------------------------------------
+I_2_ebalanceaug |
+     impact_est |     -6.467
+       sd_error |      2.099
+           bias |     -6.467
+      error_sqr |     41.827
+  power_zstat_0 |      0.025
+            p_0 |      0.002
+       reject_0 |      1.000
+        covered |      0.000
+    bal_max_asd |      0.000
+   bal_mean_asd |      0.000
+         wgt_sd |      0.000
+         wgt_cv |      0.000
+        wgt_max |      1.000
+----------------+----------------------------------------------------------------
+I_2_trim        |
+     impact_est |    -17.507
+       sd_error |      4.767
+           bias |    -17.507
+      error_sqr |    306.493
+  power_zstat_0 |      0.025
+            p_0 |      0.000
+       reject_0 |      1.000
+        covered |      0.000
+    bal_max_asd |      0.271
+   bal_mean_asd |      0.116
+         wgt_sd |      0.486
+         wgt_cv |      0.486
+   wgt_skewness |      0.135
+   wgt_kurtosis |      0.036
+        wgt_max |      3.298
+----------------+----------------------------------------------------------------
+I_2_trimaug     |
+     impact_est |     -5.985
+       sd_error |      2.442
+           bias |     -5.985
+      error_sqr |     35.816
+  power_zstat_0 |      0.025
+            p_0 |      0.015
+       reject_0 |      1.000
+        covered |      0.000
+    bal_max_asd |      0.271
+   bal_mean_asd |      0.116
+         wgt_sd |      0.486
+         wgt_cv |      0.486
+   wgt_skewness |      0.135
+   wgt_kurtosis |      0.036
+        wgt_max |      3.298
+----------------+----------------------------------------------------------------
+I_2_discard     |
+     impact_est |    -45.492
+       sd_error |      5.894
+           bias |    -45.492
+      error_sqr |  2,069.493
+  power_zstat_0 |      0.025
+            p_0 |      0.000
+       reject_0 |      1.000
+        covered |      0.000
+    bal_max_asd |      0.271
+   bal_mean_asd |      0.116
+         wgt_sd |      0.486
+         wgt_cv |      0.486
+   wgt_skewness |      0.135
+   wgt_kurtosis |      0.036
+        wgt_max |      3.298
+----------------+----------------------------------------------------------------
+I_2_discardaug  |
+     impact_est |    -25.330
+       sd_error |      5.685
+           bias |    -25.330
+      error_sqr |    641.604
+  power_zstat_0 |      0.025
+            p_0 |      0.000
+       reject_0 |      1.000
+        covered |      0.000
+    bal_max_asd |      0.271
+   bal_mean_asd |      0.116
+         wgt_sd |      0.486
+         wgt_cv |      0.486
+   wgt_skewness |      0.135
+   wgt_kurtosis |      0.036
+        wgt_max |      3.298
+----------------+----------------------------------------------------------------
+I_3             |
+              N |    100.000
+             Nt |     53.000
+           true |      0.000
+----------------+----------------------------------------------------------------
+I_3_ebalance    |
+     impact_est |     -5.837
+       sd_error |     13.732
+           bias |     -5.837
+      error_sqr |     34.065
+  power_zstat_0 |      0.025
+            p_0 |      0.672
+       reject_0 |      0.000
+        covered |      1.000
+    bal_max_asd |      0.001
+   bal_mean_asd |      0.000
+         wgt_sd |      0.000
+         wgt_cv |      0.000
+        wgt_max |      1.000
+----------------+----------------------------------------------------------------
+I_3_ebalanceaug |
+     impact_est |     -5.829
+       sd_error |      3.323
+           bias |     -5.829
+      error_sqr |     33.980
+  power_zstat_0 |      0.025
+            p_0 |      0.083
+       reject_0 |      0.000
+        covered |      1.000
+    bal_max_asd |      0.001
+   bal_mean_asd |      0.000
+         wgt_sd |      0.000
+         wgt_cv |      0.000
+        wgt_max |      1.000
+----------------+----------------------------------------------------------------
+I_3_trim        |
+     impact_est |    -19.049
+       sd_error |      7.038
+           bias |    -19.049
+      error_sqr |    362.876
+  power_zstat_0 |      0.025
+            p_0 |      0.008
+       reject_0 |      1.000
+        covered |      0.000
+    bal_max_asd |      0.297
+   bal_mean_asd |      0.129
+         wgt_sd |      0.556
+         wgt_cv |      0.556
+   wgt_skewness |      0.214
+   wgt_kurtosis |      0.080
+        wgt_max |      3.298
+----------------+----------------------------------------------------------------
+I_3_trimaug     |
+     impact_est |     -5.221
+       sd_error |      3.607
+           bias |     -5.221
+      error_sqr |     27.255
+  power_zstat_0 |      0.025
+            p_0 |      0.151
+       reject_0 |      0.000
+        covered |      1.000
+    bal_max_asd |      0.297
+   bal_mean_asd |      0.129
+         wgt_sd |      0.556
+         wgt_cv |      0.556
+   wgt_skewness |      0.214
+   wgt_kurtosis |      0.080
+        wgt_max |      3.298
+----------------+----------------------------------------------------------------
+I_3_discard     |
+     impact_est |    -37.157
+       sd_error |      9.182
+           bias |    -37.157
+      error_sqr |  1,380.654
+  power_zstat_0 |      0.025
+            p_0 |      0.000
+       reject_0 |      1.000
+        covered |      0.000
+    bal_max_asd |      0.297
+   bal_mean_asd |      0.129
+         wgt_sd |      0.556
+         wgt_cv |      0.556
+   wgt_skewness |      0.214
+   wgt_kurtosis |      0.080
+        wgt_max |      3.298
+----------------+----------------------------------------------------------------
+I_3_discardaug  |
+     impact_est |    -18.610
+       sd_error |      9.048
+           bias |    -18.610
+      error_sqr |    346.326
+  power_zstat_0 |      0.025
+            p_0 |      0.045
+       reject_0 |      1.000
+        covered |      0.000
+    bal_max_asd |      0.297
+   bal_mean_asd |      0.129
+         wgt_sd |      0.556
+         wgt_cv |      0.556
+   wgt_skewness |      0.214
+   wgt_kurtosis |      0.080
+        wgt_max |      3.298
+----------------+----------------------------------------------------------------
+I_4             |
+              N |     50.000
+             Nt |     28.000
+           true |      0.000
+----------------+----------------------------------------------------------------
+I_4_trim        |
+     impact_est |    -16.926
+       sd_error |     12.374
+           bias |    -16.926
+      error_sqr |    286.500
+  power_zstat_0 |      0.025
+            p_0 |      0.178
+       reject_0 |      0.000
+        covered |      1.000
+    bal_max_asd |      0.326
+   bal_mean_asd |      0.145
+         wgt_sd |      1.058
+         wgt_cv |      1.058
+   wgt_skewness |      0.549
+   wgt_kurtosis |      0.367
+        wgt_max |      6.200
+----------------+----------------------------------------------------------------
+I_4_trimaug     |
+     impact_est |     -0.019
+       sd_error |      6.404
+           bias |     -0.019
+      error_sqr |      0.000
+  power_zstat_0 |      0.025
+            p_0 |      0.998
+       reject_0 |      0.000
+        covered |      1.000
+    bal_max_asd |      0.326
+   bal_mean_asd |      0.145
+         wgt_sd |      1.058
+         wgt_cv |      1.058
+   wgt_skewness |      0.549
+   wgt_kurtosis |      0.367
+        wgt_max |      6.200
+----------------+----------------------------------------------------------------
+I_4_discard     |
+     impact_est |    -36.472
+       sd_error |     11.327
+           bias |    -36.472
+      error_sqr |  1,330.187
+  power_zstat_0 |      0.025
+            p_0 |      0.003
+       reject_0 |      1.000
+        covered |      0.000
+    bal_max_asd |      0.326
+   bal_mean_asd |      0.145
+         wgt_sd |      1.058
+         wgt_cv |      1.058
+   wgt_skewness |      0.549
+   wgt_kurtosis |      0.367
+        wgt_max |      6.200
+----------------+----------------------------------------------------------------
+I_4_discardaug  |
+     impact_est |    -10.397
+       sd_error |     10.691
+           bias |    -10.397
+      error_sqr |    108.104
+  power_zstat_0 |      0.025
+            p_0 |      0.339
+       reject_0 |      0.000
+        covered |      1.000
+    bal_max_asd |      0.326
+   bal_mean_asd |      0.145
+         wgt_sd |      1.058
+         wgt_cv |      1.058
+   wgt_skewness |      0.549
+   wgt_kurtosis |      0.367
+        wgt_max |      6.200
+----------------+----------------------------------------------------------------
+I_5             |
+              N |     25.000
+             Nt |     14.000
+           true |      0.000
+----------------+----------------------------------------------------------------
+I_5_trim        |
+     impact_est |    -25.193
+       sd_error |     13.356
+           bias |    -25.193
+      error_sqr |    634.690
+  power_zstat_0 |      0.025
+            p_0 |      0.072
+       reject_0 |      0.000
+        covered |      1.000
+    bal_max_asd |      0.605
+   bal_mean_asd |      0.288
+         wgt_sd |      0.454
+         wgt_cv |      0.454
+   wgt_skewness |      0.207
+   wgt_kurtosis |      0.121
+        wgt_max |      2.061
+----------------+----------------------------------------------------------------
+I_5_trimaug     |
+     impact_est |     -6.665
+       sd_error |      7.878
+           bias |     -6.665
+      error_sqr |     44.428
+  power_zstat_0 |      0.025
+            p_0 |      0.408
+       reject_0 |      0.000
+        covered |      1.000
+    bal_max_asd |      0.605
+   bal_mean_asd |      0.288
+         wgt_sd |      0.454
+         wgt_cv |      0.454
+   wgt_skewness |      0.207
+   wgt_kurtosis |      0.121
+        wgt_max |      2.061
+----------------+----------------------------------------------------------------
+I_5_discard     |
+     impact_est |    -46.221
+       sd_error |     19.873
+           bias |    -46.221
+      error_sqr |  2,136.339
+  power_zstat_0 |      0.025
+            p_0 |      0.040
+       reject_0 |      1.000
+        covered |      0.000
+    bal_max_asd |      0.605
+   bal_mean_asd |      0.288
+         wgt_sd |      0.454
+         wgt_cv |      0.454
+   wgt_skewness |      0.207
+   wgt_kurtosis |      0.121
+        wgt_max |      2.061
+----------------+----------------------------------------------------------------
+I_5_discardaug  |
+     impact_est |      6.243
+       sd_error |     21.158
+           bias |      6.243
+      error_sqr |     38.973
+  power_zstat_0 |      0.025
+            p_0 |      0.777
+       reject_0 |      0.000
+        covered |      1.000
+    bal_max_asd |      0.605
+   bal_mean_asd |      0.288
+         wgt_sd |      0.454
+         wgt_cv |      0.454
+   wgt_skewness |      0.207
+   wgt_kurtosis |      0.121
+        wgt_max |      2.061
+---------------------------------------------------------------------------------
+
+. drop _all
+
+. 
+. parallel sim, `simopts': onerep_ksir, `commonopts' augmented
+Warning: No data loaded.
+--------------------------------------------------------------------------------
+Parallel Computing with Stata
+Child processes: 3
+pll_id         : eiv4d51so1
+Running at     : C:\Users\kkranker\Documents\Stata\psweight\code-psweight
+Randtype       : datetime
+Waiting for the child processes to finish...
+child process 0003 has exited without error...
+child process 0002 has exited without error...
+child process 0001 has exited without error...
+--------------------------------------------------------------------------------
+Enter -parallel printlog #- to checkout logfiles.
+--------------------------------------------------------------------------------
+
+. 
+. append using sims/sim`sim'/Data_Unprocessed.dta, gen(old_sims)
+
+. 
+. save sims/sim`sim'/Data_Unprocessed_append.dta, replace
+(note: file sims/sim11/Data_Unprocessed_append.dta not found)
+file sims/sim11/Data_Unprocessed_append.dta saved
+
+. 
+. // ------------------------------------------------------------------------
+. // summarize results
+. // ------------------------------------------------------------------------
+. 
+. sim_reshape
+
+Before reshape:
+
+
+Contains data from sims/sim11/Data_Unprocessed_append.dta
+  obs:        10,000                          simulate: onerep_ksir
+ vars:         3,044                          2 Oct 2019 10:03
+ size:   110,210,000                          
+Sorted by: 
+5 prefixes:
+_prefixes:      I_1 I_2 I_3 I_4 I_5
+21 estimators:
+_ests:          ebalance trim discard raw ipw_true_ps rf ipw ipwcbps cbps cbps99_9 cbps99 cbps98 cbps97 cbps95 cbps93 cbps90 cbps85 cbps80 cbps75 cbps50 stdprogdiff
+variable I_1_stdprogdiff_b_* not found
+variable I_1_stdprogdiffaug_b_* not found
+variable I_3_stdprogdiff_b_* not found
+variable I_3_stdprogdiffaug_b_* not found
+variable I_4_stdprogdiff_b_* not found
+variable I_4_stdprogdiffaug_b_* not found
+(simulate: onerep_ksir)
+(2,039,796 missing values generated)
+(2,039,796 missing values generated)
+(2039796 real changes made, 2039796 to missing)
+(2,039,796 missing values generated)
+
+After reshape:
+
+
+Contains data from C:\Users\kkranker\AppData\Local\Temp\ST_b74_000001.tmp
+  obs:     2,040,000                          simulate: onerep_ksir
+ vars:            28                          2 Oct 2019 10:05
+ size:   193,800,000                          
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+              storage   display    value
+variable name   type    format     label      variable label
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+result          int     %36.0g     result     
+dataset         byte    %10.0g                
+dgp             byte    %8.0g      dgp        
+true            byte    %7.4f                 
+N               int     %7.0g                 
+estimator       byte    %11.0g     est        
+augmented       byte    %13.0g     aug        
+rep             int     %9.0g                 
+Nt              int     %7.0g                 
+impact_est      float   %7.4f                 
+sd_error        float   %7.4f                 
+bias            float   %7.4f                 
+error_sqr       float   %7.4f                 
+p_0             float   %7.4f                 
+reject_0        byte    %7.0g                 
+covered         byte    %7.0g                 
+bal_max_asd     float   %7.4f                 
+wgt_sd          float   %7.4f                 
+wgt_cv          float   %7.4f                 
+wgt_max         float   %7.1f                 
+power_zstat_0   float   %7.4f                 
+bal_mean_asd    float   %7.4f                 
+wgt_skewness    float   %7.4f                 
+wgt_kurtosis    float   %7.4f                 
+rmse            double  %7.4f                 
+impact_est_var  double  %7.4f                 
+mae             float   %7.4f                 
+pct_bias        double  %6.1f                 
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Sorted by: result  dataset  dgp  true  N  estimator  augmented  rep
+     Note: Dataset has changed since last saved.
+
+    Variable |        Obs        Mean    Std. Dev.       Min        Max
+-------------+---------------------------------------------------------
+      result |  2,040,000       102.5    58.88903          1        204
+     dataset |  2,040,000    3.009804    1.417642          1          5
+         dgp |  2,040,000           8           0          8          8
+        true |  2,040,000           0           0          0          0
+           N |  2,040,000    271.8137    364.7064         25       1000
+   estimator |  2,040,000    12.11765    6.176005          1         22
+   augmented |  2,040,000          .5    .5000001          0          1
+         rep |  2,040,000      5000.5    2886.752          1      10000
+          Nt |  2,040,000    135.8593    182.5901          2        563
+  impact_est |    985,924   -7.281836    9.454159  -2463.463   1787.083
+    sd_error |    985,924    6.355088    4.602481          0   269.5068
+        bias |    985,924   -7.281836    9.454159  -2463.463   1787.083
+   error_sqr |    985,924    142.4062    7060.285          0    6068649
+         p_0 |    985,888    .2970158    .3059469          0   .9999999
+    reject_0 |    985,924    .3341038    .4716765          0          1
+     covered |    985,924    .6658596    .4716893          0          1
+ bal_max_asd |    985,936    .2120291    .2554207   4.10e-13   1.983722
+      wgt_sd |    985,936    .5894929    .4295305          0   15.57678
+      wgt_cv |    985,936    .5894929    .4295305          0   15.57678
+     wgt_max |    985,936    6.041817    11.17332          1   492.7104
+power_zsta~0 |    960,770        .025           0       .025       .025
+bal_mean_asd |    960,818    .1043972    .1348283   2.50e-13   1.439302
+wgt_skewness |    863,004    .3334612    .1632889  -.8235322   .9962635
+wgt_kurtosis |    863,004    .2040159    .1626448   .0041764   .9950252
+        rmse |        204    9.737465    6.788967     1.4384   54.37781
+impact_est~r |        204    56.41822    208.7015   .6541993   2865.345
+         mae |        204    7.690002    5.568129   .9583572   36.42633
+    pct_bias |        204   -178.0738    151.5368  -907.0674    11.0035
+Number of rows:
+
+------------------------------------------------------
+augmented,    |               true and N              
+dgp and       | --------------- 0.0000 ---------------
+estimator     |     25      50     100     200    1000
+--------------+---------------------------------------
+Unadjusted    |
+I             |
+          RAW | 10,000  10,000  10,000  10,000  10,000
+  IPW_TRUE_PS | 10,000  10,000  10,000  10,000  10,000
+  STDPROGDIFF | 10,000                  10,000        
+          IPW | 10,000  10,000  10,000  10,000  10,000
+         TRIM | 10,000  10,000  10,000  10,000  10,000
+     EBALANCE | 10,000  10,000  10,000  10,000  10,000
+           RF | 10,000  10,000  10,000  10,000  10,000
+      IPWCBPS | 10,000  10,000  10,000  10,000  10,000
+         CBPS | 10,000  10,000  10,000  10,000  10,000
+     CBPS99_9 | 10,000  10,000  10,000  10,000  10,000
+       CBPS99 | 10,000  10,000  10,000  10,000  10,000
+       CBPS98 | 10,000  10,000  10,000  10,000  10,000
+       CBPS97 | 10,000  10,000  10,000  10,000  10,000
+       CBPS95 | 10,000  10,000  10,000  10,000  10,000
+       CBPS93 | 10,000  10,000  10,000  10,000  10,000
+       CBPS90 | 10,000  10,000  10,000  10,000  10,000
+       CBPS85 | 10,000  10,000  10,000  10,000  10,000
+       CBPS80 | 10,000  10,000  10,000  10,000  10,000
+       CBPS75 | 10,000  10,000  10,000  10,000  10,000
+       CBPS50 | 10,000  10,000  10,000  10,000  10,000
+      DISCARD | 10,000  10,000  10,000  10,000  10,000
+--------------+---------------------------------------
+Reg. adjusted |
+I             |
+          RAW | 10,000  10,000  10,000  10,000  10,000
+  IPW_TRUE_PS | 10,000  10,000  10,000  10,000  10,000
+  STDPROGDIFF | 10,000                  10,000        
+          IPW | 10,000  10,000  10,000  10,000  10,000
+         TRIM | 10,000  10,000  10,000  10,000  10,000
+     EBALANCE | 10,000  10,000  10,000  10,000  10,000
+           RF | 10,000  10,000  10,000  10,000  10,000
+      IPWCBPS | 10,000  10,000  10,000  10,000  10,000
+         CBPS | 10,000  10,000  10,000  10,000  10,000
+     CBPS99_9 | 10,000  10,000  10,000  10,000  10,000
+       CBPS99 | 10,000  10,000  10,000  10,000  10,000
+       CBPS98 | 10,000  10,000  10,000  10,000  10,000
+       CBPS97 | 10,000  10,000  10,000  10,000  10,000
+       CBPS95 | 10,000  10,000  10,000  10,000  10,000
+       CBPS93 | 10,000  10,000  10,000  10,000  10,000
+       CBPS90 | 10,000  10,000  10,000  10,000  10,000
+       CBPS85 | 10,000  10,000  10,000  10,000  10,000
+       CBPS80 | 10,000  10,000  10,000  10,000  10,000
+       CBPS75 | 10,000  10,000  10,000  10,000  10,000
+       CBPS50 | 10,000  10,000  10,000  10,000  10,000
+      DISCARD | 10,000  10,000  10,000  10,000  10,000
+------------------------------------------------------
+Number of rows with nonmissing impact_est:
+
+-------------------------------------------------
+augmented,    |            true and N            
+dgp and       | ------------- 0.0000 ------------
+estimator     |    25     50    100    200   1000
+--------------+----------------------------------
+Unadjusted    |
+I             |
+          RAW | 5,000  5,000  5,000  5,000  5,000
+  IPW_TRUE_PS | 5,000  5,000  5,000  5,000  5,000
+  STDPROGDIFF |    23                   95       
+          IPW | 4,911  4,999  5,000  5,000  5,000
+         TRIM | 4,906  5,000  5,000  5,000  5,000
+     EBALANCE |   475  3,588  4,843  4,999  5,000
+           RF | 5,000  5,000  4,998  4,992  4,866
+      IPWCBPS | 4,936  4,988  5,000  5,000  5,000
+         CBPS | 4,977  4,998  5,000  5,000  5,000
+     CBPS99_9 | 4,944  4,979  4,988  4,997  4,998
+       CBPS99 | 4,943  4,979  4,996  4,999  5,000
+       CBPS98 | 4,957  4,984  4,997  5,000  5,000
+       CBPS97 | 4,932  4,981  4,995  4,999  5,000
+       CBPS95 | 4,959  4,988  4,996  4,996  5,000
+       CBPS93 | 4,974  4,993  4,996  5,000  5,000
+       CBPS90 | 4,976  4,997  4,998  4,999  5,000
+       CBPS85 | 4,977  4,995  4,998  4,999  5,000
+       CBPS80 | 4,988  4,996  4,998  5,000  5,000
+       CBPS75 | 4,991  4,997  4,998  4,999  5,000
+       CBPS50 | 4,995  5,000  4,999  5,000  5,000
+      DISCARD | 4,902  4,999  4,999  4,998  5,000
+--------------+----------------------------------
+Reg. adjusted |
+I             |
+          RAW | 5,000  5,000  5,000  5,000  5,000
+  IPW_TRUE_PS | 5,000  5,000  5,000  5,000  5,000
+  STDPROGDIFF |    23                   95       
+          IPW | 4,911  4,999  5,000  5,000  5,000
+         TRIM | 4,906  5,000  5,000  5,000  5,000
+     EBALANCE |   475  3,588  4,843  4,999  5,000
+           RF | 5,000  5,000  4,998  4,992  4,866
+      IPWCBPS | 4,936  4,988  5,000  5,000  5,000
+         CBPS | 4,977  4,998  5,000  5,000  5,000
+     CBPS99_9 | 4,944  4,979  4,988  4,997  4,998
+       CBPS99 | 4,943  4,979  4,996  4,999  5,000
+       CBPS98 | 4,957  4,984  4,997  5,000  5,000
+       CBPS97 | 4,932  4,981  4,995  4,999  5,000
+       CBPS95 | 4,959  4,988  4,996  4,996  5,000
+       CBPS93 | 4,974  4,993  4,996  5,000  5,000
+       CBPS90 | 4,976  4,997  4,998  4,999  5,000
+       CBPS85 | 4,977  4,995  4,998  4,999  5,000
+       CBPS80 | 4,988  4,996  4,998  5,000  5,000
+       CBPS75 | 4,991  4,997  4,998  4,999  5,000
+       CBPS50 | 4,995  5,000  4,999  5,000  5,000
+      DISCARD | 4,902  4,999  4,999  4,998  5,000
+-------------------------------------------------
+Number of rows with nonmissing rmse:
+
+--------------------------------------------
+augmented,    |          true and N         
+dgp and       | ---------- 0.0000 ----------
+estimator     |   25    50   100   200  1000
+--------------+-----------------------------
+Unadjusted    |
+I             |
+          RAW |    1     1     1     1     1
+  IPW_TRUE_PS |    1     1     1     1     1
+  STDPROGDIFF |    1                 1      
+          IPW |    1     1     1     1     1
+         TRIM |    1     1     1     1     1
+     EBALANCE |    1     1     1     1     1
+           RF |    1     1     1     1     1
+      IPWCBPS |    1     1     1     1     1
+         CBPS |    1     1     1     1     1
+     CBPS99_9 |    1     1     1     1     1
+       CBPS99 |    1     1     1     1     1
+       CBPS98 |    1     1     1     1     1
+       CBPS97 |    1     1     1     1     1
+       CBPS95 |    1     1     1     1     1
+       CBPS93 |    1     1     1     1     1
+       CBPS90 |    1     1     1     1     1
+       CBPS85 |    1     1     1     1     1
+       CBPS80 |    1     1     1     1     1
+       CBPS75 |    1     1     1     1     1
+       CBPS50 |    1     1     1     1     1
+      DISCARD |    1     1     1     1     1
+--------------+-----------------------------
+Reg. adjusted |
+I             |
+          RAW |    1     1     1     1     1
+  IPW_TRUE_PS |    1     1     1     1     1
+  STDPROGDIFF |    1                 1      
+          IPW |    1     1     1     1     1
+         TRIM |    1     1     1     1     1
+     EBALANCE |    1     1     1     1     1
+           RF |    1     1     1     1     1
+      IPWCBPS |    1     1     1     1     1
+         CBPS |    1     1     1     1     1
+     CBPS99_9 |    1     1     1     1     1
+       CBPS99 |    1     1     1     1     1
+       CBPS98 |    1     1     1     1     1
+       CBPS97 |    1     1     1     1     1
+       CBPS95 |    1     1     1     1     1
+       CBPS93 |    1     1     1     1     1
+       CBPS90 |    1     1     1     1     1
+       CBPS85 |    1     1     1     1     1
+       CBPS80 |    1     1     1     1     1
+       CBPS75 |    1     1     1     1     1
+       CBPS50 |    1     1     1     1     1
+      DISCARD |    1     1     1     1     1
+--------------------------------------------
+
+. save sims/sim`sim'/Data_append.dta, replace
+(note: file sims/sim11/Data_append.dta not found)
+file sims/sim11/Data_append.dta saved
+
+. 
+. set linesize 220
+
+. 
+. table estimator augmented N, c(count error_sqr)
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+            |                                                                       N and augmented                                                                       
+            | ------------ 25 ------------    ------------ 50 ------------    ------------ 100 -----------    ------------ 200 -----------    ----------- 1000 -----------
+  estimator |    Unadjusted  Reg. adjusted       Unadjusted  Reg. adjusted       Unadjusted  Reg. adjusted       Unadjusted  Reg. adjusted       Unadjusted  Reg. adjusted
+------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+        RAW |         5,000          5,000            5,000          5,000            5,000          5,000            5,000          5,000            5,000          5,000
+IPW_TRUE_PS |         5,000          5,000            5,000          5,000            5,000          5,000            5,000          5,000            5,000          5,000
+STDPROGDIFF |            23             23                                                                               95             95                                
+        IPW |         4,911          4,911            4,999          4,999            5,000          5,000            5,000          5,000            5,000          5,000
+       TRIM |         4,906          4,906            5,000          5,000            5,000          5,000            5,000          5,000            5,000          5,000
+   EBALANCE |           475            475            3,588          3,588            4,843          4,843            4,999          4,999            5,000          5,000
+         RF |         5,000          5,000            5,000          5,000            4,998          4,998            4,992          4,992            4,866          4,866
+    IPWCBPS |         4,936          4,936            4,988          4,988            5,000          5,000            5,000          5,000            5,000          5,000
+       CBPS |         4,977          4,977            4,998          4,998            5,000          5,000            5,000          5,000            5,000          5,000
+   CBPS99_9 |         4,944          4,944            4,979          4,979            4,988          4,988            4,997          4,997            4,998          4,998
+     CBPS99 |         4,943          4,943            4,979          4,979            4,996          4,996            4,999          4,999            5,000          5,000
+     CBPS98 |         4,957          4,957            4,984          4,984            4,997          4,997            5,000          5,000            5,000          5,000
+     CBPS97 |         4,932          4,932            4,981          4,981            4,995          4,995            4,999          4,999            5,000          5,000
+     CBPS95 |         4,959          4,959            4,988          4,988            4,996          4,996            4,996          4,996            5,000          5,000
+     CBPS93 |         4,974          4,974            4,993          4,993            4,996          4,996            5,000          5,000            5,000          5,000
+     CBPS90 |         4,976          4,976            4,997          4,997            4,998          4,998            4,999          4,999            5,000          5,000
+     CBPS85 |         4,977          4,977            4,995          4,995            4,998          4,998            4,999          4,999            5,000          5,000
+     CBPS80 |         4,988          4,988            4,996          4,996            4,998          4,998            5,000          5,000            5,000          5,000
+     CBPS75 |         4,991          4,991            4,997          4,997            4,998          4,998            4,999          4,999            5,000          5,000
+     CBPS50 |         4,995          4,995            5,000          5,000            4,999          4,999            5,000          5,000            5,000          5,000
+    DISCARD |         4,902          4,902            4,999          4,999            4,999          4,999            4,998          4,998            5,000          5,000
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+. 
+. foreach v of var impact_est-wgt_max impact_est_var {
+  2.   di _n(2) as res `"`v'  `:var lab `v''"'
+  3.   table estimator augmented N, c(mean `v')
+  4.   graph bar (mean) `v', asyvar over(estimator) over(N) legend(col(3)) by(augmented, row(1) yrescale title(`v')) legend(col(5)) ytitle("") xsize(12) name(`v', replace)
+  5.   graph export "sims/sim`sim'/Figure_`v'.png", replace
+  6. }
+
+
+impact_est  
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+            |                                                                       N and augmented                                                                       
+            | ------------ 25 ------------    ------------ 50 ------------    ------------ 100 -----------    ------------ 200 -----------    ----------- 1000 -----------
+  estimator |    Unadjusted  Reg. adjusted       Unadjusted  Reg. adjusted       Unadjusted  Reg. adjusted       Unadjusted  Reg. adjusted       Unadjusted  Reg. adjusted
+------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+        RAW |      -20.2086        -5.4409         -20.0915        -5.7791         -20.0333        -6.1127         -20.0018        -6.3429         -19.9876        -6.5148
+IPW_TRUE_PS |       -3.6417        -1.7044          -2.0036        -0.9699          -0.9069        -0.4736          -0.4590        -0.2895          -0.0785        -0.0357
+STDPROGDIFF |       -4.4107        -2.2939                                                                          -5.8157        -5.5529                                
+        IPW |       -9.1334        -4.3117          -6.1344        -4.5082          -3.9401        -4.7913          -1.9721        -5.2088           1.1655        -5.9634
+       TRIM |      -15.8997        -4.9495         -15.5571        -5.2496         -15.3475        -5.5037         -15.1601        -5.5918         -15.0025        -5.7167
+   EBALANCE |       -3.9899        -3.9768          -4.6474        -4.6300          -4.8110        -4.7888          -4.6842        -4.6535          -4.4481        -4.4408
+         RF |      -20.2086        -5.4409         -11.1400        -4.2175         -10.4499        -3.8449         -10.4043        -3.6509          -7.9277        -2.8330
+    IPWCBPS |      -10.8777        -4.3905          -8.9266        -4.5969          -7.6620        -4.8513          -6.6308        -5.2273          -4.7757        -5.9377
+       CBPS |       -7.8827        -4.3145          -5.7370        -4.4242          -5.2007        -4.6990          -5.3130        -5.1275          -5.9560        -5.8984
+   CBPS99_9 |       -7.4767        -4.2245          -5.5764        -4.3941          -5.1335        -4.6892          -5.2932        -5.1249          -5.9473        -5.8971
+     CBPS99 |       -7.5424        -4.2473          -5.6181        -4.4007          -5.1644        -4.6878          -5.3200        -5.1273          -5.9851        -5.8979
+     CBPS98 |       -7.5675        -4.2314          -5.6943        -4.4166          -5.2438        -4.6971          -5.4112        -5.1326          -6.1086        -5.8985
+     CBPS97 |       -7.6168        -4.2638          -5.7676        -4.4153          -5.3335        -4.7017          -5.5182        -5.1380          -6.2247        -5.8992
+     CBPS95 |       -7.8187        -4.2759          -6.0000        -4.4508          -5.5656        -4.7208          -5.7613        -5.1522          -6.4655        -5.9005
+     CBPS93 |       -8.0391        -4.2881          -6.2316        -4.4642          -5.8147        -4.7388          -6.0169        -5.1633          -6.7126        -5.9015
+     CBPS90 |       -8.3669        -4.3292          -6.5776        -4.4922          -6.2105        -4.7682          -6.4165        -5.1834          -7.0944        -5.9032
+     CBPS85 |       -8.8866        -4.3963          -7.2256        -4.5632          -6.8859        -4.8175          -7.1170        -5.2190          -7.7540        -5.9052
+     CBPS80 |       -9.5028        -4.4758          -7.8960        -4.6230          -7.6089        -4.8721          -7.8517        -5.2572          -8.4426        -5.9069
+     CBPS75 |      -10.0666        -4.5372          -8.5857        -4.6901          -8.3656        -4.9358          -8.6088        -5.2967          -9.1617        -5.9079
+     CBPS50 |      -13.2847        -4.8947         -12.4493        -5.0828         -12.5926        -5.3108         -12.9522        -5.5691         -13.3411        -5.9229
+    DISCARD |      -31.5553        -9.6013         -34.3050       -11.0626         -35.2830       -12.6060         -35.8221       -13.7801         -36.3086       -14.6691
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+(file sims/sim11/Figure_impact_est.png written in PNG format)
+
+
+sd_error  
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+            |                                                                       N and augmented                                                                       
+            | ------------ 25 ------------    ------------ 50 ------------    ------------ 100 -----------    ------------ 200 -----------    ----------- 1000 -----------
+  estimator |    Unadjusted  Reg. adjusted       Unadjusted  Reg. adjusted       Unadjusted  Reg. adjusted       Unadjusted  Reg. adjusted       Unadjusted  Reg. adjusted
+------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+        RAW |       13.9806         7.1471           9.8854         4.9474           6.9847         3.5313           4.9357         2.5218           2.2043         1.1631
+IPW_TRUE_PS |       15.4604         6.6427          11.7618         4.7437           8.8649         3.5341           6.5345         2.6347           3.0955         1.3368
+STDPROGDIFF |       15.4024         6.5083                                                                           6.3320         2.4495                                
+        IPW |       14.9989         6.0482          11.8481         4.5282           9.3757         3.3825           7.6932         2.5029           5.3653         1.2844
+       TRIM |       13.9999         6.8269           9.9276         4.7981           6.9987         3.4029           4.9489         2.4250           2.2197         1.1026
+   EBALANCE |       15.4544         5.3963          11.8486         4.2765           8.6592         3.2354           6.0386         2.3323           2.6860         1.0644
+         RF |       13.9806         7.1471          10.6872         4.7477           7.6351         3.4629           5.3293         2.4834           2.4162         1.1432
+    IPWCBPS |       14.8510         6.1858          11.2685         4.5715           8.4520         3.3987           6.4786         2.5148           3.8099         1.3185
+       CBPS |       15.5913         5.9300          12.0546         4.5676           8.9816         3.4523           6.6541         2.5636           3.4055         1.3471
+   CBPS99_9 |       15.6061         5.9132          12.0611         4.5646           8.9844         3.4497           6.6560         2.5633           3.4056         1.3471
+     CBPS99 |       15.5950         5.9159          12.0591         4.5630           8.9792         3.4506           6.6504         2.5631           3.3986         1.3470
+     CBPS98 |       15.5863         5.9236          12.0383         4.5656           8.9636         3.4492           6.6331         2.5619           3.3798         1.3464
+     CBPS97 |       15.5879         5.9261          12.0188         4.5643           8.9430         3.4481           6.6119         2.5605           3.3611         1.3457
+     CBPS95 |       15.5368         5.9440          11.9675         4.5658           8.8930         3.4448           6.5646         2.5573           3.3232         1.3444
+     CBPS93 |       15.5069         5.9624          11.9161         4.5665           8.8408         3.4425           6.5162         2.5547           3.2848         1.3429
+     CBPS90 |       15.4482         5.9865          11.8352         4.5683           8.7584         3.4382           6.4404         2.5501           3.2272         1.3405
+     CBPS85 |       15.3527         6.0209          11.6918         4.5737           8.6154         3.4309           6.3136         2.5427           3.1317         1.3359
+     CBPS80 |       15.2428         6.0637          11.5421         4.5780           8.4766         3.4254           6.1875         2.5350           3.0378         1.3301
+     CBPS75 |       15.1369         6.1143          11.3962         4.5850           8.3357         3.4206           6.0629         2.5279           2.9459         1.3233
+     CBPS50 |       14.6434         6.3993          10.7178         4.6537           7.6947         3.4176           5.4998         2.5002           2.5370         1.2680
+    DISCARD |       17.4005        16.4305          12.2831        11.2686           8.6110         8.0668           6.0572         5.8692           2.6933         2.8284
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+(file sims/sim11/Figure_sd_error.png written in PNG format)
+
+
+bias  
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+            |                                                                       N and augmented                                                                       
+            | ------------ 25 ------------    ------------ 50 ------------    ------------ 100 -----------    ------------ 200 -----------    ----------- 1000 -----------
+  estimator |    Unadjusted  Reg. adjusted       Unadjusted  Reg. adjusted       Unadjusted  Reg. adjusted       Unadjusted  Reg. adjusted       Unadjusted  Reg. adjusted
+------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+        RAW |      -20.2086        -5.4409         -20.0915        -5.7791         -20.0333        -6.1127         -20.0018        -6.3429         -19.9876        -6.5148
+IPW_TRUE_PS |       -3.6417        -1.7044          -2.0036        -0.9699          -0.9069        -0.4736          -0.4590        -0.2895          -0.0785        -0.0357
+STDPROGDIFF |       -4.4107        -2.2939                                                                          -5.8157        -5.5529                                
+        IPW |       -9.1334        -4.3117          -6.1344        -4.5082          -3.9401        -4.7913          -1.9721        -5.2088           1.1655        -5.9634
+       TRIM |      -15.8997        -4.9495         -15.5571        -5.2496         -15.3475        -5.5037         -15.1601        -5.5918         -15.0025        -5.7167
+   EBALANCE |       -3.9899        -3.9768          -4.6474        -4.6300          -4.8110        -4.7888          -4.6842        -4.6535          -4.4481        -4.4408
+         RF |      -20.2086        -5.4409         -11.1400        -4.2175         -10.4499        -3.8449         -10.4043        -3.6509          -7.9277        -2.8330
+    IPWCBPS |      -10.8777        -4.3905          -8.9266        -4.5969          -7.6620        -4.8513          -6.6308        -5.2273          -4.7757        -5.9377
+       CBPS |       -7.8827        -4.3145          -5.7370        -4.4242          -5.2007        -4.6990          -5.3130        -5.1275          -5.9560        -5.8984
+   CBPS99_9 |       -7.4767        -4.2245          -5.5764        -4.3941          -5.1335        -4.6892          -5.2932        -5.1249          -5.9473        -5.8971
+     CBPS99 |       -7.5424        -4.2473          -5.6181        -4.4007          -5.1644        -4.6878          -5.3200        -5.1273          -5.9851        -5.8979
+     CBPS98 |       -7.5675        -4.2314          -5.6943        -4.4166          -5.2438        -4.6971          -5.4112        -5.1326          -6.1086        -5.8985
+     CBPS97 |       -7.6168        -4.2638          -5.7676        -4.4153          -5.3335        -4.7017          -5.5182        -5.1380          -6.2247        -5.8992
+     CBPS95 |       -7.8187        -4.2759          -6.0000        -4.4508          -5.5656        -4.7208          -5.7613        -5.1522          -6.4655        -5.9005
+     CBPS93 |       -8.0391        -4.2881          -6.2316        -4.4642          -5.8147        -4.7388          -6.0169        -5.1633          -6.7126        -5.9015
+     CBPS90 |       -8.3669        -4.3292          -6.5776        -4.4922          -6.2105        -4.7682          -6.4165        -5.1834          -7.0944        -5.9032
+     CBPS85 |       -8.8866        -4.3963          -7.2256        -4.5632          -6.8859        -4.8175          -7.1170        -5.2190          -7.7540        -5.9052
+     CBPS80 |       -9.5028        -4.4758          -7.8960        -4.6230          -7.6089        -4.8721          -7.8517        -5.2572          -8.4426        -5.9069
+     CBPS75 |      -10.0666        -4.5372          -8.5857        -4.6901          -8.3656        -4.9358          -8.6088        -5.2967          -9.1617        -5.9079
+     CBPS50 |      -13.2847        -4.8947         -12.4493        -5.0828         -12.5926        -5.3108         -12.9522        -5.5691         -13.3411        -5.9229
+    DISCARD |      -31.5553        -9.6013         -34.3050       -11.0626         -35.2830       -12.6060         -35.8221       -13.7801         -36.3086       -14.6691
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+(file sims/sim11/Figure_bias.png written in PNG format)
+
+
+error_sqr  
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+            |                                                                       N and augmented                                                                       
+            | ------------ 25 ------------    ------------ 50 ------------    ------------ 100 -----------    ------------ 200 -----------    ----------- 1000 -----------
+  estimator |    Unadjusted  Reg. adjusted       Unadjusted  Reg. adjusted       Unadjusted  Reg. adjusted       Unadjusted  Reg. adjusted       Unadjusted  Reg. adjusted
+------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+        RAW |      603.9161        87.6692         500.0471        59.8110         450.4853        50.9278         424.8152        47.1301         404.3572        43.8600
+IPW_TRUE_PS |      324.2780        62.4969         169.2158        30.3503          92.5459        16.3671          47.5673         9.0195          10.0458         2.0690
+STDPROGDIFF |      180.1333        72.4572                                                                          43.5086        39.2282                                
+        IPW |      184.7710        77.8298         103.2817        50.4013          73.4339        39.6948          78.3230        37.1453         113.5188        39.9302
+       TRIM |      400.0756        78.9841         307.2820        53.8500         265.3629        42.9552         244.0254        37.5405         228.0793        33.9779
+   EBALANCE |       66.3317        66.1980          51.3992        51.2492          36.9254        36.7282          28.0523        27.7725          20.8936        20.8282
+         RF |      603.9161        87.6692         173.6396        41.9544         130.1798        25.0172         117.8603        17.5639          64.4955         8.6797
+    IPWCBPS |      213.0998        78.0355         118.3347        50.0511          77.9042        39.5367          54.7599        36.7367          28.6522        38.3229
+       CBPS |      169.2835        86.9519          80.0073        54.0320          50.3510        40.6423          40.1312        36.6762          39.0513        37.7647
+   CBPS99_9 |      151.3392        85.2774          73.9491        53.5595          47.7667        40.4095          39.5121        36.6489          38.7728        37.7444
+     CBPS99 |      151.6273        85.0478          74.0978        53.6071          48.0559        40.3824          39.7829        36.6601          39.2253        37.7535
+     CBPS98 |      151.9495        85.4376          74.8270        53.5349          48.7673        40.4158          40.6368        36.6769          40.6525        37.7488
+     CBPS97 |      151.7789        85.1542          75.6991        53.5348          49.5148        40.4095          41.6893        36.6939          42.0323        37.7450
+     CBPS95 |      155.0707        84.9772          78.0015        53.4541          51.7571        40.4247          44.1748        36.7510          44.9877        37.7351
+     CBPS93 |      158.7957        84.4934          80.6680        53.3425          54.2564        40.4197          46.9929        36.7700          48.1499        37.7214
+     CBPS90 |      163.7404        84.2394          84.1690        53.1043          58.6606        40.4456          51.6389        36.8360          53.2892        37.7021
+     CBPS85 |      172.3746        83.5355          92.6904        52.9928          66.9518        40.4943          60.7648        36.9588          62.8807        37.6550
+     CBPS80 |      185.5481        83.1435         102.6109        52.8016          77.2930        40.5993          71.5413        37.1077          73.8718        37.6013
+     CBPS75 |      197.9892        82.8093         114.9630        52.7606          89.6279        40.8375          83.9252        37.2647          86.4010        37.5317
+     CBPS50 |      292.6903        81.6280         208.2460        53.6755         185.4261        42.8998         182.0378        39.0255         181.2263        37.2167
+    DISCARD |       1.7e+03        3.0e+03          1.5e+03       335.7159          1.4e+03       261.4409          1.4e+03       243.5957          1.3e+03       229.0896
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+(file sims/sim11/Figure_error_sqr.png written in PNG format)
+
+
+p_0  
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+            |                                                                       N and augmented                                                                       
+            | ------------ 25 ------------    ------------ 50 ------------    ------------ 100 -----------    ------------ 200 -----------    ----------- 1000 -----------
+  estimator |    Unadjusted  Reg. adjusted       Unadjusted  Reg. adjusted       Unadjusted  Reg. adjusted       Unadjusted  Reg. adjusted       Unadjusted  Reg. adjusted
+------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+        RAW |        0.2658         0.4152           0.1412         0.3290           0.0441         0.2013           0.0045         0.0744           0.0000         0.0000
+IPW_TRUE_PS |        0.4502         0.4512           0.4690         0.4578           0.4716         0.4574           0.4780         0.4573           0.4932         0.4782
+STDPROGDIFF |        0.5344         0.4406                                                                           0.4044         0.1351                                
+        IPW |        0.5162         0.3850           0.5276         0.3490           0.5182         0.2774           0.4971         0.1631           0.4674         0.0026
+       TRIM |        0.3476         0.4195           0.2166         0.3416           0.0844         0.2253           0.0153         0.0996           0.0000         0.0002
+   EBALANCE |        0.6881         0.3840           0.6382         0.3224           0.5736         0.2520           0.4619         0.1500           0.1233         0.0028
+         RF |        0.2658         0.4152           0.3569         0.3877           0.2397         0.3484           0.0915         0.2417           0.0037         0.0419
+    IPWCBPS |        0.4822         0.3915           0.4525         0.3510           0.3971         0.2740           0.3365         0.1579           0.2247         0.0024
+       CBPS |        0.5717         0.3620           0.5963         0.3415           0.5611         0.2838           0.4573         0.1722           0.1123         0.0028
+   CBPS99_9 |        0.5798         0.3633           0.6009         0.3426           0.5622         0.2838           0.4580         0.1723           0.1124         0.0028
+     CBPS99 |        0.5795         0.3632           0.6001         0.3422           0.5609         0.2841           0.4560         0.1721           0.1093         0.0028
+     CBPS98 |        0.5788         0.3637           0.5977         0.3427           0.5571         0.2838           0.4487         0.1716           0.1001         0.0028
+     CBPS97 |        0.5780         0.3641           0.5959         0.3428           0.5527         0.2837           0.4399         0.1709           0.0919         0.0027
+     CBPS95 |        0.5740         0.3651           0.5885         0.3425           0.5401         0.2827           0.4197         0.1693           0.0764         0.0026
+     CBPS93 |        0.5693         0.3669           0.5814         0.3423           0.5261         0.2818           0.3980         0.1679           0.0628         0.0025
+     CBPS90 |        0.5622         0.3686           0.5693         0.3429           0.5025         0.2807           0.3643         0.1654           0.0455         0.0024
+     CBPS85 |        0.5505         0.3712           0.5440         0.3420           0.4604         0.2781           0.3077         0.1613           0.0248         0.0021
+     CBPS80 |        0.5337         0.3728           0.5154         0.3423           0.4151         0.2751           0.2528         0.1570           0.0123         0.0019
+     CBPS75 |        0.5177         0.3758           0.4855         0.3416           0.3684         0.2712           0.2027         0.1523           0.0055         0.0017
+     CBPS50 |        0.4249         0.3913           0.3253         0.3373           0.1700         0.2458           0.0477         0.1237           0.0000         0.0007
+    DISCARD |        0.2215         0.3958           0.1157         0.3329           0.0342         0.2484           0.0037         0.1226           0.0003         0.0012
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+(file sims/sim11/Figure_p_0.png written in PNG format)
+
+
+reject_0  
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+            |                                                                       N and augmented                                                                       
+            | ------------ 25 ------------    ------------ 50 ------------    ------------ 100 -----------    ------------ 200 -----------    ----------- 1000 -----------
+  estimator |    Unadjusted  Reg. adjusted       Unadjusted  Reg. adjusted       Unadjusted  Reg. adjusted       Unadjusted  Reg. adjusted       Unadjusted  Reg. adjusted
+------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+        RAW |          .275          .1218            .5112          .2066            .8094           .396            .9794          .7082                1              1
+IPW_TRUE_PS |         .1012          .0934            .0814           .091            .0782          .0884             .069          .0864            .0556          .0666
+STDPROGDIFF |        .04348         .13043                                                                           .01053         .58947                                
+        IPW |        .04337         .16779           .02761         .21184            .0184          .3218            .0262          .5266            .0638           .988
+       TRIM |        .15185         .12108            .2898          .1924            .5978          .3484             .923          .6284                1          .9998
+   EBALANCE |        .00211         .16632           .00362           .233           .00268         .32232            .0058          .5147            .2412          .9888
+         RF |          .275          .1218            .0916           .153           .17007         .17687           .48077         .27544            .9961         .76921
+    IPWCBPS |        .05105         .16025           .03528          .2065            .0382           .317             .069          .5298            .2414          .9898
+       CBPS |         .0426          .1957           .02001         .22629            .0156          .3174            .0162          .5126            .3156           .987
+   CBPS99_9 |        .03337         .19498           .01386         .22615           .01303         .31716           .01541         .51231           .31533         .98699
+     CBPS99 |         .0348         .19381           .01466         .22615           .01301         .31725            .0162          .5123            .3262          .9874
+     CBPS98 |        .03409         .19427           .01525         .22652           .01321         .31799            .0168          .5132            .3622          .9878
+     CBPS97 |        .03366         .19323           .01646         .22626           .01401         .31752            .0174          .5139            .4012          .9878
+     CBPS95 |        .03529         .19177           .01684         .22634           .01541         .31886           .02082         .51561            .4796          .9886
+     CBPS93 |        .03639         .18758           .01722         .22572           .01741         .31765            .0232          .5184            .5594          .9896
+     CBPS90 |        .03899         .18629           .01861         .22393           .02121         .32033           .03141          .5219            .6956          .9906
+     CBPS85 |        .04139         .18284           .02322         .22142           .02621         .31973           .04861         .52751             .866          .9918
+     CBPS80 |        .04551         .17963           .03042         .22058           .03421         .32253             .082          .5326             .956          .9924
+     CBPS75 |        .05169         .17491           .03682         .21953           .04742         .32333           .13343         .54051            .9916          .9938
+     CBPS50 |        .09289         .15095            .1134          .2124           .27526         .34667            .7186          .5914            .9998          .9974
+    DISCARD |        .44084         .16157           .67073         .24065           .88358         .37988           .98639         .61565            .9992           .996
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+(file sims/sim11/Figure_reject_0.png written in PNG format)
+
+
+covered  
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+            |                                                                       N and augmented                                                                       
+            | ------------ 25 ------------    ------------ 50 ------------    ------------ 100 -----------    ------------ 200 -----------    ----------- 1000 -----------
+  estimator |    Unadjusted  Reg. adjusted       Unadjusted  Reg. adjusted       Unadjusted  Reg. adjusted       Unadjusted  Reg. adjusted       Unadjusted  Reg. adjusted
+------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+        RAW |          .725          .8782            .4888          .7934            .1906           .604            .0206          .2918                0              0
+IPW_TRUE_PS |         .8988          .9066            .9186           .909            .9218          .9116             .931          .9136            .9444          .9334
+STDPROGDIFF |        .95652         .86957                                                                           .98947         .41053                                
+        IPW |        .95663         .83221           .97239         .78816            .9816          .6782            .9738          .4734            .9362           .012
+       TRIM |        .84815         .87892            .7102          .8076            .4022          .6516             .077          .3716                0          .0002
+   EBALANCE |        .99789         .83368           .99638           .767           .99732         .67768            .9942          .4853            .7588          .0112
+         RF |          .725          .8782            .9084           .847           .82993         .82313           .51923         .72456            .0039         .23079
+    IPWCBPS |        .94895         .83975           .96472          .7935            .9618           .683             .931          .4702            .7586          .0102
+       CBPS |         .9574          .8043           .97999         .77371            .9844          .6826            .9838          .4874            .6844           .013
+   CBPS99_9 |        .96663         .80502           .98614         .77385           .98697         .68284           .98459         .48769           .68467         .01301
+     CBPS99 |         .9652         .80619           .98534         .77385           .98699         .68275            .9838          .4877            .6738          .0126
+     CBPS98 |        .96591         .80573           .98475         .77348           .98679         .68201            .9832          .4868            .6378          .0122
+     CBPS97 |        .96634         .80677           .98354         .77374           .98599         .68248            .9826          .4861            .5988          .0122
+     CBPS95 |        .96471         .80823           .98316         .77366           .98459         .68114           .97918         .48439            .5204          .0114
+     CBPS93 |        .96361         .81242           .98278         .77428           .98259         .68235            .9768          .4816            .4406          .0104
+     CBPS90 |        .96101         .81371           .98139         .77607           .97879         .67967           .96859          .4781            .3044          .0094
+     CBPS85 |        .95861         .81716           .97678         .77858           .97379         .68027           .95139         .47249             .134          .0082
+     CBPS80 |        .95449         .82037           .96958         .77942           .96579         .67747             .918          .4674             .044          .0076
+     CBPS75 |        .94831         .82509           .96318         .78047           .95258         .67667           .86657         .45949            .0084          .0062
+     CBPS50 |        .90711         .84905            .8866          .7876           .72474         .65333            .2814          .4086            .0002          .0026
+    DISCARD |        .55834         .83191           .32927         .75935           .11642         .62012           .01361         .38435            .0008           .004
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+(file sims/sim11/Figure_covered.png written in PNG format)
+
+
+bal_max_asd  
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+            |                                                                       N and augmented                                                                       
+            | ------------ 25 ------------    ------------ 50 ------------    ------------ 100 -----------    ------------ 200 -----------    ----------- 1000 -----------
+  estimator |    Unadjusted  Reg. adjusted       Unadjusted  Reg. adjusted       Unadjusted  Reg. adjusted       Unadjusted  Reg. adjusted       Unadjusted  Reg. adjusted
+------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+        RAW |        0.8561         0.8561           0.7832         0.7832           0.7501         0.7501           0.7376         0.7376           0.7327         0.7327
+IPW_TRUE_PS |        0.6992         0.6992           0.5116         0.5116           0.3777         0.3777           0.2775         0.2775           0.1316         0.1316
+STDPROGDIFF |        0.7645         0.7645                                                                           0.1052         0.1052                                
+        IPW |        0.3924         0.3924           0.2696         0.2696           0.2157         0.2157           0.2025         0.2025           0.2237         0.2237
+       TRIM |        0.3957         0.3957           0.2702         0.2702           0.2120         0.2120           0.1936         0.1936           0.2291         0.2291
+   EBALANCE |        0.0016         0.0016           0.0012         0.0012           0.0013         0.0013           0.0016         0.0016           0.0004         0.0004
+         RF |        0.8561         0.8561           0.4667         0.4667           0.3673         0.3673           0.3520         0.3520           0.2561         0.2561
+    IPWCBPS |        0.4377         0.4377           0.2837         0.2837           0.1951         0.1951           0.1390         0.1390           0.0819         0.0819
+       CBPS |        0.2402         0.2402           0.0771         0.0771           0.0270         0.0270           0.0110         0.0110           0.0038         0.0038
+   CBPS99_9 |        0.2260         0.2260           0.0705         0.0705           0.0240         0.0240           0.0100         0.0100           0.0035         0.0035
+     CBPS99 |        0.2270         0.2270           0.0716         0.0716           0.0254         0.0254           0.0110         0.0110           0.0050         0.0050
+     CBPS98 |        0.2290         0.2290           0.0745         0.0745           0.0285         0.0285           0.0146         0.0146           0.0098         0.0098
+     CBPS97 |        0.2307         0.2307           0.0783         0.0783           0.0323         0.0323           0.0190         0.0190           0.0145         0.0145
+     CBPS95 |        0.2404         0.2404           0.0877         0.0877           0.0423         0.0423           0.0290         0.0290           0.0244         0.0244
+     CBPS93 |        0.2500         0.2500           0.0986         0.0986           0.0532         0.0532           0.0400         0.0400           0.0346         0.0346
+     CBPS90 |        0.2641         0.2641           0.1155         0.1155           0.0708         0.0708           0.0571         0.0571           0.0505         0.0505
+     CBPS85 |        0.2896         0.2896           0.1461         0.1461           0.1014         0.1014           0.0873         0.0873           0.0783         0.0783
+     CBPS80 |        0.3196         0.3196           0.1787         0.1787           0.1340         0.1340           0.1193         0.1193           0.1078         0.1078
+     CBPS75 |        0.3507         0.3507           0.2130         0.2130           0.1680         0.1680           0.1525         0.1525           0.1391         0.1391
+     CBPS50 |        0.5156         0.5156           0.3993         0.3993           0.3585         0.3585           0.3450         0.3450           0.3285         0.3285
+    DISCARD |        0.3957         0.3957           0.2702         0.2702           0.2120         0.2120           0.1936         0.1936           0.2291         0.2291
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+(file sims/sim11/Figure_bal_max_asd.png written in PNG format)
+
+
+wgt_sd  
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+            |                                                                       N and augmented                                                                       
+            | ------------ 25 ------------    ------------ 50 ------------    ------------ 100 -----------    ------------ 200 -----------    ----------- 1000 -----------
+  estimator |    Unadjusted  Reg. adjusted       Unadjusted  Reg. adjusted       Unadjusted  Reg. adjusted       Unadjusted  Reg. adjusted       Unadjusted  Reg. adjusted
+------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+        RAW |        0.0000         0.0000           0.0000         0.0000           0.0000         0.0000           0.0000         0.0000           0.0000         0.0000
+IPW_TRUE_PS |        0.5192         0.5192           0.5736         0.5736           0.6154         0.6154           0.6416         0.6416           0.6722         0.6722
+STDPROGDIFF |        0.6453         0.6453                                                                           0.6237         0.6237                                
+        IPW |        0.6378         0.6378           0.6777         0.6777           0.7357         0.7357           0.8620         0.8620           1.3566         1.3566
+       TRIM |        0.6363         0.6363           0.6830         0.6830           0.7356         0.7356           0.8342         0.8342           1.3893         1.3893
+   EBALANCE |        0.0000         0.0000           0.0000         0.0000           0.0000         0.0000           0.0000         0.0000           0.0000         0.0000
+         RF |        0.0000         0.0000           0.3477         0.3477           0.3899         0.3899           0.3706         0.3706           0.4077         0.4077
+    IPWCBPS |        0.5312         0.5312           0.5244         0.5244           0.5325         0.5325           0.5758         0.5758           0.7660         0.7660
+       CBPS |        0.7586         0.7586           0.7276         0.7276           0.6795         0.6795           0.6574         0.6574           0.6790         0.6790
+   CBPS99_9 |        0.7603         0.7603           0.7285         0.7285           0.6797         0.6797           0.6576         0.6576           0.6790         0.6790
+     CBPS99 |        0.7585         0.7585           0.7266         0.7266           0.6787         0.6787           0.6564         0.6564           0.6767         0.6767
+     CBPS98 |        0.7543         0.7543           0.7226         0.7226           0.6749         0.6749           0.6522         0.6522           0.6703         0.6703
+     CBPS97 |        0.7472         0.7472           0.7181         0.7181           0.6702         0.6702           0.6469         0.6469           0.6639         0.6639
+     CBPS95 |        0.7369         0.7369           0.7063         0.7063           0.6589         0.6589           0.6354         0.6354           0.6510         0.6510
+     CBPS93 |        0.7242         0.7242           0.6943         0.6943           0.6471         0.6471           0.6236         0.6236           0.6379         0.6379
+     CBPS90 |        0.7043         0.7043           0.6750         0.6750           0.6284         0.6284           0.6051         0.6051           0.6180         0.6180
+     CBPS85 |        0.6702         0.6702           0.6410         0.6410           0.5964         0.5964           0.5736         0.5736           0.5847         0.5847
+     CBPS80 |        0.6344         0.6344           0.6067         0.6067           0.5639         0.5639           0.5419         0.5419           0.5513         0.5513
+     CBPS75 |        0.5985         0.5985           0.5720         0.5720           0.5311         0.5311           0.5099         0.5099           0.5178         0.5178
+     CBPS50 |        0.4175         0.4175           0.3967         0.3967           0.3667         0.3667           0.3498         0.3498           0.3503         0.3503
+    DISCARD |        0.6365         0.6365           0.6830         0.6830           0.7356         0.7356           0.8342         0.8342           1.3893         1.3893
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+(file sims/sim11/Figure_wgt_sd.png written in PNG format)
+
+
+wgt_cv  
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+            |                                                                       N and augmented                                                                       
+            | ------------ 25 ------------    ------------ 50 ------------    ------------ 100 -----------    ------------ 200 -----------    ----------- 1000 -----------
+  estimator |    Unadjusted  Reg. adjusted       Unadjusted  Reg. adjusted       Unadjusted  Reg. adjusted       Unadjusted  Reg. adjusted       Unadjusted  Reg. adjusted
+------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+        RAW |        0.0000         0.0000           0.0000         0.0000           0.0000         0.0000           0.0000         0.0000           0.0000         0.0000
+IPW_TRUE_PS |        0.5192         0.5192           0.5736         0.5736           0.6154         0.6154           0.6416         0.6416           0.6722         0.6722
+STDPROGDIFF |        0.6453         0.6453                                                                           0.6237         0.6237                                
+        IPW |        0.6378         0.6378           0.6777         0.6777           0.7357         0.7357           0.8620         0.8620           1.3566         1.3566
+       TRIM |        0.6363         0.6363           0.6830         0.6830           0.7356         0.7356           0.8342         0.8342           1.3893         1.3893
+   EBALANCE |        0.0000         0.0000           0.0000         0.0000           0.0000         0.0000           0.0000         0.0000           0.0000         0.0000
+         RF |        0.0000         0.0000           0.3477         0.3477           0.3899         0.3899           0.3706         0.3706           0.4077         0.4077
+    IPWCBPS |        0.5312         0.5312           0.5244         0.5244           0.5325         0.5325           0.5758         0.5758           0.7660         0.7660
+       CBPS |        0.7586         0.7586           0.7276         0.7276           0.6795         0.6795           0.6574         0.6574           0.6790         0.6790
+   CBPS99_9 |        0.7603         0.7603           0.7285         0.7285           0.6797         0.6797           0.6576         0.6576           0.6790         0.6790
+     CBPS99 |        0.7585         0.7585           0.7266         0.7266           0.6787         0.6787           0.6564         0.6564           0.6767         0.6767
+     CBPS98 |        0.7543         0.7543           0.7226         0.7226           0.6749         0.6749           0.6522         0.6522           0.6703         0.6703
+     CBPS97 |        0.7472         0.7472           0.7181         0.7181           0.6702         0.6702           0.6469         0.6469           0.6639         0.6639
+     CBPS95 |        0.7369         0.7369           0.7063         0.7063           0.6589         0.6589           0.6354         0.6354           0.6510         0.6510
+     CBPS93 |        0.7242         0.7242           0.6943         0.6943           0.6471         0.6471           0.6236         0.6236           0.6379         0.6379
+     CBPS90 |        0.7043         0.7043           0.6750         0.6750           0.6284         0.6284           0.6051         0.6051           0.6180         0.6180
+     CBPS85 |        0.6702         0.6702           0.6410         0.6410           0.5964         0.5964           0.5736         0.5736           0.5847         0.5847
+     CBPS80 |        0.6344         0.6344           0.6067         0.6067           0.5639         0.5639           0.5419         0.5419           0.5513         0.5513
+     CBPS75 |        0.5985         0.5985           0.5720         0.5720           0.5311         0.5311           0.5099         0.5099           0.5178         0.5178
+     CBPS50 |        0.4175         0.4175           0.3967         0.3967           0.3667         0.3667           0.3498         0.3498           0.3503         0.3503
+    DISCARD |        0.6365         0.6365           0.6830         0.6830           0.7356         0.7356           0.8342         0.8342           1.3893         1.3893
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+(file sims/sim11/Figure_wgt_cv.png written in PNG format)
+
+
+wgt_max  
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+            |                                                                       N and augmented                                                                       
+            | ------------ 25 ------------    ------------ 50 ------------    ------------ 100 -----------    ------------ 200 -----------    ----------- 1000 -----------
+  estimator |    Unadjusted  Reg. adjusted       Unadjusted  Reg. adjusted       Unadjusted  Reg. adjusted       Unadjusted  Reg. adjusted       Unadjusted  Reg. adjusted
+------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+        RAW |           1.0            1.0              1.0            1.0              1.0            1.0              1.0            1.0              1.0            1.0
+IPW_TRUE_PS |           2.7            2.7              3.5            3.5              4.6            4.6              5.8            5.8              9.4            9.4
+STDPROGDIFF |           3.2            3.2                                                                              5.9            5.9                                
+        IPW |           3.3            3.3              4.4            4.4              6.1            6.1              9.7            9.7             34.3           34.3
+       TRIM |           3.3            3.3              4.4            4.4              6.1            6.1              9.3            9.3             35.4           35.4
+   EBALANCE |           1.0            1.0              1.0            1.0              1.0            1.0              1.0            1.0              1.0            1.0
+         RF |           1.0            1.0              2.2            2.2              2.8            2.8              3.0            3.0              3.7            3.7
+    IPWCBPS |           2.8            2.8              3.3            3.3              4.2            4.2              5.8            5.8             16.3           16.3
+       CBPS |           3.5            3.5              4.2            4.2              5.0            5.0              6.3            6.3             13.0           13.0
+   CBPS99_9 |           3.5            3.5              4.2            4.2              5.0            5.0              6.3            6.3             13.0           13.0
+     CBPS99 |           3.5            3.5              4.2            4.2              5.0            5.0              6.2            6.2             12.9           12.9
+     CBPS98 |           3.5            3.5              4.2            4.2              5.0            5.0              6.2            6.2             12.7           12.7
+     CBPS97 |           3.5            3.5              4.2            4.2              4.9            4.9              6.1            6.1             12.6           12.6
+     CBPS95 |           3.4            3.4              4.1            4.1              4.8            4.8              6.0            6.0             12.3           12.3
+     CBPS93 |           3.4            3.4              4.0            4.0              4.8            4.8              5.9            5.9             11.9           11.9
+     CBPS90 |           3.3            3.3              3.9            3.9              4.6            4.6              5.7            5.7             11.4           11.4
+     CBPS85 |           3.2            3.2              3.8            3.8              4.4            4.4              5.4            5.4             10.6           10.6
+     CBPS80 |           3.1            3.1              3.6            3.6              4.2            4.2              5.1            5.1              9.8            9.8
+     CBPS75 |           2.9            2.9              3.4            3.4              3.9            3.9              4.7            4.7              9.0            9.0
+     CBPS50 |           2.3            2.3              2.6            2.6              2.8            2.8              3.2            3.2              5.3            5.3
+    DISCARD |           3.3            3.3              4.4            4.4              6.1            6.1              9.3            9.3             35.4           35.4
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+(file sims/sim11/Figure_wgt_max.png written in PNG format)
+
+
+impact_est_var  
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+            |                                                                       N and augmented                                                                       
+            | ------------ 25 ------------    ------------ 50 ------------    ------------ 100 -----------    ------------ 200 -----------    ----------- 1000 -----------
+  estimator |    Unadjusted  Reg. adjusted       Unadjusted  Reg. adjusted       Unadjusted  Reg. adjusted       Unadjusted  Reg. adjusted       Unadjusted  Reg. adjusted
+------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+        RAW |      195.5689        58.0772          96.3981        26.4186          49.1615        13.5660          24.7472         6.8988           4.8556         1.4178
+IPW_TRUE_PS |      311.0786        59.6038         165.2344        29.4155          91.7418        16.1461          47.3661         8.9375          10.0417         2.0681
+STDPROGDIFF |      167.9825        70.2495                                                                           9.7892         8.4823                                
+        IPW |      101.3719        59.2507          65.6642        30.0835          57.9213        16.7415          74.4488        10.0160         112.1830         4.3686
+       TRIM |      147.3052        54.4973          65.2724        26.2964          29.8224        12.6666          14.1995         6.2737           3.0054         1.2976
+   EBALANCE |       50.5188        50.4898          29.8091        29.8203          13.7821        13.7988           6.1119         6.1191           1.1079         1.1076
+         RF |      195.5689        58.0772          49.5500        24.1719          20.9835        10.2358           9.6130         4.2355           1.6469         0.6542
+    IPWCBPS |       94.7956        58.7706          38.6588        28.9254          19.2022        16.0049          10.7942         9.4139           5.8464         3.0673
+       CBPS |      107.1684        68.3509          47.1041        34.4656          23.3087        18.5657          11.9055        10.3874           3.5779         2.9745
+   CBPS99_9 |       95.4578        67.4444          42.8620        34.2583          21.4178        18.4242          11.4961        10.3860           3.4031         2.9693
+     CBPS99 |       94.7590        67.0220          42.5434        34.2475          21.3892        18.4106          11.4828        10.3726           3.4041         2.9683
+     CBPS98 |       94.7017        67.5461          42.4107        34.0352          21.2740        18.3571          11.3575        10.3358           3.3386         2.9567
+     CBPS97 |       93.7815        66.9880          42.4427        34.0468          21.0728        18.3072          11.2411        10.2966           3.2863         2.9448
+     CBPS95 |       93.9579        66.7076          42.0099        33.6510          20.7848        18.1423          10.9850        10.2081           3.1855         2.9198
+     CBPS93 |       94.1877        66.1189          41.8440        33.4204          20.4498        17.9668          10.7918        10.1123           3.0919         2.8946
+     CBPS90 |       93.7549        65.5103          40.9121        32.9313          20.0946        17.7134          10.4694         9.9699           2.9586         2.8544
+     CBPS85 |       93.4223        64.2212          40.4893        32.1762          19.5398        17.2891          10.1149         9.7228           2.7569         2.7842
+     CBPS80 |       95.2649        63.1233          40.2726        31.4353          19.4011        16.8652           9.8939         9.4715           2.5956         2.7108
+     CBPS75 |       96.6726        62.2359          41.2572        30.7697          19.6489        16.4782           9.8150         9.2117           2.4641         2.6285
+     CBPS50 |      116.2304        57.6815          53.2714        27.8461          26.8590        14.6987          14.2810         8.0124           3.2431         2.1362
+    DISCARD |      671.6493        2.9e+03         371.6913       213.3778         197.8207       102.5492         108.1859        53.7144          27.4189        13.9091
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+(file sims/sim11/Figure_impact_est_var.png written in PNG format)
+
+. 
+. log close sim`sim'
+      name:  sim11
+       log:  C:\Users\kkranker\Documents\Stata\psweight\code-psweight\sims/sim11/logfile.log
+  log type:  text
+ closed on:   2 Oct 2019, 10:12:30
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
