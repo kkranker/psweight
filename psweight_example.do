@@ -26,7 +26,7 @@ log using psweight_example.log, name(psweight_example) replace
 // permission of Mathematica Policy Research, Inc.
 // ***************************************************************************
 
-version 15.1
+about
 set type double
 di as txt "Current user: `c(username)'" _n "Environment: `c(os)' `c(machine_type)' `: environment computername'" _n "Stata: `c(stata_version)'" cond(c(stata_version)==c(version),""," (set to version `c(version)')") _n "Date: " c(current_date) " " c(current_time)
 
