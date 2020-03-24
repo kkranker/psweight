@@ -106,7 +106,7 @@ implementation by Filip Premik.
 
 or
 
-* Kranker, Keith, Laura Blue, and Lauren Vollmer Forrow. “Improving Effect Estimates by Limiting the Variability in Inverse Propensity Score Weights.” The American Statistician, in press. https://doi.org/10.1080/00031305.2020.1737229.
+* Kranker, Keith, Laura Blue, and Lauren Vollmer Forrow. “Improving Effect Estimates by Limiting the Variability in Inverse Propensity Score Weights.” _The American Statistician_, in press. https://doi.org/10.1080/00031305.2020.1737229.
 
 Source code is available at https://github.com/kkranker/psweight.
 Please report issues at  https://github.com/kkranker/psweight/issues.
@@ -132,11 +132,4 @@ To install the latest version from Github, type this from your Stata command lin
 
 * Imai, K. and M. Ratkovic.  2014.  "Covariate Balancing Propensity Score."Journal of the Royal Statistical Society: Series B (StatisticalMethodology), 76(1): 243–263, doi:10.1111/rssb.12027.
 
-* Kranker, K., L. Blue, and L. Vollmer Forrow.  2019.  "Improving EffectEstimates by Limiting the Variability in Inverse PropensityScore Weights." Manuscript under review.
-
-# Potential improvements or extensions:
-[ ] using constraints to specify CV instead of a penalty
-[ ] compute standard errors, etc. in optimization
-[ ] run impacts (single- or multi-equation model) and/or pomeans option to estimate potential-outcome means inside optimization (to get SEs)
-[ ] noconstant option
-[ ] predict command
+* Kranker, Keith, Laura Blue, and Lauren Vollmer Forrow. “Improving Effect Estimates by Limiting the Variability in Inverse Propensity Score Weights.” _The American Statistician_, in press. https://doi.org/10.1080/00031305.2020.1737229.
