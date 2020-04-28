@@ -36,9 +36,9 @@ class psweight {
     void             cbpseval(), balanceresults()
     real rowvector   solve(), ipw(), cbps(), cbpsoid()
     real colvector   get_pscore(), get_weight_mtch(), get_weight()
-    real rowvector   diff(), stddiff(), varratio(), progdiff(), pomean()
+    real rowvector   mean(), variance(), diff(), stddiff(), varratio(), progdiff(), pomean()
     real scalar      mean_sd(), mean_asd(), max_asd(), wgt_cv(), wgt_sd(), wgt_skewness(), wgt_kurtosis(), wgt_max()
-    real matrix      balancetable(), get_N()
+    real matrix      covariance(), balancetable(), get_N()
 }
 
 // SETUP FUNCTIONS
@@ -375,6 +375,20 @@ void psweight::calcmeans() {
   // /* */ "Treatment group means:"; this.means1
 }
 
+// Returns the selected vector of means to the user
+// The first argument is optional, and tells the function which variance to use in the denominator
+//    = 0, it provides the control groups' mean
+//    = 1, it provides the treatment groups' mean (this is the default)
+//    = 2, it provides the pooled mean
+real rowvector psweight::mean(| real scalar denominator) {
+  if (args()<1) denominator=2
+  if (!length(this.means1)) this.calcmeans()
+  if      (denominator==0) return(this.means0)
+  else if (denominator==1) return(this.means1)
+  else if (denominator==2) return(this.meansP)
+  else _error(strofreal(denominator)+ " is an invalid argument for psweight::mean()")
+}
+
 // Calculates the difference in means between the T and C groups
 real rowvector psweight::diff() {
   real rowvector diff
@@ -416,6 +430,22 @@ void psweight::calcvariances() {
   // /* */ "Average of variances from treatment and control groups"; this.variancesA
 }
 
+// Returns the selected vector of means to the user
+// The first argument is optional, and tells the function which variance to use in the denominator
+//    = 0, it provides the control groups' mean
+//    = 1, it provides the treatment groups' mean (this is the default)
+//    = 2, it provides the pooled mean
+//    = 3, it provides (control groups' variances + treatment groups' variances)/2  (the definition from Stata's tbalance command)
+real rowvector psweight::variance(| real scalar denominator) {
+  if (args()<1) denominator=2
+  if (!length(this.variances1)) this.calcvariances()
+  if      (denominator==0) return(this.variances0)
+  else if (denominator==1) return(this.variances1)
+  else if (denominator==2) return(this.variancesP)
+  else if (denominator==3) return(this.variancesA)
+  else _error(strofreal(denominator)+ " is an invalid argument for psweight::variance()")
+}
+
 // Calculates the variances for the T and C group,
 // and saves the results in private variables
 void psweight::calccovariances() {
@@ -439,6 +469,22 @@ void psweight::calccovariances() {
   this.variancesP = diagonal(this.covariancesP)'
   this.variancesA = diagonal(this.covariancesA)'
   // /* */ "Average of variances from treatment and control groups"; this.variancesA
+}
+
+// Returns the selected vector of means to the user
+// The first argument is optional, and tells the function which variance to use in the denominator
+//    = 0, it provides the control groups' mean
+//    = 1, it provides the treatment groups' mean (this is the default)
+//    = 2, it provides the pooled mean
+//    = 3, it provides (control groups' variances + treatment groups' variances)/2  (the definition from Stata's tbalance command)
+real matrix psweight::covariance(| real scalar denominator) {
+  if (args()<1) denominator=2
+  if (!length(this.covariances1)) this.calccovariances()
+  if      (denominator==0) return(this.covariances0)
+  else if (denominator==1) return(this.covariances1)
+  else if (denominator==2) return(this.covariancesP)
+  else if (denominator==3) return(this.covariancesA)
+  else _error(strofreal(denominator)+ " is an invalid argument for psweight::variance()")
 }
 
 // Calculates standardized differences in means between the T and C groups
@@ -567,6 +613,10 @@ real rowvector psweight::varratio() {
 
   st_matrix("r(varratio)", varratio)
   st_matrixcolstripe("r(varratio)", (J(length(tmvarlist), 1,""), tmvarlist'))
+  st_matrix("r(variances0)", this.variances0)
+  st_matrix("r(variances1)", this.variances1)
+  st_matrixcolstripe("r(variances0)", (J(length(tmvarlist), 1,""), tmvarlist'))
+  st_matrixcolstripe("r(variances1)", (J(length(tmvarlist), 1,""), tmvarlist'))
   return(varratio)
 }
 

@@ -47,7 +47,10 @@ score reweighting, with various extensions (class definition)
 treatment and control groups):
 
     real matrix     P.balancetable(| denominator)
+    real rowvector  P.mean()
     real rowvector  P.diff()
+    real rowvector  P.variance()
+    real matrix     P.covariance()
     real rowvector  P.stddiff(| denominator)
     real rowvector  P.varratio()
     real scalar     P.mean_sd(| denominator)
@@ -86,12 +89,13 @@ where:
         s               : real scalar
 
 and where denominator, a real (integer) scalar optionally specified, determines
-how standardized differences are calculated:
+which group(s) are used when requesting summary statistics and for calculating
+standardized differences:
 
         denominator  variance used
-        0            the control groups' variances
-        1            the treatment groups' variances
-        2            the pooled variances; the default
+        0            the control groups' variances (or means)
+        1            the treatment groups' variances (or means)
+        2            the pooled variances (or means); the default
         3            (control variance + treatment variance)/2
                         (as in {help tbalance})
 
@@ -375,12 +379,29 @@ real matrix P.balancetable(| denominator)
 
     The table is also returned to Stata in r(bal).
 
+real rowvector P.mean(| denominator)
+
+    Returns the means for the treatment group, control group, or pooled sample
+    for each variable in tmvarlist.
+
 real rowvector P.diff()
 
     Returns the difference in means between the treatment and control groups
     for each variable in tmvarlist.
 
     The vector is also returned to Stata in r(diff).
+
+real rowvector P.variance(| denominator)
+
+    Returns, for each variable in tmvarlist, the variance for the treatment
+    group, the control group, the pooled sample, or across the treatment
+    and control groups.
+
+real matrix P.covariance(| denominator)
+
+    Returns, for the variables in tmvarlist, the covariance for the treatment
+    group, the control group, the pooled sample, or across the treatment
+    and control groups.
 
 real rowvector P.stddiff(| denominator)
 
@@ -393,7 +414,9 @@ real rowvector P.varratio()
 
     Returns the ratio of variances (treatment variance :/ control variance).
 
-    The vector is also returned to Stata in r(varratio).
+    The vector is also returned to Stata in r(varratio). In addition, the
+    underlying treatment and control group variances are returned include
+    r(variances1) and r(variances0), respectively.
 
 real scalar P.mean_sd(| denominator)
 
