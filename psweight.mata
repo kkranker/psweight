@@ -36,9 +36,9 @@ class psweight {
     void             cbpseval(), balanceresults()
     real rowvector   solve(), ipw(), cbps(), cbpsoid()
     real colvector   get_pscore(), get_weight_mtch(), get_weight()
-    real rowvector   mean(), variance(), diff(), stddiff(), varratio(), progdiff(), pomean()
+    real rowvector   means(), variances(), diff(), stddiff(), varratio(), progdiff(), pomean()
     real scalar      mean_sd(), mean_asd(), max_asd(), wgt_cv(), wgt_sd(), wgt_skewness(), wgt_kurtosis(), wgt_max()
-    real matrix      covariance(), balancetable(), get_N()
+    real matrix      covariances(), balancetable(), get_N()
 }
 
 // SETUP FUNCTIONS
@@ -380,7 +380,7 @@ void psweight::calcmeans() {
 //    = 0, it provides the control groups' mean
 //    = 1, it provides the treatment groups' mean (this is the default)
 //    = 2, it provides the pooled mean
-real rowvector psweight::mean(| real scalar denominator) {
+real rowvector psweight::means(| real scalar denominator) {
   if (args()<1) denominator=2
   if (!length(this.means1)) this.calcmeans()
   if      (denominator==0) return(this.means0)
@@ -436,7 +436,7 @@ void psweight::calcvariances() {
 //    = 1, it provides the treatment groups' mean (this is the default)
 //    = 2, it provides the pooled mean
 //    = 3, it provides (control groups' variances + treatment groups' variances)/2  (the definition from Stata's tbalance command)
-real rowvector psweight::variance(| real scalar denominator) {
+real rowvector psweight::variances(| real scalar denominator) {
   if (args()<1) denominator=2
   if (!length(this.variances1)) this.calcvariances()
   if      (denominator==0) return(this.variances0)
@@ -477,7 +477,7 @@ void psweight::calccovariances() {
 //    = 1, it provides the treatment groups' mean (this is the default)
 //    = 2, it provides the pooled mean
 //    = 3, it provides (control groups' variances + treatment groups' variances)/2  (the definition from Stata's tbalance command)
-real matrix psweight::covariance(| real scalar denominator) {
+real matrix psweight::covariances(| real scalar denominator) {
   if (args()<1) denominator=2
   if (!length(this.covariances1)) this.calccovariances()
   if      (denominator==0) return(this.covariances0)

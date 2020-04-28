@@ -47,10 +47,10 @@ score reweighting, with various extensions (class definition)
 treatment and control groups):
 
     real matrix     P.balancetable(| denominator)
-    real rowvector  P.mean()
+    real rowvector  P.means()
     real rowvector  P.diff()
-    real rowvector  P.variance()
-    real matrix     P.covariance()
+    real rowvector  P.variances()
+    real matrix     P.covariances()
     real rowvector  P.stddiff(| denominator)
     real rowvector  P.varratio()
     real scalar     P.mean_sd(| denominator)
@@ -379,7 +379,7 @@ real matrix P.balancetable(| denominator)
 
     The table is also returned to Stata in r(bal).
 
-real rowvector P.mean(| denominator)
+real rowvector P.means(| denominator)
 
     Returns the means for the treatment group, control group, or pooled sample
     for each variable in tmvarlist.
@@ -391,13 +391,13 @@ real rowvector P.diff()
 
     The vector is also returned to Stata in r(diff).
 
-real rowvector P.variance(| denominator)
+real rowvector P.variances(| denominator)
 
     Returns, for each variable in tmvarlist, the variance for the treatment
     group, the control group, the pooled sample, or across the treatment
     and control groups.
 
-real matrix P.covariance(| denominator)
+real matrix P.covariances(| denominator)
 
     Returns, for the variables in tmvarlist, the covariance for the treatment
     group, the control group, the pooled sample, or across the treatment
