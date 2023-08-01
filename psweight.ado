@@ -1,7 +1,7 @@
 //****************************************************************************/
 *! psweight.ado
 *! IPW- and CBPS-type propensity score reweighting, with various extentions
-*! Stata command to estimate models
+*! Stata command to impliment psweight() Mata class
 //
 *! By Keith Kranker
 //
