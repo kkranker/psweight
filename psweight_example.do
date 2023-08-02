@@ -8,9 +8,11 @@ cap log close psweight_example
 cap log close psweight_example_ado
 cap log close psweight_example_R
 local makegraphs = 01
-cd "C:\Users\kkranker\Documents\Stata\psweight\code-psweight\"
+cd "C:\Users\kkranker\Code\Stata\psweight\lmw\"
 
-do C:\Users\kkranker\Documents\Stata\psweight\code-psweight\_build.do
+do C:\Users\kkranker\Code\Stata\psweight\lmw\_build.do
+cls
+
 
 log using psweight_example.log, name(psweight_example) replace
 
@@ -31,16 +33,34 @@ set type double
 di as txt "Current user: `c(username)'" _n "Environment: `c(os)' `c(machine_type)' `: environment computername'" _n "Stata: `c(stata_version)'" cond(c(stata_version)==c(version),""," (set to version `c(version)')") _n "Date: " c(current_date) " " c(current_time)
 
 which psweight
-mata: mata describe using lpsweight
+
+************************************************************************************
+* Test URI weight first (devleopment -- will be moved down later)
+************************************************************************************
 
 if 1 {
+
+use "C:\Users\kkranker\Code\Stata\Regression-Adjusted-Means\data\cattaneo2.dta", clear
+*regress bweight i.mbsmoke i.mmarried c.mage i.fbaby c.medu
+
+psweight uri mbsmoke mmarried mage fbaby medu
+psweight call balanceresults()
+
+regress bweight i.mbsmoke [iw=_weight_mtch]
+
+}
+
+error 81433
+
 
 ************************************************************************************
 * Simple examples in the help file (psweight.sthlp)
 ************************************************************************************
 
-//  Setup
-webuse cattaneo2
+if 01 {
+
+//  Setup  (local copy of ".webuse cattaneo2")
+use "C:\Users\kkranker\Code\Stata\Regression-Adjusted-Means\data\cattaneo2.dta", clear
 
 //  Balance before reweighting
 psweight balanceonly mbsmoke mmarried mage fbaby medu, ntab
@@ -65,9 +85,8 @@ psweight call balanceresults()
 * Examples in the help file (psweight_class.sthlp)
 ************************************************************************************
 
-
-//  Setup
-webuse cattaneo2, clear
+//  Setup  (local copy of ".webuse cattaneo2")
+use "C:\Users\kkranker\Code\Stata\Regression-Adjusted-Means\data\cattaneo2.dta", clear
 gen byte touse=1
 
 mata:

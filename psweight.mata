@@ -34,7 +34,7 @@ class psweight {
   public:
     void             new(), clone(), set(), set_depvars(), st_set(), st_set_depvars(), reweight(), fill_vars()
     void             cbpseval(), balanceresults()
-    real rowvector   solve(), ipw(), cbps(), cbpsoid()
+    real rowvector   solve(), ipw(), uri(), cbps(), cbpsoid()
     real colvector   get_pscore(), get_weight_mtch(), get_weight()
     real rowvector   means(), variances(), diff(), stddiff(), varratio(), progdiff(), pomean()
     real scalar      mean_sd(), mean_asd(), max_asd(), wgt_cv(), wgt_sd(), wgt_skewness(), wgt_kurtosis(), wgt_max()
@@ -446,7 +446,7 @@ real rowvector psweight::variances(| real scalar denominator) {
   else _error(strofreal(denominator)+ " is an invalid argument for psweight::variance()")
 }
 
-// Calculates the variances for the T and C group,
+// Calculates the variances and covariances for the T and C group,
 // and saves the results in private variables
 void psweight::calccovariances() {
   if (all(this.W:==1)) {
@@ -898,6 +898,57 @@ void psweight_logit_eval(transmorphic S,
   lnf  = ln(lj)
 }
 
+
+// Computes weights for the uniregression imputation (URI) estimator
+// from Chattopadhyay & Zubizaretta working paper (arXiv:2104.06581v4 [stat.ME] 7 Jul 2022)
+// Returns the weights in this.W_mtch. stat = "ATE" is required
+real rowvector psweight::uri(| string scalar stat) {
+  real colvector w
+  real matrix stsc_inv
+  real scalar i
+  real rowvector beta
+  this.reweight()
+  if (args()<1) stat="ate"
+  if (stat!="ate") _error("URI requires ATE statistic")
+  if (!allof(this.SW, 1)) _error("URI doesn't (yet) allow sample weights")
+  this.calcmeans()
+  this.calccovariances()
+  w = J(this.N_raw, 1, .)
+
+  real matrix XC
+  XC = (J(this.N_raw, 1, 1), this.T, this.X)
+
+
+  // "XC = "; XC
+
+  stsc_inv = invsym(this.covariances1 + this.covariances0)
+  // "stsc_inv = "; stsc_inv
+
+  real matrix qr, qr_X, qr_R
+  qr_X = qr_R = .
+  qr = qrinv(XC, qr_X, qr_R)
+  "qr' = "; qr'
+  "qr_X = "; qr_X
+  "qr_R = "; qr_R
+
+  for (i=1; i<=this.N_raw; i++) {
+    if (this.T[i]) {
+      w[i] = (1/this.N1) + (this.N/this.N0) * (XC[i,.] :- this.means1) * (stsc_inv) * (this.meansP :- this.means1)'
+                                               // quadcrossdev(XC[i,.], this.means1, diagonal(stsc_inv), this.meansP, this.means1)
+    }
+    else {
+      w[i] = (1/this.N0) + (this.N/this.N1) * (XC[i,.] :- this.means0) * (stsc_inv) * (this.meansP :- this.means0)'
+    }
+  }
+  beta = J(1,this.K,1)
+  this.postbeta(beta)
+  "w' = " ; w'
+  this.reweight(w)
+  return(beta)
+
+}
+
+
 // Computes coefficents under a variety of schemes, including CBPS
 //    stat corresponds to the options in psweight::logitweights()
 //    subcmd corresponds to the balance measure
@@ -919,10 +970,15 @@ real rowvector psweight::solve(| string scalar stat,
   this.reweight()
   oid = 0
 
+  if (length(cvopt) & (subcmd=="ipw" | subcmd=="uri")) _error("IPW and URI estimators do not work with modified loss function")
+
   // If the user is asking for the IPW result, just call my ipw() function
-  if (subcmd=="ipw") {
-    if (!length(cvopt)) return(this.ipw(stat))
-    else _error("IPW does not work with modified loss function")
+  else if (subcmd=="ipw") {
+    return(this.ipw(stat))
+  }
+
+  else if (subcmd=="uri") {
+    return(this.uri(stat))
   }
 
   // I have two implimentations of the CBPS function.  Here I pick the one I need.

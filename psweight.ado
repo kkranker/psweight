@@ -53,7 +53,7 @@ program Estimate, eclass sortpreserve byable(recall)
     local subcmd sd_sq
   else if (inlist(`"`subcmd'"', "balance", "balanceo", "balanceon", "balanceonl", "balanceonly")) ///
     local subcmd balanceonly
-  else if (!inlist(`"`subcmd'"', "pcbps", "ipw", "cbps", "cbpsoid", "mean_sd_sq", "sd_sq", "stdprogdiff")) {
+  else if (!inlist(`"`subcmd'"', "pcbps", "ipw", "uri", "cbps", "cbpsoid", "mean_sd_sq", "sd_sq", "stdprogdiff")) {
     di as error `""`subcmd'" subcommand invalid"'
     error 198
   }
@@ -258,7 +258,7 @@ class psweightado extends psweight {
     void set_opts()
     void userweight()
     void balanceresults()
-    real rowvector solve(), ipw(), cbps(), cbpsoid(), stddiff(), varratio(), progdiff(), stdprogdiff()
+    real rowvector solve(), ipw(), uri(), cbps(), cbpsoid(), stddiff(), varratio(), progdiff(), stdprogdiff()
     real scalar mean_sd(), mean_asd(), max_asd(), wgt_cv(), wgt_sd(), wgt_skewness(), wgt_kurtosis(), wgt_max()
     real matrix balancetable()
 }
@@ -288,6 +288,7 @@ void           psweightado::balanceresults() return(this.super.balanceresults(th
 real rowvector psweightado::solve()          return(this.super.solve(this.stat, this.subcmd, this.denominator, this.cvopt))
 real rowvector psweightado::ipw()            return(this.super.ipw(this.stat))
 real rowvector psweightado::cbps()           return(this.super.cbps(this.stat, this.denominator))
+real rowvector psweightado::uri()            return(this.super.uri(this.stat))
 real rowvector psweightado::cbpsoid()        return(this.super.cbpsoid(this.stat, this.denominator))
 real rowvector psweightado::stddiff()        return(this.super.stddiff(this.denominator))
 real rowvector psweightado::varratio()       return(this.super.varratio(this.denominator))
