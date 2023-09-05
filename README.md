@@ -13,7 +13,7 @@ logistic regression (traditional IPW), covariate-balancing propensity scores
 propensity scores, and other methods.  It also constructs balance tables and
 assesses the distribution of the IPW weights.
 
-`psweight` is a Stata command that offers Stata users easy access to the class.
+`psweight.ado` is a Stata command that offers Stata users easy access to the class.
 However, the class offers more flexibility and can conduct some analyses
 unavailable with the Stata command.
 
@@ -28,7 +28,7 @@ regression model.  Specifically, the propensity score for each row in
 the data is defined as
 
 ```
-                    p = invlogit(X * b')
+     p = invlogit(X * b')
 ```
 
 where X is the vector of matching variables (tmvarlist) for the
@@ -45,7 +45,7 @@ defined in the previous sentence.  That is, for a given `subcmd`, we
 can generically define `b` as the vector that solves the problem:
 
 ```
-                    b = argmin L(X,T,W)
+     b = argmin L(X,T,W)
 ```
 
 where `L(X,T,W)` is a "loss function" that corresponds to the specified
@@ -65,7 +65,7 @@ produce better balance and others of which yield higher statistical
 power.  The penalized method solves for `b` in:
 
 ```
-                b = argmin L(X,T,W) + f(W)
+     b = argmin L(X,T,W) + f(W)
 ```
 
 where `f(W)` is a smooth, flexible function that increases as the vector
@@ -90,7 +90,6 @@ group, and returned in the variable named `_weight_mtch`.
 Finally, the final weights (a variable named _weight) are set equal
 to: `_weight = W :* _weight_mtch`, where W are the sample weights.
 
-
 # Author
 
 Keith Kranker
@@ -99,14 +98,13 @@ The code for implementing the CBPS method is based on work by Fong et al.
 (2018), namely the CBPS package for R.  I also reviewed the Stata CBPS
 implementation by Filip Premik.
 
-
 # Suggested Citation
 
-* Kranker, Keith. "psweight: IPW- and CBPS-type propensity score reweighting, with various extensions," Statistical Software Components S458657, Boston College Department of Economics, 2019. Available at https://ideas.repec.org/c/boc/bocode/s458657.html.
+* Kranker, Keith, Laura Blue, and Lauren Vollmer Forrow. “Improving Effect Estimates by Limiting the Variability in Inverse Propensity Score Weights.” _The American Statistician_, Volume 75, 2021, Issue 3, pp 276-87. https://doi.org/10.1080/00031305.2020.1737229.
 
 or
 
-* Kranker, Keith, Laura Blue, and Lauren Vollmer Forrow. “Improving Effect Estimates by Limiting the Variability in Inverse Propensity Score Weights.” _The American Statistician_, in press. https://doi.org/10.1080/00031305.2020.1737229.
+* Kranker, Keith. "psweight: IPW- and CBPS-type propensity score reweighting, with various extensions," Statistical Software Components S458657, Boston College Department of Economics, 2019. Available at https://ideas.repec.org/c/boc/bocode/s458657.html.
 
 Source code is available at https://github.com/kkranker/psweight.
 Please report issues at  https://github.com/kkranker/psweight/issues.
@@ -125,11 +123,10 @@ To install the latest version from Github, type this from your Stata command lin
 . net from https://raw.githubusercontent.com/kkranker/psweight/master/
 ```
 
-
 # References
 
 * Fong, C., M. Ratkovic, K. Imai, C. Hazlett, X. Yang, and S. Peng.  2018. CBPS: Covariate Balancing Propensity Score, Package for the Rprogramming langauage, The Comprehensive R Archive Network.Available at: https://CRAN.R-project.org/package=CBPS
 
 * Imai, K. and M. Ratkovic.  2014.  "Covariate Balancing Propensity Score."Journal of the Royal Statistical Society: Series B (StatisticalMethodology), 76(1): 243–263, doi:10.1111/rssb.12027.
 
-* Kranker, Keith, Laura Blue, and Lauren Vollmer Forrow. “Improving Effect Estimates by Limiting the Variability in Inverse Propensity Score Weights.” _The American Statistician_, in press. https://doi.org/10.1080/00031305.2020.1737229.
+* Kranker, Keith, Laura Blue, and Lauren Vollmer Forrow. “Improving Effect Estimates by Limiting the Variability in Inverse Propensity Score Weights.” _The American Statistician_, Volume 75, 2021, Issue 3, pp 276-87. https://doi.org/10.1080/00031305.2020.1737229.
