@@ -56,12 +56,14 @@ program define dgp_ksir
     summ y if a
     replace y = y - r(mean) + 210
   }
-
+  label var e  "e: Error term (not seen by analyst), distributed normal(0,1)"
   label var ps "ps: True propensity score"
   label var a "a: Treatment assignment"
   label var y "y: Observed outcome"
+  note   : In this scenario, the true impact of treatment on the outcome is zero. 
+  note   : Comparing the (unweighted) difference in mean outcomes between the treatment and comparison groups will yield an estimated impact of about -20, given the selection bias.
 
-  format %5.3fc z1-z4 x1-x4 ps y
+  format %5.3fc z1-z4 x1-x4 ps y e
   cap lab drop dgp_ksir_tc
   label define dgp_ksir_tc 0 "Comparison" 1 "Treatment"
   label val a dgp_ksir_tc
